@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-900: #062C1D;
+  --color-brand-800: #0A3D29;
+  --color-brand-700: #0D4E35;
+  --color-brand-600: #10893E;
+  --color-brand-500: #16A34A;
+  --color-brand-400: #22C55E;
+  --color-brand-100: #DCFCE7;
+  --color-brand-50:  #F0FDF4;
+
+  --color-green-dark: #062C1D;
+  --color-green-primary: #10893E;
+  --color-green-active: #16A34A;
+  --color-green-light: #E8F5E9;
+  --color-green-banner: #DCEDC8;
+  --color-green-muted: #6B9E7A;
+
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #F8FAFC;
+    color: #1E293B;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+
+  main table thead th {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748B;
+    background: #F8FAFC;
+    white-space: nowrap;
+  }
+  main table tbody tr {
+    border-color: #F1F5F9;
+  }
+  main input:focus-visible,
+  main select:focus-visible,
+  main textarea:focus-visible {
+    outline: none;
+    border-color: #10B981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)];
+  }
+  .card-header {
+    @apply flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3;
+  }
+  .card-title {
+    @apply text-sm font-bold text-slate-900;
+  }
+  .card-body {
+    @apply p-4;
+  }
+  .stat-label {
+    @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .stat-value {
+    @apply mt-1 text-2xl font-bold tracking-tight text-slate-900 tabular-nums;
+  }
+  .btn-primary,
+  .btn-outline,
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-emerald-600 text-white hover:bg-emerald-700;
+  }
+  .btn-outline {
+    @apply border border-slate-200 bg-white text-slate-700 hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply bg-rose-600 text-white hover:bg-rose-700;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold;
+  }
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark-glass {
+  background: rgba(6, 44, 29, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.premium-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+}

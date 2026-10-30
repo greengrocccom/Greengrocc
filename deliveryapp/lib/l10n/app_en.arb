@@ -1,0 +1,1053 @@
+{
+  "@@locale": "en",
+  "appTitle": "GG delivery partner",
+  "brandName": "GreenGroc",
+  "deliveryPartner": "Delivery Partner",
+  "splashFooterTagline": "GreenGroc · Delivery Partner App",
+  "featureFastDelivery": "Fast\nDelivery",
+  "featureSafeSecure": "Safe &\nSecure",
+  "featureEarnMore": "Earn\nMore",
+  "deliverSafeEarnMore": "Deliver Safe, Earn More",
+  "followSafetyGuidelines": "Follow all safety guidelines and keep your ratings high!",
+  "trustedByPartnersIndia": "Trusted by delivery partners across India",
+  "chooseLanguage": "Choose Language",
+  "selectLanguageSubtitle": "Select your preferred language to continue",
+  "continueButton": "Continue",
+  "saveLanguage": "Save Language",
+  "languageChanged": "Language updated successfully",
+  "languageEnglish": "English",
+  "languageHindi": "Hindi",
+  "languageMarathi": "Marathi",
+  "languageTamil": "Tamil",
+  "languageTelugu": "Telugu",
+  "languageKannada": "Kannada",
+  "loginWithPhone": "Login with Phone",
+  "enterOtp": "Enter OTP",
+  "otpSentMessage": "We sent a 6-digit code to your number",
+  "enterMobileToContinue": "Enter your mobile number to continue",
+  "mobileNumber": "Mobile Number",
+  "mobileNumberHint": "10-digit mobile number",
+  "countryCodePrefix": "+91  ",
+  "otp": "OTP",
+  "otpHint": "Enter 6-digit OTP",
+  "resendOtp": "Resend OTP",
+  "sendOtp": "Send OTP",
+  "verifyAndContinue": "Verify & Continue",
+  "changeNumber": "Change number",
+  "needHelp": "Need help?",
+  "selectVehicle": "Select vehicle",
+  "vehicleMotorcycle": "Motorcycle",
+  "vehicleBicycle": "Bicycle",
+  "vehicleElectricScooter": "Electric scooter",
+  "vehicleVan": "Van",
+  "noVehicle": "I don't have a vehicle",
+  "noVehicleSubtitle": "No vehicle? We'll help!",
+  "next": "Next",
+  "selectCity": "Select City",
+  "whereWillYouDeliver": "Where will you deliver?",
+  "searchCity": "Search city",
+  "cityMumbai": "Mumbai",
+  "cityPune": "Pune",
+  "cityNagpur": "Nagpur",
+  "cityNashik": "Nashik",
+  "cityThane": "Thane",
+  "cityAurangabad": "Aurangabad",
+  "cityDelhi": "Delhi",
+  "cityBengaluru": "Bengaluru",
+  "cityHyderabad": "Hyderabad",
+  "cityChennai": "Chennai",
+  "cityKolkata": "Kolkata",
+  "cityAhmedabad": "Ahmedabad",
+  "citySurat": "Surat",
+  "cityJaipur": "Jaipur",
+  "cityLucknow": "Lucknow",
+  "cityIndore": "Indore",
+  "uploadDocuments": "Upload Documents",
+  "uploadDocumentsSubtitle": "Complete all documents and payment details to continue",
+  "identityDocuments": "Identity Documents",
+  "aadhaarCard": "Aadhaar Card",
+  "aadhaarCardSubtitle": "Front side clearly visible",
+  "panCard": "PAN Card",
+  "panCardSubtitle": "Clear photo of PAN",
+  "passportSizePhoto": "Passport Size Photo",
+  "passportSizePhotoSubtitle": "Recent passport-size photo",
+  "drivingLicense": "Driving License",
+  "drivingLicenseSubtitle": "Valid driving license",
+  "vehicleDocuments": "Vehicle Documents",
+  "vehicleRc": "Vehicle RC",
+  "vehicleRcSubtitle": "Registration certificate",
+  "insurance": "Insurance",
+  "insuranceSubtitle": "Valid vehicle insurance",
+  "bankDetails": "Bank Details",
+  "accountHolderName": "Account Holder Name",
+  "accountHolderNameHint": "Name as per bank account",
+  "bankName": "Bank Name",
+  "bankNameHint": "e.g. HDFC Bank",
+  "accountNumber": "Account Number",
+  "accountNumberHint": "Enter account number",
+  "ifscCode": "IFSC Code",
+  "ifscCodeHint": "e.g. HDFC0001234",
+  "upiId": "UPI ID",
+  "upiIdHint": "yourname@upi",
+  "uploadDocumentSheetTitle": "Upload document",
+  "takePhoto": "Take photo",
+  "chooseFromGallery": "Choose from gallery",
+  "uploadedTapToChange": "Uploaded · Tap to change",
+  "takeRecentPhoto": "Take a Recent Photo",
+  "selfieCaptureSubtitle": "Capture a clear live selfie, then complete face verification",
+  "cameraPreview": "Camera preview",
+  "faceClearlyVisible": "Make sure your face is clearly visible",
+  "selfieNextStepHint": "Great! Next you'll blink and move your head on camera",
+  "openCamera": "Open Camera",
+  "continueToVerification": "Continue to Verification",
+  "retakePhoto": "Retake Photo",
+  "faceVerification": "Face Verification",
+  "verificationComplete": "Verification Complete",
+  "livenessFollowPrompts": "Follow the on-screen prompts to verify it's really you",
+  "livenessSuccessMessage": "Your live identity check was successful",
+  "allChecksPassed": "All checks passed",
+  "keepFaceInCircle": "Keep your face inside the circle",
+  "continueToApp": "Continue to App",
+  "tryAgain": "Try Again",
+  "cameraAccessError": "Could not open camera. Please allow camera access and try again.",
+  "livenessCenterFace": "Center your face in the circle",
+  "livenessBlink": "Blink your eyes",
+  "livenessLookLeft": "Turn your head left",
+  "livenessLookRight": "Turn your head right",
+  "livenessLookUp": "Look up",
+  "home": "Home",
+  "dashboard": "Dashboard",
+  "orders": "Orders",
+  "navigation": "Navigation",
+  "map": "Map",
+  "wallet": "Wallet",
+  "profile": "Profile",
+  "activeOrders": "Active Orders",
+  "history": "History",
+  "attendance": "Attendance",
+  "performance": "Performance",
+  "notifications": "Notifications",
+  "documents": "Documents",
+  "vehicle": "Vehicle",
+  "support": "Support",
+  "settings": "Settings",
+  "logout": "Logout",
+  "goodMorning": "Good Morning 👋",
+  "beSafeDeliverHappiness": "Be safe and deliver happiness",
+  "online": "Online",
+  "offline": "Offline",
+  "todaysEarnings": "Today's Earnings",
+  "tapToViewDetails": "Tap to view details",
+  "todaysDeliveries": "Today's Deliveries",
+  "completedToday": "Completed today",
+  "performanceScore": "Performance Score",
+  "thisWeek": "This week",
+  "customerRating": "Customer Rating",
+  "averageRating": "Average rating",
+  "activeDelivery": "Active Delivery",
+  "inProgress": "In Progress",
+  "viewDetails": "View details",
+  "pickUp": "Pick Up",
+  "storeLocation": "Store location",
+  "dropOff": "Drop Off",
+  "customerLocation": "Customer location",
+  "quickActions": "Quick Actions",
+  "seeAll": "See all",
+  "newOrders": "New Orders",
+  "navigate": "Navigate",
+  "recentOrders": "Recent Orders",
+  "acceptanceRate": "Acceptance Rate",
+  "last7Days": "Last 7 days",
+  "placeholderStoreName": "Store Name",
+  "placeholderCustomerName": "Customer Name",
+  "placeholderPickupAddress": "Pickup address",
+  "placeholderDropAddress": "Drop address",
+  "placeholderDistanceKm": "— km",
+  "placeholderEarnings": "₹ —",
+  "placeholderTimeMin": "— min",
+  "placeholderPercent": "—%",
+  "placeholderDash": "—",
+  "newOrdersSubtitle": "Accept orders to start earning",
+  "placeholderPickupAddressLine": "Pickup address line",
+  "placeholderDropAddressLine": "Drop address line",
+  "statusNew": "New",
+  "pickup": "Pickup",
+  "drop": "Drop",
+  "reject": "Reject",
+  "accept": "Accept",
+  "orderInProgress": "Order in progress",
+  "headingToPickup": "Heading to Pickup",
+  "storeAddress": "Store address",
+  "customer": "Customer",
+  "deliveryAddress": "Delivery address",
+  "deliveryOtp": "Delivery OTP",
+  "otpPlaceholder": "— — — —",
+  "askCustomerForOtp": "Ask customer for OTP",
+  "timelineAssigned": "Assigned",
+  "timelineAssignedSubtitle": "Order assigned to you",
+  "timelinePickUp": "Pick Up",
+  "timelinePickUpSubtitle": "Collect from store",
+  "timelineDelivered": "Delivered",
+  "timelineDeliveredSubtitle": "Hand over to customer",
+  "callCustomer": "Call Customer",
+  "pickedUp": "Picked up",
+  "delivered": "Delivered",
+  "liveMap": "Live Map",
+  "mapIntegrationComingSoon": "Map integration coming soon",
+  "enRoute": "En Route",
+  "etaMin": "ETA — min",
+  "store": "Store",
+  "distance": "Distance",
+  "distanceRemaining": "— km remaining",
+  "deliveryHistory": "Delivery History",
+  "today": "Today",
+  "week": "Week",
+  "month": "Month",
+  "orderId": "Order ID —",
+  "amount": "Amount",
+  "date": "Date",
+  "labelWithColon": "{label}:",
+  "@labelWithColon": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "earnings": "Earnings",
+  "trackYourIncome": "Track your income",
+  "updatedLive": "Updated live",
+  "weekly": "Weekly",
+  "monthly": "Monthly",
+  "bonus": "Bonus",
+  "incentives": "Incentives",
+  "earningsChart": "Earnings Chart",
+  "transactions": "Transactions",
+  "deliveryPayment": "Delivery Payment",
+  "dayMon": "M",
+  "dayTue": "T",
+  "dayWed": "W",
+  "dayThu": "T",
+  "dayFri": "F",
+  "daySat": "S",
+  "daySun": "S",
+  "walletBalance": "Wallet Balance",
+  "withdraw": "Withdraw",
+  "manageYourEarnings": "Manage your earnings",
+  "recentTransactions": "Recent Transactions",
+  "accountHolder": "Account Holder",
+  "accountNumberMasked": "— — — —",
+  "transaction": "Transaction",
+  "trackWorkingHours": "Track your working hours",
+  "monthYear": "Month Year",
+  "loginTime": "Login Time",
+  "logoutTime": "Logout Time",
+  "workingHours": "Working Hours",
+  "breakTime": "Break Time",
+  "timePlaceholder": "— : —",
+  "workingHoursPlaceholder": "— h — m",
+  "breakTimePlaceholder": "— m",
+  "attendanceHistory": "Attendance History",
+  "datePlaceholder": "Date —",
+  "hoursWorked": "— h — m worked",
+  "deliveryMetrics": "Your delivery metrics",
+  "score": "Score",
+  "onTimeDelivery": "On Time Delivery",
+  "cancellationRate": "Cancellation Rate",
+  "leaderboardPosition": "Leaderboard Position",
+  "leaderboardRank": "# —",
+  "inYourZone": "In your zone",
+  "stayUpdated": "Stay updated",
+  "notificationNewOrder": "New Order",
+  "notificationNewOrderMessage": "A new delivery order is available near you",
+  "notificationPaymentReceived": "Payment Received",
+  "notificationPaymentMessage": "Your delivery payment has been credited",
+  "notificationIncentiveUnlocked": "Incentive Unlocked",
+  "notificationIncentiveMessage": "You unlocked a weekly bonus incentive",
+  "notificationAnnouncement": "Announcement",
+  "notificationAnnouncementMessage": "New safety guidelines for delivery partners",
+  "notificationSupportUpdate": "Support Update",
+  "notificationSupportMessage": "Your support ticket has been updated",
+  "timeMinAgo": "— min ago",
+  "timeHourAgo": "— hour ago",
+  "timeDayAgo": "— day ago",
+  "partnerName": "Partner Name",
+  "partnerId": "ID: — — —",
+  "editProfile": "Edit Profile",
+  "driverInformation": "Driver Information",
+  "personalDetails": "Personal details",
+  "vehicleInformation": "Vehicle Information",
+  "bikeDetails": "Bike details",
+  "license": "License",
+  "verificationDocuments": "Verification documents",
+  "uploadAndVerifyDocuments": "Upload and verify documents",
+  "docDrivingLicense": "Driving License",
+  "docPan": "PAN",
+  "docAadhaar": "Aadhaar",
+  "docVehicleRc": "Vehicle RC",
+  "upload": "Upload",
+  "pending": "Pending",
+  "vehicleDetails": "Vehicle Details",
+  "yourDeliveryVehicle": "Your delivery vehicle",
+  "active": "Active",
+  "bikeDetailsTitle": "Bike Details",
+  "registrationNumber": "Registration Number",
+  "pollutionCertificate": "Pollution Certificate",
+  "vehicleStatus": "Vehicle Status",
+  "verified": "Verified",
+  "weAreHereToHelp": "We are here to help",
+  "faq": "FAQ",
+  "commonQuestions": "Common questions",
+  "chatSupport": "Chat Support",
+  "chatWithTeam": "Chat with our team",
+  "callSupport": "Call Support",
+  "talkToSupportAgent": "Talk to support agent",
+  "raiseTicket": "Raise Ticket",
+  "submitSupportRequest": "Submit a support request",
+  "support247": "24/7 Support",
+  "supportAvailableRoundClock": "Our team is available round the clock",
+  "darkMode": "Dark Mode",
+  "darkThemeOn": "Dark theme is on",
+  "lightThemeOn": "Light theme is on",
+  "language": "Language",
+  "pushNotifications": "Push Notifications",
+  "orderAlerts": "Order Alerts",
+  "privacy": "Privacy",
+  "privacyPolicyTerms": "Privacy policy & terms",
+  "password": "Password",
+  "passwordHint": "Enter password (min 6 chars)",
+  "login": "Login",
+  "register": "Register",
+  "createAccount": "Create Account",
+  "alreadyHaveAccount": "Already have an account? Login",
+  "dontHaveAccount": "New partner? Register",
+  "enterPhoneAndPassword": "Enter your phone number and password",
+  "authError": "Something went wrong. Please try again.",
+  "selectArea": "Select Area",
+  "selectAreaSubtitle": "Choose your delivery area",
+  "searchArea": "Search area",
+  "noAreasFound": "No areas found",
+  "verificationPendingTitle": "Verification in progress",
+  "verificationPendingHours": "Document & identity verification usually completes within 3–6 hours.",
+  "verificationOfflineVisit": "Please visit your area Delivery Manager for offline verification with original documents.",
+  "verificationManagerLabel": "Delivery Manager",
+  "verificationStoreLabel": "Store",
+  "verificationAddressLabel": "Address",
+  "verificationPhoneLabel": "Phone",
+  "verificationNoManagerYet": "No delivery manager is registered for your area yet. Stay offline until verification is assigned.",
+  "verificationCannotGoOnline": "You can go online after verification is complete.",
+  "verificationApprovedTitle": "You're verified",
+  "verificationApprovedToast": "Verified! You can go online now.",
+  "verificationRejectedTitle": "Verification rejected",
+  "verificationRejectedHint": "Contact your area delivery manager for help.",
+  "myShifts": "My Shifts",
+  "myShiftsSubtitle": "Your booked and available delivery shifts",
+  "availableShifts": "Available Shifts",
+  "myProgress": "My Progress",
+  "loginHours": "Login Hours",
+  "totalOrdersToday": "Total Orders Today",
+  "shiftBooked": "Booked",
+  "shiftAvailable": "Available",
+  "bookShift": "Book Shift",
+  "shiftBookedSuccess": "Shift booked successfully!",
+  "noShiftsYet": "No shifts booked yet",
+  "noShiftsYetHint": "Book a shift from available slots below",
+  "noAvailableShifts": "No shifts available",
+  "noAvailableShiftsHint": "Check back later for new slots",
+  "ordersExpected": "orders expected",
+  "viewAllShifts": "View all shifts",
+  "dailyProgress": "Daily Progress",
+  "dailyProgressSubtitle": "Track your goals for today",
+  "complete": "complete",
+  "onlineForToday": "Online for",
+  "peakHoursBanner": "Peak hours right now — earn extra per order",
+  "shiftBookedBanner": "You're booked for {label} ({time})",
+  "@shiftBookedBanner": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "shiftBookingHint": "Booking a shift helps the store plan — you can still go online/offline anytime",
+  "bookTomorrowShift": "Book Tomorrow's Shift",
+  "youreOnline": "You're online",
+  "goOnlineToReceive": "Go online to receive orders",
+  "tapToStartReceiving": "Tap the switch to start receiving orders",
+  "waitingForOrders": "Waiting for orders...",
+  "waitingForOrdersHint": "Stay nearby — new deliveries will appear here",
+  "onADelivery": "On a delivery",
+  "reachedStore": "Reached store",
+  "incentiveOrdersLeft": "Complete {count} more orders for today's bonus",
+  "@incentiveOrdersLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dailyTargetReached": "Daily order target reached — great work!",
+  "referAndEarn": "Refer & Earn",
+  "referAndEarnSubtitle": "Invite your friends and earn amazing rewards",
+  "earnBonus": "Earn Bonus",
+  "earnBonusSubtitle": "Complete more gigs and earn exciting bonuses",
+  "viewWallet": "View Wallet",
+  "verifiedPartner": "Verified Partner",
+  "youAreOnline": "You are Online",
+  "youAreOffline": "You are Offline",
+  "receiveDeliveryRequests": "You will receive delivery requests.",
+  "offlineDeliveryHint": "Go online to receive delivery requests.",
+  "completeMoreDeliveriesBonus": "Complete {count} more deliveries to earn extra {amount} bonus",
+  "@completeMoreDeliveriesBonus": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "currentOrder": "Current Order",
+  "orderEarnings": "Order Earnings",
+  "acceptOrder": "Accept Order",
+  "kmAway": "{distance} km away",
+  "@kmAway": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "todaysOrders": "Today's Orders",
+  "completed": "Completed",
+  "shiftRunning": "Running",
+  "shiftUpcoming": "Upcoming",
+  "myOrders": "My Orders",
+  "thisWeekEarnings": "This Week",
+  "continueDelivery": "Continue Delivery",
+  "goOnlineToReceiveOrders": "Go online to receive delivery requests",
+  "moreOrders": "More orders",
+  "moreEarnings": "More earnings",
+  "goOnline": "Go Online",
+  "goOffline": "Go Offline",
+  "todaysProgress": "Today's Progress",
+  "viewAll": "View All",
+  "viewAllGigs": "View All Gigs",
+  "bookAndGoOnline": "Book & Go Online",
+  "trips": "Trips",
+  "gigs": "Gigs",
+  "sessions": "Sessions",
+  "shifts": "Shifts",
+  "incentiveSlabsBonusLevels": "INCENTIVE SLABS & BONUS LEVELS",
+  "earnBonusTitle": "Earn Bonus",
+  "exploreBonuses": "Explore Bonuses",
+  "referAndEarnTitle": "Refer & Earn",
+  "referNow": "Refer Now",
+  "gigsAndIncentives": "Gigs & Incentives",
+  "earnUpToExtra": "Earn up to ₹{bonus} extra",
+  "@earnUpToExtra": {
+    "placeholders": {
+      "bonus": {
+        "type": "Object"
+      }
+    }
+  },
+  "lunchIncentive": "Lunch Incentive",
+  "dinnerIncentive": "Dinner Incentive",
+  "specialGigDesc": "Special Gig • You can go online even now",
+  "noShiftsBookedYet": "No Shifts Booked Yet",
+  "noShiftBookedForToday": "No Shift Booked For Today",
+  "mandatoryBookShiftHint": "Mandatory: You must book today's shift before going online and receiving orders.",
+  "bookShiftNow": "Book Shift Now 📅",
+  "selectShiftSlotNow": "Select Shift Slot Now",
+  "verifyLocationAndGoOnline": "Verify Location & Go Online 🟢",
+  "upcomingShiftsTitle": "UPCOMING SHIFTS",
+  "bookMore": "+ Book More",
+  "noFutureUpcomingShifts": "No future upcoming shifts booked.",
+  "availableShiftSlots": "Available Shift Slots",
+  "filterServerTimeHint": "Past and full slots are automatically filtered by server time.",
+  "noActiveGigsTitle": "No Active Gigs",
+  "noActiveGigsSubtitle": "There are no active gig incentives for your store right now.",
+  "shiftStatusYourBooked": "YOUR BOOKED SHIFT ✓",
+  "shiftStatusEnded": "SHIFT ENDED",
+  "shiftStatusFull": "FULLY BOOKED",
+  "spotsLeftCount": "{count} spots left!",
+  "@spotsLeftCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "spotsAvailableCount": "{count} spots available",
+  "@spotsAvailableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "badgeBooked": "Booked ✓",
+  "badgeEnded": "Ended",
+  "badgeFull": "Full",
+  "btnBook": "Book",
+  "todayUpper": "TODAY",
+  "confirmShiftTitle": "Confirm Shift",
+  "workingHoursLabel": "Working Hours",
+  "confirmBookQuestion": "Are you sure you want to book this shift slot?",
+  "shiftBookedSuccessfully": "✓ Shift Booked Successfully",
+  "shiftConfirmedSubtitle": "Your shift has been confirmed.",
+  "verificationPendingBody": "Your profile is under review by our verification team. This usually takes 24-48 hours.",
+  "verificationPendingDarkStoreHint": "Visit your registered dark store for instant offline verification.",
+  "verificationRejectedBody": "Your document verification was rejected. Please re-upload valid documents.",
+  "selectYourShift": "Select Your Shift",
+  "noAvailableSlotsForDate": "No Available Slots for this date",
+  "allSlotsBookedOrEnded": "All slots for this date are booked or ended.",
+  "liveServerTime": "Live Server Time",
+  "year": "Year",
+  "onlineTime": "Online Time",
+  "shiftsBookedLabel": "Shifts Booked",
+  "completedShiftsLabel": "Completed Shifts",
+  "earnShort": "Earn",
+  "doneShort": "Done",
+  "couldNotLoadHistory": "Could not load history",
+  "noActivityInPeriod": "No activity in this period",
+  "tripsCount": "{count} Trips",
+  "@tripsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tripCountOne": "{count} Trip",
+  "@tripCountOne": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shiftsCount": "{count} Shifts",
+  "@shiftsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shiftCountOne": "{count} Shift",
+  "@shiftCountOne": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "completedCountLabel": "{count} Completed",
+  "@completedCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shiftsBookedValue": "{count} booked",
+  "@shiftsBookedValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shiftsDoneValue": "{count} shifts",
+  "@shiftsDoneValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tripsAndOnlineSummary": "{trips} trips · {onlineTime}",
+  "@tripsAndOnlineSummary": {
+    "placeholders": {
+      "trips": {
+        "type": "int"
+      },
+      "onlineTime": {
+        "type": "String"
+      }
+    }
+  },
+  "thisWeekEarningsTitle": "This week earnings",
+  "fullWeekEarnings": "Full week earnings",
+  "deliveriesAndToday": "{count} deliveries · Today {amount}",
+  "@deliveriesAndToday": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "withdrawRequestSubmitted": "Withdraw request for {amount} submitted.",
+  "@withdrawRequestSubmitted": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "withdrawAvailableSaturday": "Withdraw is available today (Saturday).",
+  "noEarningsToWithdraw": "No earnings to withdraw this week.",
+  "withdrawOpensSaturday": "Withdraw opens only on Saturday. Your weekly earnings stay locked until then.",
+  "weeklyChart": "Weekly chart",
+  "noEarningsThisWeekYet": "No earnings this week yet",
+  "dayWiseEarnings": "Day-wise earnings",
+  "completeDeliveriesForWeekly": "Complete deliveries to see weekly earnings here.",
+  "deliveriesCount": "{count} deliveries",
+  "@deliveriesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayWithLabel": "Today · {label}",
+  "@todayWithLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "dayWithDate": "{label} · {date}",
+  "@dayWithDate": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "todayTrips": "Today trips",
+  "lifetimeEarnings": "Lifetime",
+  "noDeliveriesTodayYet": "No deliveries completed today yet.",
+  "orderNumberHash": "Order #{number}",
+  "@orderNumberHash": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveriesUpdatedLive": "{count} deliveries · {updatedLive}",
+  "@deliveriesUpdatedLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "updatedLive": {
+        "type": "String"
+      }
+    }
+  },
+  "distanceKmValue": "{km} km",
+  "@distanceKmValue": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeBack": "Welcome Back!",
+  "loginOtpSubtitle": "Enter your mobile number — we'll send you an OTP",
+  "registerOtpSubtitle": "Join as a Delivery Partner with your mobile number",
+  "otpSentTo": "We've sent a 6 digit OTP to\n+91 {phone}",
+  "@otpSentTo": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "resendOtpIn": "Resend OTP in ",
+  "resendNow": "Resend Now",
+  "otpResent": "OTP resent successfully",
+  "agreeTermsPrefix": "I agree to the ",
+  "termsAndConditions": "Terms & Conditions",
+  "andWord": " and ",
+  "privacyPolicy": "Privacy Policy",
+  "agreeTermsError": "Please agree to Terms & Conditions",
+  "noAccountPrompt": "Don't have an account? ",
+  "haveAccountPrompt": "Already have an account? ",
+  "registerNow": "Register Now",
+  "pickupDriverLogin": "Pickup driver? Login with password",
+  "markAsRead": "Mark as read",
+  "announcementMovedToNotifications": "Moved to Notifications",
+  "noSlotAssignedTitle": "No slot assigned",
+  "noSlotAssignedMessage": "No slot is assigned to you for today. Your Delivery Manager assigns slots — you can also go online while a live gig is running.",
+  "viewMySlots": "View my slots",
+  "cancel": "Cancel",
+  "ok": "OK",
+  "orderDeliveredTitle": "Order delivered successfully",
+  "orderDeliveredBody": "Order #{number} has been delivered.",
+  "@orderDeliveredBody": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "goToHome": "Go to Home",
+  "deliveryPartnerApp": "Delivery Partner App",
+  "fullNameHint": "Enter your full name",
+  "enterNameError": "Please enter your full name",
+  "noAreasInCity": "No delivery hubs in this city yet. Please choose another city.",
+  "nextDelivery": "Next delivery",
+  "detectingLocation": "Detecting your location…",
+  "locationUnavailable": "Couldn't get your location. Turn on GPS and try again.",
+  "locationVerified": "Location verified",
+  "locationCheckFailed": "Location check failed",
+  "slotsAssignedByManager": "Slots are assigned by your Delivery Manager. You'll get a notification when a new slot is assigned.",
+  "todaysSlots": "TODAY'S SLOTS",
+  "noSlotAssignedToday": "No slot assigned for today yet.",
+  "noUpcomingSlotsAssigned": "No upcoming slots assigned.",
+  "incentivePerKm": "₹{rate}/km incentive",
+  "@incentivePerKm": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "incentivePerKmAfter": "₹{rate}/km after {km} km",
+  "@incentivePerKmAfter": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      },
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "kmDoneInSlot": "{done} / {km} km done",
+  "@kmDoneInSlot": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "incentivePerHour": "₹{rate}/hr incentive",
+  "@incentivePerHour": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "salaryAndIncentives": "Salary & Incentives",
+  "slotIncentives": "Slot Incentives",
+  "perMonth": "per month",
+  "todayIncentiveEarned": "{amount} incentive earned today",
+  "@todayIncentiveEarned": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "salaryAmount": "Salary {amount}",
+  "@salaryAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "salaryNotCreditedYet": "Salary pending",
+  "incentiveAmount": "Incentive {amount}",
+  "@incentiveAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "recentIncentives": "Recent incentives",
+  "todaysIncentive": "Today's incentive",
+  "salaryLabel": "Salary",
+  "perDay": "per day",
+  "perWeek": "per week",
+  "salaryNotSet": "Not set yet",
+  "shiftEndedNowOffline": "Your shift/gig ended. You are now offline.",
+  "orderAlreadyAccepted": "Order already accepted — opening active delivery.",
+  "assignmentNoLongerAvailable": "This assignment is no longer available.",
+  "shiftEndedGraceOffline": "Your shift/gig ended. You stayed online 5 more minutes and are now offline.",
+  "verificationRequiredToGoOnline": "Account verification required to go online.",
+  "youAreNowOffline": "You are now Offline.",
+  "failedToUpdateStatus": "Failed to update status.",
+  "somethingWentWrong": "Something went wrong. Please try again.",
+  "managerAssignedPreOrders": "Delivery Manager assigned you {count} pre-order(s)",
+  "@managerAssignedPreOrders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "view": "View",
+  "readyToDeliver": "Ready to deliver?",
+  "receivingNearbyRequests": "Receiving nearby delivery requests.",
+  "goOnlineToReceiveRequests": "Go online to receive requests.",
+  "todaysProgressTitle": "Today's Progress",
+  "todaysEarningsLabel": "Today's Earnings",
+  "tripsCompletedLabel": "Trips Completed",
+  "currentEarningsLabel": "Current Earnings",
+  "currentBonusLabel": "Current Bonus",
+  "completeMoreOrdersForBonus": "Complete {count} more orders to get +{bonus} bonus",
+  "@completeMoreOrdersForBonus": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "bonus": {
+        "type": "String"
+      }
+    }
+  },
+  "ordersProgress": "{done} / {total} Orders",
+  "@ordersProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "ratingLabel": "Rating",
+  "acceptanceLabel": "Acceptance",
+  "onTimeLabel": "On-Time",
+  "acceptShort": "Accept",
+  "declineShort": "Decline",
+  "completeDeliveriesForGraph": "Complete deliveries to see your graph",
+  "noPerformanceDataYet": "No performance data yet",
+  "completeDeliveriesForPerformance": "Complete deliveries to see your performance\nand growth here.",
+  "preOrdersAssignedToYou": "{count} pre-order(s) assigned to you",
+  "@preOrdersAssignedToYou": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "preOrdersToCollect": "{count} to collect — scan each order's QR at the store",
+  "@preOrdersToCollect": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allCollectedDeliverOneByOne": "All collected — deliver one by one",
+  "openAction": "Open",
+  "deliveryInProgress": "Delivery in Progress",
+  "tapToViewOrderDetails": "Tap to view order details & navigation",
+  "kindHoliday": "Holiday",
+  "kindShift": "Shift",
+  "kindNote": "Note",
+  "kindUpcoming": "Upcoming",
+  "cashDepositDue": "Cash Deposit Due",
+  "detailsAction": "Details",
+  "handOverToStoreToday": "Hand over to darkstore manager today",
+  "couldNotLoadPreOrders": "Could not load your pre-orders.",
+  "addressesUnlocked": "Addresses unlocked for the scanned orders.",
+  "preOrderDeliveriesTitle": "Pre-order deliveries",
+  "noPreOrdersAssigned": "No pre-orders assigned",
+  "collectAtStore": "Collect at {store}",
+  "@collectAtStore": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "theDarkStore": "the dark store",
+  "preOrderProgressLine": "{delivered} delivered · {onTheWay} on the way · {toScan} to scan",
+  "@preOrderProgressLine": {
+    "placeholders": {
+      "delivered": {
+        "type": "int"
+      },
+      "onTheWay": {
+        "type": "int"
+      },
+      "toScan": {
+        "type": "int"
+      }
+    }
+  },
+  "failedCount": "{count} failed",
+  "@failedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "preOrdersSalaryBased": "Pre-orders are salary-based — no per-km amount is added to your wallet.",
+  "scanOrderQrsLeft": "Scan order QRs ({count} left)",
+  "@scanOrderQrsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "preOrdersEmptyHint": "You will get a notification when your Delivery Manager assigns pre-orders to you.",
+  "outForDelivery": "Out for delivery",
+  "atStoreScanToSeeAddress": "At the store — scan to see address",
+  "finishedToday": "Finished today",
+  "paidOnline": "Paid online",
+  "collectCashAmount": "Collect {amount} cash",
+  "@collectCashAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "slotLabel": "Slot {slot}",
+  "@slotLabel": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "itemsCount": "{count} items",
+  "@itemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQr": "Scan QR",
+  "scanBagQrHint": "Scan the QR on this order's bag to see customer address and number.",
+  "callAction": "Call",
+  "deliverAction": "Deliver",
+  "failedStatus": "Failed",
+  "editName": "Edit name",
+  "fullName": "Full name",
+  "saveAction": "Save",
+  "profilePhotoSaved": "Profile photo saved to your account",
+  "ratingsCount": "{count} ratings",
+  "@ratingsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tapPhotoToUpdate": "Tap photo to update · saved to cloud & home avatar",
+  "accountDetails": "Account details",
+  "bankViewOnlyManaged": "View only · managed by Delivery Manager",
+  "detailsUpdatedByManager": "These details can only be updated by your Delivery Manager.",
+  "bankViewOnlyContact": "View only · contact Delivery Manager to update",
+  "salaryAccount": "Salary account",
+  "primaryLabel": "Primary",
+  "bankUpdatedByManager": "Bank details can only be updated by your Delivery Manager.",
+  "yesterday": "Yesterday",
+  "clearAllNotificationsTitle": "Clear all notifications?",
+  "clearAllNotificationsBody": "This removes all notifications from your list.",
+  "clearAll": "Clear all",
+  "noNotificationsYet": "No notifications yet",
+  "noNotificationsHint": "Orders, shifts, gigs and wallet updates will show here.",
+  "markAllAsRead": "Mark all as read",
+  "notifVerifiedTitle": "You're Verified!",
+  "notifVerifiedBody": "You can now receive orders.",
+  "notifShiftStartedTitle": "Time to go online",
+  "notifShiftStartedBody": "Your slot has started. Go online to receive orders.",
+  "notifShiftReminderTitle": "Shift starting soon",
+  "notifShiftReminderBody": "Your shift starts in about {minutes} min. Be ready to go online.",
+  "@notifShiftReminderBody": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "notifNewOrderTitle": "New Order",
+  "notifNewOrderBody": "You have a new order request.",
+  "notifPreOrdersAssignedTitle": "Delivery Manager assigned you {count} pre-order(s)",
+  "@notifPreOrdersAssignedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifPreOrdersAssignedBody": "Collect them at the dark store. Scan each order's QR to see that customer's address.",
+  "notifOrdersAssignedTitle": "{count} new order(s) assigned",
+  "@notifOrdersAssignedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifOrdersAssignedBody": "Orders {numbers} have been assigned to you.",
+  "@notifOrdersAssignedBody": {
+    "placeholders": {
+      "numbers": {
+        "type": "String"
+      }
+    }
+  },
+  "notifOrderCompletedTitle": "Order Completed",
+  "notifOrderCompletedBody": "You earned ₹{amount}. Added to your wallet.",
+  "@notifOrderCompletedBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "notifWalletCreditedTitle": "₹{amount} Added",
+  "@notifWalletCreditedTitle": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "notifWalletCreditedBody": "Your earnings have been added to your wallet.",
+  "notifNewGigTitle": "New Gig Available",
+  "notifNewGigBody": "A new gig is available near you.",
+  "monthlyEarnings": "Monthly earnings",
+  "dailyEarnings": "Daily earnings",
+  "onlineDuration": "{time} online",
+  "@onlineDuration": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  }
+}

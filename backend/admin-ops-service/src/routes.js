@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 import express from "express";
 import { protect, requireAdmin, optionalAuth } from "@greengrocc/shared";
 import {
@@ -703,5 +702,3 @@ export default [
   { path: "/api/admin-ops", router },
   { path: "/api/vendor/hr-ops", router: vendorHrRouter },
 ];
-=======
->>>>>>> Stashed changes
