@@ -186,6 +186,7 @@ export const getMyRewardPoints = (params = {}) => api.get("/api/rewards/my-point
 export const calculateRewardDiscount = (data) => api.post("/api/rewards/calculate-discount", data);
 
 export const submitSupportMessage = (data) => api.post("/api/support", data);
+export const getSupportContact = (params = {}) => api.get("/api/support/contact", { params });
 
 export const uploadImageFile = (file, folder) => {
   const formData = new FormData();

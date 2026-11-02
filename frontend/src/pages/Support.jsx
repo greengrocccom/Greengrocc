@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { submitSupportMessage, uploadImageFile } from "../api/api";
+import { submitSupportMessage, uploadImageFile, getSupportContact } from "../api/api";
 import { UPLOAD_FOLDERS } from "../utils/uploadFolders";
 import { SUPPORT_ISSUE_OPTIONS } from "../utils/supportConstants";
 import { CONTACT_EMAIL, CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL, CONTACT_WHATSAPP_URL } from "../config/contact";
@@ -148,6 +148,41 @@ function Support() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [openFaq, setOpenFaq] = useState(null);
+  const [contactData, setContactData] = useState({
+    phone: CONTACT_PHONE_DISPLAY,
+    phoneTel: CONTACT_PHONE_TEL,
+    whatsapp: CONTACT_PHONE_DISPLAY,
+    whatsappHref: CONTACT_WHATSAPP_URL,
+    email: CONTACT_EMAIL,
+    hours: "Mon – Sat · 10 AM – 10 PM",
+    vendorName: "",
+    isVendorSpecific: false,
+  });
+
+  useEffect(() => {
+    let alive = true;
+    getSupportContact()
+      .then((res) => {
+        if (!alive) return;
+        const data = res?.data;
+        if (data && data.success) {
+          setContactData({
+            phone: data.phone || CONTACT_PHONE_DISPLAY,
+            phoneTel: data.phoneTel || CONTACT_PHONE_TEL,
+            whatsapp: data.whatsapp || CONTACT_PHONE_DISPLAY,
+            whatsappHref: data.whatsappHref || CONTACT_WHATSAPP_URL,
+            email: data.email || CONTACT_EMAIL,
+            hours: data.hours || "Mon – Sat · 10 AM – 10 PM",
+            vendorName: data.vendorName || "",
+            isVendorSpecific: Boolean(data.isVendorSpecific),
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -292,13 +327,13 @@ function Support() {
                     </svg>
                   }
                 >
-                  <p className="mt-1 text-xs font-semibold text-primary sm:text-sm">{SUPPORT_CONTACT.phone}</p>
+                  <p className="mt-1 text-xs font-semibold text-primary sm:text-sm">{contactData.phone}</p>
                   <p className="mt-0.5 hidden text-xs text-text-secondary sm:block">Mon – Sat · 10 AM – 10 PM</p>
                 </ContactCard>
 
                 <ContactCard
                   compact
-                  href={SUPPORT_CONTACT.whatsappHref}
+                  href={contactData.whatsappHref}
                   external
                   iconBg="bg-green-100 text-green-600"
                   title="WhatsApp"
@@ -308,13 +343,13 @@ function Support() {
                     </svg>
                   }
                 >
-                  <p className="mt-1 text-xs font-semibold text-green-600 sm:text-sm">{SUPPORT_CONTACT.whatsapp}</p>
+                  <p className="mt-1 text-xs font-semibold text-green-600 sm:text-sm">{contactData.whatsapp}</p>
                   <p className="mt-0.5 hidden text-xs text-text-secondary sm:block">Chat on WhatsApp</p>
                 </ContactCard>
 
                 <ContactCard
                   compact
-                  href={`mailto:${SUPPORT_CONTACT.email}`}
+                  href={`mailto:${contactData.email}`}
                   iconBg="bg-orange-100 text-primary"
                   title="Email"
                   icon={
@@ -323,7 +358,7 @@ function Support() {
                     </svg>
                   }
                 >
-                  <p className="mt-1 break-all text-xs font-semibold text-primary sm:text-sm">{SUPPORT_CONTACT.email}</p>
+                  <p className="mt-1 break-all text-xs font-semibold text-primary sm:text-sm">{contactData.email}</p>
                   <p className="mt-0.5 hidden text-xs text-text-secondary sm:block">Reply within 24 hours</p>
                 </ContactCard>
 
@@ -338,7 +373,7 @@ function Support() {
                   }
                 >
                   <p className="mt-1 text-[11px] leading-snug text-text-secondary sm:text-sm">Mon – Sat</p>
-                  <p className="text-[11px] leading-snug text-text-secondary sm:text-sm">10 AM – 7 PM</p>
+                  <p className="text-[11px] leading-snug text-text-secondary sm:text-sm">{contactData.hours}</p>
                 </ContactCard>
               </div>
 

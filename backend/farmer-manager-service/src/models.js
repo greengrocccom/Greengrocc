@@ -53,6 +53,17 @@ const vendorSchema = new mongoose.Schema(
       emergencyEmail: { type: String, default: "" },
       lastUpdated: { type: Date, default: Date.now },
     },
+    support: {
+      phone: { type: String, default: "" },
+      whatsapp: { type: String, default: "" },
+      whatsappMessage: {
+        type: String,
+        default: "Hi, I need support with my GreenGrocc order.",
+      },
+      email: { type: String, default: "" },
+      hours: { type: String, default: "Mon – Sat · 9 AM – 9 PM" },
+      isActive: { type: Boolean, default: true },
+    },
   },
   { timestamps: true }
 );
@@ -1433,3 +1444,21 @@ export async function ensureFarmerIndexes() {
     console.warn("[Indexes] Error creating farmer indexes:", err.message);
   }
 }
+
+
+const globalSupportSchema = new mongoose.Schema(
+  {
+    key: { type: String, default: "default", unique: true },
+    phone: { type: String, default: "+91 74002 22233" },
+    phoneRaw: { type: String, default: "7400222233" },
+    whatsapp: { type: String, default: "+91 74002 22233" },
+    whatsappRaw: { type: String, default: "917400222233" },
+    whatsappMessage: { type: String, default: "Hi, I need support with my GreenGrocc order." },
+    email: { type: String, default: "greengrocc@gmail.com" },
+    hours: { type: String, default: "Mon – Sat · 10 AM – 10 PM" },
+  },
+  { timestamps: true }
+);
+
+export const GlobalSupportConfig =
+  mongoose.models.GlobalSupportConfig || mongoose.model("GlobalSupportConfig", globalSupportSchema);

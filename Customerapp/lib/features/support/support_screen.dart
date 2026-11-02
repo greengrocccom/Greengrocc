@@ -47,7 +47,27 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _prefillUser());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefillUser();
+      _loadSupportContact();
+    });
+  }
+
+  Future<void> _loadSupportContact() async {
+    try {
+      final data = await ref.read(apiServiceProvider).fetchSupportContact();
+      if (!mounted || data.isEmpty) return;
+      setState(() {
+        if (data['phone'] != null) _phone = data['phone'] as String;
+        if (data['phoneTel'] != null) _phoneTel = data['phoneTel'] as String;
+        if (data['whatsapp'] != null) _whatsapp = data['whatsapp'] as String;
+        if (data['whatsappHref'] != null) _whatsappHref = data['whatsappHref'] as String;
+        if (data['email'] != null) _email = data['email'] as String;
+        if (data['hours'] != null) _hours = data['hours'] as String;
+        if (data['vendorName'] != null) _vendorName = data['vendorName'] as String;
+        _isVendorSpecific = data['isVendorSpecific'] == true;
+      });
+    } catch (_) {}
   }
 
   void _prefillUser() {
@@ -216,8 +236,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                 child: _contactCard(
                   Icons.email_outlined,
                   'Email',
-                  supportContactEmail,
-                  'mailto:$supportContactEmail',
+                  _email,
+                  'mailto:$_email',
                 ),
               ),
               const SizedBox(width: 10),

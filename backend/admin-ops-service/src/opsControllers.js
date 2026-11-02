@@ -3099,3 +3099,119 @@ export async function updateStoreSupport(req, res, next) {
     next(error);
   }
 }
+
+
+export async function getAllVendorsSupportAdmin(req, res, next) {
+  try {
+    const vendors = await Vendor.find()
+      .select("id vendorName ownerName mobile phone email city state zones support status")
+      .sort({ vendorName: 1, ownerName: 1 })
+      .lean();
+
+    let globalConfig = null;
+    try {
+      globalConfig = await GlobalSupportConfig.findOne({ key: "default" }).lean();
+    } catch {
+      // ignore
+    }
+
+    const fallbackGlobal = {
+      phone: "+91 74002 22233",
+      phoneRaw: "7400222233",
+      whatsapp: "+91 74002 22233",
+      whatsappRaw: "917400222233",
+      whatsappMessage: "Hi, I need support with my GreenGrocc order.",
+      email: "greengrocc@gmail.com",
+      hours: "Mon – Sat · 10 AM – 10 PM",
+    };
+
+    const global = { ...fallbackGlobal, ...(globalConfig || {}) };
+
+    const formattedVendors = vendors.map((v) => ({
+      _id: v._id,
+      id: v.id,
+      vendorName: v.vendorName || v.ownerName || "Unnamed Vendor",
+      ownerName: v.ownerName,
+      mobile: v.mobile,
+      email: v.email,
+      city: v.city,
+      zones: v.zones || [],
+      status: v.status,
+      support: {
+        phone: v.support?.phone || "",
+        whatsapp: v.support?.whatsapp || "",
+        whatsappMessage: v.support?.whatsappMessage || "Hi, I need support with my GreenGrocc order.",
+        email: v.support?.email || "",
+        hours: v.support?.hours || "Mon – Sat · 9 AM – 9 PM",
+        isActive: v.support?.isActive !== false,
+      },
+    }));
+
+    return ok(res, {
+      defaultConfig: global,
+      vendors: formattedVendors,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateVendorSupportAdmin(req, res, next) {
+  try {
+    const { id } = req.params;
+    const vendor = await Vendor.findOne(vendorQuery(id));
+    if (!vendor) return fail(res, 404, "Vendor not found");
+
+    const { phone, whatsapp, whatsappMessage, email, hours, isActive } = req.body || {};
+
+    vendor.support = {
+      phone: String(phone ?? vendor.support?.phone ?? "").trim(),
+      whatsapp: String(whatsapp ?? vendor.support?.whatsapp ?? "").trim(),
+      whatsappMessage: String(
+        whatsappMessage ?? vendor.support?.whatsappMessage ?? "Hi, I need support with my GreenGrocc order."
+      ).trim(),
+      email: String(email ?? vendor.support?.email ?? "").trim(),
+      hours: String(hours ?? vendor.support?.hours ?? "Mon – Sat · 9 AM – 9 PM").trim(),
+      isActive: isActive !== undefined ? Boolean(isActive) : vendor.support?.isActive !== false,
+    };
+
+    vendor.markModified("support");
+    await vendor.save();
+
+    return ok(res, vendor.support, {
+      message: `Support configuration updated for ${vendor.vendorName || vendor.ownerName}`,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateGlobalSupportAdmin(req, res, next) {
+  try {
+    const { phone, whatsapp, whatsappMessage, email, hours } = req.body || {};
+
+    const rawPhone = (phone || "").replace(/[^\d+]/g, "");
+    let rawWhatsapp = (whatsapp || "").replace(/\D/g, "");
+    if (rawWhatsapp.length === 10) rawWhatsapp = "91" + rawWhatsapp;
+
+    const updated = await GlobalSupportConfig.findOneAndUpdate(
+      { key: "default" },
+      {
+        $set: {
+          phone: phone ? phone.trim() : "+91 74002 22233",
+          phoneRaw: rawPhone || "7400222233",
+          whatsapp: whatsapp ? whatsapp.trim() : "+91 74002 22233",
+          whatsappRaw: rawWhatsapp || "917400222233",
+          whatsappMessage: whatsappMessage ? whatsappMessage.trim() : "Hi, I need support with my GreenGrocc order.",
+          email: email ? email.trim() : "greengrocc@gmail.com",
+          hours: hours ? hours.trim() : "Mon – Sat · 10 AM – 10 PM",
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    return ok(res, updated, { message: "Platform default support updated successfully" });
+  } catch (err) {
+    next(err);
+  }
+}

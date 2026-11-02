@@ -81,6 +81,8 @@ export const vendorApi = {
       .get("/api/admin-ops/policies/live", { params: { role: "vendor" } })
       .then((res) => res.data?.data || []),
   submitSupport: (data) => api.post("/api/support", { ...data, roleKey: data.roleKey || "vendor" }).then((res) => res.data),
+  getCustomerSupport: () => api.get("/api/vendor/customer-support").then((res) => res.data),
+  updateCustomerSupport: (data) => api.put("/api/vendor/customer-support", data).then((res) => res.data),
   liveCalendar: () =>
     api
       .get("/api/admin-ops/hr/calendar/live", { params: { role: "vendor" } })

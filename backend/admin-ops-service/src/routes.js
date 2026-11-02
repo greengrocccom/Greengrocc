@@ -371,6 +371,9 @@ router.post("/csv/products", importProductsCsv);
 router.get("/bulk/products", exportProductsJson);
 router.post("/bulk/products", importProductsJson);
 
+router.get("/vendor-support", getAllVendorsSupportAdmin);
+router.put("/vendor-support/default", updateGlobalSupportAdmin);
+router.put("/vendor-support/:id", updateVendorSupportAdmin);
 router.get("/vendors", listVendorsAdmin);
 router.post("/vendors/otp/send", sendVendorVerificationOtpAdmin);
 router.post("/vendors/otp/verify", verifyVendorVerificationOtpAdmin);

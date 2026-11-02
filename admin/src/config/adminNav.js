@@ -384,6 +384,13 @@ export const NAV_GROUPS = [
             implemented: true,
             description: 'Vendor delivery charges for their zones and dark stores.',
           },
+          {
+            name: 'Vendors Support Editor',
+            href: '/multi-vendor/support',
+            icon: Headset,
+            implemented: true,
+            description: 'Configure customer touch-to-call and direct WhatsApp redirect channels for all vendors.',
+          },
         ],
       },
       {

@@ -33,6 +33,7 @@ import BulkImportExport from './pages/ops/BulkImportExport';
 import CsvImportExport from './pages/ops/CsvImportExport';
 import MultiVendor from './pages/ops/MultiVendor';
 import MultiVendorDetailPage from './pages/ops/MultiVendorDetailPage';
+import AllVendorsSupportEditor from './pages/ops/AllVendorsSupportEditor';
 import ShippingMethodsPage from './pages/ops/ShippingMethodsPage';
 import DarkStoreRequestsPage from './pages/ops/DarkStoreRequestsPage';
 import ZoneRequestsPage from './pages/ops/ZoneRequestsPage';
@@ -214,6 +215,8 @@ export default function App() {
               <Route path="bulk-import-export" element={<BulkImportExport />} />
               <Route path="csv-import-export" element={<CsvImportExport />} />
               <Route path="multi-vendor" element={<MultiVendor />} />
+              <Route path="multi-vendor/support" element={<AllVendorsSupportEditor />} />
+              <Route path="vendor-support" element={<AllVendorsSupportEditor />} />
               <Route path="multi-vendor/:vendorId" element={<MultiVendorDetailPage />} />
               <Route path="shipping-methods" element={<ShippingMethodsPage />} />
               <Route path="multi-vendor/shipping-methods" element={<ShippingMethodsPage />} />

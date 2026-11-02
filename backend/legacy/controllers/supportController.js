@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import SupportMessage, {
   SUPPORT_ISSUE_TYPES,
   SUPPORT_ROLE_KEYS,
@@ -199,6 +200,113 @@ export const updateSupportMessageStatus = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to update support message",
+    });
+  }
+};
+
+
+export const getSupportContact = async (req, res) => {
+  try {
+    const { vendorId, darkStoreId } = req.query;
+    let targetVendorId = vendorId;
+
+    if (!targetVendorId && darkStoreId) {
+      try {
+        const DeliveryManager = mongoose.models.DeliveryManager || mongoose.model("DeliveryManager");
+        const store = await DeliveryManager.findById(darkStoreId).lean();
+        if (store?.vendorId) {
+          targetVendorId = store.vendorId;
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    let globalConfig = null;
+    try {
+      const GlobalSupportConfig = mongoose.models.GlobalSupportConfig || mongoose.model("GlobalSupportConfig");
+      globalConfig = await GlobalSupportConfig.findOne({ key: "default" }).lean();
+    } catch (err) {
+      // ignore
+    }
+
+    const fallbackGlobal = {
+      phone: "+91 74002 22233",
+      phoneRaw: "7400222233",
+      whatsapp: "+91 74002 22233",
+      whatsappRaw: "917400222233",
+      whatsappMessage: "Hi, I need support with my GreenGrocc order.",
+      email: "greengrocc@gmail.com",
+      hours: "Mon – Sat · 10 AM – 10 PM",
+    };
+
+    const global = { ...fallbackGlobal, ...(globalConfig || {}) };
+
+    if (targetVendorId) {
+      try {
+        const Vendor = mongoose.models.Vendor || mongoose.model("Vendor");
+        const vendor = await Vendor.findOne({
+          $or: [
+            { id: String(targetVendorId) },
+            ...(mongoose.isValidObjectId(targetVendorId) ? [{ _id: targetVendorId }] : []),
+          ],
+        }).lean();
+
+        if (vendor && vendor.support && vendor.support.isActive !== false) {
+          const vSupport = vendor.support;
+          const phone = (vSupport.phone || "").trim() || global.phone;
+          const rawPhone = phone.replace(/[^\d+]/g, "");
+          const whatsapp = (vSupport.whatsapp || "").trim() || global.whatsapp;
+          let rawWhatsapp = whatsapp.replace(/\D/g, "");
+          if (rawWhatsapp.length === 10) rawWhatsapp = "91" + rawWhatsapp;
+          const whatsappMessage = (vSupport.whatsappMessage || "").trim() || global.whatsappMessage;
+          const email = (vSupport.email || "").trim() || global.email;
+          const hours = (vSupport.hours || "").trim() || global.hours;
+
+          return res.json({
+            success: true,
+            isVendorSpecific: true,
+            vendorId: vendor.id,
+            vendorName: vendor.vendorName || vendor.ownerName || vendor.businessName || "Vendor Support",
+            phone,
+            phoneRaw: rawPhone,
+            phoneTel: `tel:${rawPhone.startsWith("+") ? rawPhone : "+" + rawPhone}`,
+            whatsapp,
+            whatsappRaw: rawWhatsapp,
+            whatsappMessage,
+            whatsappHref: `https://wa.me/${rawWhatsapp}?text=${encodeURIComponent(whatsappMessage)}`,
+            email,
+            hours,
+          });
+        }
+      } catch (err) {
+        // fallback
+      }
+    }
+
+    // Default platform support
+    const rawPhone = global.phone.replace(/[^\d+]/g, "");
+    let rawWhatsapp = (global.whatsappRaw || global.whatsapp).replace(/\D/g, "");
+    if (rawWhatsapp.length === 10) rawWhatsapp = "91" + rawWhatsapp;
+
+    return res.json({
+      success: true,
+      isVendorSpecific: false,
+      vendorName: "GreenGrocc Support",
+      phone: global.phone,
+      phoneRaw: rawPhone,
+      phoneTel: `tel:${rawPhone.startsWith("+") ? rawPhone : "+" + rawPhone}`,
+      whatsapp: global.whatsapp,
+      whatsappRaw: rawWhatsapp,
+      whatsappMessage: global.whatsappMessage,
+      whatsappHref: `https://wa.me/${rawWhatsapp}?text=${encodeURIComponent(global.whatsappMessage)}`,
+      email: global.email,
+      hours: global.hours,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to load support contact",
     });
   }
 };

@@ -7816,3 +7816,83 @@ export async function deleteHarvestOrder(req, res) {
     res.status(500).json({ message: err.message || "Failed to delete harvest order" });
   }
 }
+
+
+export async function getVendorCustomerSupport(req, res) {
+  try {
+    const vendorId = req.user?.vendorId || req.user?.id;
+    const vendor = await Vendor.findOne({ id: vendorId }).lean();
+    if (!vendor) return res.status(404).json({ success: false, message: "Vendor not found" });
+
+    let globalConfig = null;
+    try {
+      const GlobalSupportConfig = mongoose.models.GlobalSupportConfig || mongoose.model("GlobalSupportConfig");
+      globalConfig = await GlobalSupportConfig.findOne({ key: "default" }).lean();
+    } catch {
+      // ignore
+    }
+
+    const fallbackGlobal = {
+      phone: "+91 74002 22233",
+      whatsapp: "+91 74002 22233",
+      whatsappMessage: "Hi, I need support with my GreenGrocc order.",
+      email: "greengrocc@gmail.com",
+      hours: "Mon – Sat · 10 AM – 10 PM",
+    };
+
+    const global = { ...fallbackGlobal, ...(globalConfig || {}) };
+    const currentSupport = vendor.support || {};
+
+    res.json({
+      success: true,
+      support: {
+        phone: currentSupport.phone || "",
+        whatsapp: currentSupport.whatsapp || "",
+        whatsappMessage: currentSupport.whatsappMessage || "Hi, I need support with my GreenGrocc order.",
+        email: currentSupport.email || "",
+        hours: currentSupport.hours || "Mon – Sat · 9 AM – 9 PM",
+        isActive: currentSupport.isActive !== false,
+      },
+      globalDefaults: global,
+      vendor: {
+        id: vendor.id,
+        vendorName: vendor.vendorName || vendor.ownerName,
+        mobile: vendor.mobile,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message || "Failed to load support settings" });
+  }
+}
+
+export async function updateVendorCustomerSupport(req, res) {
+  try {
+    const vendorId = req.user?.vendorId || req.user?.id;
+    const vendor = await Vendor.findOne({ id: vendorId });
+    if (!vendor) return res.status(404).json({ success: false, message: "Vendor not found" });
+
+    const { phone, whatsapp, whatsappMessage, email, hours, isActive } = req.body || {};
+
+    vendor.support = {
+      phone: String(phone ?? vendor.support?.phone ?? "").trim(),
+      whatsapp: String(whatsapp ?? vendor.support?.whatsapp ?? "").trim(),
+      whatsappMessage: String(
+        whatsappMessage ?? vendor.support?.whatsappMessage ?? "Hi, I need support with my GreenGrocc order."
+      ).trim(),
+      email: String(email ?? vendor.support?.email ?? "").trim(),
+      hours: String(hours ?? vendor.support?.hours ?? "Mon – Sat · 9 AM – 9 PM").trim(),
+      isActive: isActive !== undefined ? Boolean(isActive) : vendor.support?.isActive !== false,
+    };
+
+    vendor.markModified("support");
+    await vendor.save();
+
+    res.json({
+      success: true,
+      message: "Customer support channels updated successfully",
+      support: vendor.support,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message || "Failed to update support settings" });
+  }
+}

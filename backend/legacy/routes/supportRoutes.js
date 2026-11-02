@@ -4,12 +4,14 @@ import {
   getSupportMessageById,
   getSupportUnreadCount,
   submitSupportMessage,
+  getSupportContact,
   updateSupportMessageStatus,
 } from "../controllers/supportController.js";
 import { optionalProtect, protect, requireAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+router.get("/contact", getSupportContact);
 router.post("/", optionalProtect, submitSupportMessage);
 
 router.get("/admin", protect, requireAdmin, getAllSupportMessages);
