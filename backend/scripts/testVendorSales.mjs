@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import { salesRange, summarizeSales } from '../farmer-manager-service/src/vendorSalesSummary.js';
+const now = new Date('2026-11-02T01:00:00Z');
+assert.equal(salesRange({range:'today'},now).from.toISOString(),'2026-11-01T18:30:00.000Z');
+assert.equal(salesRange({range:'week'},now).from.toISOString(),'2026-11-01T18:30:00.000Z');
+assert.equal(salesRange({range:'last_month'},now).from.toISOString(),'2026-09-30T18:30:00.000Z');
+assert.equal(salesRange({range:'last_month'},now).to.toISOString(),'2026-10-31T18:30:00.000Z');
+assert.throws(()=>salesRange({range:'custom',startDate:'2026-02-30',endDate:'2026-03-01'},now));
+assert.throws(()=>salesRange({range:'custom',startDate:'2026-03-02',endDate:'2026-03-01'},now));
+assert.throws(()=>salesRange({range:'custom',startDate:'2020-01-01',endDate:'2026-03-01'},now));
+const period=salesRange({range:'7d',groupBy:'day'},now);
+const row={managerId:'store-a',createdAt:'2026-11-02T00:00:00Z',partTotal:100,status:'delivered'};
+const result=summarizeSales([row,{...row,status:'processing'},{...row,status:'cancelled'},{...row,deleted:true},{...row,status:'DELETED'},{...row,managerId:'other-vendor'},{...row,createdAt:period.to},{...row,partTotal:0},{...row,partTotal:null,items:[{quantity:2,price:25}]}],[{_id:'store-a',name:'A'},{_id:'store-b',name:'B'}],period);
+assert.equal(result.totals.orders,5);assert.equal(result.totals.delivered,3);assert.equal(result.totals.sales,150);assert.equal(result.totals.pendingValue,100);assert.equal(result.totals.cancelled,1);assert.equal(result.totals.aov,50);assert.equal(result.timeline.length,7);assert.equal(result.stores[1].sales,0);
+for (const groupBy of ['week','month']) {
+ const grouped=summarizeSales([row],[{_id:'store-a'}],salesRange({range:'30d',groupBy},now));
+ assert.equal(grouped.timeline.reduce((s,r)=>s+r.sales,0),100);
+}
+console.log('Passed: IST boundaries, Monday weeks, previous month, invalid/custom ranges, deleted/cancelled records, store isolation, zero/fallback amounts, empty stores and grouped totals.');
+import { readFile } from 'node:fs/promises';
+const source = await readFile(new URL('../farmer-manager-service/src/vendorSalesControllers.js',import.meta.url),'utf8');
+const body = source.slice(source.indexOf('export async function getVendorSales')).replace('export async function','async function');
+const factory = new Function('DeliveryManager','StoreOrder','Order','salesRange','summarizeSales','indiaDay',body+'; return getVendorSales;');
+let aggregated = false;
+const managers = { find(query) { assert.equal(query.vendorId,'vendor-a'); return {select(){return {lean:async()=>[{_id:'store-a',name:'A'}]}}};} };
+const handler = factory(managers,{aggregate:async()=>{aggregated=true;return [];}},{collection:{name:'orders'}},salesRange,summarizeSales,(value)=>new Date(value).toISOString().slice(0,10));
+const response={code:200,status(code){this.code=code;return this;},json(value){this.body=value;return this;}};
+await handler({user:{id:'vendor-a'},query:{storeId:'store-b'}},response);
+assert.equal(response.code,404);assert.equal(aggregated,false);
+await handler({user:{},query:{}},response);assert.equal(response.code,403);
+console.log('Passed: API rejects foreign store IDs and missing vendor identity before querying orders.');

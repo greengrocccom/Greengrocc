@@ -1,3 +1,5 @@
+import { getVendorOrderManagement } from "./vendorOrderControllers.js";
+import { getVendorSales } from "./vendorSalesControllers.js";
 import express from "express";
 import {
   getFarmers,
@@ -94,6 +96,8 @@ import {
   vendorResendLoginOtp,
   getVendorMe,
   updateVendorMe,
+  getVendorCustomerSupport,
+  updateVendorCustomerSupport,
   getVendorSettings,
   updateVendorSettings,
   getVendorCustomerSupport,
@@ -518,6 +522,8 @@ vendorRouter.post("/driver-desk/notifications/read-all", requireDriver, readAllD
 // ------------------------------------
 vendorRouter.get("/live-search", attachAuth, handleVendorLiveSearch);
 vendorRouter.get("/dashboard", requireVendor, getVendorDashboard);
+vendorRouter.get("/sales-summary", requireVendor, getVendorSales);
+vendorRouter.get("/orders-management", requireVendor, getVendorOrderManagement);
 vendorRouter.get("/notifications/read-state", requireVendor, getVendorNotificationReadState);
 vendorRouter.post("/notifications/read", requireVendor, markVendorNotificationsRead);
 vendorRouter.get("/inventory-alerts", requireVendor, listInventoryAlerts);

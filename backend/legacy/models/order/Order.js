@@ -350,7 +350,8 @@ orderSchema.pre("save", async function preSaveOrder() {
     this.paymentStatus = "refundable";
   }
 
-  if (this.orderNumber && /^\d{6}$/.test(this.orderNumber)) return;
+  // Once assigned, an order number is permanent, including legacy formats.
+  if (String(this.orderNumber || "").trim()) return;
 
   const OrderModel = this.constructor;
   let orderNumber;

@@ -37,6 +37,7 @@ api.interceptors.request.use((config) => {
 });
 
 export const vendorApi = {
+  getOrderManagement: (params, signal) => api.get("/api/vendor/orders-management", { params, signal }),
   // Auth & Profile
   login: (data) => api.post("/api/vendor/auth/login", data),
   sendLoginOtp: (data) => api.post("/api/vendor/auth/login/send-otp", data),
@@ -61,6 +62,8 @@ export const vendorApi = {
     api.post(`/api/vendor/public-store/${encodeURIComponent(vendorId)}/reviews`, data).then((res) => res.data),
   getPublicStoreVacation: (vendorId) =>
     api.get(`/api/vendor/public-store/${encodeURIComponent(vendorId)}/vacation`).then((res) => res.data),
+
+  getSalesSummary: (params, signal) => api.get("/api/vendor/sales-summary", { params, signal }),
 
   // Dashboard
   getDashboard: (params) => api.get("/api/vendor/dashboard", { params }),

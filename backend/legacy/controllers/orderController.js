@@ -1014,6 +1014,11 @@ export const createReturnClaim = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
   try {
+    const activeOrderFilter = {
+      isDeleted: { $ne: true },
+      deleted: { $ne: true },
+      status: { $nin: ["deleted", "DELETED"] },
+    };
     const currentYear = new Date().getFullYear();
     const year = Number.parseInt(req.query.year, 10) || currentYear;
 
@@ -1042,12 +1047,12 @@ export const getDashboardStats = async (req, res) => {
       topCategoriesAgg,
       yearOrderSummary,
     ] = await Promise.all([
-      Order.find({ $expr: buildCreatedOnIndiaDateExpr(todayDateString) }).select("status"),
-      Order.find({ $expr: buildCreatedOnIndiaDateExpr(yesterdayDateString) }).select("status"),
-      Order.find({
+      Order.find({ ...activeOrderFilter, $expr: buildCreatedOnIndiaDateExpr(todayDateString) }).select("status"),
+      Order.find({ ...activeOrderFilter, $expr: buildCreatedOnIndiaDateExpr(yesterdayDateString) }).select("status"),
+      Order.find({ ...activeOrderFilter,
         $expr: buildCreatedInIndiaDateRangeExpr(start7DaysDateString, todayDateString),
       }).select("status createdAt"),
-      Order.find({
+      Order.find({ ...activeOrderFilter,
         status: { $in: RECENT_ORDERS_STATUSES },
         $expr: buildCreatedOnIndiaDateExpr(todayDateString),
       })
@@ -1056,6 +1061,7 @@ export const getDashboardStats = async (req, res) => {
         .limit(6)
         .select("orderNumber total status createdAt user deliveryAddress"),
       Order.aggregate([
+        { $match: activeOrderFilter },
         {
           $match: {
             status: { $in: REVENUE_STATUSES },
@@ -1074,6 +1080,7 @@ export const getDashboardStats = async (req, res) => {
         { $sort: { _id: 1 } },
       ]),
       Order.aggregate([
+        { $match: activeOrderFilter },
         { $group: { _id: { $year: { date: "$createdAt", timezone: INDIA_TZ } } } },
         { $sort: { _id: -1 } },
       ]),
@@ -1081,16 +1088,17 @@ export const getDashboardStats = async (req, res) => {
       Category.countDocuments(),
       User.countDocuments({ role: "user" }),
       Order.aggregate([
+        { $match: activeOrderFilter },
         { $match: { status: { $in: REVENUE_STATUSES } } },
         { $group: { _id: null, total: { $sum: "$total" } } },
       ]),
-      Order.find({
+      Order.find({ ...activeOrderFilter,
         $expr: buildCreatedInIndiaDateRangeExpr(
           currentMonthRange.startDate,
           currentMonthRange.endDate
         ),
       }).select("status total"),
-      Order.find({
+      Order.find({ ...activeOrderFilter,
         $expr: buildCreatedInIndiaDateRangeExpr(lastMonthRange.startDate, lastMonthRange.endDate),
       }).select("status total"),
       Product.countDocuments({ isActive: true, inStock: true, stock: { $gt: 0 } }),
@@ -1099,6 +1107,7 @@ export const getDashboardStats = async (req, res) => {
       }),
       Product.countDocuments({ isActive: true, inStock: true, stock: { $gt: 0, $lte: 5 } }),
       Order.aggregate([
+        { $match: activeOrderFilter },
         {
           $match: {
             status: { $in: REVENUE_STATUSES },
@@ -1134,6 +1143,7 @@ export const getDashboardStats = async (req, res) => {
         { $sort: { value: -1 } },
       ]),
       Order.aggregate([
+        { $match: activeOrderFilter },
         {
           $match: {
             $expr: {

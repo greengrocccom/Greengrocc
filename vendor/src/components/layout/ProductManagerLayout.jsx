@@ -63,6 +63,7 @@ const navSections = [
     id: 'home',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
+      { to: '/sales', label: 'Sales Summary', icon: LayoutDashboard },
       { to: '/vendor/notifications', label: 'Notifications', icon: Bell },
     ],
   },
@@ -70,6 +71,7 @@ const navSections = [
     id: 'orders',
     title: 'Orders',
     items: [
+      { to: '/vendor/orders-management', label: 'Orders Management', icon: ShoppingCart },
       {
         id: 'preorders',
         label: 'Pre-orders',

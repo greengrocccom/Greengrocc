@@ -265,6 +265,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <Link to="/sales" className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Sales Summary</Link>
             <Link
               to="/vendor/all-farmers/add"
               className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"

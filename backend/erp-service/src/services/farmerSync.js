@@ -224,13 +224,9 @@ export async function ensureSharedProductBusinessId(product, { select } = {}) {
     if (needsProductId) {
       sibling.previousProductId = oldProductId;
       sibling.productId = targetId;
-      const idTaken = await FarmerProduct.exists({
-        _id: { $ne: sibling._id },
-        id: targetId,
-      });
-      if (!idTaken && (sibling.id === oldProductId || !sibling.id)) {
-        sibling.id = targetId;
-      }
+      // The shared product business ID is separate from the row identity.
+      // Preserve the row ID used by clients and references during normalization.
+      if (!sibling.id) sibling.id = String(sibling._id);
     }
     if (needsCropId) sibling.cropId = cropBusinessId;
     await sibling.save();

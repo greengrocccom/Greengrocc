@@ -295,7 +295,7 @@ async function computeExecutiveMetrics(today, selectedPeriod = "30d") {
   const rawTotalRegistered = Math.max(userCount, erpCustomerCount);
 
   // 2. Orders & Commerce Aggregations
-  const validOrderFilter = { status: { $nin: ["cancelled", "attempted"] } };
+  const validOrderFilter = { isDeleted: { $ne: true }, deleted: { $ne: true }, status: { $nin: ["cancelled", "attempted", "deleted", "DELETED"] } };
 
   const [
     totalOrdersInDb,

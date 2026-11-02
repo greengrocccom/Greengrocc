@@ -1,3 +1,5 @@
+import OrdersManagementPage from './pages/dashboard/OrdersManagementPage'
+import VendorSalesPage from './pages/dashboard/VendorSalesPage'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { VendorAuthProvider } from './context/VendorAuthContext'
@@ -165,6 +167,8 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<ProductManagerLayout />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/sales" element={<VendorSalesPage />} />
+                <Route path="/vendor/orders-management" element={<OrdersManagementPage />} />
                 <Route path="/vendor/search" element={<VendorSearchPage />} />
                 <Route path="/vendor/farmer-managers" element={<FarmerManagersPage />} />
                 <Route path="/vendor/farmer-managers/add" element={<AddManagerPage />} />

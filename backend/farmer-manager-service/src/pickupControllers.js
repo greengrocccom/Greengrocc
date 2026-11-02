@@ -76,7 +76,8 @@ async function createCentreId(parts) {
 
 async function ensureCentreBusinessId(centre, locationHint = {}) {
   if (!centre) return centre;
-  if (isCollectionCentreBusinessId(centre.id)) return centre;
+  // Existing identities must not be migrated during normal reads/updates.
+  if (String(centre.id || "").trim()) return centre;
   const parts = await locationPartsForCentre({
     city: centre.city || locationHint.city || "",
     address: centre.address || "",

@@ -169,6 +169,7 @@ import {
   createRefund,
   updateRefund,
   getReports,
+  getDetailedSalesReport,
 } from "./financeControllers.js";
 import * as financeSuite from "./financeSuiteControllers.js";
 import {
@@ -620,6 +621,7 @@ router.post("/refunds", createRefund);
 router.put("/refunds/:id", updateRefund);
 
 router.get("/reports", getReports);
+router.get("/reports/sales", getDetailedSalesReport);
 router.get("/analytics", getAnalytics);
 
 router.get("/user-management/zones", listUserMgmtZones);

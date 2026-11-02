@@ -804,7 +804,7 @@ export async function getOmnichannelOverview(req, res) {
 
     // Aggregate OmniInvoices by channel for today
     const invoiceStats = await OmniInvoice.aggregate([
-      { $match: { createdAt: { $gte: todayStart } } },
+      { $match: { createdAt: { $gte: todayStart }, isDeleted: { $ne: true }, deleted: { $ne: true }, status: { $nin: ["deleted", "DELETED"] } } },
       {
         $group: {
           _id: "$channel",
@@ -819,7 +819,9 @@ export async function getOmnichannelOverview(req, res) {
       {
         $match: {
           createdAt: { $gte: todayStart },
-          status: { $nin: ["attempted", "cancelled"] },
+          status: { $nin: ["attempted", "cancelled", "deleted", "DELETED"] },
+          isDeleted: { $ne: true },
+          deleted: { $ne: true },
         },
       },
       {

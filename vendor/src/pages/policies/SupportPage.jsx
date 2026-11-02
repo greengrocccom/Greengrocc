@@ -139,11 +139,10 @@ export default function SupportPage() {
         <button
           type="button"
           onClick={() => setActiveTab('customer-channels')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition sm:text-sm ${
-            activeTab === 'customer-channels'
-              ? 'bg-white text-emerald-700 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition sm:text-sm ${activeTab === 'customer-channels'
+            ? 'bg-white text-emerald-700 shadow-sm'
+            : 'text-slate-600 hover:text-slate-900'
+            }`}
         >
           <Smartphone className="h-4 w-4" />
           Customer Channels (WhatsApp & Call)
@@ -151,11 +150,10 @@ export default function SupportPage() {
         <button
           type="button"
           onClick={() => setActiveTab('admin-helpdesk')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition sm:text-sm ${
-            activeTab === 'admin-helpdesk'
-              ? 'bg-white text-emerald-700 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition sm:text-sm ${activeTab === 'admin-helpdesk'
+            ? 'bg-white text-emerald-700 shadow-sm'
+            : 'text-slate-600 hover:text-slate-900'
+            }`}
         >
           <Headset className="h-4 w-4" />
           Admin Helpdesk (Ticket)
@@ -167,11 +165,10 @@ export default function SupportPage() {
         <div className="space-y-6">
           {configMsg.text && (
             <div
-              className={`rounded-2xl border p-4 text-sm font-semibold ${
-                configMsg.type === 'success'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                  : 'border-rose-200 bg-rose-50 text-rose-800'
-              }`}
+              className={`rounded-2xl border p-4 text-sm font-semibold ${configMsg.type === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-rose-200 bg-rose-50 text-rose-800'
+                }`}
             >
               {configMsg.text}
             </div>
@@ -413,11 +410,10 @@ export default function SupportPage() {
 
             {ticketMsg.text && (
               <div
-                className={`mt-4 rounded-xl border p-3 text-xs font-semibold ${
-                  ticketMsg.type === 'success'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                    : 'border-rose-200 bg-rose-50 text-rose-800'
-                }`}
+                className={`mt-4 rounded-xl border p-3 text-xs font-semibold ${ticketMsg.type === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : 'border-rose-200 bg-rose-50 text-rose-800'
+                  }`}
               >
                 {ticketMsg.text}
               </div>
