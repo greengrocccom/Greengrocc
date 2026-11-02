@@ -57,6 +57,7 @@ const DEFAULTS = {
   commissionRate: 10,
   status: 'Active',
   password: 'vendor123',
+  zones: [],
 };
 
 const STAT_LABELS = {
@@ -88,6 +89,8 @@ export default function MultiVendor() {
   const [form, setForm] = useState(DEFAULTS);
   const [docFiles, setDocFiles] = useState({});
   const [docError, setDocError] = useState('');
+  const [zoneInput, setZoneInput] = useState('');
+  const [availableSystemZones, setAvailableSystemZones] = useState([]);
 
   // Mobile OTP Verification State (9. GreenGrocc Common OTP)
   const [mobileVerified, setMobileVerified] = useState(false);
@@ -144,6 +147,13 @@ export default function MultiVendor() {
       const res = await opsApi.list('vendors', status !== 'all' ? { status } : {});
       setRows(Array.isArray(res.data) ? res.data : []);
       setStats(res.stats || null);
+      opsApi.list('zone-requests', { status: 'all' })
+        .then((zRes) => {
+          const list = Array.isArray(zRes.data) ? zRes.data : [];
+          const distinct = [...new Set(list.map((z) => String(z.name || '').trim()).filter(Boolean))];
+          setAvailableSystemZones(distinct);
+        })
+        .catch(() => {});
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load collection centres');
     } finally {
@@ -169,6 +179,7 @@ export default function MultiVendor() {
         row.vendorCode,
         row.collectionCentre?.id,
         ...(row.darkStores || []).map((store) => store.storeName),
+        ...(row.zones || []),
       ].some((value) => String(value || '').toLowerCase().includes(q))
     );
   }, [rows, search]);
@@ -217,7 +228,36 @@ export default function MultiVendor() {
     setOtpTimer(0);
     setOtpMsg('');
     setOtpError('');
+    setZoneInput('');
     setModal({ mode: 'create' });
+  };
+
+  const handleAddZone = (zoneName) => {
+    const raw = typeof zoneName === 'string' ? zoneName : zoneInput;
+    if (!raw || !raw.trim()) return;
+    const parts = raw
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (!parts.length) return;
+    setForm((prev) => {
+      const existing = prev.zones || [];
+      const nextZones = [...existing];
+      parts.forEach((p) => {
+        if (!nextZones.some((z) => z.toLowerCase() === p.toLowerCase())) {
+          nextZones.push(p);
+        }
+      });
+      return { ...prev, zones: nextZones };
+    });
+    setZoneInput('');
+  };
+
+  const handleRemoveZone = (zoneToRemove) => {
+    setForm((prev) => ({
+      ...prev,
+      zones: (prev.zones || []).filter((z) => z.toLowerCase() !== zoneToRemove.toLowerCase()),
+    }));
   };
 
   const handleMobileChange = (e) => {
@@ -280,11 +320,12 @@ export default function MultiVendor() {
   };
 
   const openEdit = useCallback((row, returnTo = null) => {
-    const next = { ...DEFAULTS, password: '' };
+    const next = { ...DEFAULTS, password: '', zones: row.zones || [] };
     Object.keys(next).forEach((key) => {
       if (row[key] !== undefined && key !== 'password') next[key] = row[key];
     });
     setForm(next);
+    setZoneInput('');
     setDocFiles({});
     setDocError('');
     setMobileVerified(true);
@@ -517,6 +558,21 @@ export default function MultiVendor() {
                         </p>
                       ) : (
                         '—'
+                      )}
+                      {(row.zones || []).length > 0 ? (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {row.zones.map((z, zi) => (
+                            <span
+                              key={zi}
+                              className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-200"
+                            >
+                              <MapPin className="h-2.5 w-2.5 text-emerald-600" />
+                              {z}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-1 text-[10px] text-slate-400 italic">No zones assigned</p>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -994,6 +1050,100 @@ export default function MultiVendor() {
               <Field label={isCreate ? 'Login password' : 'New password (leave blank to keep)'}>
                 <input value={form.password} onChange={setField('password')} className={INPUT} />
               </Field>
+
+              {/* Multi-Zone Assignment Section */}
+              <div className="sm:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <div>
+                    <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4 text-emerald-700" />
+                      Assigned Zones
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      Add zones manually using the text box below. You can assign multiple zones to this collection centre / multivendor.
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full ring-1 ring-emerald-300">
+                    {(form.zones || []).length} {(form.zones || []).length === 1 ? 'Zone' : 'Zones'} assigned
+                  </span>
+                </div>
+
+                {/* Manual Text Box to Add Zones */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={zoneInput}
+                    onChange={(e) => setZoneInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddZone();
+                      }
+                    }}
+                    placeholder="Type zone name manually (e.g. Pune, Mumbai, Nashik) and click Add or press Enter"
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddZone()}
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-700 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-800 transition"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Zone
+                  </button>
+                </div>
+
+                {/* Active Zone Badges */}
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {(form.zones || []).length === 0 ? (
+                    <p className="text-xs text-slate-500 italic">
+                      No zones assigned yet. Type a zone name above and click "Add Zone".
+                    </p>
+                  ) : (
+                    (form.zones || []).map((zoneName, zIdx) => (
+                      <span
+                        key={zIdx}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-800 shadow-xs"
+                      >
+                        <MapPin className="h-3 w-3 text-emerald-600" />
+                        {zoneName}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveZone(zoneName)}
+                          className="ml-1 rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-rose-600 transition"
+                          title={`Remove ${zoneName}`}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </div>
+
+                {/* Quick Add Suggestions from System Zones */}
+                {availableSystemZones.filter((sz) => !(form.zones || []).some((fz) => fz.toLowerCase() === sz.toLowerCase())).length > 0 ? (
+                  <div className="mt-3 pt-2.5 border-t border-emerald-200/60">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Suggested system zones (click to add):
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {availableSystemZones
+                        .filter((sz) => !(form.zones || []).some((fz) => fz.toLowerCase() === sz.toLowerCase()))
+                        .slice(0, 15)
+                        .map((sz) => (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => handleAddZone(sz)}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 transition"
+                          >
+                            <Plus className="h-3 w-3 text-emerald-600" /> {sz}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             <div className="mt-5">

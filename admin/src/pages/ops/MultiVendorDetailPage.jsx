@@ -360,6 +360,26 @@ export default function MultiVendorDetailPage() {
                   Commission: <strong className="text-slate-900">{row.commissionRate ?? 10}%</strong>
                 </span>
               </div>
+
+              {/* Assigned Zones */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+                <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5 text-emerald-600" /> Assigned Zones:
+                </span>
+                {(row.zones || []).length > 0 ? (
+                  (row.zones || []).map((z, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200"
+                    >
+                      <MapPin className="h-3 w-3 text-emerald-600" />
+                      {z}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-slate-400 italic">No zones assigned yet</span>
+                )}
+              </div>
             </div>
           </div>
 

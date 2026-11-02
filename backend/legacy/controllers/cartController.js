@@ -162,7 +162,7 @@ export const addToCart = async (req, res) => {
       }
     }
 
-    const qtyCheck = validateCartQuantity(product, normalizedVariantName, qty);
+    const qtyCheck = validateCartQuantity(product, normalizedVariantName, qty, req.user);
     if (!qtyCheck.valid) {
       return res.status(400).json({
         success: false,

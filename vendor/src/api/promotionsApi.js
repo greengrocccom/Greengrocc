@@ -1,29 +1,26 @@
-import { api } from "./vendorApi";
+import apiClient from './client';
 
-const BASE = "/api/vendor/promotions";
 const unwrap = (response) => response.data;
 
-/** Same shape as admin couponApi, scoped to this vendor's own coupons on the server. */
 export const couponApi = {
-  getAllCoupons: (params = {}) => api.get(`${BASE}/coupons`, { params }).then(unwrap),
-  createCoupon: (data) => api.post(`${BASE}/coupons`, data).then(unwrap),
-  updateCoupon: (id, data) => api.put(`${BASE}/coupons/${id}`, data).then(unwrap),
-  deleteCoupon: (id) => api.delete(`${BASE}/coupons/${id}`).then(unwrap),
-  seedDefaultCoupons: () => api.post(`${BASE}/coupons/seed`).then(unwrap),
+  getAllCoupons: (params = {}) => apiClient.get('/coupons', { params }).then(unwrap),
+  createCoupon: (data) => apiClient.post('/coupons', data).then(unwrap),
+  updateCoupon: (id, data) => apiClient.put(`/coupons/${id}`, data).then(unwrap),
+  deleteCoupon: (id) => apiClient.delete(`/coupons/${id}`).then(unwrap),
+  seedDefaultCoupons: () => apiClient.post('/coupons/seed').then(unwrap),
 };
 
-/** Same shape as admin rewardApi, scoped to this vendor's reward program. */
 export const rewardApi = {
-  getAdminSettings: () => api.get(`${BASE}/rewards/settings`).then(unwrap),
-  updateAdminSettings: (data) => api.put(`${BASE}/rewards/settings`, data).then(unwrap),
-  getAdminStats: () => api.get(`${BASE}/rewards/stats`).then(unwrap),
-  getAdminTransactions: (params = {}) => api.get(`${BASE}/rewards/transactions`, { params }).then(unwrap),
+  getAdminSettings: () => apiClient.get('/rewards/admin/settings').then(unwrap),
+  updateAdminSettings: (data) => apiClient.put('/rewards/admin/settings', data).then(unwrap),
+  getAdminStats: () => apiClient.get('/rewards/admin/stats').then(unwrap),
+  getAdminTransactions: (params = {}) => apiClient.get('/rewards/admin/transactions', { params }).then(unwrap),
+  adjustUserPoints: (payload) => apiClient.post('/rewards/admin/adjust', payload).then(unwrap),
 };
 
-/** Same shape as admin opsApi for gift cards, pricing rules, and return requests. */
 export const promoOpsApi = {
-  list: (path, params = {}) => api.get(`${BASE}/${path}`, { params }).then(unwrap),
-  create: (path, body) => api.post(`${BASE}/${path}`, body).then(unwrap),
-  update: (path, id, body) => api.put(`${BASE}/${path}/${id}`, body).then(unwrap),
-  remove: (path, id) => api.delete(`${BASE}/${path}/${id}`).then(unwrap),
+  list: (path, params = {}) => apiClient.get(`/admin-ops/${path}`, { params }).then(unwrap),
+  create: (path, body) => apiClient.post(`/admin-ops/${path}`, body).then(unwrap),
+  update: (path, id, body) => apiClient.put(`/admin-ops/${path}/${id}`, body).then(unwrap),
+  remove: (path, id) => apiClient.delete(`/admin-ops/${path}/${id}`).then(unwrap),
 };

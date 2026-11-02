@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Building2, CalendarDays, Clock3, Loader2, Megaphone, Palmtree, RefreshCw, TrendingUp, UserPlus, UserRound, Users, Wallet } from 'lucide-react';
 import opsApi from '../../api/opsApi';
 import { BTN, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL } from '../../utils/ui';
@@ -17,7 +17,12 @@ const MODULES = [
   { to: '/hr-management/attendance', label: 'Attendance', text: 'Clock logs and role-wise shifts', icon: Clock3 },
 ];
 
-export default function HrManagement() {
+export default function HrManagement(props) {
+  const params = useParams();
+  const zoneKey = params.zoneKey || props?.zoneKey || '';
+  const storeId = params.storeId || props?.storeId || '';
+  const scopeSuffix = zoneKey && storeId ? `/zones/${encodeURIComponent(zoneKey)}/stores/${storeId}` : '';
+  const scopedTo = (base) => `${base}${scopeSuffix}`;
   const [stats, setStats] = useState(null);
   const [payroll, setPayroll] = useState(null);
   const [leaves, setLeaves] = useState(null);
@@ -136,7 +141,7 @@ export default function HrManagement() {
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
             {cards.map((card) => (
-              <Link key={card.label} to={card.to} className={`${PANEL} px-4 py-3 hover:bg-slate-50`}>
+              <Link key={card.label} to={scopedTo(card.to)} className={`${PANEL} px-4 py-3 hover:bg-slate-50`}>
                 <p className="text-xs text-[#6B7280]">{card.label}</p>
                 <p className="mt-1 text-xl font-bold text-[#1F2937]">{card.value}</p>
               </Link>
@@ -158,7 +163,7 @@ export default function HrManagement() {
             {MODULES.map((item) => {
               const Icon = item.icon;
               return (
-                <Link key={item.to} to={item.to} className={`${PANEL} p-4 hover:bg-slate-50`}>
+                <Link key={item.to} to={scopedTo(item.to)} className={`${PANEL} p-4 hover:bg-slate-50`}>
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-[#217346]">
                     <Icon className="h-4 w-4" />
                   </span>

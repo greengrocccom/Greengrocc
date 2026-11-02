@@ -1,0 +1,65 @@
+import axios from 'axios';
+import { configureRealtime, withLiveAdapter } from '../realtime/liveClient';
+import { getApiBaseUrl } from '../config/env';
+
+const API_BASE_URL = getApiBaseUrl();
+export const API_ORIGIN = API_BASE_URL.replace(/\/+$/, '').replace(/\/api$/, '');
+
+export function readAdminToken() {
+  try {
+    const raw = localStorage.getItem('greengroo_vendor_auth');
+    const vendorToken = raw ? JSON.parse(raw)?.token : null;
+    if (vendorToken) return vendorToken;
+  } catch {}
+  const token = localStorage.getItem('greengrocc_admin_token');
+  if (!token || token === 'demo_admin_jwt_token' || token === 'mock_jwt_token') return '';
+  return token;
+}
+
+const apiClient = withLiveAdapter(
+  axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 30000,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  }),
+  axios
+);
+
+configureRealtime({ url: API_ORIGIN, getToken: readAdminToken });
+
+apiClient.interceptors.request.use((config) => {
+  const token = readAdminToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  // Let the browser set multipart boundary — default application/json breaks FormData
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (config.headers && typeof config.headers.delete === 'function') {
+      config.headers.delete('Content-Type');
+    } else if (config.headers) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+    }
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      const onLogin = window.location.pathname.includes('/login');
+      if (!onLogin) {
+        window.location.assign('/vendor/login');
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;
+

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Banknote, Bike, Check, Coins, CreditCard, Gift, Receipt, Store, Tag } from "lucide-react";
+import { Banknote, Bike, Check, Coins, CreditCard, Gift, Package, Receipt, Store, Tag } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
@@ -517,7 +517,14 @@ function Checkout() {
     (!serverPriced || deliveryCharges === calculateShippingCharge(subtotal, storeSettings))
       ? nextCheaperShippingSlab(subtotal, storeSettings)
       : null;
-  const { total: orderTotal } = calculateOrderTotal(discountedSubtotal, deliveryCharges);
+  const packagingFee = isPickup
+    ? 0
+    : serverDelivery.packagingFee != null
+      ? serverDelivery.packagingFee
+      : (storeSettings?.freePackagingAbove > 0 && subtotal >= storeSettings?.freePackagingAbove
+        ? 0
+        : (storeSettings?.packagingFee || 0));
+  const { total: orderTotal } = calculateOrderTotal(discountedSubtotal, deliveryCharges + packagingFee);
   const minimumOrderMet = meetsMinimumOrder(subtotal, storeSettings);
   const minimumOrderShortfall = getMinimumOrderShortfall(subtotal, storeSettings);
   const minimumOrderValue = mergeStoreSettings(storeSettings).minimumOrderValue;
@@ -1731,6 +1738,14 @@ function Checkout() {
                         : null
                     }
                   />
+                  {packagingFee > 0 ? (
+                    <BillRow
+                      icon={<Package className="h-4 w-4" />}
+                      label="Packaging Fee"
+                      value={formatPrice(packagingFee)}
+                      valueClass="text-slate-900"
+                    />
+                  ) : null}
                   <p className="pl-8 text-[11px] text-slate-500">GST included in item prices</p>
                   <DashedDivider />
                   <div className="flex items-center gap-2">

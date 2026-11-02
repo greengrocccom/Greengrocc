@@ -98,6 +98,11 @@ const bulkGradeSchema = new mongoose.Schema(
       min: [1, "Minimum order quantity must be at least 1"],
       default: 1,
     },
+    bulkMinOrderQuantity: {
+      type: Number,
+      min: [1, "Bulk minimum order quantity must be at least 1"],
+      default: 10,
+    },
   },
   { _id: false }
 );
@@ -180,6 +185,11 @@ const productVariantSchema = new mongoose.Schema(
     minOrderQuantity: {
       type: Number,
       min: [1, "Minimum order quantity must be at least 1"],
+      default: null,
+    },
+    bulkMinOrderQuantity: {
+      type: Number,
+      min: [1, "Bulk minimum order quantity must be at least 1"],
       default: null,
     },
     maxOrderQuantity: {

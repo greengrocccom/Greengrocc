@@ -43,6 +43,7 @@ export function mapCartItems(cart) {
         enableBulkGrades: item.product.enableBulkGrades,
         bulkGrades: item.product.bulkGrades,
         minOrderQuantity: item.product.minOrderQuantity,
+        bulkMinOrderQuantity: item.product.bulkMinOrderQuantity,
         maxOrderQuantity: item.product.maxOrderQuantity ?? item.product.maxOrderQty,
         stepByQuantity: item.product.stepByQuantity,
         productImages: item.product.productImages,
@@ -66,6 +67,7 @@ function pricingFromLine(item) {
     enableBulkGrades: item.enableBulkGrades,
     bulkGrades: item.bulkGrades,
     minOrderQuantity: item.minOrderQuantity,
+    bulkMinOrderQuantity: item.bulkMinOrderQuantity,
     maxOrderQuantity: item.maxOrderQuantity,
     stepByQuantity: item.stepByQuantity,
   };
@@ -95,6 +97,7 @@ export function buildCartLine(product, quantity, variantName = "", colorName = "
     enableBulkGrades: product.enableBulkGrades,
     bulkGrades: product.bulkGrades,
     minOrderQuantity: product.minOrderQuantity,
+    bulkMinOrderQuantity: product.bulkMinOrderQuantity,
     maxOrderQuantity: product.maxOrderQuantity ?? product.maxOrderQty,
     stepByQuantity: product.stepByQuantity,
     productImages:

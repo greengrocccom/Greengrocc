@@ -36,6 +36,7 @@ const vendorSchema = new mongoose.Schema(
     },
     password: { type: String, default: "" },
     role: { type: String, default: "VENDOR" },
+    zones: { type: [String], default: [] },
     settings: { type: mongoose.Schema.Types.Mixed, default: {} },
     vacation: {
       enabled: { type: Boolean, default: false },
@@ -1305,6 +1306,30 @@ const vendorShippingMethodSchema = new mongoose.Schema(
     },
     // Per-zone / per-dark-store rule sets: { scope: "zone"|"store", targetId, targetName, isActive, ...rules }.
     // Checkout uses store override → zone override → the vendor-wide rules above.
+    // 7. Packaging & handling fees
+    packagingRules: {
+      enabled: { type: Boolean, default: true },
+      baseCost: { type: Number, default: 15 },
+      freeAboveOrderAmount: { type: Number, default: 499 },
+      perExtraItemFee: { type: Number, default: 2 },
+      slabs: [
+        {
+          minQty: { type: Number, default: 1 },
+          maxQty: { type: Number, default: 5 },
+          cost: { type: Number, default: 15 },
+        },
+        {
+          minQty: { type: Number, default: 6 },
+          maxQty: { type: Number, default: 10 },
+          cost: { type: Number, default: 25 },
+        },
+        {
+          minQty: { type: Number, default: 11 },
+          maxQty: { type: Number, default: 25 },
+          cost: { type: Number, default: 40 },
+        },
+      ],
+    },
     overrides: { type: [mongoose.Schema.Types.Mixed], default: [] },
   },
   { timestamps: true }

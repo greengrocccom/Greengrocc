@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { MapPinned, RotateCcw, Store } from "lucide-react";
 
-const RULE_KEYS = ["quantityRules", "userRules", "pincodeRules", "categoryRules", "weightRules", "stateRules"];
+const RULE_KEYS = ["quantityRules", "userRules", "pincodeRules", "categoryRules", "weightRules", "stateRules", "packagingRules"];
 export const DEFAULT_SCOPE = "default";
 
 const EMPTY_RULES = {
@@ -11,6 +11,7 @@ const EMPTY_RULES = {
   categoryRules: { enabled: true, defaultCost: 30, categories: [] },
   weightRules: { enabled: true, baseWeightKg: 1, baseCost: 30, costPerExtraKg: 15, slabs: [] },
   stateRules: { enabled: true, defaultCost: 90, states: [] },
+  packagingRules: { enabled: true, baseCost: 15, freeAboveOrderAmount: 499, perExtraItemFee: 2, slabs: [] },
 };
 
 const clone = (value) => JSON.parse(JSON.stringify(value ?? {}));

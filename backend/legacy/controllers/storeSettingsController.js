@@ -175,6 +175,8 @@ export const updateStoreSettings = async (req, res) => {
     const {
       minimumOrderValue,
       minimumShippingCharge,
+      packagingFee,
+      freePackagingAbove,
       shippingSlabs,
       merchantUpiId,
       merchantUpiName,
@@ -209,6 +211,28 @@ export const updateStoreSettings = async (req, res) => {
         });
       }
       payload.minimumShippingCharge = value;
+    }
+
+    if (packagingFee !== undefined) {
+      const value = Number(packagingFee);
+      if (!Number.isFinite(value) || value < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Packaging fee must be a valid number",
+        });
+      }
+      payload.packagingFee = value;
+    }
+
+    if (freePackagingAbove !== undefined) {
+      const value = Number(freePackagingAbove);
+      if (!Number.isFinite(value) || value < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Free packaging threshold must be a valid number",
+        });
+      }
+      payload.freePackagingAbove = value;
     }
 
     if (shippingSlabs !== undefined) {

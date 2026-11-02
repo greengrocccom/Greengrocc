@@ -4,6 +4,7 @@ import StoreOrder from "../../delivery-service/src/models/StoreOrder.js";
 import Order from "../../legacy/models/order/Order.js";
 import User from "../../legacy/models/user.js";
 import UnblockRequest from "../../legacy/models/UnblockRequest.js";
+import Address from "../../legacy/models/address/Address.js";
 
 const ok = (res, data, extra = {}) => res.json({ success: true, data, ...extra });
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
@@ -175,6 +176,8 @@ export async function listUserMgmtStoreUsers(req, res, next) {
     const accountType = normalizeAccountType(req.query.accountType) || "retail";
     const search = String(req.query.search || req.query.q || "").trim();
     const areaFilter = String(req.query.area || "").trim().toLowerCase();
+    const statusFilter = String(req.query.status || "all").trim().toLowerCase();
+    const pincodeFilter = String(req.query.pincode || "").trim();
     const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom) : null;
     const dateTo = req.query.dateTo ? new Date(req.query.dateTo) : null;
     const minOrders = Number(req.query.minOrders);
@@ -250,6 +253,21 @@ export async function listUserMgmtStoreUsers(req, res, next) {
           .lean()
       : [];
 
+    const userIds = users.map((u) => u._id);
+    const userAddresses = userIds.length
+      ? await Address.find({ user: { $in: userIds } })
+          .select("user pincode city state area fullAddress isDefault")
+          .sort({ isDefault: -1, updatedAt: -1 })
+          .lean()
+      : [];
+    const addressByUserId = new Map();
+    for (const a of userAddresses) {
+      const uid = String(a.user);
+      if (!addressByUserId.has(uid) || a.isDefault) {
+        addressByUserId.set(uid, a);
+      }
+    }
+
     const userById = new Map(users.map((u) => [String(u._id), u]));
     const userByPhone = new Map(users.map((u) => [String(u.phone || "").replace(/\D/g, "").slice(-10), u]));
 
@@ -321,31 +339,60 @@ export async function listUserMgmtStoreUsers(req, res, next) {
       buckets.set(key, existing);
     }
 
-    let rows = [...buckets.values()].map((row) => ({
-      userId: row.userId,
-      name: row.name,
-      phone: row.phone,
-      email: row.email,
-      accountType: row.accountType,
-      shopName: row.shopName,
-      shopAddress: row.shopAddress,
-      gstNumber: row.gstNumber,
-      isBlocked: row.isBlocked,
-      isActive: row.isActive,
-      status: row.status,
-      blockReason: row.blockReason,
-      blockedAt: row.blockedAt,
-      orderCount: row.orderCount,
-      totalQuantity: row.totalQuantity,
-      totalAmount: row.totalAmount,
-      areas: [...row.areas],
-      lastOrderAt: row.lastOrderAt,
-      firstOrderAt: row.firstOrderAt,
-      lastOrderNumber: row.lastOrderNumber,
-      lastArea: row.lastArea,
-      lastAddress: row.lastAddress,
-      orderNumbers: row.orderNumbers.slice(0, 20),
-    }));
+    let rows = [...buckets.values()].map((row) => {
+      const addr = addressByUserId.get(row.userId) || null;
+      let pincode = addr?.pincode || "";
+      if (!pincode && row.shopAddress) {
+        const pinMatch = row.shopAddress.match(/\b\d{6}\b/);
+        if (pinMatch) pincode = pinMatch[0];
+      }
+      if (!pincode && row.lastAddress) {
+        const pinMatch = row.lastAddress.match(/\b\d{6}\b/);
+        if (pinMatch) pincode = pinMatch[0];
+      }
+      return {
+        userId: row.userId,
+        name: row.name,
+        phone: row.phone,
+        email: row.email,
+        accountType: row.accountType,
+        shopName: row.shopName,
+        shopAddress: row.shopAddress,
+        gstNumber: row.gstNumber,
+        isBlocked: row.isBlocked,
+        isActive: row.isActive,
+        status: row.status,
+        blockReason: row.blockReason,
+        blockedAt: row.blockedAt,
+        orderCount: row.orderCount,
+        totalQuantity: row.totalQuantity,
+        totalAmount: row.totalAmount,
+        areas: [...row.areas],
+        lastOrderAt: row.lastOrderAt,
+        firstOrderAt: row.firstOrderAt,
+        lastOrderNumber: row.lastOrderNumber,
+        lastArea: row.lastArea,
+        lastAddress: row.lastAddress,
+        orderNumbers: row.orderNumbers.slice(0, 20),
+        pincode: pincode || "",
+        city: addr?.city || "",
+      };
+    });
+
+    if (statusFilter === "active") {
+      rows = rows.filter((r) => r.isActive && !r.isBlocked);
+    } else if (statusFilter === "blocked" || statusFilter === "inactive") {
+      rows = rows.filter((r) => !r.isActive || r.isBlocked);
+    }
+
+    if (pincodeFilter) {
+      const pinRegex = new RegExp(pincodeFilter, "i");
+      rows = rows.filter((r) =>
+        pinRegex.test(r.pincode || "") ||
+        pinRegex.test(r.lastAddress || "") ||
+        pinRegex.test(r.shopAddress || "")
+      );
+    }
 
     if (search) {
       const needle = search.toLowerCase();
@@ -404,6 +451,7 @@ export async function listUserMgmtStoreUsers(req, res, next) {
       filters: {
         accountType,
         areas,
+        pincodes: [...new Set(rows.map((r) => r.pincode).filter((p) => /^\d{6}$/.test(p)))],
       },
       stats: {
         userCount: rows.length,
@@ -492,16 +540,23 @@ export async function listAllUsersDirectory(req, res, next) {
     const search = String(req.query.search || req.query.q || "").trim();
     const accountType = normalizeAccountType(req.query.accountType);
     const statusFilter = String(req.query.status || "all").trim().toLowerCase();
+    const pincodeFilter = String(req.query.pincode || "").trim();
+    const cityFilter = String(req.query.city || "").trim();
+    const userGroup = String(req.query.userGroup || "").trim().toLowerCase();
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const skip = (page - 1) * limit;
 
     const query = { role: { $ne: "admin" } };
 
+    // Account Type / Segment
     if (accountType) {
       query.accountType = accountType;
+    } else if (userGroup === "retail" || userGroup === "bulk") {
+      query.accountType = userGroup;
     }
 
+    // Status Filter (active vs blocked/inactive)
     if (statusFilter === "active") {
       query.$and = [
         { $or: [{ isActive: true }, { isActive: { $exists: false } }] },
@@ -517,8 +572,66 @@ export async function listAllUsersDirectory(req, res, next) {
       ];
     }
 
+    // User Group by Order Activity (with_orders vs no_orders)
+    if (userGroup === "with_orders") {
+      const orderUserIds = await Order.distinct("user");
+      const validIds = orderUserIds.filter((id) => mongoose.Types.ObjectId.isValid(String(id)));
+      query._id = { $in: validIds };
+    } else if (userGroup === "no_orders") {
+      const orderUserIds = await Order.distinct("user");
+      const validIds = orderUserIds.filter((id) => mongoose.Types.ObjectId.isValid(String(id)));
+      query._id = { $nin: validIds };
+    } else if (userGroup === "frequent_orders") {
+      const frequentOrders = await Order.aggregate([
+        { $group: { _id: "$user", count: { $sum: 1 } } },
+        { $match: { count: { $gte: 3 } } },
+      ]).catch(() => []);
+      const validIds = frequentOrders.map((o) => o._id).filter((id) => mongoose.Types.ObjectId.isValid(String(id)));
+      query._id = { $in: validIds };
+    }
+
+    // Filter by Pincode and/or City (Address Grouping)
+    if (pincodeFilter || cityFilter) {
+      const addrQuery = {};
+      if (pincodeFilter) {
+        addrQuery.pincode = new RegExp(pincodeFilter, "i");
+      }
+      if (cityFilter) {
+        addrQuery.city = new RegExp(cityFilter, "i");
+      }
+
+      const [matchingAddrs, matchingOrders, shopMatchingUsers] = await Promise.all([
+        Address.find(addrQuery).select("user").lean(),
+        Order.find({
+          ...(pincodeFilter ? { "deliveryAddress.pincode": new RegExp(pincodeFilter, "i") } : {}),
+          ...(cityFilter ? { "deliveryAddress.city": new RegExp(cityFilter, "i") } : {}),
+        }).select("user").lean(),
+        User.find({
+          ...(pincodeFilter ? { shopAddress: new RegExp(pincodeFilter, "i") } : {}),
+        }).select("_id").lean(),
+      ]);
+
+      const matchedUserIds = [
+        ...matchingAddrs.map((a) => String(a.user)),
+        ...matchingOrders.map((o) => String(o.user)),
+        ...shopMatchingUsers.map((u) => String(u._id)),
+      ].filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+      const uniqueObjectIds = [...new Set(matchedUserIds)].map((id) => new mongoose.Types.ObjectId(id));
+
+      if (query._id?.$in) {
+        const set = new Set(uniqueObjectIds.map(String));
+        query._id.$in = query._id.$in.filter((id) => set.has(String(id)));
+      } else if (query._id) {
+        query._id = { ...query._id, $in: uniqueObjectIds };
+      } else {
+        query._id = { $in: uniqueObjectIds };
+      }
+    }
+
+    // Search query
     if (search) {
-      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escaped = search.replace(/[.*+?^$\{\}()|[\]\\]/g, "\\$&");
       const searchRegex = new RegExp(escaped, "i");
       const digits = search.replace(/\D/g, "");
 
@@ -526,6 +639,7 @@ export async function listAllUsersDirectory(req, res, next) {
         { name: searchRegex },
         { email: searchRegex },
         { shopName: searchRegex },
+        { shopAddress: searchRegex },
       ];
       if (digits) {
         orSearch.push({ phone: new RegExp(digits, "i") });
@@ -541,7 +655,7 @@ export async function listAllUsersDirectory(req, res, next) {
       }
     }
 
-    const [totalUsers, users] = await Promise.all([
+    const [totalUsers, users, topPincodesAgg, topCitiesAgg] = await Promise.all([
       User.countDocuments(query),
       User.find(query)
         .select("name phone email accountType shopName shopAddress gstNumber isActive status isBlocked blockReason blockedAt createdAt")
@@ -549,12 +663,62 @@ export async function listAllUsersDirectory(req, res, next) {
         .skip(skip)
         .limit(limit)
         .lean(),
+      Address.aggregate([
+        { $match: { pincode: { $exists: true, $ne: "" } } },
+        { $group: { _id: "$pincode", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 15 },
+      ]).catch(() => []),
+      Address.aggregate([
+        { $match: { city: { $exists: true, $ne: "" } } },
+        { $group: { _id: "$city", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 15 },
+      ]).catch(() => []),
     ]);
 
+    // Attach addresses and order counts
+    const userIds = users.map((u) => u._id);
+    const [addresses, userOrderCounts] = await Promise.all([
+      Address.find({ user: { $in: userIds } })
+        .select("user pincode city state area fullAddress isDefault")
+        .sort({ isDefault: -1, updatedAt: -1 })
+        .lean(),
+      Order.aggregate([
+        { $match: { user: { $in: userIds } } },
+        { $group: { _id: "$user", count: { $sum: 1 }, totalSpent: { $sum: "$total" } } },
+      ]).catch(() => []),
+    ]);
+
+    const addressByUser = new Map();
+    for (const a of addresses) {
+      const uid = String(a.user);
+      if (!addressByUser.has(uid) || a.isDefault) {
+        addressByUser.set(uid, {
+          pincode: a.pincode || "",
+          city: a.city || "",
+          state: a.state || "",
+          area: a.area || "",
+          fullAddress: a.fullAddress || "",
+        });
+      }
+    }
+
+    const ordersByUser = new Map();
+    for (const o of userOrderCounts) {
+      ordersByUser.set(String(o._id), {
+        orderCount: o.count || 0,
+        totalSpent: o.totalSpent || 0,
+      });
+    }
+
     const formatted = users.map((u) => {
+      const uid = String(u._id);
       const blocked = Boolean(u.isBlocked || u.isActive === false || u.status === "blocked" || u.status === "inactive");
+      const addr = addressByUser.get(uid) || null;
+      const orderStats = ordersByUser.get(uid) || { orderCount: 0, totalSpent: 0 };
       return {
-        userId: String(u._id),
+        userId: uid,
         name: u.name,
         phone: u.phone,
         email: u.email || "",
@@ -562,6 +726,11 @@ export async function listAllUsersDirectory(req, res, next) {
         shopName: u.shopName || "",
         shopAddress: u.shopAddress || "",
         gstNumber: u.gstNumber || "",
+        address: addr,
+        pincode: addr?.pincode || "",
+        city: addr?.city || "",
+        orderCount: orderStats.orderCount,
+        totalSpent: orderStats.totalSpent,
         isActive: !blocked,
         status: blocked ? "blocked" : "active",
         isBlocked: blocked,
@@ -571,11 +740,21 @@ export async function listAllUsersDirectory(req, res, next) {
       };
     });
 
+    const popularCities = (topCitiesAgg || [])
+      .map((c) => ({ city: String(c._id).trim(), count: c.count }))
+      .filter((c) => c.city && c.city !== "undefined");
+
+    const popularPincodes = (topPincodesAgg || [])
+      .map((p) => ({ pincode: String(p._id), count: p.count }))
+      .filter((p) => /^\d{6}$/.test(p.pincode));
+
     return ok(res, formatted, {
       total: totalUsers,
       page,
       limit,
       totalPages: Math.ceil(totalUsers / limit),
+      popularPincodes,
+      popularCities,
     });
   } catch (error) {
     next(error);

@@ -5,6 +5,8 @@ import { normalizeGiftHamperTiers } from "../../../shared/store/giftHamper.js";
 export const DEFAULT_STORE_SETTINGS = {
   minimumOrderValue: 0,
   minimumShippingCharge: 0,
+  packagingFee: 0,
+  freePackagingAbove: 0,
   shippingSlabs: [],
   giftHamperTiers: [],
   giftHampersEnabled: false,
@@ -123,6 +125,8 @@ export function serializeStoreSettings(doc, { admin = false } = {}) {
   const minimumOrderValue = nonNegativeAmount(source.minimumOrderValue);
   const minimumShippingCharge = nonNegativeAmount(source.minimumShippingCharge);
   const shippingSlabs = normalizeShippingSlabs(source.shippingSlabs || []);
+  const packagingFee = nonNegativeAmount(source.packagingFee);
+  const freePackagingAbove = nonNegativeAmount(source.freePackagingAbove);
   const giftHamperTiers = normalizeGiftHamperTiers(
     source.giftHamperTiers?.length
       ? source.giftHamperTiers
@@ -181,6 +185,8 @@ export function serializeStoreSettings(doc, { admin = false } = {}) {
     minimumOrderValue,
     minimumShippingCharge,
     shippingSlabs,
+    packagingFee,
+    freePackagingAbove,
     giftHamperTiers,
     giftHampersEnabled: Boolean(source.giftHampersEnabled),
     preOrderSlots: source.preOrderSlots?.length > 0 
@@ -245,4 +251,14 @@ export async function getStoreSettings({ forceRefresh = false } = {}) {
 export function clearStoreSettingsCache() {
   cachedSettings = null;
   cacheExpiresAt = 0;
+}
+
+export function calculatePackagingFee(subtotal, settings) {
+  const amount = Number(subtotal) || 0;
+  const baseFee = nonNegativeAmount(settings?.packagingFee);
+  const freeAbove = nonNegativeAmount(settings?.freePackagingAbove);
+  if (freeAbove > 0 && amount >= freeAbove) {
+    return 0;
+  }
+  return baseFee;
 }

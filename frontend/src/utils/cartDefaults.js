@@ -16,11 +16,12 @@ export function getProductPricingFromItem(item) {
     variantType: item.variantType,
     variants: item.variants,
     minOrderQuantity: item.minOrderQuantity,
+    bulkMinOrderQuantity: item.bulkMinOrderQuantity,
     stepByQuantity: item.stepByQuantity,
   };
 }
 
-export function resolveCartDefaults(product) {
+export function resolveCartDefaults(product, isBulkUser = false) {
   let variantName = "";
   if (isMultiVariant(product)) {
     const firstInStockVariant = product.variants.find((variant) =>
@@ -31,7 +32,7 @@ export function resolveCartDefaults(product) {
 
   const availableColors = getAvailableColors(product, variantName);
   const colorName = availableColors[0]?.name || "";
-  const quantity = getMinOrderQuantity(product, variantName, 1);
+  const quantity = getMinOrderQuantity(product, variantName, 1, isBulkUser);
 
   return { variantName, colorName, quantity };
 }

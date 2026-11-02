@@ -1,28 +1,36 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { BTN } from '../../utils/ui';
 
-export const HR_BASE = '/vendor/hr-management';
+export const HR_BASE = '/hr-management';
 
 export const HR_LINKS = [
-  { to: HR_BASE, label: 'Dashboard' },
-  { to: `${HR_BASE}/calendar`, label: 'Calendar' },
-  { to: `${HR_BASE}/announcements`, label: 'Announcements' },
-  { to: `${HR_BASE}/leave`, label: 'Leave' },
-  { to: `${HR_BASE}/my-leave`, label: 'My Leave' },
-  { to: `${HR_BASE}/employees`, label: 'Employees' },
-  { to: `${HR_BASE}/payroll`, label: 'Salary' },
-  { to: `${HR_BASE}/recruitment`, label: 'Recruitment' },
-  { to: `${HR_BASE}/attendance`, label: 'Attendance' },
-  { to: `${HR_BASE}/meetings`, label: 'Meetings' },
+  { to: '/hr-management', label: 'Dashboard' },
+  { to: '/hr-management/b2b-users', label: 'B2B Users' },
+  { to: '/hr-management/calendar', label: 'Calendar' },
+  { to: '/hr-management/announcements', label: 'Announcements' },
+  { to: '/hr-management/leave', label: 'Leave' },
+  { to: '/hr-management/my-leave', label: 'My Leave' },
+  { to: '/hr-management/employees', label: 'Employees' },
+  { to: '/hr-management/payroll', label: 'Salary' },
+  { to: '/hr-management/performance', label: 'Appraisals & Career' },
+  { to: '/hr-management/recruitment', label: 'Recruitment' },
+  { to: '/hr-management/attendance', label: 'Attendance' },
+  { to: '/hr-management/meetings', label: 'Meetings' },
 ];
 
 /** Employee types a vendor manages: its farmer managers and pickup drivers. */
 export const VENDOR_HR_TYPES = ['farmer_manager', 'pickup_driver'];
 
 export const ROLE_FIELDS = {
-  farmer_manager: ['email', 'address', 'city', 'state', 'pincode', 'location'],
-  pickup_driver: ['vehicleNumber', 'vehicleType', 'licenseNumber', 'assignedArea'],
+  vendor: ['email', 'department'],
+  segregation_manager: ['email', 'department'],
+  product_manager: ['email', 'department'],
+  farmer_manager: ['email', 'address', 'city', 'state', 'pincode', 'location', 'vendorId'],
+  farmer: ['email', 'address', 'city', 'state', 'pincode'],
+  pickup_driver: ['vehicleNumber', 'vehicleType', 'licenseNumber', 'assignedArea', 'vendorId'],
+  delivery_manager: ['email', 'state', 'city', 'area', 'storeName', 'storeAddress', 'pincode'],
+  delivery_boy: ['city', 'area', 'managerId', 'vehicleType'],
 };
 
 export function inr(value) {
@@ -42,11 +50,24 @@ export function pretty(value) {
   return String(value || '—').replaceAll('_', ' ');
 }
 
+export function formatDateTime(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function personKey(person) {
   return `${person.employeeType}:${person.id}`;
 }
 
-export function goToPreviousPage(navigate, fallback = HR_BASE) {
+export function goToPreviousPage(navigate, fallback = '/hr-management') {
   const idx = window.history.state?.idx;
   if (typeof idx === 'number' && idx > 0) {
     navigate(-1);
@@ -55,13 +76,16 @@ export function goToPreviousPage(navigate, fallback = HR_BASE) {
   navigate(fallback);
 }
 
-export function HrBackButtons({ children, fallback = HR_BASE }) {
+export function HrBackButtons({ children, fallback = '/hr-management' }) {
   const navigate = useNavigate();
   return (
     <div className="mb-2 flex flex-wrap items-center gap-2">
-      <button type="button" className={BTN} onClick={() => goToPreviousPage(navigate, fallback)}>
-        <ArrowLeft className="mr-1.5 h-4 w-4" />
-        Back
+      <button
+        type="button"
+        onClick={() => goToPreviousPage(navigate, fallback)}
+        className={`${BTN} inline-flex items-center gap-1.5`}
+      >
+        <ArrowLeft className="h-4 w-4" /> Back
       </button>
       {children}
     </div>

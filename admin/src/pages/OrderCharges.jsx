@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { IndianRupee, Plus, Trash2, Check, X, Loader2 } from 'lucide-react';
+import { IndianRupee, Plus, Trash2, Check, X, Loader2, Package } from 'lucide-react';
 import { PAGE_TITLE, PAGE_SUB, PANEL, BTN_PRIMARY } from '../utils/ui';
 import { API_ORIGIN as API_BASE } from '../api/client';
 
@@ -20,6 +20,8 @@ const fmt = (value) => `₹${toAmount(value).toLocaleString('en-IN')}`;
 export default function OrderCharges() {
   const [minimumOrderValue, setMinimumOrderValue] = useState('');
   const [minimumShippingCharge, setMinimumShippingCharge] = useState('');
+  const [packagingFee, setPackagingFee] = useState('');
+  const [freePackagingAbove, setFreePackagingAbove] = useState('');
   const [slabs, setSlabs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,6 +39,8 @@ export default function OrderCharges() {
         if (cancelled) return;
         setMinimumOrderValue(String(settings.minimumOrderValue ?? 0));
         setMinimumShippingCharge(String(settings.minimumShippingCharge ?? 0));
+        setPackagingFee(String(settings.packagingFee ?? 0));
+        setFreePackagingAbove(String(settings.freePackagingAbove ?? 0));
         setSlabs(
           (settings.shippingSlabs || []).map((slab) => ({
             orderAmount: String(slab.orderAmount),
@@ -81,6 +85,8 @@ export default function OrderCharges() {
         body: JSON.stringify({
           minimumOrderValue: toAmount(minimumOrderValue),
           minimumShippingCharge: toAmount(minimumShippingCharge),
+          packagingFee: toAmount(packagingFee),
+          freePackagingAbove: toAmount(freePackagingAbove),
           shippingSlabs: cleanedSlabs,
         }),
       });
@@ -115,15 +121,15 @@ export default function OrderCharges() {
     .sort((a, b) => a.orderAmount - b.orderAmount);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-8 gap-4">
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className={`${PAGE_TITLE} flex items-center gap-2`}>
             <IndianRupee className="w-6 h-6 text-emerald-600" />
-            Order &amp; Delivery Charges
+            Order, Shipping &amp; Packaging Charges
           </h1>
           <p className={PAGE_SUB}>
-            Used by checkout on the website and the app. Set 0 to turn a rule off.
+            Used by checkout on the website and app. Set 0 to turn a charge off.
           </p>
         </div>
         <button onClick={handleSave} disabled={saving} className={`${BTN_PRIMARY} flex items-center gap-2`}>
@@ -133,18 +139,21 @@ export default function OrderCharges() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 flex items-start gap-2">
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg flex items-start gap-2">
           <X className="w-5 h-5 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
       {savedAt && !error && (
-        <div className="bg-emerald-50 text-emerald-700 p-3 rounded-lg mb-6 text-sm">
+        <div className="bg-emerald-50 text-emerald-700 p-3 rounded-lg text-sm">
           Saved at {savedAt.toLocaleTimeString()}.
         </div>
       )}
 
-      <div className={`${PANEL} p-6 mb-6`}>
+      {/* 1. Minimum Order & Base Shipping Charges */}
+      <div className={`${PANEL} p-6`}>
+        <h2 className="text-base font-semibold text-gray-900 mb-1">Order &amp; Shipping Charges</h2>
+        <p className="text-sm text-gray-500 mb-4">Core thresholds for minimum order value and baseline delivery fees.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Minimum order value (₹)</label>
@@ -171,6 +180,50 @@ export default function OrderCharges() {
         </div>
       </div>
 
+      {/* 2. NEW PACKAGING CHARGES SECTION */}
+      <div className={`${PANEL} p-6`}>
+        <div className="flex items-center gap-2 mb-1">
+          <Package className="w-5 h-5 text-emerald-600" />
+          <h2 className="text-base font-semibold text-gray-900">Packaging Charges</h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Packaging &amp; handling charges applied per order during checkout.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Packaging Fee (₹)</label>
+            <input
+              type="number"
+              min="0"
+              value={packagingFee}
+              onChange={(e) => setPackagingFee(e.target.value)}
+              className={INPUT}
+            />
+            <p className="mt-1 text-xs text-gray-500">Standard packaging &amp; handling charge added to orders (0 for free).</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Free Packaging Above (₹)</label>
+            <input
+              type="number"
+              min="0"
+              value={freePackagingAbove}
+              onChange={(e) => setFreePackagingAbove(e.target.value)}
+              className={INPUT}
+            />
+            <p className="mt-1 text-xs text-gray-500">Orders with subtotal at or above this amount get free packaging (0 to disable).</p>
+          </div>
+        </div>
+        {toAmount(packagingFee) > 0 && (
+          <div className="mt-4 p-3 rounded-lg bg-emerald-50/60 border border-emerald-100 text-xs text-emerald-800">
+            💡 Customers pay <b>{fmt(packagingFee)}</b> packaging fee.
+            {toAmount(freePackagingAbove) > 0
+              ? ` Orders above ${fmt(freePackagingAbove)} get FREE packaging.`
+              : ' Appears on all orders.'}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Delivery Charge Slabs */}
       <div className={`${PANEL} p-6`}>
         <h2 className="text-base font-semibold text-gray-900">Delivery charge slabs</h2>
         <p className="text-sm text-gray-500 mb-4">

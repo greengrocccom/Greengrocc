@@ -785,6 +785,7 @@ export default function Products() {
     stock: 100,
     inStock: true,
     minOrderQuantity: 1,
+    bulkMinOrderQuantity: 10,
     maxOrderQuantity: '',
     stepByQuantity: 1,
     cardGlowColor: '',
@@ -864,12 +865,16 @@ export default function Products() {
       // Fetch products, categories, sections in parallel
       // Use /products/all for true catalog stock (not dark-store overlay)
       const fetchAllProductPages = async () => {
-        const first = await apiClient.get('/products/all', { params: { limit: 100, page: 1 } });
+        const first = await apiClient.get('/products/all', {
+          params: { limit: 100, page: 1, sortBy: 'createdAt', sortDir: 'desc' },
+        });
         const totalPages = Number(first.data?.pagination?.totalPages) || 1;
         if (totalPages <= 1 || !Array.isArray(first.data?.data)) return first;
         const rest = await Promise.all(
           Array.from({ length: totalPages - 1 }, (_, i) =>
-            apiClient.get('/products/all', { params: { limit: 100, page: i + 2 } })
+            apiClient.get('/products/all', {
+              params: { limit: 100, page: i + 2, sortBy: 'createdAt', sortDir: 'desc' },
+            })
           )
         );
         const all = [first, ...rest].flatMap((res) => (Array.isArray(res.data?.data) ? res.data.data : []));
@@ -895,7 +900,20 @@ export default function Products() {
 
       if (catRes.status === 'fulfilled') {
         const cData = catRes.value.data;
-        setCategories(Array.isArray(cData?.data) ? cData.data : Array.isArray(cData) ? cData : []);
+        const list = Array.isArray(cData?.data) ? cData.data : Array.isArray(cData) ? cData : [];
+        if (list.length > 0) {
+          setCategories(list);
+        } else {
+          try {
+            const fallback = await apiClient.get('/categories');
+            setCategories(Array.isArray(fallback.data?.data) ? fallback.data.data : Array.isArray(fallback.data) ? fallback.data : []);
+          } catch (_) {}
+        }
+      } else {
+        try {
+          const fallback = await apiClient.get('/categories');
+          setCategories(Array.isArray(fallback.data?.data) ? fallback.data.data : Array.isArray(fallback.data) ? fallback.data : []);
+        } catch (_) {}
       }
 
       if (secRes.status === 'fulfilled') {
@@ -921,9 +939,39 @@ export default function Products() {
 
   // Filtered categories for the chosen department in form
   const availableCategoriesForForm = useMemo(() => {
-    if (!formData.department) return categories;
-    return categories.filter((c) => sectionMatches(resolveCategorySection(c), formData.department));
-  }, [categories, formData.department]);
+    const list = Array.isArray(categories) ? [...categories] : [];
+    const knownNames = new Set(list.map((c) => String(c.categoryName || '').trim().toLowerCase()));
+
+    // Harvest categories from loaded products so no category is ever missing
+    products.forEach((p) => {
+      const names = Array.isArray(p.categories) ? p.categories : [p.category];
+      names.forEach((raw) => {
+        const name = String(raw || '').trim();
+        if (name && !knownNames.has(name.toLowerCase())) {
+          knownNames.add(name.toLowerCase());
+          list.push({ categoryName: name, section: p.section || '' });
+        }
+      });
+    });
+
+    if (!formData.department) return list;
+
+    const directMatches = list.filter((c) =>
+      sectionMatches(resolveCategorySection(c), formData.department)
+    );
+    // If the section has direct category matches, return them first, followed by remaining categories
+    if (directMatches.length > 0) {
+      const matchNames = new Set(
+        directMatches.map((c) => String(c.categoryName || '').trim().toLowerCase())
+      );
+      const others = list.filter(
+        (c) => !matchNames.has(String(c.categoryName || '').trim().toLowerCase())
+      );
+      return [...directMatches, ...others];
+    }
+    // If the section has no dedicated categories (e.g. instantorder, diet), allow all categories
+    return list;
+  }, [categories, products, formData.department]);
 
   const formDepartmentOptions = useMemo(() => {
     return sections.map((s) => {
@@ -944,36 +992,55 @@ export default function Products() {
 
   const availableCategoriesForFilter = useMemo(() => {
     if (!selectedDepartment) return categories;
-    return categories.filter((c) => sectionMatches(c.section, selectedDepartment));
-  }, [categories, selectedDepartment]);
+    const direct = categories.filter((c) => sectionMatches(resolveCategorySection(c), selectedDepartment));
+    if (direct.length > 0) return direct;
+    const usedHere = new Set(
+      products
+        .filter((p) => sectionMatches(p.section, selectedDepartment))
+        .flatMap((p) => (Array.isArray(p.categories) ? p.categories : [p.category]))
+        .map((name) => String(name || '').trim().toLowerCase())
+        .filter(Boolean)
+    );
+    const stocked = categories.filter((c) => usedHere.has(String(c.categoryName || '').trim().toLowerCase()));
+    return stocked.length > 0 ? stocked : categories;
+  }, [categories, selectedDepartment, products]);
 
-  // Available subcategories for the selected category
+  // Available base products for the selected category
   const baseProductOptions = useMemo(() => {
     const map = new Map();
     const cat = String(formData.category || '').trim().toLowerCase();
     products.forEach((product) => {
       const name = String(product.baseProductName || '').trim();
       if (!name) return;
-      if (formData.department && !sectionMatches(product.section, formData.department)) return;
-      const productCat = String(
-        (Array.isArray(product.categories) && product.categories[0]) || product.category || ''
-      ).trim().toLowerCase();
-      if (cat && productCat !== cat) return;
-      const id = String(product.baseProductId || '').trim() || baseProductKey(productCat, name);
+      const rawCat = (Array.isArray(product.categories) && product.categories[0]) || product.category || '';
+      const productCat = String(rawCat || '').trim().toLowerCase();
+      if (cat && productCat && productCat !== cat) return;
+      const id = String(product.baseProductId || '').trim() || baseProductKey(productCat || cat, name);
       const current = map.get(id);
       if (!current) {
-        map.set(id, { id, name, image: String(product.baseProductImage || '').trim() });
+        map.set(id, {
+          id,
+          name,
+          image: String(product.baseProductImage || '').trim(),
+          category: rawCat || productCat,
+        });
       } else if (!current.image && product.baseProductImage) {
         current.image = String(product.baseProductImage).trim();
       }
     });
     savedBaseProducts.forEach((item) => {
-      if (formData.department && item.section && !sectionMatches(item.section, formData.department)) return;
-      if (cat && String(item.category || '').trim().toLowerCase() !== cat) return;
-      map.set(item.key, { id: item.key, name: item.name, image: item.image || map.get(item.key)?.image || '' });
+      const itemCat = String(item.category || '').trim().toLowerCase();
+      if (cat && itemCat && itemCat !== cat) return;
+      const existing = map.get(item.key);
+      map.set(item.key, {
+        id: item.key,
+        name: item.name,
+        image: item.image || existing?.image || '',
+        category: item.category || existing?.category || '',
+      });
     });
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [products, savedBaseProducts, formData.department, formData.category]);
+  }, [products, savedBaseProducts, formData.category]);
 
   const availableSubcategoriesForForm = useMemo(() => {
     if (!formData.category) return [];
@@ -1055,6 +1122,7 @@ export default function Products() {
       stock: options.stock != null ? options.stock : 100,
       inStock: options.inStock !== undefined ? options.inStock : true,
       minOrderQuantity: options.minOrderQuantity ?? 1,
+      bulkMinOrderQuantity: options.bulkMinOrderQuantity ?? 10,
       maxOrderQuantity: options.maxOrderQuantity ?? '',
       stepByQuantity: options.stepByQuantity || 1,
       cardGlowColor: options.cardGlowColor || '',
@@ -1176,7 +1244,8 @@ export default function Products() {
       showFarmerTraceability: product.showFarmerTraceability !== false,
       cardGlowColor: product.cardGlowColor,
       badge: product.badge,
-      minOrderQuantity: product.minOrderQuantity,
+      minOrderQuantity: product.minOrderQuantity ?? 1,
+      bulkMinOrderQuantity: product.bulkMinOrderQuantity ?? 10,
       maxOrderQuantity: product.maxOrderQuantity,
       stepByQuantity: product.stepByQuantity,
       price: '',
@@ -1929,6 +1998,7 @@ export default function Products() {
         stock: parseInt(formData.stock, 10) || 0,
         inStock: Boolean(formData.inStock),
         minOrderQuantity: parseInt(formData.minOrderQuantity, 10) || 1,
+        bulkMinOrderQuantity: parseInt(formData.bulkMinOrderQuantity, 10) || 10,
         maxOrderQuantity: formData.maxOrderQuantity !== '' && !isNaN(parseInt(formData.maxOrderQuantity, 10)) ? parseInt(formData.maxOrderQuantity, 10) : null,
         stepByQuantity: parseInt(formData.stepByQuantity, 10) || 1,
         productImages: formData.productImages,
@@ -1940,7 +2010,7 @@ export default function Products() {
         cardGlowColor: formData.cardGlowColor?.trim() || '',
         badge: formData.badge?.trim() || '',
         section: formData.department,
-        storeType: formData.department === 'ready2cook' ? 'festive' : formData.department === 'supermall' ? 'mall' : 'main',
+        storeType: formData.department === 'ready2cook' ? 'festive' : (formData.department === 'supermall' || formData.department === 'instantorder') ? 'mall' : 'main',
         deptNumber: formData.deptNumber?.trim() || '',
         rackRow: formData.rackRow?.trim() || '',
         rackColumn: formData.rackColumn?.trim() || '',
@@ -1994,6 +2064,15 @@ export default function Products() {
         await apiClient.post(`/products`, payload);
         setSuccessMsg(`Product "${formData.name}" created successfully!`);
       }
+
+      // Automatically switch to the section tab of the saved product and clear lingering filters
+      const targetSec = SECTION_GROUP_ALIAS[formData.department] || formData.department || 'preorder';
+      setSectionTab(targetSec);
+      setSelectedDepartment(targetSec);
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
+      setSearchQuery('');
+      setNavLevel('products');
 
       closeProductEditor();
       setEditingProduct(null);
@@ -2054,10 +2133,6 @@ export default function Products() {
       if (listAudience === 'bulk' && !p.enableBulkGrades) return false;
       if (listAudience === 'retail' && p.enableBulkGrades) return false;
 
-      if (selectedDepartment) {
-        if (!sectionMatches(p.section, selectedDepartment)) return false;
-      }
-
       if (selectedCategory) {
         const pCats = Array.isArray(p.categories) ? p.categories : [p.category];
         const hasCat = pCats.some(
@@ -2088,7 +2163,6 @@ export default function Products() {
   }, [
     products,
     searchQuery,
-    selectedDepartment,
     selectedCategory,
     selectedSubcategory,
     stockFilter,
@@ -2713,16 +2787,26 @@ export default function Products() {
                             const matchingCats = categories.filter((c) =>
                               sectionMatches(resolveCategorySection(c), dept.slug)
                             );
-                            setBaseProductOpen(false);
-                            setFormData((prev) => ({
-                              ...prev,
-                              department: dept.slug,
-                              category: matchingCats[0]?.categoryName || '',
-                              subcategory: matchingCats[0]?.subcategories?.[0] || 'General',
-                              baseProductId: '',
-                              baseProductName: '',
-                              baseProductImage: '',
-                            }));
+                            setFormData((prev) => {
+                              const hasCurrentCat = availableCategoriesForForm.some(
+                                (c) => c.categoryName.toLowerCase() === String(prev.category || '').toLowerCase()
+                              );
+                              const nextCat =
+                                (hasCurrentCat ? prev.category : '') ||
+                                (matchingCats.length > 0 ? matchingCats[0]?.categoryName : '') ||
+                                availableCategoriesForForm[0]?.categoryName ||
+                                prev.category ||
+                                '';
+                              const catObj = availableCategoriesForForm.find(
+                                (c) => c.categoryName.toLowerCase() === String(nextCat || '').toLowerCase()
+                              );
+                              return {
+                                ...prev,
+                                department: dept.slug,
+                                category: catObj ? catObj.categoryName : nextCat,
+                                subcategory: catObj?.subcategories?.[0] || prev.subcategory || 'General',
+                              };
+                            });
                           }}
                           className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer text-center ${ isSelected ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50' }`}
                         >
@@ -2740,20 +2824,26 @@ export default function Products() {
                       Category <span className="text-rose-500">*</span>
                     </label>
                     <select
-                      value={formData.category}
+                      value={
+                        availableCategoriesForForm.find(
+                          (c) => c.categoryName.toLowerCase() === String(formData.category || '').toLowerCase()
+                        )?.categoryName || formData.category || ''
+                      }
                       onChange={(e) => {
                         const chosenCat = e.target.value;
-                        const catObj = categories.find((c) => c.categoryName.toLowerCase() === chosenCat.toLowerCase());
-                        setBaseProductOpen(false);
+                        const catObj = availableCategoriesForForm.find(
+                          (c) => c.categoryName.toLowerCase() === chosenCat.toLowerCase()
+                        ) || categories.find((c) => c.categoryName.toLowerCase() === chosenCat.toLowerCase());
                         setFormData((prev) => {
                           const isCustomSku = prev.sku && !prev.sku.startsWith('GGC-ART-') && !prev.sku.startsWith('GRN-');
+                          const keepBase = prev.baseProductName && (!prev.category || prev.category.toLowerCase() === chosenCat.toLowerCase());
                           return {
                             ...prev,
                             category: chosenCat,
                             subcategory: catObj?.subcategories?.[0] || 'General',
-                            baseProductId: '',
-                            baseProductName: '',
-                            baseProductImage: '',
+                            baseProductId: keepBase ? prev.baseProductId : '',
+                            baseProductName: keepBase ? prev.baseProductName : '',
+                            baseProductImage: keepBase ? prev.baseProductImage : '',
                             sku: !editingProduct && !isCustomSku ? computeCanonicalProductId(chosenCat, prev.name, prev.varietyName, products) : prev.sku,
                           };
                         });
@@ -2761,8 +2851,11 @@ export default function Products() {
                       className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-600 cursor-pointer shadow-sm"
                     >
                       <option value="" disabled>Select category</option>
+                      {formData.category && !availableCategoriesForForm.some((c) => c.categoryName.toLowerCase() === formData.category.toLowerCase()) && (
+                        <option value={formData.category}>{formData.category}</option>
+                      )}
                       {availableCategoriesForForm.map((cat) => (
-                        <option key={cat._id || cat.slug} value={cat.categoryName}>
+                        <option key={cat._id || cat.slug || cat.categoryName} value={cat.categoryName}>
                           {cat.categoryName}
                         </option>
                       ))}
@@ -2842,8 +2935,19 @@ export default function Products() {
                       }
                       const match = baseProductOptions.find((item) => item.id === chosen);
                       setBaseProductOpen(Boolean(match));
+                      const targetCat = match?.category || '';
+                      const matchedCatObj =
+                        availableCategoriesForForm.find(
+                          (c) => c.categoryName.toLowerCase() === targetCat.toLowerCase()
+                        ) ||
+                        categories.find(
+                          (c) => c.categoryName.toLowerCase() === targetCat.toLowerCase()
+                        );
+                      const resolvedCat = matchedCatObj ? matchedCatObj.categoryName : targetCat;
                       setFormData((prev) => ({
                         ...prev,
+                        category: resolvedCat || prev.category || '',
+                        subcategory: matchedCatObj?.subcategories?.[0] || prev.subcategory || 'General',
                         baseProductId: match?.id || '',
                         baseProductName: match?.name || '',
                         baseProductImage: match?.image || '',
@@ -3448,7 +3552,7 @@ export default function Products() {
                     </div>
 
                     {/* Stock & Limits Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1 border-t border-slate-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-1 border-t border-slate-100">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                           Stock Quantity
@@ -3464,8 +3568,9 @@ export default function Products() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Min Order Qty
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
+                          <User className="h-3 w-3 text-emerald-600" />
+                          Min Qty (Normal User)
                         </label>
                         <input
                           type="number"
@@ -3475,6 +3580,23 @@ export default function Products() {
                           onChange={(e) => setFormData({ ...formData, minOrderQuantity: e.target.value === '' ? '' : parseInt(e.target.value, 10) || 1 })}
                           className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-600 shadow-sm"
                         />
+                        <span className="text-[10px] text-slate-400 mt-0.5 block">Retail buyers (Default: 1)</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
+                          <Package className="h-3 w-3 text-blue-600" />
+                          Min Qty (Bulk User)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="10"
+                          value={formData.bulkMinOrderQuantity}
+                          onChange={(e) => setFormData({ ...formData, bulkMinOrderQuantity: e.target.value === '' ? '' : parseInt(e.target.value, 10) || 1 })}
+                          className="w-full px-3 py-2 rounded-lg bg-white border border-blue-200 bg-blue-50/20 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-600 shadow-sm"
+                        />
+                        <span className="text-[10px] text-blue-600 font-medium mt-0.5 block">B2B buyers (Default: 10)</span>
                       </div>
 
                       <div>
@@ -3489,6 +3611,7 @@ export default function Products() {
                           onChange={(e) => setFormData({ ...formData, maxOrderQuantity: e.target.value === '' ? '' : parseInt(e.target.value, 10) || '' })}
                           className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-600 shadow-sm"
                         />
+                        <span className="text-[10px] text-slate-400 mt-0.5 block">Max allowed per order</span>
                       </div>
 
                       <div className="flex items-center gap-2 pt-1 sm:pt-6">
@@ -5396,7 +5519,12 @@ export default function Products() {
             <button
               key={group.slug}
               type="button"
-              onClick={() => setSectionTab(group.slug)}
+              onClick={() => {
+                setSectionTab(group.slug);
+                setSelectedDepartment(group.slug);
+                setSelectedCategory(null);
+                setSelectedSubcategory(null);
+              }}
               className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition ${
                 active ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
               }`}

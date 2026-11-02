@@ -1147,7 +1147,7 @@ function ProductDetail() {
 
   useEffect(() => {
     if (!product) return;
-    const moq = getMinOrderQuantity(product, activeVariantName, DEFAULT_MOQ);
+    const moq = getMinOrderQuantity(product, activeVariantName, DEFAULT_MOQ, isBulkUser);
     setQuantity(cartLineQuantity ?? moq);
   }, [product, activeVariantName, selectedColor, cartLineQuantity]);
 

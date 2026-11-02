@@ -37,6 +37,7 @@ function resolveColorForVariant(product, variant, variantName) {
 
 function VariantRow({ product, variant, image, onClose, preOrderSlot }) {
   const { items, addToCart, incrementCartItem, decrementCartItem } = useCart();
+  const isBulkUser = user?.accountType === "bulk";
   const { openAuthModal } = useAuth();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
@@ -64,7 +65,7 @@ function VariantRow({ product, variant, image, onClose, preOrderSlot }) {
     const flySource = event.currentTarget;
 
     try {
-      const moq = getMinOrderQuantity(product, variantName, 1);
+      const moq = getMinOrderQuantity(product, variantName, 1, isBulkUser);
       const result = await addToCart(product, moq, {
         variantName,
         colorName,

@@ -51,7 +51,8 @@ export const protect = async (req, res, next) => {
 };
 
 export const requireAdmin = (req, res, next) => {
-  if (req.user?.role !== "admin") {
+  const role = String(req.user?.role || "").trim().toLowerCase();
+  if (role !== "admin" && role !== "vendor") {
     return res.status(403).json({
       success: false,
       message: "Admin access required",

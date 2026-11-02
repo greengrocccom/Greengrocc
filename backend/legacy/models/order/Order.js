@@ -112,6 +112,7 @@ const orderSchema = new mongoose.Schema(
     giftCardDiscount: { type: Number, default: 0, min: 0 },
     deliveryCharges: { type: Number, default: 0 },
     heavyHandlingFee: { type: Number, default: 0, min: 0 },
+    packagingFee: { type: Number, default: 0, min: 0 },
     bundleDiscount: { type: Number, default: 0, min: 0 },
     loyaltyDiscount: { type: Number, default: 0, min: 0 },
     dynamicDiscount: { type: Number, default: 0, min: 0 },

@@ -415,6 +415,9 @@ const buildProductPayload = (body) => {
     minOrderQuantity: normalizeOptionalQuantity(
       source.minOrderQuantity ?? source.bulkPricing?.minOrderQuantity
     ),
+    bulkMinOrderQuantity: normalizeOptionalQuantity(
+      source.bulkMinOrderQuantity ?? source.bulkPricing?.bulkMinOrderQuantity
+    ),
     maxOrderQuantity: normalizeOptionalQuantity(
       source.maxOrderQuantity ?? source.maxOrderQty ?? source.bulkPricing?.maxOrderQuantity
     ),
@@ -559,7 +562,8 @@ const resolveProductPricing = (payload) => {
       names.add(key);
     }
 
-    const productMinOrderQuantity = normalizeOptionalQuantity(payload.minOrderQuantity);
+    const productMinOrderQuantity = normalizeOptionalQuantity(payload.minOrderQuantity) || 1;
+    const productBulkMinOrderQuantity = normalizeOptionalQuantity(payload.bulkMinOrderQuantity) || 10;
     const productMaxOrderQuantity = normalizeOptionalQuantity(payload.maxOrderQuantity);
     const productStepByQuantity = normalizeOptionalQuantity(payload.stepByQuantity);
     const resolvedVariants = [];
@@ -1037,7 +1041,7 @@ export const getAllProducts = async (req, res) => {
       status: "isActive",
     };
     const sortField = sortMap[sortBy] || "createdAt";
-    const sortOrder = sortDir === "desc" ? -1 : 1;
+    const sortOrder = sortDir === "asc" ? 1 : -1;
 
     const [total, products, allCount, activeCount, inactiveCount, outOfStockCount, lowStockCount] =
       await Promise.all([
@@ -1341,7 +1345,8 @@ const buildPersistedProductFields = (payload, pricingFields, categoryCheck) => (
   variants: pricingFields.variants,
   pricingType: pricingFields.pricingType,
   bulkPricing: pricingFields.bulkPricing,
-  minOrderQuantity: pricingFields.minOrderQuantity,
+  minOrderQuantity: pricingFields.minOrderQuantity ?? normalizeOptionalQuantity(payload.minOrderQuantity) ?? 1,
+  bulkMinOrderQuantity: pricingFields.bulkMinOrderQuantity ?? normalizeOptionalQuantity(payload.bulkMinOrderQuantity) ?? 10,
   maxOrderQuantity: pricingFields.maxOrderQuantity,
   stepByQuantity: pricingFields.stepByQuantity,
   price: pricingFields.price,
@@ -1595,6 +1600,10 @@ export async function updateProductRecord(id, body = {}, { ownerManagerId = null
         body.minOrderQuantity !== undefined
           ? body.minOrderQuantity
           : existing.minOrderQuantity,
+      bulkMinOrderQuantity:
+        body.bulkMinOrderQuantity !== undefined
+          ? body.bulkMinOrderQuantity
+          : existing.bulkMinOrderQuantity,
       maxOrderQuantity:
         body.maxOrderQuantity !== undefined
           ? body.maxOrderQuantity

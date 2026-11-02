@@ -152,7 +152,7 @@ function documentSummary(doc) {
 export async function listVendorsAdmin(req, res, next) {
   try {
     const filter = req.query.status ? { status: req.query.status } : {};
-    const [vendors, centres, documents, darkStores, vendorProductCounts, pendingRequestCounts] = await Promise.all([
+    const [vendors, centres, documents, darkStores, vendorProductCounts, pendingRequestCounts, allApprovedZones] = await Promise.all([
       Vendor.find(filter).sort({ createdAt: -1 }).lean(),
       CollectionCentre.find().sort({ createdAt: 1 }).lean(),
       VendorDocument.find().select("-fileUrl").lean(),
@@ -165,7 +165,14 @@ export async function listVendorsAdmin(req, res, next) {
         { $match: { status: "Pending" } },
         { $group: { _id: "$vendorId", count: { $sum: 1 } } },
       ]),
+      VendorZone.find({ status: "Approved" }).select("vendorId name").lean(),
     ]);
+    const zonesByVendor = new Map();
+    (allApprovedZones || []).forEach((z) => {
+      const key = String(z.vendorId || "");
+      if (!zonesByVendor.has(key)) zonesByVendor.set(key, new Set());
+      if (z.name) zonesByVendor.get(key).add(z.name);
+    });
     const darkStoresByVendor = new Map();
     darkStores.forEach((store) => {
       const key = String(store.vendorId);
@@ -186,14 +193,20 @@ export async function listVendorsAdmin(req, res, next) {
     const vpMap = new Map(vendorProductCounts.map((v) => [String(v._id), v.count]));
     const prMap = new Map(pendingRequestCounts.map((v) => [String(v._id), v.count]));
 
-    const data = vendors.map(({ password: _pw, ...vendor }) => ({
-      ...vendor,
-      collectionCentre: centreByVendor.get(String(vendor.id)) || null,
-      documents: documentsByVendor.get(String(vendor.id)) || [],
-      darkStores: darkStoresByVendor.get(String(vendor.id)) || [],
-      productCount: vpMap.get(String(vendor.id)) || 0,
-      pendingRequestsCount: prMap.get(String(vendor.id)) || 0,
-    }));
+    const data = vendors.map(({ password: _pw, ...vendor }) => {
+      const fromDb = Array.isArray(vendor.zones) ? vendor.zones : [];
+      const fromZones = zonesByVendor.get(String(vendor.id)) ? Array.from(zonesByVendor.get(String(vendor.id))) : [];
+      const combinedZones = [...new Set([...fromDb, ...fromZones])];
+      return {
+        ...vendor,
+        zones: combinedZones,
+        collectionCentre: centreByVendor.get(String(vendor.id)) || null,
+        documents: documentsByVendor.get(String(vendor.id)) || [],
+        darkStores: darkStoresByVendor.get(String(vendor.id)) || [],
+        productCount: vpMap.get(String(vendor.id)) || 0,
+        pendingRequestsCount: prMap.get(String(vendor.id)) || 0,
+      };
+    });
     return ok(res, data, {
       stats: {
         total: data.length,
@@ -970,6 +983,13 @@ export async function createVendorAdmin(req, res, next) {
     }
     const id = timestampId("vendor");
     const hashedPassword = await bcrypt.hash(String(req.body.password || "vendor123"), 10);
+    const rawZones = Array.isArray(req.body.zones)
+      ? req.body.zones
+      : typeof req.body.zones === "string"
+      ? req.body.zones.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+    const zones = [...new Set(rawZones.map((z) => String(z || "").trim()).filter(Boolean))];
+
     const vendor = await Vendor.create({
       id,
       vendorCode: await serialId("VND"),
@@ -986,9 +1006,33 @@ export async function createVendorAdmin(req, res, next) {
       panNumber: String(req.body.panNumber || "").trim(),
       commissionRate: Number(req.body.commissionRate || 10),
       status: req.body.status || "Active",
+      zones,
       password: hashedPassword,
       role: "VENDOR",
     });
+
+    for (const zoneName of zones) {
+      const zId = `zone_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      await VendorZone.findOneAndUpdate(
+        { vendorId: id, name: zoneName },
+        {
+          $setOnInsert: {
+            id: zId,
+            vendorId: id,
+            name: zoneName,
+            state: vendor.state || "Maharashtra",
+            cities: [zoneName],
+            description: "Zone assigned by admin during vendor setup",
+          },
+          $set: {
+            status: "Approved",
+            reviewedAt: new Date(),
+            adminRemarks: "Assigned by admin",
+          },
+        },
+        { upsert: true, new: true }
+      ).catch((err) => console.warn("[createVendorAdmin] Zone upsert failed:", err.message));
+    }
     consumeVerifiedPhone(mobile);
     let centre;
     try {
@@ -1051,6 +1095,38 @@ export async function updateVendorAdmin(req, res, next) {
       "status",
       "mobile",
     ];
+    if (req.body.zones !== undefined) {
+      const rawZones = Array.isArray(req.body.zones)
+        ? req.body.zones
+        : typeof req.body.zones === "string"
+        ? req.body.zones.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+      const zones = [...new Set(rawZones.map((z) => String(z || "").trim()).filter(Boolean))];
+      vendor.zones = zones;
+
+      for (const zoneName of zones) {
+        const zId = `zone_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        await VendorZone.findOneAndUpdate(
+          { vendorId: vendor.id, name: zoneName },
+          {
+            $setOnInsert: {
+              id: zId,
+              vendorId: vendor.id,
+              name: zoneName,
+              state: vendor.state || "Maharashtra",
+              cities: [zoneName],
+              description: "Zone assigned by admin during vendor setup",
+            },
+            $set: {
+              status: "Approved",
+              reviewedAt: new Date(),
+              adminRemarks: "Assigned by admin",
+            },
+          },
+          { upsert: true, new: true }
+        ).catch(() => {});
+      }
+    }
     fields.forEach((key) => {
       if (req.body[key] !== undefined) vendor[key] = req.body[key];
     });
@@ -1087,6 +1163,7 @@ export async function deleteVendorAdmin(req, res, next) {
     if (!vendor) return fail(res, 404, "Vendor not found");
     await Promise.all([
       VendorDocument.deleteMany({ vendorId: vendor.id }),
+      VendorZone.deleteMany({ vendorId: vendor.id }),
       DeliveryManager.updateMany({ vendorId: vendor.id }, { $set: { vendorId: "" } }),
       VendorProduct.deleteMany({ vendorId: vendor.id }),
       VendorProductRequest.updateMany({ vendorId: vendor.id, status: "Pending" }, { $set: { status: "Cancelled" } }),
@@ -1108,8 +1185,11 @@ export async function getVendorAdmin(req, res, next) {
       VendorDocument.find({ vendorId: vendor.id }).select("-fileUrl").lean(),
       DeliveryManager.find({ vendorId: vendor.id }).sort({ storeName: 1 }).lean(),
     ]);
+    const approvedZones = await VendorZone.find({ vendorId: vendor.id, status: "Approved" }).select("name").lean();
+    const combinedZones = [...new Set([...(vendor.zones || []), ...approvedZones.map((z) => z.name)])];
     return ok(res, {
       ...vendor,
+      zones: combinedZones,
       collectionCentre: centre || null,
       documents: documents.map(documentSummary),
       darkStores: darkStores.map(darkStoreSummary),

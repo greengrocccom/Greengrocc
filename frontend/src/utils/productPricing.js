@@ -110,6 +110,7 @@ export function getTotalProductStock(product) {
 export function getPricingSource(product, variantName = "") {
   const productMoq =
     product?.minOrderQuantity ?? product?.bulkPricing?.minOrderQuantity ?? null;
+  const productBulkMoq = product?.bulkMinOrderQuantity ?? product?.bulkPricing?.bulkMinOrderQuantity ?? null;
   const productMax =
     product?.maxOrderQuantity ?? product?.maxOrderQty ?? product?.bulkPricing?.maxOrderQuantity ?? null;
   const productStep =
@@ -163,6 +164,7 @@ export function getPricingSource(product, variantName = "") {
     price: product?.price,
     discountedPrice: product?.discountedPrice ?? product?.salePrice,
     minOrderQuantity: productMoq,
+      bulkMinOrderQuantity: productBulkMoq,
     maxOrderQuantity: productMax,
     stepByQuantity: productStep,
   };

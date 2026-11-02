@@ -173,6 +173,7 @@ export function getTotalProductStock(product) {
 export function getPricingSource(product, variantName) {
   const productMoq =
     product?.minOrderQuantity ?? product?.bulkPricing?.minOrderQuantity ?? null;
+  const productBulkMoq = product?.bulkMinOrderQuantity ?? product?.bulkPricing?.bulkMinOrderQuantity ?? null;
   const productMax =
     product?.maxOrderQuantity ?? product?.maxOrderQty ?? product?.bulkPricing?.maxOrderQuantity ?? null;
   const productStep =
@@ -226,6 +227,7 @@ export function getPricingSource(product, variantName) {
     price: product?.price,
     discountedPrice: product?.discountedPrice,
     minOrderQuantity: productMoq,
+      bulkMinOrderQuantity: productBulkMoq,
     maxOrderQuantity: productMax,
     stepByQuantity: productStep,
   };
@@ -456,4 +458,4 @@ export function resolvePricingFields(payload) {
 }
 
 export const PRODUCT_PRICING_SELECT =
-  "name brandName price discountedPrice discountedPercent productImages videoUrl stock inStock subcategory subcategories pricingType bulkPricing variantType variants colors minOrderQuantity maxOrderQuantity stepByQuantity cardGlowColor badge isActive section storeType";
+  "name brandName price discountedPrice discountedPercent productImages videoUrl stock inStock subcategory subcategories pricingType bulkPricing variantType variants colors minOrderQuantity bulkMinOrderQuantity maxOrderQuantity stepByQuantity cardGlowColor badge isActive section storeType";

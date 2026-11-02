@@ -21,6 +21,7 @@ import {
 } from "./productPricing.js";
 import {
   calculateShippingCharge,
+  calculatePackagingFee,
   getStoreSettings,
   meetsMinimumOrder,
 } from "./storeSettingsHelpers.js";
@@ -169,13 +170,18 @@ async function computeOrderPricing(subtotal, couponCode, options = {}) {
     : vendorShipping
       ? vendorShipping.shippingCost
       : calculateShippingCharge(subtotal, storeSettings);
+  const packagingFee = isPickup
+    ? 0
+    : vendorShipping?.packagingCost != null
+      ? vendorShipping.packagingCost
+      : calculatePackagingFee(subtotal, storeSettings);
   const deliveryCharges = baseDeliveryCharges + heavyHandlingFee;
 
   const discountedSubtotal = Math.max(
     0,
     subtotal - couponDiscount - rewardDiscount - giftCardDiscount - totalDynamicDiscount
   );
-  const { gstAmount, total } = calculateOrderTotal(discountedSubtotal, deliveryCharges);
+  const { gstAmount, total } = calculateOrderTotal(discountedSubtotal, deliveryCharges + packagingFee);
 
   const rewardSettings = await getRewardSettings();
   const rewardPointsEarned = calculatePointsToEarn(subtotal, rewardSettings);
@@ -184,6 +190,7 @@ async function computeOrderPricing(subtotal, couponCode, options = {}) {
     storeSettings,
     deliveryCharges: baseDeliveryCharges,
     heavyHandlingFee,
+    packagingFee,
     gstAmount,
     total,
     couponCode: resolvedCouponCode,
@@ -650,6 +657,18 @@ async function resolveCheckoutItems(rawItems, { skipStockCheck = false } = {}) {
       }
     }
 
+    const isBulkOrder = Boolean(options.isBulkUser || options.isBulk || String(options.user?.accountType || "").toLowerCase() === "bulk");
+    const requiredMoq = isBulkOrder
+      ? (Number(product.bulkMinOrderQuantity) || 10)
+      : (Number(product.minOrderQuantity) || 1);
+
+    if (qty < requiredMoq) {
+      return {
+        error: `Minimum order quantity for "${product.name}" is ${requiredMoq} (${isBulkOrder ? "bulk" : "retail"} order)`,
+        status: 400,
+      };
+    }
+
     const availableStock = getVariantStock(product, normalizedVariantName);
     if (!skipStockCheck && qty > availableStock) {
       return {
@@ -922,6 +941,7 @@ export async function prepareOrderData(userId, addressId, options = {}) {
     giftCardDiscount: giftCardDiscount || 0,
     deliveryCharges,
     heavyHandlingFee: heavyHandlingFee || 0,
+    packagingFee: pricing.packagingFee || 0,
     bundleDiscount: bundleDiscount || 0,
     loyaltyDiscount: loyaltyDiscount || 0,
     quantityDiscount: quantityDiscount || 0,

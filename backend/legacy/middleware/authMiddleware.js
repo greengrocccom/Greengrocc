@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import Admin from "../models/admin.js";
@@ -34,6 +35,31 @@ export const protect = async (req, res, next) => {
       user = await Admin.findById(decoded.id).select("-password");
     }
 
+    if (!user && (String(decoded.role || "").toLowerCase() === "vendor" || decoded.vendorId)) {
+      const Vendor = mongoose.models.Vendor;
+      if (Vendor) {
+        user = await Vendor.findOne({
+          $or: [
+            { id: decoded.id || decoded.vendorId },
+            { vendorId: decoded.vendorId || decoded.id },
+            ...(mongoose.isValidObjectId(decoded.id) ? [{ _id: decoded.id }] : [])
+          ]
+        }).select("-password");
+        if (user) {
+          user = { ...user.toObject(), role: "vendor", id: user.id || user._id, _id: user._id || user.id };
+        }
+      }
+      if (!user) {
+        user = {
+          id: decoded.id || decoded.vendorId,
+          _id: decoded.id || decoded.vendorId,
+          role: "vendor",
+          vendorId: decoded.vendorId || decoded.id,
+          name: decoded.name || decoded.vendorName || "Vendor"
+        };
+      }
+    }
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -41,7 +67,7 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    if (user.role !== "admin") {
+    if (user.role !== "admin" && user.role !== "vendor") {
       const isBlocked =
         user.isBlocked === true ||
         user.blocked === true ||
@@ -108,7 +134,8 @@ export const optionalProtect = async (req, res, next) => {
 };
 
 export const requireAdmin = (req, res, next) => {
-  if (req.user?.role !== "admin") {
+  const role = String(req.user?.role || "").trim().toLowerCase();
+  if (role !== "admin" && role !== "vendor") {
     return res.status(403).json({
       success: false,
       message: "Admin access only",

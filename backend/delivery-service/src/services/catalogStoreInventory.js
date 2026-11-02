@@ -65,6 +65,7 @@ export async function productIdForSku(sku) {
 function zeroStockUpsert(product, managerId) {
   const sku = inventorySkuForProduct(product);
   if (!sku) return null;
+  const initialStock = Number(product.stock) > 0 ? Number(product.stock) : (product.inStock !== false ? 100 : 0);
   return {
     updateOne: {
       filter: { managerId, productId: product._id },
@@ -74,7 +75,7 @@ function zeroStockUpsert(product, managerId) {
           productId: product._id,
           sku,
           ...catalogFields(product),
-          stockCount: 0,
+          stockCount: initialStock,
           lowStockThreshold: 10,
           isActive: true,
         },

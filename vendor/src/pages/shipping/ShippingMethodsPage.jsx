@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Boxes,
+  Package,
   Calculator,
   CheckCircle2,
   DollarSign,
@@ -28,6 +29,7 @@ const TABS = [
   { id: "category", label: "By Category", icon: Tag, desc: "Category surcharges (Perishables, Cold chain, Bulky)" },
   { id: "weight", label: "By Weight", icon: Scale, desc: "Weight slabs in kg and extra weight pricing" },
   { id: "state", label: "By State", icon: Layers, desc: "State-specific rates and regional boundaries" },
+  { id: 'packaging', label: 'Packaging Fee', icon: Package, desc: 'Base packaging, box tiers, and free packaging rules' },
 ];
 
 export default function ShippingMethodsPage() {

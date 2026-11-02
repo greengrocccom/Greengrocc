@@ -48,8 +48,11 @@ import {
 } from '../../utils/ui';
 import inventoryToolsApi from '../../api/inventoryToolsApi';
 
-export default function InventoryToolsPage() {
-  const { tab } = useParams();
+export default function InventoryToolsPage(props) {
+  const params = useParams();
+  const tab = params.tab;
+  const zoneKey = params.zoneKey || props?.zoneKey || '';
+  const storeId = params.storeId || props?.storeId || '';
   const navigate = useNavigate();
 
   // Active Tab mapping
@@ -63,15 +66,23 @@ export default function InventoryToolsPage() {
   }, [tab]);
 
   const setTab = (key) => {
-    if (key === 'realtime') navigate('/inventory-tools');
-    else navigate(`/inventory-tools/${key}`);
+    const scopeSuffix =
+      zoneKey && storeId ? `/zones/${encodeURIComponent(zoneKey)}/stores/${storeId}` : '';
+    if (key === 'realtime') navigate(`/inventory-tools${scopeSuffix}`);
+    else navigate(`/inventory-tools/${key}${scopeSuffix}`);
   };
 
   // Global filters & metadata
   const [stores, setStores] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [catalogProducts, setCatalogProducts] = useState([]);
-  const [selectedStore, setSelectedStore] = useState('ALL');
+  const [selectedStore, setSelectedStore] = useState(storeId || 'ALL');
+
+  useEffect(() => {
+    if (storeId && selectedStore !== storeId) {
+      setSelectedStore(storeId);
+    }
+  }, [storeId]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [categories, setCategories] = useState([]);

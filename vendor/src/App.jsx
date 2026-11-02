@@ -88,6 +88,47 @@ import VendorVacationPage from './pages/vacation/VendorVacationPage'
 import VendorReviewsPage from './pages/reviews/VendorReviewsPage'
 import { VendorSettingsProvider } from './context/VendorSettingsContext'
 
+import Coupons from './pages/Coupons'
+import RewardPoints from './pages/RewardPoints'
+import GiftCards from './pages/ops/GiftCards'
+import DynamicPricing from './pages/ops/DynamicPricing'
+import {
+  UserManagementTypePage,
+  UserManagementZonesPage,
+  UserManagementStoresPage,
+  UserManagementUsersPage,
+} from './pages/ops/UserManagementPage'
+import UserNotificationsPage from './pages/ops/UserNotificationsPage'
+import DeliveryManagement from './pages/ops/DeliveryManagement'
+import DeliveryTracking from './pages/ops/DeliveryTracking'
+import DeliverySlotsPage from './pages/ops/DeliverySlotsPage'
+import DeliveryTeamPage from './pages/ops/DeliveryTeamPage'
+import DeliveryManager360Page from './pages/ops/DeliveryManager360Page'
+import DeliveryBoy360Page from './pages/ops/DeliveryBoy360Page'
+import DarkStores from './pages/DarkStores'
+import {
+  AssetsZonesPage,
+  AssetsStoresPage,
+  AssetsRolesPage,
+  AssetsListPage,
+} from './pages/ops/AssetsManagementPage'
+import InventoryHubPage from './pages/inventory/InventoryHubPage'
+import InventoryDetailPage from './pages/inventory/InventoryDetailPage'
+import InventoryToolsPage from './pages/inventory/InventoryToolsPage'
+import PreOrders from './pages/PreOrders'
+import UnroutedOrders from './pages/UnroutedOrders'
+import PreOrderSlots from './pages/PreOrderSlots'
+import OrderCharges from './pages/OrderCharges'
+import RefundWarranty, {
+  RefundWarrantyTypePage,
+  RefundWarrantyListPage,
+} from './pages/ops/RefundWarranty'
+import StaffManagementPage from './pages/ops/StaffManagementPage'
+import HrManagement from './pages/ops/HrManagement'
+import HrB2bUsersPage from './pages/hr/HrB2bUsersPage'
+import HrPerformancePage from './pages/hr/HrPerformancePage'
+import HrMyLeavePage from './pages/hr/HrMyLeavePage'
+
 function App() {
   return (
     <VendorAuthProvider>

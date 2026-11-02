@@ -4,7 +4,7 @@ import DeliveryManager from "../../delivery-service/src/models/DeliveryManager.j
 import { resolveDarkStoreForOrder } from "../../delivery-service/src/services/darkStoreResolver.js";
 import Product from "../../legacy/models/Product.js";
 
-const RULE_KEYS = ["quantityRules", "userRules", "pincodeRules", "categoryRules", "weightRules", "stateRules"];
+const RULE_KEYS = ["quantityRules", "userRules", "pincodeRules", "categoryRules", "weightRules", "stateRules", "packagingRules"];
 
 function vendorIdOf(req) {
   return String(req.user?.vendorId || req.user?.id || "");
@@ -73,6 +73,17 @@ const DEFAULT_SHIPPING_CONFIG = {
       { stateName: "Karnataka", cost: 90, isServiceable: true },
       { stateName: "Madhya Pradesh", cost: 110, isServiceable: true },
       { stateName: "Goa", cost: 70, isServiceable: true },
+    ],
+  },
+  packagingRules: {
+    enabled: true,
+    baseCost: 15,
+    freeAboveOrderAmount: 499,
+    perExtraItemFee: 2,
+    slabs: [
+      { minQty: 1, maxQty: 5, cost: 15 },
+      { minQty: 6, maxQty: 10, cost: 25 },
+      { minQty: 11, maxQty: 25, cost: 40 },
     ],
   },
 };
@@ -272,6 +283,24 @@ export function evaluateShippingRules(config, params = {}) {
     }
   }
 
+  if (config.packagingRules?.enabled) {
+    const q = Math.max(1, Number(quantity) || 1);
+    const freeAt = Number(config.packagingRules.freeAboveOrderAmount) || 0;
+    if (freeAt > 0 && Number(orderAmount) >= freeAt) {
+      breakdown.packaging = { cost: 0, reason: `Free packaging (Order amount >= ₹${freeAt})` };
+    } else {
+      const slabs = config.packagingRules.slabs || [];
+      const match = slabs.find((s) => q >= s.minQty && q <= s.maxQty);
+      let pCost = match ? Number(match.cost) : Number(config.packagingRules.baseCost ?? 15);
+      const maxSlab = slabs.length > 0 ? slabs[slabs.length - 1] : null;
+      if (maxSlab && q > maxSlab.maxQty) {
+        const extra = (q - maxSlab.maxQty) * (Number(config.packagingRules.perExtraItemFee) || 0);
+        pCost = Number(maxSlab.cost) + extra;
+      }
+      breakdown.packaging = { cost: pCost, reason: `Packaging fee for ${q} items` };
+    }
+  }
+
   // Highest base rate (weight / state / pincode / quantity), then the user tier, plus category surcharges.
   const highestBase = Math.max(
     breakdown.weight?.cost ?? 0,
@@ -285,7 +314,8 @@ export function evaluateShippingRules(config, params = {}) {
   let total = Math.max(highestBase, userTierCost) + categorySurcharge;
   if (breakdown.user?.cost === 0 || breakdown.quantity?.cost === 0) total = 0;
 
-  return { shippingCost: Math.round(total), breakdown, serviceable };
+  const packagingCost = breakdown.packaging ? Number(breakdown.packaging.cost ?? 0) : 0;
+  return { shippingCost: Math.round(total), packagingCost: Math.round(packagingCost), totalCharges: Math.round(total + packagingCost), breakdown, serviceable };
 }
 
 // ── Vendor ──────────────────────────────────────────────────────────────────

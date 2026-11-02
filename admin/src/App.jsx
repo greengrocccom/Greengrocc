@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import AdminLayout from './components/layout/AdminLayout';
+import ZoneStoreGate from './components/layout/ZoneStoreGate';
 import Dashboard from './pages/Dashboard';
 import CeoDashboard from './pages/ceo/CeoDashboard';
 import TraceabilityPage from './pages/traceability/TraceabilityPage';
@@ -93,6 +94,40 @@ import OmnichannelBillingPage from './pages/billing/OmnichannelBillingPage';
 import InventoryToolsPage from './pages/inventory/InventoryToolsPage';
 import AdminNotificationsPage from './pages/notifications/AdminNotificationsPage';
 
+function scoped(path, kicker, title, Component, extraProps = {}) {
+  const normPath = path.replace(/^\//, '');
+  const basePath = `/${normPath}`;
+  return [
+    <Route
+      key={`${normPath}-base`}
+      path={normPath}
+      element={
+        <ZoneStoreGate kicker={kicker} title={title} basePath={basePath} {...extraProps}>
+          <Component />
+        </ZoneStoreGate>
+      }
+    />,
+    <Route
+      key={`${normPath}-zone`}
+      path={`${normPath}/zones/:zoneKey`}
+      element={
+        <ZoneStoreGate kicker={kicker} title={title} basePath={basePath} {...extraProps}>
+          <Component />
+        </ZoneStoreGate>
+      }
+    />,
+    <Route
+      key={`${normPath}-store`}
+      path={`${normPath}/zones/:zoneKey/stores/:storeId`}
+      element={
+        <ZoneStoreGate kicker={kicker} title={title} basePath={basePath} {...extraProps}>
+          <Component />
+        </ZoneStoreGate>
+      }
+    />,
+  ];
+}
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -106,8 +141,6 @@ export default function App() {
               <Route path="notifications" element={<AdminNotificationsPage />} />
               <Route path="billing" element={<OmnichannelBillingPage />} />
               <Route path="billing/:subTab" element={<OmnichannelBillingPage />} />
-              <Route path="inventory-tools" element={<InventoryToolsPage />} />
-              <Route path="inventory-tools/:tab" element={<InventoryToolsPage />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="traceability" element={<TraceabilityPage />} />
               <Route path="erp/locations" element={<LocationMastersPage />} />
@@ -122,22 +155,61 @@ export default function App() {
               <Route path="banners/:device/:sectionSlug?" element={<Banners />} />
               <Route path="products/:catalogView?/:sectionSlug?" element={<Products />} />
               <Route path="market-prices" element={<MarketPricesPage />} />
-              <Route path="pre-order-slots" element={<PreOrderSlots />} />
-              <Route path="preorder-slots" element={<PreOrderSlots />} />
-              <Route path="order-charges" element={<OrderCharges />} />
-              <Route path="pre-orders" element={<PreOrders />} />
-              <Route path="unrouted-orders" element={<UnroutedOrders />} />
-              <Route path="inventory" element={<InventoryHubPage />} />
+
+              {/* Orders with Zone -> Store Scope */}
+              {scoped('pre-orders', 'Orders', 'Pre-orders', PreOrders)}
+              {scoped('unrouted-orders', 'Orders', 'Unrouted Orders', UnroutedOrders)}
+              {scoped('pre-order-slots', 'Orders', 'Pre-Order Slots', PreOrderSlots)}
+              {scoped('preorder-slots', 'Orders', 'Pre-Order Slots', PreOrderSlots)}
+              {scoped('order-charges', 'Orders', 'Order & Delivery Charges', OrderCharges)}
+              {scoped('refund-warranty', 'Orders', 'Return & Warranty', RefundWarrantyListPage)}
+              {scoped('refund-warranty/:accountType', 'Orders', 'Return & Warranty', RefundWarrantyListPage)}
+              <Route path="refund-warranty/types" element={<RefundWarrantyTypePage />} />
+
+              {/* Inventory with Zone -> Store Scope */}
+              {scoped('inventory', 'Inventory', 'Stock Overview', InventoryHubPage)}
               <Route path="inventory/:type/:id" element={<InventoryDetailPage />} />
-              <Route path="dark-stores" element={<DarkStores />} />
+
+              {/* Stock Tools with Zone -> Store Scope */}
+              {scoped('inventory-tools', 'Inventory', 'Real-Time Stock', InventoryToolsPage)}
+              {scoped('inventory-tools/batches', 'Inventory', 'Batch & Expiry', InventoryToolsPage)}
+              {scoped('inventory-tools/alerts', 'Inventory', 'Low-Stock Alerts', InventoryToolsPage)}
+              {scoped('inventory-tools/grn', 'Inventory', 'Purchase & GRN', InventoryToolsPage)}
+              {scoped('inventory-tools/dead-stock', 'Inventory', 'Dead-Stock Reports', InventoryToolsPage)}
+              {scoped('inventory-tools/adjustments', 'Inventory', 'Adjustment Logs', InventoryToolsPage)}
+              <Route path="inventory-tools/:tab" element={<InventoryToolsPage />} />
+
+              {/* Delivery & Dark Stores with Zone -> Store Scope */}
+              {scoped('delivery-management', 'Delivery & Dark Stores', 'Delivery Management', DeliveryManagement)}
+              {scoped('delivery-tracking', 'Delivery & Dark Stores', 'Delivery Tracking', DeliveryTracking)}
+              {scoped('delivery-slots', 'Delivery & Dark Stores', 'Delivery Slots', DeliverySlotsPage)}
+              {scoped('delivery-team', 'Delivery & Dark Stores', 'Delivery Team', DeliveryTeamPage)}
+              <Route path="delivery-team/managers/:id" element={<DeliveryManager360Page />} />
+              <Route path="delivery-team/boys/:id" element={<DeliveryBoy360Page />} />
+              {scoped('dark-stores', 'Delivery & Dark Stores', 'Dark Stores', DarkStores)}
+
+              {/* Assets Management (already has zone -> store structure) */}
+              <Route path="assets-management" element={<AssetsZonesPage />} />
+              <Route path="assets-management/zones/:zoneKey" element={<AssetsStoresPage />} />
+              <Route
+                path="assets-management/zones/:zoneKey/stores/:storeId"
+                element={<AssetsRolesPage />}
+              />
+              <Route
+                path="assets-management/zones/:zoneKey/stores/:storeId/roles/:role"
+                element={<AssetsListPage />}
+              />
+
+              {/* Promotions with Zone -> Store Scope */}
+              {scoped('coupons', 'Promotions', 'Coupons & Offers', Coupons)}
+              {scoped('rewards', 'Promotions', 'Reward Points', RewardPoints)}
+              {scoped('gift-cards', 'Promotions', 'Gift Cards', GiftCards)}
+              {scoped('dynamic-pricing', 'Promotions', 'Dynamic Pricing', DynamicPricing)}
+
               <Route path="categories" element={<Navigate to="/products/categories" replace />} />
               <Route path="sections" element={<Navigate to="/products/sections" replace />} />
-              <Route path="coupons" element={<Coupons />} />
-              <Route path="rewards" element={<RewardPoints />} />
-              <Route path="gift-cards" element={<GiftCards />} />
               <Route path="policy-management" element={<PolicyManagement />} />
               <Route path="policy-management/:roleKey" element={<PolicyManagement />} />
-              <Route path="dynamic-pricing" element={<DynamicPricing />} />
               <Route path="bulk-import-export" element={<BulkImportExport />} />
               <Route path="csv-import-export" element={<CsvImportExport />} />
               <Route path="multi-vendor" element={<MultiVendor />} />
@@ -162,27 +234,27 @@ export default function App() {
               <Route path="collection-crops/add" element={<AdminAddCropPage />} />
               <Route path="collection-farmer-crops" element={<AdminFarmerCropsPage />} />
               <Route path="collection-farmer-managers" element={<CentreFarmerManagersPage />} />
-              <Route path="staff-management" element={<StaffManagementPage />} />
-              <Route path="hr-management" element={<HrManagement />} />
-              <Route path="hr-management/b2b-users" element={<HrB2bUsersPage />} />
-              <Route path="hr-management/calendar" element={<HrCalendarPage />} />
-              <Route path="hr-management/announcements" element={<HrAnnouncementsPage />} />
-              <Route path="hr-management/leave" element={<HrLeavePage />} />
-              <Route path="hr-management/my-leave" element={<HrMyLeavePage />} />
-              <Route path="hr-management/employees" element={<HrEmployeesPage />} />
+
+              {/* Team & HR with Zone -> Store Scope */}
+              {scoped('staff-management', 'Team & HR', 'Staff Management', StaffManagementPage)}
+              {scoped('hr-management', 'Team & HR', 'HR Dashboard', HrManagement)}
+              {scoped('hr-management/employees', 'Team & HR', 'Employees', HrEmployeesPage)}
               <Route path="hr-management/employees/:type/:id" element={<HrEmployeeProfilePage />} />
-              <Route path="hr-management/payroll" element={<HrPayrollPage />} />
-              <Route path="hr-management/recruitment" element={<HrRecruitmentPage />} />
-              <Route path="hr-management/attendance" element={<HrAttendancePage />} />
-              <Route path="hr-management/meetings" element={<HrMeetingsPage />} />
-              <Route path="hr-management/performance" element={<HrPerformancePage />} />
-              <Route path="delivery-management" element={<DeliveryManagement />} />
-              <Route path="delivery-team" element={<DeliveryTeamPage />} />
-              <Route path="delivery-team/managers/:id" element={<DeliveryManager360Page />} />
-              <Route path="delivery-team/boys/:id" element={<DeliveryBoy360Page />} />
-              <Route path="delivery-slots" element={<DeliverySlotsPage />} />
-              <Route path="delivery-tracking" element={<DeliveryTracking />} />
+              {scoped('hr-management/attendance', 'Team & HR', 'Attendance & Shifts', HrAttendancePage)}
+              {scoped('hr-management/leave', 'Team & HR', 'Leave Requests', HrLeavePage)}
+              {scoped('hr-management/my-leave', 'Team & HR', 'My Leave', HrMyLeavePage)}
+              {scoped('hr-management/payroll', 'Team & HR', 'Salary Management', HrPayrollPage)}
+              {scoped('hr-management/recruitment', 'Team & HR', 'Recruitment', HrRecruitmentPage)}
+              {scoped('hr-management/calendar', 'Team & HR', 'Calendar', HrCalendarPage)}
+              {scoped('hr-management/meetings', 'Team & HR', 'Meetings', HrMeetingsPage)}
+              {scoped('hr-management/announcements', 'Team & HR', 'Announcements', HrAnnouncementsPage)}
+              {scoped('hr-management/b2b-users', 'Team & HR', 'B2B Users', HrB2bUsersPage)}
+              {scoped('hr-management/performance', 'Team & HR', 'Career & Appraisals', HrPerformancePage)}
+
+              {/* Customers & Support - User Management */}
               <Route path="user-management" element={<UserManagementTypePage />} />
+              <Route path="user-management/zones/:zoneKey" element={<UserManagementStoresPage />} />
+              <Route path="user-management/zones/:zoneKey/stores/:storeId" element={<UserManagementUsersPage />} />
               <Route path="user-management/:accountType" element={<UserManagementZonesPage />} />
               <Route path="user-management/:accountType/notifications" element={<UserNotificationsPage />} />
               <Route path="user-management/:accountType/zones/:zoneKey" element={<UserManagementStoresPage />} />
@@ -190,22 +262,11 @@ export default function App() {
                 path="user-management/:accountType/zones/:zoneKey/stores/:storeId"
                 element={<UserManagementUsersPage />}
               />
-              <Route path="assets-management" element={<AssetsZonesPage />} />
-              <Route path="assets-management/zones/:zoneKey" element={<AssetsStoresPage />} />
-              <Route
-                path="assets-management/zones/:zoneKey/stores/:storeId"
-                element={<AssetsRolesPage />}
-              />
-              <Route
-                path="assets-management/zones/:zoneKey/stores/:storeId/roles/:role"
-                element={<AssetsListPage />}
-              />
+
               <Route path="store-support" element={<StoreSupport />} />
               <Route path="store-support/:roleKey" element={<StoreSupport />} />
               <Route path="finance" element={<FinanceManagement />} />
               <Route path="finance/:section" element={<FinanceManagement />} />
-              <Route path="refund-warranty" element={<RefundWarrantyTypePage />} />
-              <Route path="refund-warranty/:accountType" element={<RefundWarrantyListPage />} />
               <Route path="reports" element={<Reports />} />
               <Route path="government/schemes" element={<AllGovtSchemesPage />} />
               <Route path="government/schemes/create" element={<CreateGovtSchemePage />} />

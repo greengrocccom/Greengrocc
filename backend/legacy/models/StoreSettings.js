@@ -177,6 +177,16 @@ const storeSettingsSchema = new mongoose.Schema(
       default: 0,
       min: [0, "Minimum shipping charge must be 0 or more"],
     },
+    packagingFee: {
+      type: Number,
+      default: 0,
+      min: [0, "Packaging fee must be 0 or more"],
+    },
+    freePackagingAbove: {
+      type: Number,
+      default: 0,
+      min: [0, "Free packaging threshold must be 0 or more"],
+    },
     shippingSlabs: {
       type: [shippingSlabSchema],
       default: () => [],

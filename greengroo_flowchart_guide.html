@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreenGroo Delivery & Earnings Flowchart</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans Devanagari', 'Nirmala UI', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #F1F5F9;
+      color: #0F172A;
+      padding: 24px 16px;
+      margin: 0;
+      width: 100%;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Action Bar (Print & Save) */
+    .action-bar {
+      max-width: 1400px;
+      margin: 0 auto 16px auto;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      background: #15803D;
+      color: #FFFFFF;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      box-shadow: 0 4px 10px rgba(21, 128, 61, 0.2);
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-action:hover {
+      background: #166534;
+      transform: translateY(-1px);
+    }
+
+    .btn-action.btn-secondary {
+      background: #FFFFFF;
+      color: #1E293B;
+      border: 1.5px solid #CBD5E1;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .btn-action.btn-secondary:hover {
+      background: #F8FAFC;
+      border-color: #94A3B8;
+    }
+
+    /* Main Poster Container */
+    .poster {
+      background: #FFFFFF;
+      border-radius: 28px;
+      box-shadow: 0 20px 40px -15px rgba(0,0,0,0.08), 0 0 0 1px #E2E8F0;
+      padding: 36px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    /* Top Header */
+    .header {
+      background: linear-gradient(135deg, #15803D 0%, #16A34A 50%, #22C55E 100%);
+      border-radius: 22px;
+      padding: 28px 36px;
+      color: #FFFFFF;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 25px -5px rgba(22, 163, 74, 0.35);
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .logo-badge {
+      background: #FFFFFF;
+      color: #15803D;
+      width: 68px;
+      height: 68px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+      flex-shrink: 0;
+    }
+
+    .title-group h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+      line-height: 1.25;
+    }
+
+    .title-group p {
+      font-size: 16px;
+      opacity: 0.95;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .header-pills {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    /* 2 Column Grid */
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin-bottom: 28px;
+    }
+
+    .column-card {
+      background: #F8FAFC;
+      border-radius: 22px;
+      border: 2px solid #E2E8F0;
+      padding: 24px 22px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .col-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #E2E8F0;
+      margin-bottom: 18px;
+    }
+
+    .col-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .col-icon.blue { background: #DBEAFE; color: #1D4ED8; }
+    .col-icon.green { background: #DCFCE7; color: #15803D; }
+
+    .col-title h2 {
+      font-size: 21px;
+      font-weight: 800;
+      color: #0F172A;
+      line-height: 1.25;
+    }
+
+    .col-title span {
+      font-size: 13.5px;
+      color: #64748B;
+      font-weight: 600;
+    }
+
+    /* Step Timeline in Left Column */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .step-box {
+      background: #FFFFFF;
+      border-radius: 16px;
+      border: 1px solid #E2E8F0;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    .step-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: #EFF6FF;
+      color: #2563EB;
+      border: 1.5px solid #BFDBFE;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .step-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+
+    .step-name {
+      font-size: 16.5px;
+      font-weight: 700;
+      color: #1E293B;
+    }
+
+    .step-badge {
+      font-size: 11.5px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .step-badge.must { background: #FEE2E2; color: #DC2626; }
+    .step-badge.info { background: #E0E7FF; color: #4338CA; }
+    .step-badge.success { background: #DCFCE7; color: #15803D; }
+
+    .step-desc {
+      font-size: 13.5px;
+      color: #475569;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .step-arrow {
+      text-align: center;
+      color: #94A3B8;
+      font-size: 15px;
+      margin: -6px 0 -4px 0;
+    }
+
+    /* Right Column: Earnings & Commission Cards */
+    .earning-card {
+      background: #FFFFFF;
+      border-radius: 16px;
+      border: 1px solid #E2E8F0;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    .earning-card.highlight {
+      border: 2px solid #22C55E;
+      background: #F0FDF4;
+    }
+
+    .earning-card.deduction {
+      border: 1.5px dashed #F87171;
+      background: #FEF2F2;
+    }
+
+    .earning-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .icon-green { background: #DCFCE7; }
+    .icon-blue { background: #DBEAFE; }
+    .icon-yellow { background: #FEF08A; }
+    .icon-purple { background: #F3E8FF; }
+    .icon-red { background: #FEE2E2; }
+
+    .earning-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .earning-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .earning-title {
+      font-size: 16.5px;
+      font-weight: 700;
+      color: #1E293B;
+    }
+
+    .earning-amount {
+      font-size: 16px;
+      font-weight: 800;
+      color: #15803D;
+      background: #DCFCE7;
+      padding: 3px 9px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    .earning-amount.red {
+      color: #DC2626;
+      background: #FEE2E2;
+    }
+
+    .earning-desc {
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    /* Live Math Banner */
+    .example-banner {
+      background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+      color: #FFFFFF;
+      border-radius: 20px;
+      padding: 22px 28px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .example-title-box {
+      max-width: 360px;
+    }
+
+    .example-badge {
+      background: #F59E0B;
+      color: #000;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .example-title-box h3 {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 3px;
+      line-height: 1.3;
+    }
+
+    .example-title-box p {
+      font-size: 13.5px;
+      color: #94A3B8;
+    }
+
+    .math-formula {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.08);
+      padding: 12px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.15);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .math-step {
+      text-align: center;
+    }
+
+    .math-label {
+      font-size: 11.5px;
+      color: #94A3B8;
+      margin-bottom: 2px;
+    }
+
+    .math-val {
+      font-size: 17.5px;
+      font-weight: 800;
+      color: #38BDF8;
+    }
+
+    .math-val.gold { color: #FCD34D; }
+
+    .math-op {
+      font-size: 20px;
+      font-weight: 800;
+      color: #64748B;
+    }
+
+    .math-result {
+      text-align: center;
+      background: #22C55E;
+      color: #064E3B;
+      padding: 8px 18px;
+      border-radius: 12px;
+      box-shadow: 0 6px 14px rgba(34, 197, 94, 0.4);
+    }
+
+    .math-result .res-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .math-result .res-val {
+      font-size: 23px;
+      font-weight: 900;
+      color: #022C22;
+    }
+
+    .monthly-summary {
+      text-align: right;
+      border-left: 1px solid rgba(255,255,255,0.2);
+      padding-left: 20px;
+    }
+
+    /* Footer: 3 Golden Rules */
+    .footer-rules {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      background: #F8FAFC;
+      border-radius: 18px;
+      padding: 18px 22px;
+      border: 1.5px solid #E2E8F0;
+    }
+
+    .rule-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .rule-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .rule-text h4 {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #1E293B;
+      margin-bottom: 2px;
+    }
+
+    .rule-text p {
+      font-size: 12.5px;
+      color: #64748B;
+      line-height: 1.35;
+    }
+
+    /* =========================================
+       RESPONSIVE DESIGN (TABLET & MOBILE)
+       Eliminates horizontal scroll completely!
+       ========================================= */
+
+    @media (max-width: 1024px) {
+      body {
+        padding: 16px 10px;
+      }
+
+      .poster {
+        padding: 24px 18px;
+        border-radius: 20px;
+      }
+
+      .grid-container {
+        grid-template-columns: 1fr;
+        gap: 22px;
+      }
+
+      .header {
+        padding: 22px 20px;
+        border-radius: 18px;
+      }
+
+      .example-banner {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 20px;
+      }
+
+      .monthly-summary {
+        text-align: left;
+        border-left: none;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        padding-left: 0;
+        padding-top: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .footer-rules {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 10px 6px;
+      }
+
+      .poster {
+        padding: 16px 12px;
+        border-radius: 16px;
+      }
+
+      .header {
+        padding: 16px 14px;
+        gap: 14px;
+      }
+
+      .brand-section {
+        gap: 12px;
+      }
+
+      .logo-badge {
+        width: 50px;
+        height: 50px;
+        font-size: 26px;
+        border-radius: 14px;
+      }
+
+      .title-group h1 {
+        font-size: 20px;
+      }
+
+      .title-group p {
+        font-size: 13.5px;
+      }
+
+      .pill {
+        font-size: 12px;
+        padding: 5px 10px;
+      }
+
+      .column-card {
+        padding: 16px 12px;
+        border-radius: 16px;
+      }
+
+      .col-title h2 {
+        font-size: 18px;
+      }
+
+      .step-box {
+        padding: 12px 10px;
+        gap: 10px;
+      }
+
+      .step-num {
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
+      }
+
+      .step-name {
+        font-size: 15px;
+      }
+
+      .step-desc {
+        font-size: 13px;
+      }
+
+      .earning-card {
+        padding: 12px 10px;
+        gap: 10px;
+      }
+
+      .earning-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
+      }
+
+      .earning-title {
+        font-size: 15px;
+      }
+
+      .earning-amount {
+        font-size: 13px;
+        padding: 2px 7px;
+      }
+
+      .example-title-box h3 {
+        font-size: 17px;
+      }
+
+      .math-formula {
+        padding: 10px 8px;
+        gap: 8px;
+      }
+
+      .math-val {
+        font-size: 15px;
+      }
+
+      .math-result {
+        padding: 6px 12px;
+      }
+
+      .math-result .res-val {
+        font-size: 19px;
+      }
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: #FFFFFF;
+        padding: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .poster {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Action Buttons for Print & Download -->
+  <div class="action-bar no-print">
+    <button onclick="window.print()" class="btn-action">
+      🖨️ प्रिंट / PDF सेव्ह करा (Print)
+    </button>
+    <a href="greengroo_delivery_and_earnings_flowchart.png" download class="btn-action btn-secondary">
+      📥 इमेज डाउनलोड करा (PNG Image)
+    </a>
+  </div>
+
+  <div class="poster">
+
+    <!-- Top Header -->
+    <div class="header">
+      <div class="brand-section">
+        <div class="logo-badge">🌿</div>
+        <div class="title-group">
+          <h1>GreenGroo | ग्रीनग्रू डिलिव्हरी पार्टनर मार्गदर्शक</h1>
+          <p>डिलिव्हरी कामाची संपूर्ण पद्धत आणि कमाईचे सोपे गणित | एकाच चार्टमध्ये संपूर्ण माहिती</p>
+        </div>
+      </div>
+      <div class="header-pills">
+        <div class="pill">🛵 सुरक्षित प्रवास</div>
+        <div class="pill">💰 वेळेवर पगार</div>
+        <div class="pill">📞 २४×७ सपोर्ट</div>
+      </div>
+    </div>
+
+    <!-- 2 Column Layout (Responsive: Stacks on mobile/tablet) -->
+    <div class="grid-container">
+
+      <!-- LEFT COLUMN: End-to-End Delivery Flow -->
+      <div class="column-card">
+        <div class="col-header">
+          <div class="col-icon blue">🛵</div>
+          <div class="col-title">
+            <h2>विभाग १: डिलिव्हरी कशी करावी?</h2>
+            <span>७ सोप्या पायऱ्या (कामाचा संपूर्ण प्रवाह)</span>
+          </div>
+        </div>
+
+        <div class="timeline">
+
+          <!-- Step 1 -->
+          <div class="step-box">
+            <div class="step-num">१</div>
+            <div class="step-content">
+              <div class="step-title-row">
+                <span class="step-name">📱 ॲप उघडा व ड्युटी चालू करा</span>
+                <span class="step-badge info">Duty ON</span>
+              </div>
+              <div class="step-desc">
+                मोबाईलमध्ये ॲप लॉगिन करा. मोबाईल चार्जिंग, पेट्रोल व डिलिव्हरी बॅग तपासा. 'Duty ON' करा.
+              </div>
+            </div>
+          </div>
+
+          <div class="step-arrow">⬇️</div>
+
+          <!-- Step 2 -->
+          <div class="step-box">
+            <div class="step-num">२</div>
+            <div class="step-content">
+              <div class="step-title-row">
+                <span class="step-name">🔔 नवीन ऑर्डर स्वीकारा</span>
+                <span class="step-badge must">५० सेकंदात दाबा</span>
+              </div>
+              <div class="step-desc">
+                मोबाईलची घंटी वाजताच स्क्रीनवर ऑर्डर दिसेल. हिरवे <b>'स्वीकारा' (Accept)</b> बटण लगेच दाबा.
+              </div>
+            </div>
+          </div>
+
+          <div class="step-arrow">⬇️</div>
+
+          <!-- Step 3 -->
+          <div class="step-box">
+            <div class="step-num">३</div>
+            <div class="step-content">
+              <div class="step-title-row">
+                <span class="step-name">🏬 दुकानात जा व पाकीट घ्या</span>
+                <span class="step-badge info">Store Pickup</span>
+              </div>
+              <div class="step-desc">
+                दुकानात जाऊन ऑर्डर नंबर दाखवा. सामानाचे सील व पाकीट तपासा आणि ॲपमध्ये <b>'Picked Up'</b> करा.
+              </div>
+            </div>
+          </div>
+
+          <div class="step-arrow">⬇️</div>
+
+          <!-- Step 4 -->
+          <div class="step-box">
+            <div class="step-num">४</div>
+            <div class="step-content">
+              <div class="step-title-row">
+                <span class="step-name">🗺️ ग्राहकाकडे प्रवास करा</span>
+                <span class="step-badge info">GPS Map</span>
+              </div>
+              <div class="step-desc">
+                ॲपमधील नकाशा (Navigation) सुरू करा. पत्ता न सापडल्यास ॲपमधून थेट ग्राहकाला फोन करा.
+              </div>
+            </div>
+          </div>
+
+          <div class="step-arrow">⬇️</div>
+
+          <!-- Step 5 -->
+          <div class="step-box">
+            <div class="step-num">५</div>
+            <div class="step-content">
+              <div class="step-title-row">
+                <span class="step-name">🚪 ग्राहकाच्या दारात पोहोचा</span>
+                <span class="step-badge info">Doorstep</span>
+              </div>
+              <div class="step-desc">
+                घराची बेल वाजवा. हसतमुखाने 'नमस्ते' म्हणा आणि सामानाची पिशवी ग्राहकाच्या हातात द्या.
+              </div>
+            </div>
+          </div>
+
+          <div class="step-arrow">⬇️</div>
+
+          <!-- Step 6 -->
+          <div class="step-box">
+            <div class="step-num">६</div>
+            <div class="step-content">
+              <div class="step-title-row">
+                <span class="step-name">💵 पेमेंट आणि OTP घ्या</span>
+                <span class="step-badge must">महत्त्वाचे</span>
+              </div>
+              <div class="step-desc">
+                • <b>Paid (आधीच भरले):</b> थेट ग्राहकाकडून ४-अंकी OTP घ्या.<br>
+                • <b>Cash (रोख):</b> पूर्ण पैसे किंवा QR कोडने पेमेंट घेऊन मगच OTP टाका.
+              </div>
+            </div>
+          </div>
+
+          <div class="step-arrow">⬇️</div>
+
+          <!-- Step 7 -->
+          <div class="step-box">
+            <div class="step-num" style="background:#DCFCE7; color:#15803D; border-color:#86EFAC;">७</div>
+            <div class="step-content">
+              <div class="step-title-row">
+                <span class="step-name">✅ डिलिव्हरी पूर्ण झाली!</span>
+                <span class="step-badge success">Delivered</span>
+              </div>
+              <div class="step-desc">
+                ॲपमध्ये <b>'Order Delivered'</b> बटण दाबा. ऑर्डर संपली! आता पुढील नवीन ऑर्डरची वाट पाहा.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: How He Will Earn & Commission -->
+      <div class="column-card">
+        <div class="col-header">
+          <div class="col-icon green">💰</div>
+          <div class="col-title">
+            <h2>विभाग २: कमाई आणि कमिशनचे गणित</h2>
+            <span>पैसे कसे मिळतात व कसे मोजले जातात?</span>
+          </div>
+        </div>
+
+        <div>
+
+          <!-- Earning Item 1 -->
+          <div class="earning-card">
+            <div class="earning-icon icon-green">📦</div>
+            <div class="earning-info">
+              <div class="earning-head">
+                <div class="earning-title">१. प्रत्येक ऑर्डरचे पैसे (Base Pay)</div>
+                <div class="earning-amount">₹ ३५ / ऑर्डर</div>
+              </div>
+              <div class="earning-desc">
+                तुम्ही यशस्वीरीत्या पोहोचवलेल्या प्रत्येक ऑर्डरमागे हमखास ठरलेले मूळ कमिशन मिळते.
+              </div>
+            </div>
+          </div>
+
+          <!-- Earning Item 2 -->
+          <div class="earning-card">
+            <div class="earning-icon icon-blue">🛣️</div>
+            <div class="earning-info">
+              <div class="earning-head">
+                <div class="earning-title">२. लांबच्या अंतराचे पैसे (Distance Pay)</div>
+                <div class="earning-amount">+ ₹ ५ ते ₹ ८ / किमी</div>
+              </div>
+              <div class="earning-desc">
+                ३ किलोमीटरपेक्षा लांब अंतराची डिलिव्हरी असल्यास प्रत्येक जादा किलोमीटरचे जास्तीचे पैसे मिळतात.
+              </div>
+            </div>
+          </div>
+
+          <!-- Earning Item 3 -->
+          <div class="earning-card">
+            <div class="earning-icon icon-yellow">🎯</div>
+            <div class="earning-info">
+              <div class="earning-head">
+                <div class="earning-title">३. टार्गेट बोनस (Daily Incentive)</div>
+                <div class="earning-amount">+ ₹ ६० ते ₹ १२०</div>
+              </div>
+              <div class="earning-desc">
+                एका दिवसात १० ऑर्डर्स पूर्ण केल्यास ₹६० बोनस; १५ ऑर्डर्स पूर्ण केल्यास ₹१२० चा मोठा बोनस मिळतो!
+              </div>
+            </div>
+          </div>
+
+          <!-- Earning Item 4 -->
+          <div class="earning-card">
+            <div class="earning-icon icon-purple">🌧️</div>
+            <div class="earning-info">
+              <div class="earning-head">
+                <div class="earning-title">४. पाऊस व गर्दीचे पैसे (Surge Bonus)</div>
+                <div class="earning-amount">+ ₹ १५ जादा</div>
+              </div>
+              <div class="earning-desc">
+                मुसळधार पाऊस, सण किंवा रात्रीच्या वेळी काम केल्यास प्रत्येक ऑर्डरवर कंपनीकडून जादा पैसे दिले जातात.
+              </div>
+            </div>
+          </div>
+
+          <!-- Earning Item 5 -->
+          <div class="earning-card deduction">
+            <div class="earning-icon icon-red">⚠️</div>
+            <div class="earning-info">
+              <div class="earning-head">
+                <div class="earning-title">५. वजावट / दंड (Deductions - टाळा!)</div>
+                <div class="earning-amount red">- कपात</div>
+              </div>
+              <div class="earning-desc">
+                ग्राहकाचे सामान खराब झाल्यास किंवा घेतलेले कॅश पैसे वेळेत न भरल्यासच दंड लागतो. काळजीपूर्वक काम करा.
+              </div>
+            </div>
+          </div>
+
+          <!-- Earning Item 6 -->
+          <div class="earning-card highlight">
+            <div class="earning-icon icon-green">🏦</div>
+            <div class="earning-info">
+              <div class="earning-head">
+                <div class="earning-title">६. थेट बँक खात्यात पगार (Net Payout)</div>
+                <div class="earning-amount">१ तारखेला बँक जमा</div>
+              </div>
+              <div class="earning-desc">
+                महिन्याचा एकूण पगार किंवा आठवड्याची कमाई थेट तुमच्या <b>बँक खात्यात किंवा UPI द्वारे</b> जमा केली जाते.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Live Math Example Banner -->
+    <div class="example-banner">
+      <div class="example-title-box">
+        <span class="example-badge">🧮 सोपे उदाहरण</span>
+        <h3>एका दिवसाची कमाई कशी मोजायची?</h3>
+        <p>दररोज १० ऑर्डर्स टाकल्यास मिळणारे एकूण पैसे:</p>
+      </div>
+
+      <div class="math-formula">
+        <div class="math-step">
+          <div class="math-label">१० ऑर्डर्स</div>
+          <div class="math-val">₹ ३५०</div>
+        </div>
+        <div class="math-op">+</div>
+        <div class="math-step">
+          <div class="math-label">लांब अंतर (किमी)</div>
+          <div class="math-val">₹ ४०</div>
+        </div>
+        <div class="math-op">+</div>
+        <div class="math-step">
+          <div class="math-label">टार्गेट बोनस</div>
+          <div class="math-val gold">₹ ६०</div>
+        </div>
+        <div class="math-op">=</div>
+        <div class="math-result">
+          <div class="res-label">दिवसाची कमाई</div>
+          <div class="res-val">₹ ४५० /-</div>
+        </div>
+      </div>
+
+      <div class="monthly-summary">
+        <div>
+          <div style="font-size: 13px; color: #94A3B8;">महिना २५ दिवस काम केले तर</div>
+          <div style="font-size: 26px; font-weight: 900; color: #4ADE80;">₹ ११,२५०+</div>
+          <div style="font-size: 12px; color: #CBD5E1;">दरमहा थेट बँक खात्यात!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 Golden Rules Footer -->
+    <div class="footer-rules">
+      <div class="rule-box">
+        <div class="rule-icon">🪖</div>
+        <div class="rule-text">
+          <h4>नियम १: सुरक्षितता पहिली</h4>
+          <p>गाडी चालवताना हेल्मेट नक्की घाला आणि वेगमर्यादा पाळा.</p>
+        </div>
+      </div>
+
+      <div class="rule-box">
+        <div class="rule-icon">🤝</div>
+        <div class="rule-text">
+          <h4>नियम २: नम्रता आणि हसू</h4>
+          <p>ग्राहकाशी व दुकानदाराशी नेहमी प्रेमाने व आदराने बोला.</p>
+        </div>
+      </div>
+
+      <div class="rule-box">
+        <div class="rule-icon">📞</div>
+        <div class="rule-text">
+          <h4>नियम ३: २४×७ मदत</h4>
+          <p>काहीही अडचण आल्यास ॲपमधील सपोर्ट बटण लगेच दाबा.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

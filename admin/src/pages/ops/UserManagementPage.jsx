@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Filter,
   Loader2,
+  MapPin,
   MapPinned,
   Package,
   RefreshCw,
@@ -354,16 +355,26 @@ export function AllUsersDirectoryView() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [accountType, setAccountType] = useState('');
+  const [userGroup, setUserGroup] = useState('all');
+  const [pincode, setPincode] = useState('');
+  const [city, setCity] = useState('');
   const [status, setStatus] = useState('all');
+  const [popularPincodes, setPopularPincodes] = useState([]);
+  const [popularCities, setPopularCities] = useState([]);
   const [targetUserForStatus, setTargetUserForStatus] = useState(null);
 
-  const fetchUsers = (targetPage = page) => {
+  const fetchUsers = (targetPage = page, customPincode = pincode, customCity = city) => {
     setLoading(true);
     setError('');
+    const effectivePin = customPincode != null ? customPincode : pincode;
+    const effectiveCity = customCity != null ? customCity : city;
     opsApi
       .list('user-management/all-users', {
         search: search.trim() || undefined,
         accountType: accountType || undefined,
+        userGroup: userGroup !== 'all' ? userGroup : undefined,
+        pincode: effectivePin.trim() || undefined,
+        city: effectiveCity.trim() || undefined,
         status: status !== 'all' ? status : undefined,
         page: targetPage,
         limit: 25,
@@ -373,6 +384,12 @@ export function AllUsersDirectoryView() {
         setTotal(res.total || 0);
         setPage(res.page || 1);
         setTotalPages(res.totalPages || 1);
+        if (Array.isArray(res.popularPincodes)) {
+          setPopularPincodes(res.popularPincodes);
+        }
+        if (Array.isArray(res.popularCities)) {
+          setPopularCities(res.popularCities);
+        }
       })
       .catch((err) => setError(err.response?.data?.message || 'Failed to load user directory'))
       .finally(() => setLoading(false));
@@ -381,18 +398,42 @@ export function AllUsersDirectoryView() {
   useEffect(() => {
     fetchUsers(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountType, status]);
+  }, [accountType, status, userGroup]);
+
+  const handlePincodePillClick = (pin) => {
+    const nextPin = pincode === pin ? '' : pin;
+    setPincode(nextPin);
+    fetchUsers(1, nextPin);
+  };
+
+  const handleCityPillClick = (c) => {
+    const nextCity = city.toLowerCase() === c.toLowerCase() ? '' : c;
+    setCity(nextCity);
+    fetchUsers(1, undefined, nextCity);
+  };
+
+  const handleReset = () => {
+    setSearch('');
+    setAccountType('');
+    setUserGroup('all');
+    setPincode('');
+    setCity('');
+    setStatus('all');
+    fetchUsers(1, '');
+  };
 
   return (
     <div className="space-y-4">
-      <div className={`${PANEL} p-4 space-y-3`}>
+      {/* Search & Filter Header Box */}
+      <div className={`${PANEL} p-4 space-y-3.5`}>
+        {/* Main Row */}
         <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[240px] flex-1">
-            <label className="mb-1 block text-xs font-semibold text-slate-500">Search Directory</label>
+          <div className="min-w-[220px] flex-1">
+            <label className="mb-1 block text-xs font-semibold text-slate-600">Search Directory</label>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                className={`${INPUT} pl-9`}
+                className={`${INPUT} pl-9 text-xs`}
                 placeholder="Search by customer name, phone, email, or shop..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -400,24 +441,35 @@ export function AllUsersDirectoryView() {
               />
             </div>
           </div>
-          <div className="w-40">
-            <label className="mb-1 block text-xs font-semibold text-slate-500">Account Type</label>
+
+          {/* User Group Filter (by Account/Activity) */}
+          <div className="w-44">
+            <label className="mb-1 block text-xs font-semibold text-slate-600 flex items-center gap-1">
+              <Users className="h-3.5 w-3.5 text-emerald-600" /> User Group
+            </label>
             <select
-              className={INPUT}
-              value={accountType}
+              className={`${INPUT} text-xs`}
+              value={userGroup}
               onChange={(e) => {
-                setAccountType(e.target.value);
+                setUserGroup(e.target.value);
               }}
             >
-              <option value="">All Types</option>
-              <option value="retail">Normal User</option>
-              <option value="bulk">Bulk User</option>
+              <option value="all">All User Groups</option>
+              <option value="retail">Normal / Retail Users</option>
+              <option value="bulk">Bulk / B2B Users</option>
+              <option value="with_orders">Active Buyers (Has Orders)</option>
+              <option value="frequent_orders">⭐ Frequent Buyers (3+ Orders)</option>
+              <option value="no_orders">New Signups (0 Orders)</option>
             </select>
           </div>
-          <div className="w-40">
-            <label className="mb-1 block text-xs font-semibold text-slate-500">Status</label>
+
+          {/* Status Filter */}
+          <div className="w-36">
+            <label className="mb-1 block text-xs font-semibold text-slate-600 flex items-center gap-1">
+              <Filter className="h-3.5 w-3.5 text-emerald-600" /> Status
+            </label>
             <select
-              className={INPUT}
+              className={`${INPUT} text-xs`}
               value={status}
               onChange={(e) => {
                 setStatus(e.target.value);
@@ -425,46 +477,191 @@ export function AllUsersDirectoryView() {
             >
               <option value="all">All Statuses</option>
               <option value="active">Active Only</option>
-              <option value="blocked">Blocked / Deactivated</option>
+              <option value="blocked">Blocked / Inactive</option>
             </select>
           </div>
+
+          {/* Filter by Pincode */}
+          <div className="w-36">
+            <label className="mb-1 block text-xs font-semibold text-slate-600 flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 text-emerald-600" /> Pincode
+            </label>
+            <div className="relative">
+              <input
+                className={`${INPUT} text-xs font-mono pr-6`}
+                placeholder="e.g. 411057"
+                maxLength={6}
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchUsers(1)}
+              />
+              {pincode ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPincode('');
+                    fetchUsers(1, '');
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Filter by City */}
+          <div className="w-32">
+            <label className="mb-1 block text-xs font-semibold text-slate-600">City</label>
+            <input
+              className={`${INPUT} text-xs`}
+              placeholder="e.g. Pune"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchUsers(1)}
+            />
+          </div>
+
           <button
             type="button"
-            className={BTN_PRIMARY}
+            className={`${BTN_PRIMARY} text-xs`}
             onClick={() => fetchUsers(1)}
             disabled={loading}
           >
-            {loading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Search className="mr-1.5 h-4 w-4" />}
-            Search
+            {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Search className="mr-1.5 h-3.5 w-3.5" />}
+            Filter
           </button>
           <button
             type="button"
-            className={BTN}
-            onClick={() => {
-              setSearch('');
-              setAccountType('');
-              setStatus('all');
-              setTimeout(() => fetchUsers(1), 0);
-            }}
+            className={`${BTN} text-xs`}
+            onClick={handleReset}
           >
             Reset
           </button>
         </div>
+
+        {/* Quick Same-Pincode & City Groups Bar */}
+        {(popularPincodes.length > 0 || popularCities.length > 0) && (
+          <div className="pt-2 border-t border-slate-100 flex flex-col gap-2 text-xs">
+            {popularPincodes.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mr-1">
+                  <MapPin className="h-3 w-3 text-emerald-600" />
+                  Same Pincode Groups:
+                </span>
+                {popularPincodes.slice(0, 8).map((p) => {
+                  const isSelected = pincode === p.pincode;
+                  return (
+                    <button
+                      key={p.pincode}
+                      type="button"
+                      onClick={() => handlePincodePillClick(p.pincode)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                        isSelected
+                          ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                          : 'bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200/70'
+                      }`}
+                    >
+                      <span>{p.pincode}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        isSelected ? 'bg-emerald-900 text-emerald-100' : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {p.count}
+                      </span>
+                    </button>
+                  );
+                })}
+                {pincode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPincode('');
+                      fetchUsers(1, '');
+                    }}
+                    className="text-xs text-rose-600 hover:underline font-semibold ml-2 inline-flex items-center gap-0.5"
+                  >
+                    <X className="h-3 w-3" /> Clear pin
+                  </button>
+                )}
+              </div>
+            )}
+
+            {popularCities.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mr-1">
+                  <Building2 className="h-3 w-3 text-sky-600" />
+                  Popular Cities:
+                </span>
+                {popularCities.slice(0, 6).map((c) => {
+                  const isSelected = city.toLowerCase() === c.city.toLowerCase();
+                  return (
+                    <button
+                      key={c.city}
+                      type="button"
+                      onClick={() => handleCityPillClick(c.city)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                        isSelected
+                          ? 'bg-sky-700 text-white shadow-xs font-bold'
+                          : 'bg-slate-100 text-slate-700 hover:bg-sky-50 hover:text-sky-800 border border-slate-200/70'
+                      }`}
+                    >
+                      <span>{c.city}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        isSelected ? 'bg-sky-900 text-sky-100' : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {c.count}
+                      </span>
+                    </button>
+                  );
+                })}
+                {city && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCity('');
+                      fetchUsers(1, undefined, '');
+                    }}
+                    className="text-xs text-rose-600 hover:underline font-semibold ml-2 inline-flex items-center gap-0.5"
+                  >
+                    <X className="h-3 w-3" /> Clear city
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-        <p>Showing <strong className="text-slate-700">{users.length}</strong> of <strong className="text-slate-700">{total}</strong> users</p>
+      {/* Directory Count / Active Filter Indicators */}
+      <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 px-1 gap-2">
+        <div className="flex items-center gap-2">
+          <p>
+            Showing <strong className="text-slate-800">{users.length}</strong> of{' '}
+            <strong className="text-slate-800">{total}</strong> users
+          </p>
+          {(status !== 'all' || userGroup !== 'all' || pincode || city || search) && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+              Filtered ({[
+                status !== 'all' ? `Status: ${status}` : null,
+                userGroup !== 'all' ? `Group: ${userGroup}` : null,
+                pincode ? `Pin: ${pincode}` : null,
+                city ? `City: ${city}` : null,
+                search ? `Search: ${search}` : null,
+              ].filter(Boolean).join(', ')})
+            </span>
+          )}
+        </div>
         <p>Page {page} of {totalPages || 1}</p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center p-12 text-sm text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading users directory…
+          <Loader2 className="h-5 w-5 animate-spin mr-2 text-emerald-600" /> Loading users directory…
         </div>
       ) : error ? (
         <EmptyState title="Could not load users" subtitle={error} />
       ) : users.length === 0 ? (
-        <EmptyState title="No users found" subtitle="Try clearing or adjusting search filters." />
+        <EmptyState title="No users found" subtitle="Try clearing or adjusting your group, pincode, or status filters." />
       ) : (
         <div className={`${PANEL} overflow-hidden`}>
           <div className="overflow-x-auto">
@@ -473,32 +670,90 @@ export function AllUsersDirectoryView() {
                 <tr>
                   <th className={TH}>Customer</th>
                   <th className={TH}>Phone</th>
-                  <th className={TH}>Account Type</th>
+                  <th className={TH}>User Group</th>
+                  <th className={TH}>Address &amp; Pincode</th>
                   <th className={TH}>Shop Details</th>
                   <th className={TH}>Joined On</th>
                   <th className={TH}>Status</th>
                   <th className={TH}>Authority Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {users.map((user) => {
                   const isUserActive = user.isActive !== false && !user.isBlocked;
+                  const hasOrders = (user.orderCount || 0) > 0;
                   return (
-                    <tr key={user.userId} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
+                    <tr key={user.userId} className="hover:bg-slate-50/60 transition-colors">
                       <td className="px-3 py-3">
                         <p className="font-semibold text-slate-900">{user.name}</p>
                         {user.email ? <p className="text-xs text-slate-500">{user.email}</p> : null}
                       </td>
                       <td className="px-3 py-3 text-sm font-medium text-slate-800">{user.phone || '—'}</td>
+                      
+                      {/* User Group Badge & Order Stats */}
                       <td className="px-3 py-3 text-xs">
-                        <span className={`inline-flex rounded-md px-2 py-0.5 font-semibold ${
-                          user.accountType === 'bulk'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
-                        }`}>
-                          {user.accountType === 'bulk' ? 'Bulk / B2B' : 'Normal / Retail'}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                            user.accountType === 'bulk'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : 'bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}>
+                            {user.accountType === 'bulk' ? 'Bulk / B2B' : 'Normal / Retail'}
+                          </span>
+                          <span className={`text-[10px] font-medium ${
+                            hasOrders ? 'text-emerald-700' : 'text-slate-400'
+                          }`}>
+                            {hasOrders ? `${user.orderCount} order${user.orderCount > 1 ? 's' : ''}` : 'No orders yet'}
+                          </span>
+                        </div>
                       </td>
+
+                      {/* Address & Pincode Group Column */}
+                      <td className="px-3 py-3 text-xs">
+                        {user.pincode || user.city ? (
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              {user.pincode ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handlePincodePillClick(user.pincode)}
+                                  title="Filter users in this same pincode"
+                                  className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-mono font-bold transition ${
+                                    pincode === user.pincode
+                                      ? 'bg-emerald-700 text-white'
+                                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                                  }`}
+                                >
+                                  <MapPin className="h-3 w-3" />
+                                  {user.pincode}
+                                </button>
+                              ) : null}
+                              {user.city ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCityPillClick(user.city)}
+                                  title="Filter users in this city"
+                                  className={`font-semibold transition ${
+                                    city.toLowerCase() === user.city.toLowerCase()
+                                      ? 'text-sky-700 underline'
+                                      : 'text-slate-700 hover:text-sky-700 hover:underline'
+                                  }`}
+                                >
+                                  {user.city}
+                                </button>
+                              ) : null}
+                            </div>
+                            {user.address?.area && (
+                              <p className="text-[11px] text-slate-500 line-clamp-1">{user.address.area}</p>
+                            )}
+                          </div>
+                        ) : user.shopAddress ? (
+                          <p className="text-[11px] text-slate-500 line-clamp-1">{user.shopAddress}</p>
+                        ) : (
+                          <span className="text-slate-400 text-[11px]">—</span>
+                        )}
+                      </td>
+
                       <td className="px-3 py-3 text-xs text-slate-600">
                         {user.shopName ? (
                           <div>
