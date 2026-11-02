@@ -147,20 +147,10 @@ export async function resolveShiftForEarning({
 
   const dateString = istDateString(atDate);
   if (managerId && riderId) {
-    // Salary-paid slot: no per-order KM earning, never borrow another shift's slabs.
-    const salaried = await Shift.findOne({
-      managerId,
-      dateString,
-      "slots.bookings.deliveryPartnerId": riderId,
-      monthlySalary: { $gt: 0 },
-    }).lean();
-    if (salaried) return salaried;
-
     const booked = await Shift.findOne({
       managerId,
       dateString,
       "slots.bookings.deliveryPartnerId": riderId,
-      "deliveryEarningSlabs.0": { $exists: true },
     }).lean();
     if (booked) return booked;
   }
@@ -169,13 +159,11 @@ export async function resolveShiftForEarning({
     const sameDay = await Shift.findOne({
       managerId,
       dateString,
-      "deliveryEarningSlabs.0": { $exists: true },
     }).lean();
     if (sameDay) return sameDay;
 
     const recent = await Shift.findOne({
       managerId,
-      "deliveryEarningSlabs.0": { $exists: true },
     })
       .sort({ dateString: -1 })
       .lean();
@@ -217,28 +205,28 @@ export async function calculateRiderEarning({
     atDate: atDate ? new Date(atDate) : new Date(),
   });
 
-  if (!shift || !shift.deliveryEarningSlabs || shift.deliveryEarningSlabs.length === 0) {
-    return {
-      riderEarning: 0,
-      distanceKm,
-      earningSlab: null,
-      shift,
-      hasSlabs: false,
-      distanceBasis: "dark_store_to_customer",
-      sourceLat: storeLat,
-      sourceLng: storeLng,
-      customerLat,
-      customerLng,
-    };
+  // Rate per KM (shift-configured commission rate, fallback to default 10)
+  const ratePerKm = shift && Number(shift.ratePerKm) > 0 ? Number(shift.ratePerKm) : 10;
+
+  // Commission is calculated as distance (darkstore to customer) * rate
+  // Example: 5 km * ₹10 = ₹50
+  let riderEarning = 0;
+  let slab = null;
+
+  if (distanceKm > 0) {
+    riderEarning = Math.round(distanceKm * ratePerKm * 100) / 100;
+  } else if (shift?.deliveryEarningSlabs?.length) {
+    slab = findMatchingSlab(shift.deliveryEarningSlabs, distanceKm);
+    riderEarning = slab ? Number(slab.riderAmount) || 0 : 0;
   }
 
-  const slab = findMatchingSlab(shift.deliveryEarningSlabs, distanceKm);
   return {
-    riderEarning: slab ? Number(slab.riderAmount) || 0 : 0,
+    riderEarning,
     distanceKm,
+    ratePerKm,
     earningSlab: slab,
     shift,
-    hasSlabs: true,
+    hasSlabs: Boolean(shift?.deliveryEarningSlabs?.length),
     /** Explicit: distance is ALWAYS dark-store → customer (never rider GPS). */
     distanceBasis: "dark_store_to_customer",
     sourceLat: storeLat,
@@ -278,6 +266,7 @@ export function applyEarningSnapshot(order, darkStore, earningResult, now = new 
     customerLng: order.customerLng ?? earningResult?.customerLng ?? null,
     customerAddress: order.customerAddress || "",
     distanceKm,
+    ratePerKm: earningResult?.ratePerKm || 10,
     slabMinKm: slab?.minKm ?? 0,
     slabMaxKm: slab?.maxKm ?? 0,
     slabRiderAmount: slab?.riderAmount ?? riderEarning,
@@ -337,6 +326,7 @@ export async function estimateOfferEarning({
       estimatedEarnings: result.riderEarning,
       earnUpTo: result.riderEarning,
       distanceKm: result.distanceKm,
+      ratePerKm: result.ratePerKm,
       hasSlabs: result.hasSlabs,
     };
   }

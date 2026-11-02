@@ -104,6 +104,7 @@ import {
   creditFullTimeSalary,
   setDriverEmploymentType,
   listFullTimeAttendance,
+  markFullTimeAttendanceManual,
   listFullTimeAssignableOrders,
   listFullTimeAssignedOrders,
   assignOrdersToFullTimeDriver,
@@ -232,6 +233,7 @@ router.put("/fulltime/drivers/:driverId/salary", setFullTimeDriverSalary);
 router.post("/fulltime/drivers/:driverId/credit-salary", creditFullTimeSalary);
 router.put("/drivers/:driverId/employment-type", setDriverEmploymentType);
 router.get("/fulltime/attendance", listFullTimeAttendance);
+router.post("/fulltime/attendance/mark-manual", markFullTimeAttendanceManual);
 router.get("/fulltime/assignable-orders", listFullTimeAssignableOrders);
 router.get("/fulltime/assigned-orders", listFullTimeAssignedOrders);
 router.post("/fulltime/assign-orders", assignOrdersToFullTimeDriver);

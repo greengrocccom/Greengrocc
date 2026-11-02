@@ -21,7 +21,7 @@ const fullTimeAttendanceSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["present", "absent", "pending"],
+      enum: ["present", "absent", "pending", "half_day"],
       default: "pending",
     },
     markedAt: {
@@ -48,6 +48,26 @@ const fullTimeAttendanceSchema = new mongoose.Schema(
     lateMinutes: {
       type: Number,
       default: null,
+    },
+    onlineMinutes: {
+      type: Number,
+      default: 0,
+    },
+    requiredOnlineHours: {
+      type: Number,
+      default: 8,
+    },
+    hoursMet: {
+      type: Boolean,
+      default: false,
+    },
+    manualOverride: {
+      type: Boolean,
+      default: false,
+    },
+    notes: {
+      type: String,
+      default: "",
     },
   },
   { timestamps: true }

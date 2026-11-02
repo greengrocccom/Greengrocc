@@ -37,12 +37,50 @@ export default function FullTimeShiftManagementPage() {
   };
 
   return (
-    <PageShell
-      title="Full-Time Shifts"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-          Full-Time drivers don&apos;t book slots and earn a monthly salary — no per-KM earnings.
+    <PageShell title="Full-Time Shifts">
+      {/* Top Navigation Tabs */}
+      <div className="flex border-b border-slate-200 -mt-2 mb-4 gap-6 text-xs font-medium text-slate-600 overflow-x-auto">
+        <Link
+          to="/shifts"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Part-Time Shifts
+        </Link>
+        <Link
+          to="/shifts/fulltime"
+          className="pb-2.5 px-0.5 border-b-2 border-emerald-600 text-emerald-700 font-bold transition whitespace-nowrap"
+        >
+          Full-Time Shifts
+        </Link>
+        <Link
+          to="/fulltime/attendance"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Employee Attendance
+        </Link>
+        <Link
+          to="/fulltime/salary"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Employee Salary
+        </Link>
+        <Link
+          to="/fulltime/rules"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Full-Time Rules
+        </Link>
+        <Link
+          to="/fulltime/assign-orders"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Assign Orders
+        </Link>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-medium text-slate-600">
+          Full-Time delivery partners earn monthly salary with daily compulsory online hours attendance.
         </div>
         <Link
           to="/shifts/fulltime/create"

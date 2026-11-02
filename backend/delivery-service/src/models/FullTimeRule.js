@@ -37,6 +37,16 @@ const fullTimeRuleSchema = new mongoose.Schema(
       type: Number,
       default: 26,
     },
+    compulsoryDailyOnlineHours: {
+      type: Number,
+      default: 8,
+      min: 1,
+      max: 24,
+    },
+    requireCompulsoryOnlineHours: {
+      type: Boolean,
+      default: true,
+    },
     notes: {
       type: String,
       default: "",

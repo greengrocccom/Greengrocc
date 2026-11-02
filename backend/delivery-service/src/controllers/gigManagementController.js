@@ -59,6 +59,8 @@ export const createGig = async (req, res, next) => {
       targetEarnings,
       bonusAmount,
       description,
+      targetAudience = "all",
+      eligibleRiderIds = [],
     } = req.body;
 
     if (!title || !dateString) {
@@ -103,6 +105,8 @@ export const createGig = async (req, res, next) => {
       bonusAmount: defaultBonus,
       tiers: parsedTiers,
       description: description || "",
+      targetAudience: ["all", "top_performers", "specific"].includes(targetAudience) ? targetAudience : "all",
+      eligibleRiderIds: Array.isArray(eligibleRiderIds) ? eligibleRiderIds.filter(Boolean) : [],
       isActive: true,
     });
 

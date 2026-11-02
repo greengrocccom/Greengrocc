@@ -19,6 +19,7 @@ const EMPTY = {
   requireAttendance: true,
   requireLocationValidation: true,
   attendanceRadiusMeters: "",
+  compulsoryDailyOnlineHours: "",
   notes: "",
   driverIds: [],
   monthlySalary: "",
@@ -72,6 +73,7 @@ export default function CreateFullTimeShiftPage() {
               requireAttendance: shift.requireAttendance,
               requireLocationValidation: shift.requireLocationValidation,
               attendanceRadiusMeters: shift.attendanceRadiusMeters ?? "",
+              compulsoryDailyOnlineHours: shift.compulsoryDailyOnlineHours ?? "",
               notes: shift.notes || "",
               driverIds: shift.driverIds || [],
               monthlySalary: shift.monthlySalary ?? "",
@@ -129,6 +131,8 @@ export default function CreateFullTimeShiftPage() {
       ...rest,
       attendanceRadiusMeters:
         form.attendanceRadiusMeters === "" ? null : Number(form.attendanceRadiusMeters),
+      compulsoryDailyOnlineHours:
+        form.compulsoryDailyOnlineHours === "" ? null : Number(form.compulsoryDailyOnlineHours),
       monthlySalary: form.monthlySalary === "" ? null : Number(form.monthlySalary),
       paidLeavesPerMonth: Number(form.paidLeavesPerMonth || 0),
       unpaidLeaveDeductionPerDay:
@@ -229,6 +233,18 @@ export default function CreateFullTimeShiftPage() {
                 placeholder="Radius (m) — blank uses rule default"
                 value={form.attendanceRadiusMeters}
                 onChange={(e) => set("attendanceRadiusMeters", e.target.value)}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <input
+                type="number"
+                min="1"
+                max="24"
+                step="0.5"
+                placeholder="Compulsory Daily Online Hours (e.g. 8)"
+                value={form.compulsoryDailyOnlineHours}
+                onChange={(e) => set("compulsoryDailyOnlineHours", e.target.value)}
                 className={inputCls}
               />
             </div>

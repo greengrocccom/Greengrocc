@@ -75,6 +75,17 @@ const gigSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    targetAudience: {
+      type: String,
+      enum: ["all", "top_performers", "specific"],
+      default: "all",
+    },
+    eligibleRiderIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "DeliveryBoy",
+      },
+    ],
     isActive: {
       type: Boolean,
       default: true,
@@ -111,6 +122,8 @@ gigSchema.methods.toSafeJSON = function toSafeJSON() {
     bonusAmount: maxBonus || this.bonusAmount,
     tierMetric: this.tierMetric || "orders",
     tiers: safeTiers,
+    targetAudience: this.targetAudience || "all",
+    eligibleRiderIds: (this.eligibleRiderIds || []).map((id) => (id?._id || id).toString()),
     description: this.description,
     isActive: this.isActive,
     createdAt: this.createdAt,

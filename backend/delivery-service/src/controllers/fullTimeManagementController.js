@@ -7,7 +7,12 @@ import { getIO } from "../../../socket.js";
 import { getManager, riderQuery } from "./managerDashboardController.js";
 import { syncCustomerOrderFromStore } from "../services/syncCustomerOrderFromStore.js";
 import { timeToMinutes } from "../utils/shiftTimeHelper.js";
-import { listIstDatesInMonth } from "../utils/onlineHoursHelper.js";
+import {
+  listIstDatesInMonth,
+  liveOnlineMinutes,
+  formatOnlineMinutes,
+  ensureTodayOnlineTracking,
+} from "../utils/onlineHoursHelper.js";
 import {
   FULL_TIME_ACTIVE_ORDER_STATUSES,
   attendanceStatusFor,
@@ -169,6 +174,16 @@ function readShiftBody(body, { partial = false } = {}) {
     }
   }
   if (body.notes !== undefined) out.notes = String(body.notes || "").trim();
+
+  if (body.compulsoryDailyOnlineHours !== undefined) {
+    if (body.compulsoryDailyOnlineHours === null || body.compulsoryDailyOnlineHours === "") {
+      out.compulsoryDailyOnlineHours = null;
+    } else {
+      const h = Number(body.compulsoryDailyOnlineHours);
+      if (!Number.isFinite(h) || h < 1 || h > 24) return { error: "Compulsory daily online hours must be between 1 and 24" };
+      out.compulsoryDailyOnlineHours = Math.round(h * 10) / 10;
+    }
+  }
 
   const optionalAmount = (key, label) => {
     if (body[key] === undefined) return null;
@@ -333,6 +348,41 @@ async function buildDriverSummaries(manager, riders, dateString = istDateString(
     const credit = (r.salaryCredits || []).find((c) => c.month === month) || null;
     const payroll = buildMonthPayroll({ rider: r, manager, shift, rule, month, records });
 
+    // Compulsory daily online hours: shift override or rule setting (default 8)
+    const compulsoryHours =
+      Number(shift?.compulsoryDailyOnlineHours) ||
+      Number(rule?.compulsoryDailyOnlineHours) ||
+      8;
+    const requireCompulsory = rule?.requireCompulsoryOnlineHours !== false;
+
+    // Daily online minutes calculation
+    ensureTodayOnlineTracking(r);
+    let onlineMins = 0;
+    const isToday = dateString === istDateString();
+    if (isToday) {
+      onlineMins = liveOnlineMinutes(r);
+    } else {
+      const pastAct = (r.dailyActivity || []).find((a) => a.date === dateString);
+      onlineMins = pastAct ? Number(pastAct.onlineMinutes || 0) : Number(record?.onlineMinutes || 0);
+    }
+
+    const requiredMinutes = Math.round(compulsoryHours * 60);
+    const hoursMet = onlineMins >= requiredMinutes;
+
+    // Evaluated attendance status taking compulsory hours into account
+    let evaluatedStatus = att.status;
+    if (record?.manualOverride && record?.status) {
+      evaluatedStatus = record.status;
+    } else if (record?.status === "present") {
+      evaluatedStatus = "present";
+    } else if (requireCompulsory && (att.status === "present" || att.status === "pending" || att.status === "absent")) {
+      if (hoursMet) {
+        evaluatedStatus = "present";
+      } else if (!isToday && evaluatedStatus !== "off_day" && evaluatedStatus !== "not_required") {
+        evaluatedStatus = "absent";
+      }
+    }
+
     return {
       ...lightDriver(r),
       monthlySalary: effectiveMonthlySalary(r, manager, shift),
@@ -358,11 +408,19 @@ async function buildDriverSummaries(manager, riders, dateString = istDateString(
       requirement,
       attendance: {
         date: dateString,
-        status: att.status,
+        status: evaluatedStatus,
         markedAt: record?.markedAt || null,
         distanceFromStoreMeters: record?.distanceFromStoreMeters ?? null,
         validationPassed: record?.validationPassed ?? null,
         lateMinutes: record?.lateMinutes ?? null,
+        onlineMinutes: onlineMins,
+        onlineTime: formatOnlineMinutes(onlineMins),
+        compulsoryHours,
+        requiredMinutes,
+        hoursMet,
+        hoursProgressPercent: Math.min(100, Math.round((onlineMins / Math.max(1, requiredMinutes)) * 100)),
+        manualOverride: record?.manualOverride || false,
+        notes: record?.notes || "",
       },
       monthPresentDays: records.filter((a) => a.status === "present").length,
       payroll,
@@ -618,6 +676,44 @@ export const listFullTimeAttendance = async (req, res, next) => {
         monthPresentDays: d.monthPresentDays,
         minimumAttendanceDays: d.minimumAttendanceDays,
       })),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/** POST /fulltime/attendance/mark-manual — manager manually sets or overrides driver attendance. */
+export const markFullTimeAttendanceManual = async (req, res, next) => {
+  try {
+    const manager = await getManager(req);
+    const { driverId, date, status, notes } = req.body || {};
+    if (!driverId || !date) return badRequest(res, "driverId and date are required");
+    const allowed = ["present", "absent", "half_day", "pending"];
+    if (!allowed.includes(status)) {
+      return badRequest(res, `status must be one of: ${allowed.join(", ")}`);
+    }
+
+    const rider = await findFullTimeDriver(manager, driverId);
+    if (!rider) return res.status(404).json({ success: false, message: "Full-Time driver not found" });
+
+    const attendance = await FullTimeAttendance.findOneAndUpdate(
+      { deliveryBoyId: rider._id, date },
+      {
+        $set: {
+          managerId: manager._id,
+          status,
+          markedAt: new Date(),
+          manualOverride: true,
+          notes: String(notes || "").trim(),
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: `Attendance for ${rider.name || rider.phone} marked as ${status}`,
+      attendance,
     });
   } catch (err) {
     next(err);

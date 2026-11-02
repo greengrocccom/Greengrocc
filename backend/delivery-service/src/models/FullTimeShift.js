@@ -26,6 +26,7 @@ const fullTimeShiftSchema = new mongoose.Schema(
       default: [1, 2, 3, 4, 5, 6],
     },
     requireAttendance: { type: Boolean, default: true },
+    compulsoryDailyOnlineHours: { type: Number, default: null, min: 1, max: 24 },
     requireLocationValidation: { type: Boolean, default: true },
     /** Falls back to the active Full-Time rule radius when null. */
     attendanceRadiusMeters: { type: Number, default: null, min: 10 },

@@ -83,6 +83,9 @@ import {
   listSupportRoles,
   listSupportUserHistory,
   updateStoreSupport,
+  getAllVendorsSupportAdmin,
+  updateGlobalSupportAdmin,
+  updateVendorSupportAdmin,
 } from "./opsControllers.js";
 import {
   getAdminShippingMethods,

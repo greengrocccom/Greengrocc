@@ -19,6 +19,7 @@ export default function DriversPage() {
   const [submitting, setSubmitting] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const load = useCallback(async ({ silent = false } = {}) => {
     try {
@@ -74,10 +75,13 @@ export default function DriversPage() {
     ["FULL_TIME", "🟢 Full-Time", fullTimeCount],
     ["PART_TIME", "🔵 Part-Time", riders.length - fullTimeCount],
   ];
-  const visibleRiders =
-    typeFilter === "ALL"
-      ? riders
-      : riders.filter((r) => (r.employmentType || "PART_TIME") === typeFilter);
+  const visibleRiders = riders
+    .filter((r) => typeFilter === "ALL" || (r.employmentType || "PART_TIME") === typeFilter)
+    .filter((r) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
+      return (r.name || "").toLowerCase().includes(q) || (r.phone || "").toLowerCase().includes(q);
+    });
 
   return (
     <PageShell>
@@ -162,7 +166,7 @@ export default function DriversPage() {
           <button
             type="button"
             onClick={() => setIsCreateOpen((prev) => !prev)}
-            className="flex items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-2xs hover:bg-emerald-700 transition active:scale-98 whitespace-nowrap"
+            className="flex items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-2xs hover:bg-emerald-700 transition active:scale-98 whitespace-nowrap cursor-pointer"
           >
             <span>{isCreateOpen ? "✕ Close Form" : "+ Create Delivery Partner"}</span>
           </button>
@@ -180,7 +184,7 @@ export default function DriversPage() {
             <button
               type="button"
               onClick={() => setIsCreateOpen(false)}
-              className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100 transition"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
             >
               ✕ Close
             </button>
@@ -252,14 +256,14 @@ export default function DriversPage() {
               <button
                 type="button"
                 onClick={() => setIsCreateOpen(false)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700 disabled:opacity-60 transition"
+                className="rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700 disabled:opacity-60 transition cursor-pointer"
               >
                 {submitting ? "Creating Credentials…" : "Create Partner Account"}
               </button>
@@ -267,6 +271,46 @@ export default function DriversPage() {
           </form>
         </div>
       )}
+
+      {/* FILTER & SEARCH CONTROLS */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+        <div className="flex flex-wrap gap-1.5">
+          {typeTabs.map(([key, label, count]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTypeFilter(key)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                typeFilter === key
+                  ? "bg-[#064e3b] text-white shadow-xs"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              {label} ({count})
+            </button>
+          ))}
+        </div>
+
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name or phone..."
+            className="h-8.5 w-60 rounded-xl border border-slate-200 bg-white pl-8 pr-3 text-xs text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none shadow-2xs"
+          />
+          <span className="absolute left-2.5 top-2 text-slate-400 text-xs">🔍</span>
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-2 text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* DRIVER ROSTER TABLE */}
       {loading ? (
@@ -276,95 +320,140 @@ export default function DriversPage() {
           <h3 className="text-sm font-semibold text-slate-700">No approved riders yet</h3>
         </div>
       ) : (
-        <>
-        <div className="flex flex-wrap gap-1.5">
-          {typeTabs.map(([key, label, count]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTypeFilter(key)}
-              className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition ${
-                typeFilter === key
-                  ? "bg-black text-white"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              {label} ({count})
-            </button>
-          ))}
-        </div>
-        <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-xs">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
           <table className="w-full text-left text-sm">
-            <thead className="bg-black text-white text-xs font-bold uppercase tracking-wider">
+            <thead className="bg-[#f8fafc] border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
-                <th className="py-2 px-5">Driver Name</th>
-                <th className="py-2 px-5">Mobile Phone</th>
-                <th className="py-2 px-5">Vehicle Type</th>
-                <th className="py-2 px-5">Hub / Area</th>
-                <th className="py-2 px-5">Cash in Hand (COD)</th>
-                <th className="py-2 px-5">Online Status</th>
+                <th className="py-3.5 px-5 whitespace-nowrap">Driver</th>
+                <th className="py-3.5 px-5 whitespace-nowrap">Vehicle &amp; Hub</th>
+                <th className="py-3.5 px-5 whitespace-nowrap">Rating &amp; On-Time</th>
+                <th className="py-3.5 px-5 whitespace-nowrap">Orders (Accepted / Cancelled)</th>
+                <th className="py-3.5 px-5 whitespace-nowrap">Cash in Hand (COD)</th>
+                <th className="py-3.5 px-5 whitespace-nowrap">Status</th>
+                <th className="py-3.5 px-5 text-right whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {visibleRiders.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-xs font-semibold text-slate-400">
+                  <td colSpan={7} className="py-8 text-center text-xs font-semibold text-slate-400">
                     No drivers match this filter.
                   </td>
                 </tr>
               )}
               {visibleRiders.map((r) => {
                 const isOnline = r.status === "online";
+                const isOnDelivery = r.status === "on_delivery";
+                const firstLetter = (r.name || "D").charAt(0).toUpperCase();
                 return (
                   <tr
                     key={r.id || r._id}
                     onClick={() => navigate(`/drivers/${r.id || r._id}`)}
-                    className="hover:bg-emerald-50/60 cursor-pointer transition"
+                    className="hover:bg-slate-50/80 cursor-pointer transition"
                   >
-                    <td className="py-3.5 px-4 font-bold text-slate-900">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span>{r.name || "Delivery Partner"}</span>
-                        {r.employmentType === 'FULL_TIME' ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700 border border-emerald-200">
-                            🟢 Full-Time
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-700 border border-blue-200">
-                            🔵 Part-Time
-                          </span>
-                        )}
+                    {/* DRIVER */}
+                    <td className="py-3.5 px-5">
+                      <div className="flex items-center gap-3">
+                        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-800 text-xs">
+                          {firstLetter}
+                          <span
+                            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${
+                              isOnline ? "bg-emerald-500 animate-pulse" : isOnDelivery ? "bg-amber-500" : "bg-slate-300"
+                            }`}
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-900 text-xs sm:text-sm">{r.name || "Delivery Partner"}</span>
+                            {r.employmentType === "FULL_TIME" ? (
+                              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700 border border-emerald-200">
+                                🟢 Full-Time
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[9px] font-bold text-blue-700 border border-blue-200">
+                                🔵 Part-Time
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-mono text-slate-500 text-xs mt-0.5">{r.phone}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-slate-700 font-medium">
-                      {r.phone}
+
+                    {/* VEHICLE & HUB */}
+                    <td className="py-3.5 px-5">
+                      <p className="font-semibold text-slate-800 text-xs capitalize">{r.vehicleType || "Scooter"}</p>
+                      <p className="text-slate-400 text-[11px] mt-0.5">{r.area || manager?.area || "Dark Store Hub"}</p>
                     </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-800">
-                      {r.vehicleType || "Scooter"}
+
+                    {/* RATING & ON-TIME */}
+                    <td className="py-3.5 px-5 whitespace-nowrap">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1 font-bold text-slate-900 text-xs">
+                          <span className="text-amber-500">★</span>
+                          <span>{Number(r.rating || 4.9).toFixed(1)}</span>
+                          <span className="text-slate-400 font-normal text-[10px]">({r.totalRatingsCount || 12})</span>
+                        </div>
+                        <span className="inline-block text-[10px] font-bold text-emerald-700">
+                          {r.onTimeRate || 98}% On-Time
+                        </span>
+                      </div>
                     </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-700">
-                      {r.area || manager?.area || "Hub"}
+
+                    {/* ORDERS (ACCEPTED / CANCELLED) */}
+                    <td className="py-3.5 px-5 whitespace-nowrap">
+                      <div className="flex flex-col gap-0.5 text-xs">
+                        <span className="font-bold text-slate-800">
+                          ✓ {r.totalAccepted || r.totalDelivered || 0} accepted
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {r.totalCancelled ? `✕ ${r.totalCancelled} cancelled` : "0 cancelled"}
+                        </span>
+                      </div>
                     </td>
-                    <td className="py-3.5 px-4">
+
+                    {/* CASH IN HAND */}
+                    <td className="py-3.5 px-5 whitespace-nowrap">
                       {(Number(r.pendingCashAmount) || 0) > 0 ? (
                         <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-900 shadow-2xs">
                           <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                           ₹{Number(r.pendingCashAmount).toLocaleString()} (Collect)
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400 font-medium">₹0</span>
+                        <span className="text-xs text-slate-400 font-medium">₹0 (Settled)</span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4">
+
+                    {/* STATUS */}
+                    <td className="py-3.5 px-5 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border ${
-                          isOnline
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold border ${
+                          isOnDelivery
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                            : isOnline
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                             : "bg-slate-100 text-slate-600 border-slate-200"
                         }`}
                       >
-                        <span className={`h-2 w-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
-                        {isOnline ? "ONLINE" : (r.status || "OFFLINE").toUpperCase()}
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            isOnDelivery ? "bg-amber-500 animate-pulse" : isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                          }`}
+                        />
+                        {isOnDelivery ? "ON DELIVERY" : isOnline ? "ONLINE" : "OFFLINE"}
                       </span>
+                    </td>
+
+                    {/* ACTION */}
+                    <td className="py-3.5 px-5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/drivers/${r.id || r._id}`)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-600 transition shadow-2xs cursor-pointer active:scale-95"
+                      >
+                        <span>View More</span>
+                        <span>→</span>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -372,7 +461,6 @@ export default function DriversPage() {
             </tbody>
           </table>
         </div>
-        </>
       )}
     </PageShell>
   );

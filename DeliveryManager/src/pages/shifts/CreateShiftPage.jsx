@@ -2,7 +2,63 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 
-const getTodayString = () => new Date().toISOString().slice(0, 10);
+const getTodayString = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+const getNextDayString = (baseDateStr) => {
+  try {
+    const base = baseDateStr ? new Date(baseDateStr + "T12:00:00") : new Date();
+    base.setDate(base.getDate() + 1);
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(base);
+  } catch (e) {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }
+};
+
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const match = String(timeStr).match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const ampm = match[3].toUpperCase();
+  if (ampm === "PM" && hours !== 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+};
+
+const isAfterMidnightTime = (type, slots = []) => {
+  if (type === "late_night") return true;
+  if (!slots || slots.length === 0) return false;
+  const firstSlotStart = slots[0]?.startTime;
+  if (!firstSlotStart) return false;
+  const mins = parseTimeToMinutes(firstSlotStart);
+  return mins >= 0 && mins < 300;
+};
+
+const formatDateWithDay = (dateStr) => {
+  if (!dateStr) return { formatted: "", dayName: "" };
+  try {
+    const d = new Date(dateStr + "T00:00:00");
+    const formatted = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    const dayName = d.toLocaleDateString("en-GB", { weekday: "short" });
+    return { formatted, dayName };
+  } catch (e) {
+    return { formatted: dateStr, dayName: "" };
+  }
+};
 
 const SHIFT_TYPES = [
   { id: "early_morning", label: "Early Morning Shift", defaultStart: "06:00 AM", defaultEnd: "09:00 AM" },
@@ -14,7 +70,13 @@ const SHIFT_TYPES = [
   { id: "custom", label: "Custom Shift", defaultStart: "09:00 AM", defaultEnd: "05:00 PM" },
 ];
 
-const NO_INCENTIVE = { incentiveMode: "none", incentiveRate: "", incentiveAfterKm: "" };
+const NO_INCENTIVE = {
+  incentiveMode: "none",
+  incentiveRate: "",
+  incentiveAfterKm: "",
+  incentiveAudience: "all",
+  incentiveEligibleRiderIds: [],
+};
 
 const INCENTIVE_OPTIONS = [
   { id: "none", label: "No incentive" },
@@ -22,10 +84,10 @@ const INCENTIVE_OPTIONS = [
   { id: "per_hour", label: "₹ per hour online" },
 ];
 
-const SALARY_PERIODS = [
-  { id: "day", label: "/ day", placeholder: "500" },
-  { id: "week", label: "/ week", placeholder: "3500" },
-  { id: "month", label: "/ month", placeholder: "15000" },
+const INCENTIVE_AUDIENCE_OPTIONS = [
+  { id: "all", label: "All Drivers" },
+  { id: "top_performers", label: "Good Performance (★ 4.0+)" },
+  { id: "specific", label: "Specific Drivers" },
 ];
 
 const RECURRENCE = [
@@ -190,7 +252,18 @@ function DriverDropdown({ riders, loading, selectedIds, onChange }) {
                       {initials(r.name)}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-slate-900">{r.name || "Unnamed driver"}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="block truncate text-sm font-medium text-slate-900">{r.name || "Unnamed driver"}</span>
+                        {r.isGoodPerformance ? (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.2 text-[10px] font-bold text-amber-800">
+                            ★ {Number(r.rating || 5).toFixed(1)} High
+                          </span>
+                        ) : (
+                          <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-medium text-slate-500">
+                            ★ {Number(r.rating || 5).toFixed(1)}
+                          </span>
+                        )}
+                      </div>
                       <span className="block text-xs tabular-nums text-slate-500">{r.phone || "—"}</span>
                     </span>
                     {r.vehicleType ? (
@@ -217,6 +290,148 @@ function DriverDropdown({ riders, loading, selectedIds, onChange }) {
   );
 }
 
+function SlotIncentiveDriverModal({ isOpen, onClose, riders, selectedIds, onSave }) {
+  const [tempSelected, setTempSelected] = useState(selectedIds || []);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    setTempSelected(selectedIds || []);
+  }, [selectedIds, isOpen]);
+
+  if (!isOpen) return null;
+
+  const q = search.trim().toLowerCase();
+  const filtered = riders.filter(
+    (r) => (r.name || "").toLowerCase().includes(q) || String(r.phone || "").includes(q)
+  );
+
+  const toggle = (id) => {
+    setTempSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const toggleAll = () => {
+    const allFiltered = filtered.map((r) => r.id);
+    const allSelected = allFiltered.length > 0 && allFiltered.every((id) => tempSelected.includes(id));
+    setTempSelected(
+      allSelected
+        ? tempSelected.filter((id) => !allFiltered.includes(id))
+        : [...new Set([...tempSelected, ...allFiltered])]
+    );
+  };
+
+  const selectGoodPerformers = () => {
+    const goodIds = riders.filter((r) => r.isGoodPerformance).map((r) => r.id);
+    setTempSelected(goodIds);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between border-b border-slate-100 p-4">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Select Drivers for Slot Incentive</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Only selected delivery boys will receive this slot incentive</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+            ✕
+          </button>
+        </div>
+
+        <div className="p-3 border-b border-slate-100 space-y-2 bg-slate-50/60">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search driver by name or phone..."
+            className="w-full h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 focus:border-emerald-500 focus:outline-none"
+          />
+          <div className="flex items-center justify-between text-xs px-1">
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="font-semibold text-emerald-700 hover:underline cursor-pointer"
+            >
+              Toggle All
+            </button>
+            <button
+              type="button"
+              onClick={selectGoodPerformers}
+              className="font-semibold text-amber-700 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              ⭐ Pick Good Performance (★ 4.0+)
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-72 overflow-y-auto p-2 divide-y divide-slate-100">
+          {filtered.length === 0 ? (
+            <p className="py-8 text-center text-xs text-slate-400">No drivers match your search</p>
+          ) : (
+            filtered.map((r) => {
+              const checked = tempSelected.includes(r.id);
+              return (
+                <label
+                  key={r.id}
+                  className={`flex cursor-pointer items-center gap-3 p-2.5 rounded-xl transition ${
+                    checked ? "bg-emerald-50/80" : "hover:bg-slate-50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(r.id)}
+                    className="h-4 w-4 accent-emerald-600 rounded"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-xs text-slate-900 truncate">{r.name}</span>
+                      {r.isGoodPerformance ? (
+                        <span className="rounded bg-amber-100 px-1.5 py-0.2 text-[10px] font-bold text-amber-800">
+                          ★ {Number(r.rating || 5).toFixed(1)} High
+                        </span>
+                      ) : (
+                        <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-medium text-slate-500">
+                          ★ {Number(r.rating || 5).toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400">{r.phone}</p>
+                  </div>
+                </label>
+              );
+            })
+          )}
+        </div>
+
+        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 p-3">
+          <span className="text-xs font-medium text-slate-500">
+            {tempSelected.length} of {riders.length} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSave(tempSelected);
+                onClose();
+              }}
+              className="h-8 rounded-lg bg-emerald-600 px-4 text-xs font-semibold text-white hover:bg-emerald-700 cursor-pointer"
+            >
+              Apply Selection
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CreateShiftPage() {
   const navigate = useNavigate();
   const [toast, setToast] = useState({ msg: "", ok: true });
@@ -231,8 +446,8 @@ export default function CreateShiftPage() {
   const [slotsList, setSlotsList] = useState([
     { startTime: "09:00 AM", endTime: "01:00 PM", capacity: 10, ...NO_INCENTIVE },
   ]);
-  const [salaryAmount, setSalaryAmount] = useState("");
-  const [salaryPeriod, setSalaryPeriod] = useState("month");
+  const [ratePerKm, setRatePerKm] = useState("10");
+  const [modalSlotIndex, setModalSlotIndex] = useState(null);
   const [riders, setRiders] = useState([]);
   const [ridersLoading, setRidersLoading] = useState(true);
   const [selectedRiderIds, setSelectedRiderIds] = useState([]);
@@ -255,14 +470,24 @@ export default function CreateShiftPage() {
     const found = SHIFT_TYPES.find((t) => t.id === typeId);
     if (found) {
       setNewShiftName(found.label);
-      setSlotsList([
+      const newSlots = [
         {
           startTime: found.defaultStart,
           endTime: found.defaultEnd,
           capacity: parseInt(newCapacity, 10) || 10,
           ...NO_INCENTIVE,
         },
-      ]);
+      ];
+      setSlotsList(newSlots);
+
+      // If shift is after 12 AM (e.g. Late Night Shift 12:00 AM - 04:00 AM), advance date to next day
+      if (typeId === "late_night" || isAfterMidnightTime(typeId, newSlots)) {
+        setTargetDate(getNextDayString(getTodayString()));
+      } else {
+        if (targetDate === getNextDayString(getTodayString())) {
+          setTargetDate(getTodayString());
+        }
+      }
     }
   };
 
@@ -286,6 +511,16 @@ export default function CreateShiftPage() {
     const updated = [...slotsList];
     updated[index] = { ...updated[index], [field]: value };
     setSlotsList(updated);
+
+    if (field === "startTime" && index === 0) {
+      const mins = parseTimeToMinutes(value);
+      if (mins >= 0 && mins < 300) {
+        const todayStr = getTodayString();
+        if (targetDate === todayStr) {
+          setTargetDate(getNextDayString(todayStr));
+        }
+      }
+    }
   };
 
   const toggleDayOfWeek = (dayNum) => {
@@ -295,8 +530,8 @@ export default function CreateShiftPage() {
   const handleCreateShift = async (e) => {
     e.preventDefault();
 
-    if (!(Number(salaryAmount) > 0)) {
-      showToast("Enter the salary (₹) for this slot");
+    if (!(Number(ratePerKm) > 0)) {
+      showToast("Enter a valid commission rate (₹/km)");
       return;
     }
     if (selectedRiderIds.length === 0) {
@@ -313,6 +548,17 @@ export default function CreateShiftPage() {
         showToast(`Slot ${i + 1}: "After km" must be 0 or more`);
         return;
       }
+      if (s.incentiveMode !== "none" && s.incentiveAudience === "specific" && (!s.incentiveEligibleRiderIds || s.incentiveEligibleRiderIds.length === 0)) {
+        showToast(`Slot ${i + 1}: select at least one driver for specific driver incentive, or switch to All Drivers / Good Performance`);
+        return;
+      }
+    }
+
+    let finalTargetDate = targetDate;
+    const isAfterMidnight = isAfterMidnightTime(newShiftType, slotsList);
+    const todayStr = getTodayString();
+    if (isAfterMidnight && recurrenceMode === "single_day" && targetDate === todayStr) {
+      finalTargetDate = getNextDayString(todayStr);
     }
 
     setIsSubmitting(true);
@@ -322,20 +568,22 @@ export default function CreateShiftPage() {
         type: newShiftType,
         capacity: parseInt(newCapacity, 10) || 10,
         maxCapacityPerSlot: parseInt(newCapacity, 10) || 10,
+        ratePerKm: Number(ratePerKm) || 10,
         customSlots: slotsList.map((s) => ({
           startTime: s.startTime,
           endTime: s.endTime,
           capacity: parseInt(s.capacity || newCapacity, 10) || 10,
+          ratePerKm: Number(ratePerKm) || 10,
           incentiveMode: s.incentiveMode || "none",
           incentiveRate: s.incentiveMode === "none" ? 0 : Number(s.incentiveRate) || 0,
           incentiveAfterKm: s.incentiveMode === "per_km" ? Number(s.incentiveAfterKm) || 0 : 0,
+          incentiveAudience: s.incentiveAudience || "all",
+          incentiveEligibleRiderIds: Array.isArray(s.incentiveEligibleRiderIds) ? s.incentiveEligibleRiderIds : [],
         })),
         recurrenceMode,
-        targetDate,
+        targetDate: finalTargetDate,
         daysOfWeek: selectedDaysOfWeek,
         deliveryEarningSlabs: [],
-        salaryAmount: Math.round(Number(salaryAmount)),
-        salaryPeriod,
         riderIds: selectedRiderIds,
       });
 
@@ -415,30 +663,22 @@ export default function CreateShiftPage() {
             />
           </div>
           <div>
-            <label className={LABEL}>Salary</label>
-            <div className="flex h-10 overflow-hidden rounded-lg border border-slate-200 bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/15">
-              <span className="flex items-center pl-3 text-sm font-semibold text-slate-400">₹</span>
+            <label className={LABEL}>Commission Rate (₹/km)</label>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">₹</span>
               <input
                 type="number"
                 min="0"
-                step="any"
+                step="0.5"
                 required
-                value={salaryAmount}
-                onChange={(e) => setSalaryAmount(e.target.value)}
-                placeholder={SALARY_PERIODS.find((p) => p.id === salaryPeriod)?.placeholder}
-                className="min-w-0 flex-1 bg-transparent px-2 text-sm font-medium text-slate-900 focus:outline-none"
+                value={ratePerKm}
+                onChange={(e) => setRatePerKm(e.target.value)}
+                placeholder="10"
+                className={`${FIELD} pl-7 pr-12`}
               />
-              <select
-                value={salaryPeriod}
-                onChange={(e) => setSalaryPeriod(e.target.value)}
-                className="border-l border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-700 focus:outline-none"
-              >
-                {SALARY_PERIODS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                / km
+              </span>
             </div>
           </div>
           <div>
@@ -466,7 +706,7 @@ export default function CreateShiftPage() {
         }
       >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] text-sm">
+          <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                 <th className="w-10 pb-2">#</th>
@@ -476,6 +716,7 @@ export default function CreateShiftPage() {
                 <th className="pb-2 pr-3">Incentive</th>
                 <th className="pb-2 pr-3">Rate</th>
                 <th className="pb-2 pr-3">Pay after</th>
+                <th className="pb-2 pr-3 min-w-[200px]">Incentive Eligibility</th>
                 <th className="w-10 pb-2" />
               </tr>
             </thead>
@@ -559,6 +800,46 @@ export default function CreateShiftPage() {
                       </span>
                     </div>
                   </td>
+                  <td className="py-2.5 pr-3">
+                    {cs.incentiveMode === "none" ? (
+                      <span className="text-xs text-slate-300 font-medium">—</span>
+                    ) : (
+                      <div className="space-y-1">
+                        <select
+                          value={cs.incentiveAudience || "all"}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateSlotRow(idx, "incentiveAudience", val);
+                            if (val === "specific" && (!cs.incentiveEligibleRiderIds || cs.incentiveEligibleRiderIds.length === 0)) {
+                              setModalSlotIndex(idx);
+                            }
+                          }}
+                          className={`${FIELD} text-xs font-semibold`}
+                        >
+                          {INCENTIVE_AUDIENCE_OPTIONS.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        {cs.incentiveAudience === "specific" && (
+                          <button
+                            type="button"
+                            onClick={() => setModalSlotIndex(idx)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 underline cursor-pointer"
+                          >
+                            <span>{(cs.incentiveEligibleRiderIds || []).length} drivers selected</span>
+                            <span>· Edit</span>
+                          </button>
+                        )}
+                        {cs.incentiveAudience === "top_performers" && (
+                          <span className="block text-[10px] text-amber-700 font-semibold">
+                            Only drivers with rating ≥ 4.0
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td className="py-2.5 text-right">
                     <button
                       type="button"
@@ -601,6 +882,14 @@ export default function CreateShiftPage() {
             <div className="w-full max-w-xs">
               <label className={LABEL}>Date</label>
               <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className={FIELD} />
+              {isAfterMidnightTime(newShiftType, slotsList) && (
+                <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-purple-50 border border-purple-200 px-2.5 py-1.5 text-xs text-purple-900">
+                  <span>🌙</span>
+                  <span className="font-semibold">
+                    After 12:00 AM Shift: Scheduled for Next Day ({formatDateWithDay(targetDate).formatted || targetDate})
+                  </span>
+                </div>
+              )}
             </div>
           ) : (
             <div>
@@ -628,6 +917,19 @@ export default function CreateShiftPage() {
           )}
         </div>
       </Card>
+
+      <SlotIncentiveDriverModal
+        isOpen={modalSlotIndex !== null}
+        onClose={() => setModalSlotIndex(null)}
+        riders={riders}
+        selectedIds={modalSlotIndex !== null ? (slotsList[modalSlotIndex]?.incentiveEligibleRiderIds || []) : []}
+        onSave={(newIds) => {
+          if (modalSlotIndex !== null) {
+            updateSlotRow(modalSlotIndex, "incentiveEligibleRiderIds", newIds);
+            updateSlotRow(modalSlotIndex, "incentiveAudience", "specific");
+          }
+        }}
+      />
     </form>
   );
 }

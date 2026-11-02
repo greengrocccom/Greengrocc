@@ -64,7 +64,19 @@ export async function checkAndTrackIncentive(riderId, storeId) {
 
     let targetBonusEarned = 0;
 
+    // Check driver eligibility for this gig incentive
+    let isEligibleForGig = true;
     if (gigToTrack) {
+      if (gigToTrack.targetAudience === "top_performers") {
+        const rating = rider.rating !== undefined ? Number(rider.rating) : 5;
+        if (rating < 4.0) isEligibleForGig = false;
+      } else if (gigToTrack.targetAudience === "specific") {
+        const allowed = (gigToTrack.eligibleRiderIds || []).map((id) => (id?._id || id).toString());
+        if (!allowed.includes(String(rider._id))) isEligibleForGig = false;
+      }
+    }
+
+    if (gigToTrack && isEligibleForGig) {
       if (gigToTrack.tiers && gigToTrack.tiers.length > 0) {
         let valToCompare = totalEarnings;
         if (gigToTrack.type === "hours_bonus") {

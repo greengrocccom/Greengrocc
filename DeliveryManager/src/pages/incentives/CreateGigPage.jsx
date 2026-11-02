@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { managerApi } from "../../api/managerApi";
@@ -24,6 +24,25 @@ export default function CreateGigPage() {
     { minTarget: 200, bonusAmount: 18 },
     { minTarget: 400, bonusAmount: 60 },
   ]);
+
+  // Driver audience state: 'all' | 'top_performers' | 'specific'
+  const [targetAudience, setTargetAudience] = useState("all");
+  const [selectedRiderIds, setSelectedRiderIds] = useState([]);
+  const [riders, setRiders] = useState([]);
+  const [riderSearch, setRiderSearch] = useState("");
+
+  useEffect(() => {
+    managerApi
+      .getAssignableRiders()
+      .then((res) => setRiders(res.data?.riders || []))
+      .catch(() => setRiders([]));
+  }, []);
+
+  const filteredRiders = useMemo(() => {
+    const q = riderSearch.trim().toLowerCase();
+    if (!q) return riders;
+    return riders.filter((r) => (r.name || "").toLowerCase().includes(q) || String(r.phone || "").includes(q));
+  }, [riders, riderSearch]);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -56,6 +75,10 @@ export default function CreateGigPage() {
 
   const handleCreateGig = async (e) => {
     e.preventDefault();
+    if (targetAudience === "specific" && selectedRiderIds.length === 0) {
+      showToast("Select at least one driver for specific driver incentive, or choose All Drivers / Good Performance");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const res = await managerApi.createGig({
@@ -69,6 +92,8 @@ export default function CreateGigPage() {
         bonusAmount: Number(gigBonusAmount) || 150,
         tiers: gigTiers,
         description: gigDescription,
+        targetAudience,
+        eligibleRiderIds: targetAudience === "specific" ? selectedRiderIds : [],
       });
 
       showToast(res.data.message || "Gig incentive created successfully!");
@@ -240,6 +265,168 @@ export default function CreateGigPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* DRIVER ELIGIBILITY SECTION */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 shadow-2xs">
+            <div className="border-b border-slate-100 pb-2">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                <span>🎯</span>
+                <span>Driver Eligibility (Who can earn this incentive)</span>
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Choose which delivery boys are eligible to receive this gig incentive
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label
+                onClick={() => setTargetAudience("all")}
+                className={`cursor-pointer rounded-xl border p-3 flex flex-col justify-between transition ${
+                  targetAudience === "all"
+                    ? "border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/15"
+                    : "border-slate-200 bg-slate-50 hover:bg-slate-100/60"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="targetAudience"
+                    checked={targetAudience === "all"}
+                    onChange={() => setTargetAudience("all")}
+                    className="accent-emerald-600"
+                  />
+                  <span className="text-xs font-bold text-slate-900">👥 All Drivers</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 pl-5">
+                  All active delivery partners can earn this incentive
+                </p>
+              </label>
+
+              <label
+                onClick={() => setTargetAudience("top_performers")}
+                className={`cursor-pointer rounded-xl border p-3 flex flex-col justify-between transition ${
+                  targetAudience === "top_performers"
+                    ? "border-amber-500 bg-amber-50/50 ring-2 ring-amber-500/15"
+                    : "border-slate-200 bg-slate-50 hover:bg-slate-100/60"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="targetAudience"
+                    checked={targetAudience === "top_performers"}
+                    onChange={() => setTargetAudience("top_performers")}
+                    className="accent-amber-600"
+                  />
+                  <span className="text-xs font-bold text-slate-900">⭐ Good Performance</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 pl-5">
+                  Only delivery boys with rating ≥ 4.0 ★ qualify
+                </p>
+              </label>
+
+              <label
+                onClick={() => setTargetAudience("specific")}
+                className={`cursor-pointer rounded-xl border p-3 flex flex-col justify-between transition ${
+                  targetAudience === "specific"
+                    ? "border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/15"
+                    : "border-slate-200 bg-slate-50 hover:bg-slate-100/60"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="targetAudience"
+                    checked={targetAudience === "specific"}
+                    onChange={() => setTargetAudience("specific")}
+                    className="accent-emerald-600"
+                  />
+                  <span className="text-xs font-bold text-slate-900">🎯 Specific Drivers</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 pl-5">
+                  Hand-pick specific drivers ({selectedRiderIds.length} selected)
+                </p>
+              </label>
+            </div>
+
+            {targetAudience === "specific" && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 mt-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={riderSearch}
+                    onChange={(e) => setRiderSearch(e.target.value)}
+                    placeholder="Search by driver name or phone..."
+                    className="flex-1 h-8 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ids = filteredRiders.map((r) => r.id);
+                      const allSelected = ids.length > 0 && ids.every((id) => selectedRiderIds.includes(id));
+                      setSelectedRiderIds(allSelected ? [] : [...new Set([...selectedRiderIds, ...ids])]);
+                    }}
+                    className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                  >
+                    Toggle All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedRiderIds(riders.filter((r) => r.isGoodPerformance).map((r) => r.id));
+                    }}
+                    className="h-8 px-2.5 rounded-lg border border-amber-200 bg-amber-50 text-xs font-semibold text-amber-800 hover:bg-amber-100 cursor-pointer"
+                  >
+                    ⭐ Pick Good Performance
+                  </button>
+                </div>
+
+                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 bg-white rounded-lg border border-slate-200">
+                  {filteredRiders.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-slate-400">No drivers match search</p>
+                  ) : (
+                    filteredRiders.map((r) => {
+                      const checked = selectedRiderIds.includes(r.id);
+                      return (
+                        <label
+                          key={r.id}
+                          className={`flex items-center gap-3 p-2.5 text-xs cursor-pointer hover:bg-slate-50 ${
+                            checked ? "bg-emerald-50/50" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              setSelectedRiderIds((prev) =>
+                                prev.includes(r.id) ? prev.filter((id) => id !== r.id) : [...prev, r.id]
+                              );
+                            }}
+                            className="h-4 w-4 accent-emerald-600 rounded"
+                          />
+                          <div className="flex-1 min-w-0 flex items-center justify-between">
+                            <div>
+                              <span className="font-semibold text-slate-900 mr-2">{r.name}</span>
+                              <span className="text-slate-400 tabular-nums">{r.phone}</span>
+                            </div>
+                            {r.isGoodPerformance ? (
+                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                ★ {Number(r.rating || 5).toFixed(1)} High Performer
+                              </span>
+                            ) : (
+                              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                                ★ {Number(r.rating || 5).toFixed(1)}
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

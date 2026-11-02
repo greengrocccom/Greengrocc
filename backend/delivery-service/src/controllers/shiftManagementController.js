@@ -49,10 +49,19 @@ export function normalizeSlotIncentive(s = {}) {
   const rate = Math.max(0, Number(s.incentiveRate) || 0);
   const finalMode = rate > 0 ? mode : "none";
   const afterKm = Math.max(0, Number(s.incentiveAfterKm) || 0);
+  const audience = ["all", "top_performers", "specific"].includes(s.incentiveAudience)
+    ? s.incentiveAudience
+    : "all";
+  const eligibleIds = Array.isArray(s.incentiveEligibleRiderIds)
+    ? s.incentiveEligibleRiderIds.map(String).filter(Boolean)
+    : [];
   return {
     incentiveMode: finalMode,
     incentiveRate: finalMode === "none" ? 0 : rate,
     incentiveAfterKm: finalMode === "per_km" ? Math.round(afterKm * 100) / 100 : 0,
+    ratePerKm: s.ratePerKm != null && s.ratePerKm !== "" ? Number(s.ratePerKm) : null,
+    incentiveAudience: audience,
+    incentiveEligibleRiderIds: eligibleIds,
   };
 }
 
@@ -182,6 +191,9 @@ function mergeSlotsPreserveBookings(existingSlots = [], nextTemplates = []) {
         incentiveMode: template.incentiveMode ?? existing.incentiveMode ?? "none",
         incentiveRate: template.incentiveRate ?? existing.incentiveRate ?? 0,
         incentiveAfterKm: template.incentiveAfterKm ?? existing.incentiveAfterKm ?? 0,
+        ratePerKm: template.ratePerKm ?? existing.ratePerKm ?? null,
+        incentiveAudience: template.incentiveAudience ?? existing.incentiveAudience ?? "all",
+        incentiveEligibleRiderIds: template.incentiveEligibleRiderIds ?? existing.incentiveEligibleRiderIds ?? [],
       });
     } else {
       preserved.push({
@@ -194,6 +206,9 @@ function mergeSlotsPreserveBookings(existingSlots = [], nextTemplates = []) {
         incentiveMode: template.incentiveMode || "none",
         incentiveRate: template.incentiveRate || 0,
         incentiveAfterKm: template.incentiveAfterKm || 0,
+        ratePerKm: template.ratePerKm || null,
+        incentiveAudience: template.incentiveAudience || "all",
+        incentiveEligibleRiderIds: template.incentiveEligibleRiderIds || [],
       });
     }
   }
@@ -231,6 +246,7 @@ export const generateDateWiseShifts = async ({
   targetDate,
   targetMonth,
   daysOfWeek = [],
+  ratePerKm = 10,
   salary,
 }) => {
   const createdShifts = [];
@@ -238,7 +254,13 @@ export const generateDateWiseShifts = async ({
   const datesToGenerate = [];
 
   if (recurrenceMode === "single_day") {
-    const dStr = targetDate || formatDateString(now);
+    let dStr = targetDate || formatDateString(now);
+    const firstSlot = (customSlots && customSlots[0]) || null;
+    const firstSlotMin = firstSlot?.startTime ? timeToMinutes(firstSlot.startTime) : (type === "late_night" ? 0 : 540);
+    const isAfterMidnight = type === "late_night" || (firstSlotMin >= 0 && firstSlotMin < 300);
+    if (isAfterMidnight && !targetDate) {
+      dStr = addOneIstDay(formatDateString(now));
+    }
     datesToGenerate.push(dStr);
   } else if (recurrenceMode === "full_week") {
     const base = new Date();
@@ -285,6 +307,7 @@ export const generateDateWiseShifts = async ({
         date: slotDate,
         dateString: dateStr,
         slots: defaultSlots,
+        ratePerKm: Number(ratePerKm) || 10,
         deliveryEarningSlabs: deliveryEarningSlabs || [],
         ...(salary || {}),
       });
@@ -292,6 +315,7 @@ export const generateDateWiseShifts = async ({
     } else {
       // Update metadata / slabs / capacity — NEVER wipe rider booking history
       existing.name = name || existing.name;
+      existing.ratePerKm = Number(ratePerKm) || existing.ratePerKm || 10;
       existing.slots = mergeSlotsPreserveBookings(existing.slots, defaultSlots);
       if (deliveryEarningSlabs !== undefined) {
         existing.deliveryEarningSlabs = deliveryEarningSlabs;
@@ -364,6 +388,7 @@ export const createShift = async (req, res, next) => {
     const shiftType = String(type).toLowerCase();
     const shiftName = name || `${shiftType.replace("_", " ").toUpperCase()} Shift`;
     const slotCapacity = parseInt(capacity || maxCapacityPerSlot, 10) || 10;
+    const ratePerKm = Number(req.body.ratePerKm) > 0 ? Number(req.body.ratePerKm) : 10;
 
     const generatedShifts = await generateDateWiseShifts({
       name: shiftName,
@@ -376,6 +401,7 @@ export const createShift = async (req, res, next) => {
       targetDate,
       targetMonth,
       daysOfWeek,
+      ratePerKm,
       salary,
     });
 
@@ -477,6 +503,15 @@ export const listShifts = async (req, res, next) => {
     } else if (filter === "current") {
       const yesterday = listRecentIstDates(2)[0];
       dateQuery = { dateString: { $in: [yesterday, todayStr] } };
+    } else if (req.query.allDates === "true" || req.query.date === "all") {
+      const recent = listRecentIstDates(lookbackDays);
+      const future = [];
+      for (let i = 0; i <= 30; i++) {
+        const d = new Date();
+        d.setTime(d.getTime() + i * 24 * 60 * 60 * 1000);
+        future.push(formatDateString(d));
+      }
+      dateQuery = { dateString: { $in: [...new Set([...recent, ...future])] } };
     } else {
       dateQuery = { dateString: dateInput };
     }
@@ -514,9 +549,9 @@ export const listShifts = async (req, res, next) => {
       return { ...shiftJson, slots };
     };
 
-    // Badge counts only when filter tabs are used
+    // Badge counts only when filter tabs are used or all dates requested
     let counts = { upcoming: 0, current: 0, past: 0, total: 0 };
-    if (filter !== "all") {
+    if (filter !== "all" || req.query.allDates === "true" || req.query.date === "all") {
       const badgeDates = new Set([
         ...listRecentIstDates(lookbackDays),
         ...Array.from({ length: 31 }, (_, i) => {
@@ -1087,19 +1122,26 @@ export const listAssignableRiders = async (req, res, next) => {
     const riders = await DeliveryBoy.find(
       riderQuery(manager, { isActive: true, employmentType: { $ne: "FULL_TIME" } })
     )
-      .select("name phone status vehicleType employmentType")
+      .select("name phone status vehicleType employmentType rating totalRatingsCount todayCompletedOrders")
       .sort({ name: 1 })
       .lean();
     return res.json({
       success: true,
-      riders: riders.map((r) => ({
-        id: String(r._id),
-        name: r.name || "Delivery Partner",
-        phone: r.phone || "",
-        status: r.status,
-        vehicleType: r.vehicleType,
-        employmentType: r.employmentType || "PART_TIME",
-      })),
+      riders: riders.map((r) => {
+        const rating = r.rating !== undefined && r.rating !== null ? Number(r.rating) : 5;
+        return {
+          id: String(r._id),
+          name: r.name || "Delivery Partner",
+          phone: r.phone || "",
+          status: r.status,
+          vehicleType: r.vehicleType,
+          employmentType: r.employmentType || "PART_TIME",
+          rating,
+          totalRatingsCount: r.totalRatingsCount || 0,
+          todayCompletedOrders: r.todayCompletedOrders || 0,
+          isGoodPerformance: rating >= 4.0,
+        };
+      }),
     });
   } catch (error) {
     next(error);

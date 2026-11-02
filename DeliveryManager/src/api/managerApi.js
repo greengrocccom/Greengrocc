@@ -72,7 +72,7 @@ export const managerApi = {
     api.get(`${BASE}/inventory-requests`, { params }),
   requestInventory: (data) => api.post(`${BASE}/inventory-requests`, data),
   riders: () => api.get(`${BASE}/riders`),
-  getDriverDetails: (driverId) => api.get(`${BASE}/drivers/${driverId}`),
+  getDriverDetails: (driverId, params = {}) => api.get(`${BASE}/drivers/${driverId}`, { params }),
   getDriverActivityHistory: (driverId, range = "week") =>
     api.get(`${BASE}/drivers/${driverId}/activity-history`, { params: { range } }),
   toggleRiderActive: (driverId) => api.post(`${BASE}/drivers/${driverId}/toggle-active`),
@@ -176,6 +176,8 @@ export const managerApi = {
   setDriverEmploymentType: (driverId, employmentType) =>
     api.put(`${BASE}/drivers/${driverId}/employment-type`, { employmentType }),
   getFullTimeAttendance: (date) => api.get(`${BASE}/fulltime/attendance`, { params: { date } }),
+  markFullTimeAttendanceManual: (data) =>
+    api.post(`${BASE}/fulltime/attendance/mark-manual`, data),
   getFullTimeAssignableOrders: () => api.get(`${BASE}/fulltime/assignable-orders`),
   getFullTimeAssignedOrders: (riderId) =>
     api.get(`${BASE}/fulltime/assigned-orders`, { params: riderId ? { riderId } : {} }),

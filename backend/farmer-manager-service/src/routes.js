@@ -96,6 +96,8 @@ import {
   updateVendorMe,
   getVendorSettings,
   updateVendorSettings,
+  getVendorCustomerSupport,
+  updateVendorCustomerSupport,
   getVendors,
   createVendor,
   updateVendor,

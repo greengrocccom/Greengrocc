@@ -23,6 +23,7 @@ import '../auth/auth_controller.dart';
 import '../cart/cart_controller.dart';
 import '../home/home_providers.dart';
 import '../home/widgets/category_pills_section.dart';
+import 'product_providers.dart';
 
 typedef CatalogKey = ({String category, String section});
 

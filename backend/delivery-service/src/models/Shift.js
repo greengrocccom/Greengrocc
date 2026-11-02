@@ -120,6 +120,22 @@ const slotSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    ratePerKm: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+    incentiveAudience: {
+      type: String,
+      enum: ["all", "top_performers", "specific"],
+      default: "all",
+    },
+    incentiveEligibleRiderIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "DeliveryBoy",
+      },
+    ],
     bookings: [bookingSchema],
   },
   { _id: true, timestamps: true }
@@ -201,6 +217,11 @@ const shiftSchema = new mongoose.Schema(
       default: false,
     },
     /** Slot pay is a salary (no per-order KM slabs) when set; monthlySalary is its monthly equivalent. */
+    ratePerKm: {
+      type: Number,
+      default: 10,
+      min: 0,
+    },
     monthlySalary: {
       type: Number,
       default: null,
@@ -263,6 +284,9 @@ shiftSchema.methods.toSafeJSON = function toSafeJSON() {
       incentiveMode: slot.incentiveMode || "none",
       incentiveRate: slot.incentiveRate || 0,
       incentiveAfterKm: slot.incentiveAfterKm || 0,
+      ratePerKm: slot.ratePerKm != null ? slot.ratePerKm : this.ratePerKm ?? 10,
+      incentiveAudience: slot.incentiveAudience || "all",
+      incentiveEligibleRiderIds: (slot.incentiveEligibleRiderIds || []).map(String),
       bookingsCount: safeBookings.length,
       bookings: safeBookings,
     };
@@ -287,6 +311,7 @@ shiftSchema.methods.toSafeJSON = function toSafeJSON() {
     totalBooked,
     totalCapacity,
     isCustomized: this.isCustomized,
+    ratePerKm: this.ratePerKm ?? 10,
     monthlySalary: this.monthlySalary ?? null,
     salaryAmount: this.salaryAmount ?? this.monthlySalary ?? null,
     salaryPeriod: this.salaryAmount != null ? this.salaryPeriod || "month" : "month",

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { DayPicker, apiError, formatDays, inputCls, labelCls, to24h } from "./fullTimeUi";
@@ -10,6 +11,8 @@ const EMPTY_RULE = {
   requireLocationValidation: true,
   attendanceRadiusMeters: 200,
   minimumAttendanceDays: 26,
+  compulsoryDailyOnlineHours: 8,
+  requireCompulsoryOnlineHours: true,
   workingDays: [1, 2, 3, 4, 5, 6],
   notes: "",
   customRules: [],
@@ -68,6 +71,8 @@ export default function FullTimeRulesPage() {
       requireLocationValidation: rule.requireLocationValidation !== false,
       attendanceRadiusMeters: rule.attendanceRadiusMeters ?? 200,
       minimumAttendanceDays: rule.minimumAttendanceDays ?? 26,
+      compulsoryDailyOnlineHours: rule.compulsoryDailyOnlineHours ?? 8,
+      requireCompulsoryOnlineHours: rule.requireCompulsoryOnlineHours !== false,
       workingDays: rule.workingDays || [],
       notes: rule.notes || "",
       customRules: (rule.customRules || []).map((c) => ({ title: c.title, description: c.description || "" })),
@@ -96,6 +101,8 @@ export default function FullTimeRulesPage() {
       attendanceEndTime: to12h(form.attendanceEndTime),
       attendanceRadiusMeters: Number(form.attendanceRadiusMeters),
       minimumAttendanceDays: Number(form.minimumAttendanceDays),
+      compulsoryDailyOnlineHours: Number(form.compulsoryDailyOnlineHours || 8),
+      requireCompulsoryOnlineHours: Boolean(form.requireCompulsoryOnlineHours),
       customRules: form.customRules.filter((c) => c.title.trim()),
     };
     try {
@@ -124,9 +131,46 @@ export default function FullTimeRulesPage() {
   };
 
   return (
-    <PageShell
-      title="Full-Time Rules"
-    >
+    <PageShell title="Full-Time Rules">
+      {/* Top Navigation Tabs */}
+      <div className="flex border-b border-slate-200 -mt-2 mb-4 gap-6 text-xs font-medium text-slate-600 overflow-x-auto">
+        <Link
+          to="/shifts"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Part-Time Shifts
+        </Link>
+        <Link
+          to="/shifts/fulltime"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Full-Time Shifts
+        </Link>
+        <Link
+          to="/fulltime/attendance"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Employee Attendance
+        </Link>
+        <Link
+          to="/fulltime/salary"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Employee Salary
+        </Link>
+        <Link
+          to="/fulltime/rules"
+          className="pb-2.5 px-0.5 border-b-2 border-emerald-600 text-emerald-700 font-bold transition whitespace-nowrap"
+        >
+          Full-Time Rules
+        </Link>
+        <Link
+          to="/fulltime/assign-orders"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Assign Orders
+        </Link>
+      </div>
       {message && (
         <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 shadow-xs">
           <span>{message}</span>
@@ -208,6 +252,31 @@ export default function FullTimeRulesPage() {
                 className={inputCls}
               />
             </div>
+            <div>
+              <label className={labelCls}>Daily Compulsory Online Hours</label>
+              <input
+                type="number"
+                min="1"
+                max="24"
+                step="0.5"
+                required
+                value={form.compulsoryDailyOnlineHours}
+                onChange={(e) => set("compulsoryDailyOnlineHours", e.target.value)}
+                className={inputCls}
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Full-Time driver must be online at least this many hours to be marked Present.
+              </p>
+            </div>
+            <label className="flex items-center gap-2 pt-5 text-xs font-bold text-slate-700">
+              <input
+                type="checkbox"
+                checked={form.requireCompulsoryOnlineHours}
+                onChange={(e) => set("requireCompulsoryOnlineHours", e.target.checked)}
+                className="h-4 w-4 accent-emerald-600"
+              />
+              Compulsory online hours required to mark Present
+            </label>
             <label className="flex items-center gap-2 pt-5 text-xs font-bold text-slate-700">
               <input
                 type="checkbox"
@@ -303,6 +372,7 @@ export default function FullTimeRulesPage() {
               <tr>
                 <th className="px-4 py-2">Rule Name</th>
                 <th className="px-4 py-2">Hours</th>
+                <th className="px-4 py-2">Compulsory Online</th>
                 <th className="px-4 py-2">Days</th>
                 <th className="px-4 py-2">Location Check</th>
                 <th className="px-4 py-2">Min Days</th>
@@ -319,6 +389,15 @@ export default function FullTimeRulesPage() {
                   </td>
                   <td className="px-4 py-3 font-medium text-slate-700">
                     {rule.attendanceStartTime} – {rule.attendanceEndTime}
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    {rule.requireCompulsoryOnlineHours !== false ? (
+                      <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                        {rule.compulsoryDailyOnlineHours ?? 8} hrs/day
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Optional</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-600">{formatDays(rule.workingDays)}</td>
                   <td className="px-4 py-3">

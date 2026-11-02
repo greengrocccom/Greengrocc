@@ -47,7 +47,46 @@ export default function FullTimeSalaryPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell title="Full-Time Employee Salary">
+      {/* Top Navigation Tabs */}
+      <div className="flex border-b border-slate-200 -mt-2 mb-4 gap-6 text-xs font-medium text-slate-600 overflow-x-auto">
+        <Link
+          to="/shifts"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Part-Time Shifts
+        </Link>
+        <Link
+          to="/shifts/fulltime"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Full-Time Shifts
+        </Link>
+        <Link
+          to="/fulltime/attendance"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Employee Attendance
+        </Link>
+        <Link
+          to="/fulltime/salary"
+          className="pb-2.5 px-0.5 border-b-2 border-emerald-600 text-emerald-700 font-bold transition whitespace-nowrap"
+        >
+          Employee Salary
+        </Link>
+        <Link
+          to="/fulltime/rules"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Full-Time Rules
+        </Link>
+        <Link
+          to="/fulltime/assign-orders"
+          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
+        >
+          Assign Orders
+        </Link>
+      </div>
       {message && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 shadow-xs flex items-center justify-between">
           <span>{message}</span>

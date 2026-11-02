@@ -38,6 +38,8 @@ export const createFullTimeRule = async (req, res, next) => {
       attendanceRadiusMeters: req.body.attendanceRadiusMeters,
       workingDays: req.body.workingDays,
       minimumAttendanceDays: req.body.minimumAttendanceDays,
+      compulsoryDailyOnlineHours: req.body.compulsoryDailyOnlineHours !== undefined ? Number(req.body.compulsoryDailyOnlineHours) : undefined,
+      requireCompulsoryOnlineHours: req.body.requireCompulsoryOnlineHours !== undefined ? Boolean(req.body.requireCompulsoryOnlineHours) : undefined,
       notes: req.body.notes,
       customRules: readCustomRules(req.body.customRules),
     };
@@ -71,6 +73,8 @@ export const updateFullTimeRule = async (req, res, next) => {
           attendanceRadiusMeters: req.body.attendanceRadiusMeters,
           workingDays: req.body.workingDays,
           minimumAttendanceDays: req.body.minimumAttendanceDays,
+          compulsoryDailyOnlineHours: req.body.compulsoryDailyOnlineHours !== undefined ? Number(req.body.compulsoryDailyOnlineHours) : undefined,
+          requireCompulsoryOnlineHours: req.body.requireCompulsoryOnlineHours !== undefined ? Boolean(req.body.requireCompulsoryOnlineHours) : undefined,
           notes: req.body.notes,
           customRules: readCustomRules(req.body.customRules),
         },

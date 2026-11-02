@@ -333,6 +333,24 @@ async function findSlotAt(riderId, at = new Date()) {
   return null;
 }
 
+async function isRiderEligibleForSlotIncentive(slot, riderId) {
+  if (!slot || slot.incentiveMode === "none" || !(slot.incentiveRate > 0)) return false;
+  const audience = slot.incentiveAudience || "all";
+  if (audience === "all") return true;
+
+  if (audience === "top_performers") {
+    const rider = await DeliveryBoy.findById(riderId).select("rating");
+    return Number(rider?.rating ?? 5) >= 4.0;
+  }
+
+  if (audience === "specific") {
+    const eligible = (slot.incentiveEligibleRiderIds || []).map(String);
+    return eligible.includes(String(riderId));
+  }
+
+  return true;
+}
+
 /** Per-km slot incentive for a delivered order (called on delivery completion). */
 export async function creditKmIncentiveForOrder(order, riderId) {
   try {
@@ -341,6 +359,8 @@ export async function creditKmIncentiveForOrder(order, riderId) {
     if (!match || match.slot.incentiveMode !== "per_km" || !(match.slot.incentiveRate > 0)) {
       return null;
     }
+    const isEligible = await isRiderEligibleForSlotIncentive(match.slot, riderId);
+    if (!isEligible) return null;
     const km = Number(order.distanceKm ?? order.earningSnapshot?.distanceKm ?? 0);
     if (!(km > 0)) return null;
     const orderKm = Math.round(km * 100) / 100;
@@ -403,6 +423,8 @@ function hasUnpaidSession(booking) {
 export async function creditHourIncentiveForBooking(shift, slot, booking, endAt = new Date()) {
   try {
     if (slot.incentiveMode !== "per_hour" || !(slot.incentiveRate > 0)) return null;
+    const isEligible = await isRiderEligibleForSlotIncentive(slot, booking.deliveryPartnerId);
+    if (!isEligible) return null;
     if (!hasUnpaidSession(booking)) return null;
     const { start, end } = slotWindow(shift.dateString, slot.startTime, slot.endTime);
     const from = Math.max(start.getTime(), new Date(booking.onlineAt).getTime());

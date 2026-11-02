@@ -19,6 +19,23 @@ const getTodayString = () =>
     day: "2-digit",
   }).format(new Date());
 
+const getNextDayString = (baseDateStr) => {
+  try {
+    const base = baseDateStr ? new Date(baseDateStr + "T12:00:00") : new Date();
+    base.setDate(base.getDate() + 1);
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(base);
+  } catch (e) {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }
+};
+
 const lifecycleBadge = (lifecycle) => {
   if (lifecycle === "current" || lifecycle === "Live") {
     return "bg-emerald-100 text-emerald-800 border-emerald-200";
@@ -44,15 +61,50 @@ const defaultKmSlabs = () => [
 ];
 
 const formatDateWithDay = (dateStr) => {
-  if (!dateStr) return { formatted: "", dayName: "" };
+  if (!dateStr) return { formatted: "", dayName: "", ddmmyyyy: "" };
   try {
     const d = new Date(dateStr + "T00:00:00");
     const formatted = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-    const dayName = d.toLocaleDateString("en-GB", { weekday: "long" });
-    return { formatted, dayName };
+    const dayName = d.toLocaleDateString("en-GB", { weekday: "short" });
+    const parts = dateStr.split("-");
+    const ddmmyyyy = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : formatted;
+    return { formatted, dayName, ddmmyyyy };
   } catch (e) {
-    return { formatted: dateStr, dayName: "" };
+    return { formatted: dateStr, dayName: "", ddmmyyyy: dateStr };
   }
+};
+
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const match = String(timeStr).match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const ampm = match[3].toUpperCase();
+  if (ampm === "PM" && hours !== 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+};
+
+const isAfterMidnightTime = (type, slots = []) => {
+  if (type === "late_night") return true;
+  if (!slots || slots.length === 0) return false;
+  const firstSlotStart = slots[0]?.startTime;
+  if (!firstSlotStart) return false;
+  const mins = parseTimeToMinutes(firstSlotStart);
+  return mins >= 0 && mins < 300;
+};
+
+const getDurationText = (startTime, endTime) => {
+  if (!startTime || !endTime) return "";
+  const startMin = parseTimeToMinutes(startTime);
+  let endMin = parseTimeToMinutes(endTime);
+  if (endMin <= startMin) endMin += 24 * 60; // Crosses midnight
+  const diffHours = (endMin - startMin) / 60;
+  if (diffHours % 1 === 0) {
+    return `${diffHours} hrs`;
+  }
+  return `${diffHours.toFixed(1)} hrs`;
 };
 
 const SHIFT_TYPES = [
@@ -65,12 +117,113 @@ const SHIFT_TYPES = [
   { id: "custom", label: "Custom Shift (Manager Defined)", defaultStart: "09:00 AM", defaultEnd: "05:00 PM" },
 ];
 
+const getShiftTypeTheme = (row) => {
+  const typeStr = (row?.shiftType || row?.type || row?.parentShift?.type || "").toLowerCase();
+  const nameStr = (row?.shiftName || "").toLowerCase();
+  const startMin = parseTimeToMinutes(row?.startTime);
+
+  // 1. Early Morning (approx 5 AM - 9 AM)
+  if (typeStr.includes("early_morning") || nameStr.includes("early morning") || (startMin >= 300 && startMin < 540)) {
+    return {
+      key: "early_morning",
+      type: "Early Morning",
+      label: "Early Morning",
+      rowBg: "bg-amber-100/75 hover:bg-amber-200/60",
+      accentBorder: "border-l-4 border-l-amber-500",
+      pillBg: "bg-amber-100 text-amber-900 border-amber-300",
+      dotColor: "bg-amber-500",
+    };
+  }
+
+  // 2. Morning (approx 9 AM - 1 PM)
+  if (typeStr.includes("morning") || nameStr.includes("morning") || (startMin >= 540 && startMin < 780)) {
+    return {
+      key: "morning",
+      type: "Morning",
+      label: "Morning",
+      rowBg: "bg-yellow-100/75 hover:bg-yellow-200/60",
+      accentBorder: "border-l-4 border-l-yellow-500",
+      pillBg: "bg-yellow-100 text-yellow-900 border-yellow-300",
+      dotColor: "bg-yellow-500",
+    };
+  }
+
+  // 3. Afternoon (approx 1 PM - 5 PM)
+  if (typeStr.includes("afternoon") || nameStr.includes("afternoon") || (startMin >= 780 && startMin < 1020)) {
+    return {
+      key: "afternoon",
+      type: "Afternoon",
+      label: "Afternoon",
+      rowBg: "bg-emerald-100/75 hover:bg-emerald-200/60",
+      accentBorder: "border-l-4 border-l-emerald-500",
+      pillBg: "bg-emerald-100 text-emerald-900 border-emerald-300",
+      dotColor: "bg-emerald-500",
+    };
+  }
+
+  // 4. Evening (approx 5 PM - 9 PM)
+  if (typeStr.includes("evening") || nameStr.includes("evening") || (startMin >= 1020 && startMin < 1260)) {
+    return {
+      key: "evening",
+      type: "Evening",
+      label: "Evening",
+      rowBg: "bg-indigo-100/75 hover:bg-indigo-200/60",
+      accentBorder: "border-l-4 border-l-indigo-500",
+      pillBg: "bg-indigo-100 text-indigo-900 border-indigo-300",
+      dotColor: "bg-indigo-500",
+    };
+  }
+
+  // 5. Late Night (approx 12 AM - 5 AM)
+  if (typeStr.includes("late_night") || nameStr.includes("late night") || (startMin >= 0 && startMin < 300)) {
+    return {
+      key: "late_night",
+      type: "Late Night",
+      label: "Late Night",
+      rowBg: "bg-purple-100/75 hover:bg-purple-200/60",
+      accentBorder: "border-l-4 border-l-purple-600",
+      pillBg: "bg-purple-100 text-purple-900 border-purple-300",
+      dotColor: "bg-purple-600",
+    };
+  }
+
+  // 6. Night (approx 9 PM - 12 AM)
+  if (typeStr.includes("night") || nameStr.includes("night") || startMin >= 1260) {
+    return {
+      key: "night",
+      type: "Night",
+      label: "Night",
+      rowBg: "bg-violet-100/75 hover:bg-violet-200/60",
+      accentBorder: "border-l-4 border-l-violet-500",
+      pillBg: "bg-violet-100 text-violet-900 border-violet-300",
+      dotColor: "bg-violet-500",
+    };
+  }
+
+  // 7. Custom / default
+  return {
+    key: "custom",
+    type: "Custom",
+    label: "Custom",
+    rowBg: "bg-slate-100/60 hover:bg-slate-200/50",
+    accentBorder: "border-l-4 border-l-slate-400",
+    pillBg: "bg-slate-100 text-slate-800 border-slate-300",
+    dotColor: "bg-slate-500",
+  };
+};
+
 export default function ShiftManagementPage() {
   const [selectedDate, setSelectedDate] = useState(getTodayString());
   const [shifts, setShifts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+
+  // Filter & Search states matching reference UI
+  const [activeFilterTab, setActiveFilterTab] = useState("all");
+  const [selectedZone, setSelectedZone] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [actionMenu, setActionMenu] = useState(null);
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -192,7 +345,7 @@ export default function ShiftManagementPage() {
     setLoading(true);
     setError("");
     try {
-      // Date-wise: all shifts created for the selected day
+      // Date-wise: ONLY real shifts created for the selected day!
       const res = await managerApi.getManagerSlots(selectedDate, { filter: "all" });
       setShifts(res.data.shifts || []);
     } catch (err) {
@@ -219,14 +372,36 @@ export default function ShiftManagementPage() {
     loadGigs();
   }, [loadShifts, loadGigs]);
 
+  useEffect(() => {
+    const handleDismiss = () => {
+      if (actionMenu) setActionMenu(null);
+    };
+    window.addEventListener("scroll", handleDismiss, true);
+    window.addEventListener("resize", handleDismiss);
+    return () => {
+      window.removeEventListener("scroll", handleDismiss, true);
+      window.removeEventListener("resize", handleDismiss);
+    };
+  }, [actionMenu]);
+
   const handleShiftTypeChange = (typeId) => {
     setNewShiftType(typeId);
     const found = SHIFT_TYPES.find((t) => t.id === typeId);
     if (found) {
       setNewShiftName(found.label);
-      setSlotsList([
+      const newSlots = [
         { startTime: found.defaultStart, endTime: found.defaultEnd, capacity: parseInt(newCapacity, 10) || 10 }
-      ]);
+      ];
+      setSlotsList(newSlots);
+
+      // If shift is after 12 AM (e.g. Late Night Shift 12:00 AM - 04:00 AM), advance date to next day
+      if (typeId === "late_night" || isAfterMidnightTime(typeId, newSlots)) {
+        setTargetDate(getNextDayString(selectedDate || getTodayString()));
+      } else {
+        if (targetDate === getNextDayString(selectedDate || getTodayString())) {
+          setTargetDate(selectedDate || getTodayString());
+        }
+      }
     }
   };
 
@@ -250,6 +425,16 @@ export default function ShiftManagementPage() {
     const updated = [...slotsList];
     updated[index][field] = value;
     setSlotsList(updated);
+
+    if (field === "startTime" && index === 0) {
+      const mins = parseTimeToMinutes(value);
+      if (mins >= 0 && mins < 300) {
+        const baseDate = selectedDate || getTodayString();
+        if (targetDate === baseDate) {
+          setTargetDate(getNextDayString(baseDate));
+        }
+      }
+    }
   };
 
   const handleCreateShift = async (e) => {
@@ -285,6 +470,13 @@ export default function ShiftManagementPage() {
       }
     }
 
+    let finalTargetDate = targetDate;
+    const isAfterMidnight = isAfterMidnightTime(newShiftType, slotsList);
+    const baseDate = selectedDate || getTodayString();
+    if (isAfterMidnight && recurrenceMode === "single_day" && targetDate === baseDate) {
+      finalTargetDate = getNextDayString(baseDate);
+    }
+
     setIsSubmitting(true);
     try {
       const res = await managerApi.createShift({
@@ -298,7 +490,7 @@ export default function ShiftManagementPage() {
           capacity: parseInt(s.capacity || newCapacity, 10) || 10,
         })),
         recurrenceMode,
-        targetDate,
+        targetDate: finalTargetDate,
         daysOfWeek: selectedDaysOfWeek,
         deliveryEarningSlabs,
       });
@@ -426,10 +618,164 @@ export default function ShiftManagementPage() {
   const currentDateObj = formatDateWithDay(getTodayString());
   const selectedDateObj = formatDateWithDay(selectedDate);
 
-  const totalBookedToday = shifts.reduce((acc, s) => acc + (s.totalBooked || 0), 0);
-  const totalCapacityToday = shifts.reduce((acc, s) => acc + (s.totalCapacity || 0), 0);
-  const totalAvailableToday = shifts.reduce((acc, s) => acc + Math.max(0, (s.totalCapacity || 0) - (s.totalBooked || 0)), 0);
-  const availablePercentage = totalCapacityToday > 0 ? Math.round((totalAvailableToday / totalCapacityToday) * 100) : 0;
+  // Flatten all slots across shifts for clean row-by-row rendering
+  const allSlotRows = shifts.flatMap((shift) =>
+    (shift.slots || []).map((slot, index) => {
+      const slotDate = slot.dateString || shift.dateString;
+      return {
+        ...slot,
+        parentShift: shift,
+        dateString: slotDate,
+        shiftName: shift.name || shift.shiftName || slot.shiftName || "Shift",
+        uniqueRowKey: `${shift._id || shift.id || "shift"}-${slot._id || slot.id || slot.slotId || index}`,
+      };
+    })
+  );
+
+  const getSlotCategory = (slot) => {
+    if (slot.isLive || slot.lifecycle === "current" || slot.statusLabel === "Live" || slot.statusLabel === "In Progress") {
+      return "active";
+    }
+    if (slot.isExpired || slot.lifecycle === "past" || slot.statusLabel === "Expired") {
+      return "expired";
+    }
+    return "upcoming";
+  };
+
+  const activeCount = allSlotRows.filter((r) => getSlotCategory(r) === "active").length;
+  const upcomingCount = allSlotRows.filter((r) => getSlotCategory(r) === "upcoming").length;
+  const expiredCount = allSlotRows.filter((r) => getSlotCategory(r) === "expired").length;
+  const availableCount = allSlotRows.filter(
+    (r) => (Number(r.capacity) || 0) > (Number(r.bookedCount) || 0) && getSlotCategory(r) !== "expired"
+  ).length;
+
+  const shiftTypeCounts = {
+    early_morning: allSlotRows.filter((r) => getShiftTypeTheme(r).key === "early_morning").length,
+    morning: allSlotRows.filter((r) => getShiftTypeTheme(r).key === "morning").length,
+    afternoon: allSlotRows.filter((r) => getShiftTypeTheme(r).key === "afternoon").length,
+    evening: allSlotRows.filter((r) => getShiftTypeTheme(r).key === "evening").length,
+    night: allSlotRows.filter((r) => getShiftTypeTheme(r).key === "night").length,
+    late_night: allSlotRows.filter((r) => getShiftTypeTheme(r).key === "late_night").length,
+  };
+
+  const availableShiftTypes = [
+    {
+      key: "early_morning",
+      label: "Early Morning",
+      count: shiftTypeCounts.early_morning,
+      dot: "bg-amber-500",
+      boxBg: "bg-amber-100 hover:bg-amber-200/80 border border-amber-300 text-amber-950",
+      activeClass: "bg-amber-200 border-2 border-amber-600 text-amber-950 ring-2 ring-amber-400/40 shadow-sm font-extrabold",
+      badgeClass: "bg-amber-200/90 text-amber-950 font-bold border border-amber-300/80",
+      activeBadgeClass: "bg-amber-300 text-amber-950 font-extrabold border border-amber-500",
+    },
+    {
+      key: "morning",
+      label: "Morning",
+      count: shiftTypeCounts.morning,
+      dot: "bg-yellow-500",
+      boxBg: "bg-yellow-100 hover:bg-yellow-200/80 border border-yellow-300 text-yellow-950",
+      activeClass: "bg-yellow-200 border-2 border-yellow-600 text-yellow-950 ring-2 ring-yellow-400/40 shadow-sm font-extrabold",
+      badgeClass: "bg-yellow-200/90 text-yellow-950 font-bold border border-yellow-300/80",
+      activeBadgeClass: "bg-yellow-300 text-yellow-950 font-extrabold border border-yellow-500",
+    },
+    {
+      key: "afternoon",
+      label: "Afternoon",
+      count: shiftTypeCounts.afternoon,
+      dot: "bg-emerald-500",
+      boxBg: "bg-emerald-100 hover:bg-emerald-200/80 border border-emerald-300 text-emerald-950",
+      activeClass: "bg-emerald-200 border-2 border-emerald-600 text-emerald-950 ring-2 ring-emerald-500/40 shadow-sm font-extrabold",
+      badgeClass: "bg-emerald-200/90 text-emerald-950 font-bold border border-emerald-300/80",
+      activeBadgeClass: "bg-emerald-300 text-emerald-950 font-extrabold border border-emerald-500",
+    },
+    {
+      key: "evening",
+      label: "Evening",
+      count: shiftTypeCounts.evening,
+      dot: "bg-indigo-500",
+      boxBg: "bg-indigo-100 hover:bg-indigo-200/80 border border-indigo-300 text-indigo-950",
+      activeClass: "bg-indigo-200 border-2 border-indigo-600 text-indigo-950 ring-2 ring-indigo-400/40 shadow-sm font-extrabold",
+      badgeClass: "bg-indigo-200/90 text-indigo-950 font-bold border border-indigo-300/80",
+      activeBadgeClass: "bg-indigo-300 text-indigo-950 font-extrabold border border-indigo-500",
+    },
+    {
+      key: "night",
+      label: "Night",
+      count: shiftTypeCounts.night,
+      dot: "bg-violet-500",
+      boxBg: "bg-violet-100 hover:bg-violet-200/80 border border-violet-300 text-violet-950",
+      activeClass: "bg-violet-200 border-2 border-violet-600 text-violet-950 ring-2 ring-violet-400/40 shadow-sm font-extrabold",
+      badgeClass: "bg-violet-200/90 text-violet-950 font-bold border border-violet-300/80",
+      activeBadgeClass: "bg-violet-300 text-violet-950 font-extrabold border border-violet-500",
+    },
+    {
+      key: "late_night",
+      label: "Late Night",
+      count: shiftTypeCounts.late_night,
+      dot: "bg-purple-600",
+      boxBg: "bg-purple-100 hover:bg-purple-200/80 border border-purple-300 text-purple-950",
+      activeClass: "bg-purple-200 border-2 border-purple-600 text-purple-950 ring-2 ring-purple-400/40 shadow-sm font-extrabold",
+      badgeClass: "bg-purple-200/90 text-purple-950 font-bold border border-purple-300/80",
+      activeBadgeClass: "bg-purple-300 text-purple-950 font-extrabold border border-purple-500",
+    },
+  ].filter((t) => t.count > 0);
+
+  const filteredSlotRows = allSlotRows.filter((row) => {
+    const shiftTheme = getShiftTypeTheme(row);
+    const category = getSlotCategory(row);
+
+    // 1. Category Tab Filter
+    if (activeFilterTab === "available") {
+      const isAvailable =
+        (Number(row.capacity) || 0) > (Number(row.bookedCount) || 0) && category !== "expired";
+      if (!isAvailable) return false;
+    } else if (activeFilterTab === "active" || activeFilterTab === "upcoming" || activeFilterTab === "expired") {
+      if (category !== activeFilterTab) return false;
+    } else if (activeFilterTab !== "all") {
+      if (shiftTheme.key !== activeFilterTab) return false;
+    }
+    // 2. Zone Filter
+    if (selectedZone !== "all") {
+      if (row.zone && row.zone !== selectedZone) return false;
+      if (row.parentShift?.zone && row.parentShift.zone !== selectedZone) return false;
+    }
+    // 3. Search Query Filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const shiftName = (row.shiftName || "").toLowerCase();
+      const matchShift = shiftName.includes(q);
+      const matchRider = (row.bookings || []).some(
+        (b) =>
+          (b.deliveryPartnerName || "").toLowerCase().includes(q) ||
+          (b.deliveryPartnerPhone || "").toLowerCase().includes(q)
+      );
+      if (!matchShift && !matchRider) return false;
+    }
+    return true;
+  });
+
+  // Sort rows: Active first, Upcoming second, Expired ALWAYS at the very bottom (last row)!
+  filteredSlotRows.sort((a, b) => {
+    if (activeFilterTab === "available") {
+      const remA = (Number(a.capacity) || 0) - (Number(a.bookedCount) || 0);
+      const remB = (Number(b.capacity) || 0) - (Number(b.bookedCount) || 0);
+      return remB - remA;
+    }
+
+    const catA = getSlotCategory(a);
+    const catB = getSlotCategory(b);
+
+    // Expired shifts ALWAYS go to the end / last rows
+    const order = { active: 1, upcoming: 2, expired: 3 };
+    const diff = (order[catA] || 2) - (order[catB] || 2);
+    if (diff !== 0) return diff;
+
+    // Within the same status category, sort chronologically by time
+    const startA = parseTimeToMinutes(a.startTime);
+    const startB = parseTimeToMinutes(b.startTime);
+    return startA - startB;
+  });
 
   return (
     <PageShell>
@@ -440,58 +786,179 @@ export default function ShiftManagementPage() {
         </div>
       )}
 
-      {/* 5 COMPACT TOP STAT CARDS WITH ONE-LINE CONTENT */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {/* CARD 1: CURRENT DATE */}
-        <div className="rounded-xl border border-slate-100 bg-white px-3.5 py-2.5 shadow-2xs flex flex-col justify-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Date</p>
-          <div className="mt-0.5 flex items-baseline gap-1.5 whitespace-nowrap">
-            <span className="text-sm font-black text-slate-900">{currentDateObj.formatted}</span>
-            <span className="text-[11px] font-medium text-slate-400">({currentDateObj.dayName})</span>
-          </div>
+      {/* STATUS DOTS SUMMARY & ADD SHIFT BAR */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white p-2 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Active status dot */}
+          <button
+            type="button"
+            onClick={() => setActiveFilterTab(activeFilterTab === "active" ? "all" : "active")}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer ${
+              activeFilterTab === "active"
+                ? "border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-500/20"
+                : "border-slate-200/80 bg-slate-50/60 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/30"
+            }`}
+            title="Filter by Active Shifts"
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Active</span>
+            <span className="rounded-md bg-emerald-200/70 px-1.5 py-0.2 text-[11px] font-bold text-emerald-900">{activeCount}</span>
+          </button>
+
+          {/* Upcoming status dot */}
+          <button
+            type="button"
+            onClick={() => setActiveFilterTab(activeFilterTab === "upcoming" ? "all" : "upcoming")}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer ${
+              activeFilterTab === "upcoming"
+                ? "border-sky-600 bg-sky-50 text-sky-900 ring-1 ring-sky-500/20"
+                : "border-slate-200/80 bg-slate-50/60 text-slate-700 hover:border-sky-300 hover:bg-sky-50/30"
+            }`}
+            title="Filter by Upcoming Shifts"
+          >
+            <span className="h-2 w-2 rounded-full bg-sky-500" />
+            <span>Upcoming</span>
+            <span className="rounded-md bg-sky-200/70 px-1.5 py-0.2 text-[11px] font-bold text-sky-900">{upcomingCount}</span>
+          </button>
+
+          {/* Expired status dot */}
+          <button
+            type="button"
+            onClick={() => setActiveFilterTab(activeFilterTab === "expired" ? "all" : "expired")}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer ${
+              activeFilterTab === "expired"
+                ? "border-slate-400 bg-slate-200 text-slate-900 ring-1 ring-slate-400/30"
+                : "border-slate-200/80 bg-slate-100/90 text-slate-700 hover:border-slate-300 hover:bg-slate-200/60"
+            }`}
+            title="Filter by Expired Shifts"
+          >
+            <span className="h-2 w-2 rounded-full bg-slate-400" />
+            <span>Expired</span>
+            <span className="rounded-md bg-slate-200 px-1.5 py-0.2 text-[11px] font-bold text-slate-800">{expiredCount}</span>
+          </button>
         </div>
 
-        {/* CARD 2: SELECTED DATE */}
-        <div className="rounded-xl border border-slate-100 bg-white px-3.5 py-2.5 shadow-2xs flex flex-col justify-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Selected Date</p>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full rounded-lg border border-slate-200/90 bg-slate-50/70 px-2 py-1 text-xs font-bold text-slate-800 focus:border-emerald-500 focus:outline-none cursor-pointer"
-          />
-        </div>
+        {/* Add Shift Action Button */}
+        <Link
+          to="/shifts/create"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#064e3b] bg-[#064e3b] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#053d2e] transition cursor-pointer shrink-0"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Add Shift</span>
+        </Link>
+      </div>
 
-        {/* CARD 3: ACTIVE SHIFTS */}
-        <div className="rounded-xl border border-slate-100 bg-white px-3.5 py-2.5 shadow-2xs flex flex-col justify-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shifts that day</p>
-          <div className="mt-0.5 flex items-baseline gap-1.5 whitespace-nowrap">
-            <span className="text-base font-black text-slate-900">
-              {shifts.reduce((n, s) => n + (s.slots?.length || 0), 0)}
-            </span>
-            <span className="text-[11px] font-medium text-slate-400">slots</span>
-          </div>
-        </div>
-
-        {/* CARD 4: SLOTS AVAILABLE */}
-        <div className="rounded-xl border border-slate-100 bg-white px-3.5 py-2.5 shadow-2xs flex flex-col justify-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Slots Available</p>
-          <div className="mt-0.5 flex items-baseline gap-1.5 whitespace-nowrap">
-            <span className="text-base font-black text-emerald-600">{totalAvailableToday}</span>
-            <span className="text-xs font-normal text-slate-400">/ {totalCapacityToday}</span>
-            <span className="text-[11px] font-medium text-slate-400">({availablePercentage}%)</span>
-          </div>
-        </div>
-        {/* CARD 5: ACTIONS */}
-        <div className="rounded-xl border border-slate-100 bg-white px-3 py-2.5 shadow-2xs flex flex-col justify-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Actions</p>
-          <div className="flex items-center">
-            <Link
-              to="/shifts/create"
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-2xs hover:bg-emerald-700 transition active:scale-98 whitespace-nowrap"
+      {/* FILTER TABS & CONTROLS ROW */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-1">
+        {/* Segmented Filter Pills (Shift Types & All Shifts) */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setActiveFilterTab("all")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer border ${
+              activeFilterTab === "all"
+                ? "bg-[#064e3b] text-white border-[#064e3b] shadow-xs"
+                : "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200/80"
+            }`}
+          >
+            <span>All Shifts</span>
+            <span
+              className={`rounded px-1.5 py-0.2 text-[10px] ${
+                activeFilterTab === "all" ? "bg-white/20 text-white font-bold" : "bg-slate-200 text-slate-700 font-semibold"
+              }`}
             >
-              <span>+ Create Shift</span>
-            </Link>
+              {allSlotRows.length}
+            </span>
+          </button>
+
+          {availableShiftTypes.map((type) => (
+            <button
+              key={type.key}
+              type="button"
+              onClick={() => setActiveFilterTab(activeFilterTab === type.key ? "all" : type.key)}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                activeFilterTab === type.key ? type.activeClass : type.boxBg
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${type.dot}`} />
+              <span>{type.label}</span>
+              <span
+                className={`rounded px-1.5 py-0.2 text-[10px] ${
+                  activeFilterTab === type.key ? type.activeBadgeClass : type.badgeClass
+                }`}
+              >
+                {type.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right side controls: Date Picker, Zone dropdown, Search input — all in the same line */}
+        <div className="flex flex-nowrap items-center gap-2">
+          {/* Date Picker Button / Input */}
+          <div className="relative inline-flex items-center shrink-0">
+            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 transition pointer-events-none whitespace-nowrap">
+              <svg className="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>{selectedDateObj.ddmmyyyy || selectedDateObj.formatted || selectedDate}</span>
+            </div>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              title="Select Date"
+            />
+          </div>
+
+          {/* Zone Dropdown */}
+          <div className="relative inline-flex items-center shrink-0">
+            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 transition pointer-events-none whitespace-nowrap">
+              <svg className="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>{selectedZone === "all" ? "All Zones" : selectedZone}</span>
+              <svg className="h-3 w-3 text-slate-400 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            <select
+              value={selectedZone}
+              onChange={(e) => setSelectedZone(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            >
+              <option value="all">All Zones</option>
+              <option value="Zone 1 - Hinjewadi">Zone 1 - Hinjewadi</option>
+              <option value="Zone 2 - Baner">Zone 2 - Baner</option>
+              <option value="Zone 3 - Wakad">Zone 3 - Wakad</option>
+            </select>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative flex items-center min-w-[150px] sm:w-44 md:w-52">
+            <svg className="absolute left-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by rider or shift..."
+              className="h-8.5 w-full rounded-xl border border-slate-200/90 bg-white pl-8 pr-7 text-xs text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none shadow-2xs"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -502,147 +969,249 @@ export default function ShiftManagementPage() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-xs text-[12px] text-slate-500">
-        Showing <span className="font-bold text-slate-800">all shifts</span> for{" "}
-        <span className="font-bold text-slate-800">{selectedDateObj.formatted}</span>
-        {" "}({selectedDateObj.dayName}). When a slot end time passes it is marked{" "}
-        <span className="font-bold text-amber-700">Expired</span>. Click a row for riders joined,
-        orders received, and completed deliveries with names.
-      </div>
-
       {/* SHIFTS TABLE CONTAINER */}
-      <div className="rounded-2xl border border-slate-100 bg-white shadow-xs overflow-hidden">
+      <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
         {loading ? (
           <div className="py-16 text-center text-xs font-semibold text-slate-400">Loading shifts data...</div>
-        ) : shifts.length === 0 ? (
+        ) : filteredSlotRows.length === 0 ? (
           <div className="py-16 text-center text-slate-500 space-y-2">
             <p className="text-2xl">📅</p>
-            <p className="text-sm font-bold text-slate-700">No shifts created for this date.</p>
+            <p className="text-sm font-bold text-slate-700">No shifts match your filter.</p>
             <p className="text-xs text-slate-400">
-              Pick another date or click &quot;+ Create Shift&quot;.
+              Try switching tabs or click &quot;+ Create Shift&quot;.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-black text-white text-xs font-bold uppercase tracking-wider">
+              <thead className="bg-[#f8fafc] border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 <tr>
-                  <th className="px-5 py-2">SHIFT</th>
-                  <th className="px-5 py-2">DATE</th>
-                  <th className="px-5 py-2">TIME</th>
-                  <th className="px-5 py-2">STATUS</th>
-                  <th className="px-5 py-2">AVAILABLE</th>
-                  <th className="px-5 py-2">ASSIGNED</th>
-                  <th className="px-5 py-2">INCENTIVE</th>
-                  <th className="px-5 py-2">SALARY</th>
-                  <th className="px-5 py-2 text-right">ACTIONS</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">SHIFT</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">DATE</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">TIME</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">RIDERS</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">STATUS</th>
+                  <th className="px-5 py-3.5 whitespace-nowrap">ASSIGNED</th>
+                  <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {shifts.map((shift) => {
-                  const shiftDateObj = formatDateWithDay(shift.dateString);
-                  const salaryValue = Number(shift.salaryAmount ?? shift.monthlySalary);
-                  const salaryLabel =
-                    salaryValue > 0
-                      ? `₹${salaryValue.toLocaleString("en-IN")}/${shift.salaryPeriod || "month"}`
-                      : "—";
-                  return (shift.slots || []).map((slot, index) => {
-                    const availableCount = Math.max(0, slot.capacity - slot.bookedCount);
-                    const label = statusDisplay(slot);
-                    return (
-                      <tr
-                        key={`${shift.id}-${slot.id || index}`}
-                        className="hover:bg-emerald-50/40 transition cursor-pointer"
-                        onClick={() => handleOpenSlotDetails(slot.id || slot.slotId)}
-                      >
-                        <td className="px-5 py-4 font-bold text-slate-900">
-                          {shift.name || shift.shiftName}
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="font-bold text-slate-900">{shiftDateObj.formatted}</div>
-                          <div className="text-[11px] text-slate-400 font-normal">{shiftDateObj.dayName}</div>
-                        </td>
-                        <td className="px-5 py-4 font-bold text-slate-900">
-                          {slot.startTime} – {slot.endTime}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${lifecycleBadge(
-                              label
-                            )}`}
-                          >
-                            {label}
+                {filteredSlotRows.map((row) => {
+                  const rowCategory = getSlotCategory(row);
+                  const isExpired = rowCategory === "expired";
+                  const slotDateObj = formatDateWithDay(row.dateString);
+                  const durationText = getDurationText(row.startTime, row.endTime);
+                  const theme = getShiftTypeTheme(row);
+
+                  const rowClass = isExpired
+                    ? "bg-slate-100/90 hover:bg-slate-200/80 border-l-4 border-l-slate-400 text-slate-600"
+                    : `${theme.rowBg} ${theme.accentBorder} text-slate-900`;
+
+                  return (
+                    <tr
+                      key={row.uniqueRowKey}
+                      className={`${rowClass} transition border-b border-slate-200/70 cursor-pointer`}
+                      onClick={() => handleOpenSlotDetails(row.id || row.slotId)}
+                    >
+                      {/* SHIFT */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <p className={`font-bold text-xs sm:text-sm ${isExpired ? "text-slate-600" : "text-slate-900"}`}>{row.shiftName || "Shift"}</p>
+                      </td>
+
+                      {/* DATE */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className={`font-semibold text-xs block ${isExpired ? "text-slate-600" : "text-slate-800"}`}>{slotDateObj.formatted}</span>
+                        <span className="text-slate-400 text-[11px] block mt-0.5 font-medium">({slotDateObj.dayName})</span>
+                      </td>
+
+                      {/* TIME */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className={`font-semibold text-xs block ${isExpired ? "text-slate-600" : "text-slate-800"}`}>{row.startTime} – {row.endTime}</span>
+                        <span className="text-slate-400 text-[11px] block mt-0.5 font-medium">({durationText})</span>
+                      </td>
+
+                      {/* RIDERS */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <svg className={`h-4.5 w-4.5 shrink-0 ${isExpired ? "text-slate-400" : "text-slate-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <div className="flex flex-col leading-tight">
+                            <span className={`font-bold text-xs ${isExpired ? "text-slate-600" : "text-slate-900"}`}>{row.bookedCount || 0}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">of {row.capacity}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* STATUS */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {rowCategory === "active" && (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>Active</span>
                           </span>
-                        </td>
-                        <td className="px-5 py-4 font-black text-emerald-600">
-                          {availableCount} / {slot.capacity}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="font-bold text-emerald-700 underline">
-                            {slot.bookedCount || 0} assigned · View
+                        )}
+                        {rowCategory === "upcoming" && (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-800">
+                            <span className="h-2 w-2 rounded-full bg-sky-500"></span>
+                            <span>Upcoming</span>
                           </span>
-                        </td>
-                        <td className="px-5 py-4 text-xs font-bold text-amber-700 whitespace-nowrap">
-                          {incentiveLabel(slot)}
-                        </td>
-                        <td className="px-5 py-4 text-xs font-bold text-emerald-700 whitespace-nowrap">
-                          {salaryLabel}
-                        </td>
-                        <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-2">
-                            {label !== "Expired" && slot.status !== "CANCELLED" && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setAssignSlot({
-                                    ...slot,
-                                    dateString: shift.dateString,
-                                    assignedRiderIds: (slot.bookings || [])
-                                      .filter((b) => b.status !== "CANCELLED")
-                                      .map((b) => b.deliveryPartnerId),
-                                  })
-                                }
-                                className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition"
-                              >
-                                Assign
-                              </button>
-                            )}
-                            {label !== "Expired" && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingSlot(slot);
-                                  setEditCapacity(slot.capacity);
-                                  setEditStatus(slot.status);
-                                  setEditStartTime(slot.startTime);
-                                  setEditEndTime(slot.endTime);
-                                  setEditIncentiveMode(slot.incentiveMode || "none");
-                                  setEditIncentiveRate(slot.incentiveRate || "");
-                                  setEditIncentiveAfterKm(slot.incentiveAfterKm || "");
-                                }}
-                                className="rounded-lg border border-emerald-500 bg-white px-3 py-1 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition"
-                              >
-                                Edit
-                              </button>
-                            )}
+                        )}
+                        {isExpired && (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500">
+                            <span className="h-2 w-2 rounded-full bg-slate-400"></span>
+                            <span>Expired</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* ASSIGNED */}
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {(row.bookedCount || 0) > 0 ? (
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span className="font-semibold text-slate-700">{row.bookedCount} assigned</span>
                             <button
                               type="button"
-                              onClick={() => handleDeleteSlot(slot, shift)}
-                              className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 transition"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenSlotDetails(row.id || row.slotId);
+                              }}
+                              className="text-emerald-700 font-semibold underline hover:text-emerald-800 ml-1 cursor-pointer"
                             >
-                              Delete
+                              View
                             </button>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  });
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                            <svg className="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span>-</span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* ACTIONS */}
+                      <td className="px-5 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenSlotDetails(row.id || row.slotId)}
+                            className="rounded-lg border border-emerald-600/30 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50/70 transition shadow-2xs cursor-pointer"
+                          >
+                            View Details
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (actionMenu?.key === row.uniqueRowKey) {
+                                setActionMenu(null);
+                              } else {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setActionMenu({
+                                  key: row.uniqueRowKey,
+                                  row,
+                                  top: rect.bottom + 4,
+                                  right: Math.max(12, window.innerWidth - rect.right),
+                                });
+                              }
+                            }}
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg cursor-pointer transition active:scale-95 ${
+                              actionMenu?.key === row.uniqueRowKey
+                                ? "bg-slate-200 text-slate-900"
+                                : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            }`}
+                            title="Actions"
+                          >
+                            <span className="text-lg font-bold leading-none select-none">⋮</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
                 })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* FLOATING ACTION DROPDOWN (Outside overflow container so it is NEVER clipped) */}
+      {actionMenu && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/5"
+            onClick={() => setActionMenu(null)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: `${actionMenu.top}px`,
+              right: `${actionMenu.right}px`,
+            }}
+            className="z-50 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-2xl ring-1 ring-black/5 divide-y divide-slate-100 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {getSlotCategory(actionMenu.row) !== "expired" && actionMenu.row.status !== "CANCELLED" && (
+              <button
+                type="button"
+                onClick={() => {
+                  const targetRow = actionMenu.row;
+                  setActionMenu(null);
+                  setAssignSlot({
+                    ...targetRow,
+                    dateString: targetRow.dateString || targetRow.parentShift?.dateString,
+                    assignedRiderIds: (targetRow.bookings || [])
+                      .filter((b) => b.status !== "CANCELLED")
+                      .map((b) => b.deliveryPartnerId),
+                  });
+                }}
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer"
+              >
+                <span className="text-emerald-600 font-bold text-sm leading-none">+</span>
+                <span>Assign Riders</span>
+              </button>
+            )}
+            {getSlotCategory(actionMenu.row) !== "expired" && (
+              <button
+                type="button"
+                onClick={() => {
+                  const targetRow = actionMenu.row;
+                  setActionMenu(null);
+                  setEditingSlot(targetRow);
+                  setEditCapacity(targetRow.capacity);
+                  setEditStatus(targetRow.status);
+                  setEditStartTime(targetRow.startTime);
+                  setEditEndTime(targetRow.endTime);
+                  setEditIncentiveMode(targetRow.incentiveMode || "none");
+                  setEditIncentiveRate(targetRow.incentiveRate || "");
+                  setEditIncentiveAfterKm(targetRow.incentiveAfterKm || "");
+                }}
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                <span>✏️</span>
+                <span>Edit Slot</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                const targetRow = actionMenu.row;
+                setActionMenu(null);
+                handleDeleteSlot(targetRow, targetRow.parentShift);
+              }}
+              className="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+            >
+              <span>🗑️</span>
+              <span>Delete Shift</span>
+            </button>
+          </div>
+        </>
+      )}
 
       {/* CREATE SHIFT MODAL */}
       {isCreateModalOpen && (
@@ -876,6 +1445,11 @@ export default function ShiftManagementPage() {
                       onChange={(e) => setTargetDate(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold"
                     />
+                    {isAfterMidnightTime(newShiftType, slotsList) && (
+                      <p className="mt-1.5 text-[11px] font-semibold text-purple-700 flex items-center gap-1">
+                        <span>🌙 Shift after 12:00 AM — Scheduled for Next Day: {formatDateWithDay(targetDate).formatted || targetDate}</span>
+                      </p>
+                    )}
                   </div>
                 )}
 
