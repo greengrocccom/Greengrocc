@@ -12,6 +12,7 @@ import {
   resendAdminLoginOtp,
   verifyAdminLoginOtp,
   sendAdminSecurityOtp,
+  verifyAdminSecurityOtpController,
   requestAdminPasswordReset,
   resetAdminPassword,
   createUnblockRequest,
@@ -42,10 +43,13 @@ router.post("/admin/otp/verify", verifyAdminLoginOtp);
 router.post("/admin/forgot-password", requestAdminPasswordReset);
 router.post("/admin/reset-password", resetAdminPassword);
 router.post("/me/security-otp", protect, sendAdminSecurityOtp);
+router.post("/me/security-otp/resend", protect, sendAdminSecurityOtp);
+router.post("/me/security-otp/verify", protect, verifyAdminSecurityOtpController);
 
 router.get("/me", protect, getMe);
 router.patch("/me", protect, updateMe);
 router.patch("/me/password", protect, changeMyPassword);
+router.put("/me/password", protect, changeMyPassword);
 
 export default router;
 

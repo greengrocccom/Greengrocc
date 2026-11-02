@@ -53,6 +53,7 @@ import {
   GalleryHorizontal,
   Monitor,
   Smartphone,
+  Settings,
 } from 'lucide-react';
 
 /**
@@ -838,6 +839,19 @@ export const NAV_GROUPS = [
         icon: ClipboardList,
         implemented: true,
         description: 'Every farmer and the government schemes they applied for.',
+      },
+    ],
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    items: [
+      {
+        name: 'Settings',
+        href: '/settings',
+        icon: Settings,
+        implemented: true,
+        description: 'Admin account security, password change with Common OTP, and system preferences.',
       },
     ],
   },

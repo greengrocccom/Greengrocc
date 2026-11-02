@@ -15,6 +15,7 @@ import {
   verifyLoginOtp as validateLoginOtp,
   sendOtp,
   resendOtp,
+  verifyOtp,
   resendAdminLoginOtp as dispatchResendAdminLoginOtp,
   verifyAdminLoginOtp as validateAdminLoginOtp,
   MSG91_TEMPLATES,
@@ -769,10 +770,7 @@ export const getMe = async (req, res) => {
         id: req.user._id,
         name: req.user.name,
         email: req.user.email,
-        phone:
-          req.user.role === "admin" && process.env.ADMIN_MOBILE
-            ? normalizeIndianPhone(process.env.ADMIN_MOBILE) || req.user.phone
-            : req.user.phone,
+        phone: getAdminPhone(req.user),
         shopNo: req.user.shopNo || "",
         shopName: req.user.shopName || "",
         shopAddress: req.user.shopAddress || "",
@@ -866,6 +864,14 @@ export const changeMyPassword = async (req, res) => {
   }
 };
 
+function getAdminPhone(user) {
+  const adminMobile = getActiveAdminMobile();
+  if (user?.role === "admin" && adminMobile) {
+    return adminMobile;
+  }
+  return adminMobile || normalizeIndianPhone(user?.phone || "") || null;
+}
+
 function maskPhoneNumber(phone) {
   const digits = String(phone || "");
   if (digits.length < 4) return "your registered phone";
@@ -873,17 +879,83 @@ function maskPhoneNumber(phone) {
 }
 
 async function verifyAdminSecurityOtp(user, otp) {
-  const code = String(otp || "").trim();
-  if (!code) {
-    return { ok: false, message: "OTP is required to confirm this change" };
-  }
-
-  if (!user?.phone) {
+  const phone = getAdminPhone(user);
+  if (!phone) {
     return { ok: false, message: "No registered phone number found for this admin account" };
   }
 
-  return validateLoginOtp(user.phone, code);
+  // If already verified in this session
+  if (consumeVerifiedPhone(phone)) {
+    return { ok: true };
+  }
+
+  const code = String(otp || "").trim();
+  if (!code) {
+    return { ok: false, message: "Valid 6-digit Common OTP is required to confirm password change" };
+  }
+
+  // 1. Check with purpose "common_security_otp"
+  const secResult = await verifyOtp({ phone, otp: code, purpose: "common_security_otp" });
+  if (secResult.ok) return secResult;
+
+  // 2. Check general OTP verify without purpose constraint
+  const genResult = await verifyOtp({ phone, otp: code });
+  if (genResult.ok) return genResult;
+
+  // 3. Fallback to validateLoginOtp (in case admin_login template was used)
+  const loginResult = await validateLoginOtp(phone, code);
+  if (loginResult.ok) return loginResult;
+
+  return { ok: false, message: "Invalid or expired OTP. Please enter the correct OTP." };
 }
+
+export const verifyAdminSecurityOtpController = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admin accounts can verify security OTP",
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    const phone = getAdminPhone(user || req.user);
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "No registered phone number found for this admin account",
+      });
+    }
+
+    const code = String(req.body.otp || "").trim();
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter the 6-digit OTP",
+      });
+    }
+
+    const verification = await verifyAdminSecurityOtp(user || req.user, code);
+    if (!verification.ok) {
+      return res.status(400).json({
+        success: false,
+        message: verification.message || "Invalid or expired OTP",
+      });
+    }
+
+    markPhoneOtpVerified(phone);
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully. You can now set your new password.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Verification failed",
+    });
+  }
+};
 
 export const sendAdminSecurityOtp = async (req, res) => {
   try {
@@ -895,25 +967,29 @@ export const sendAdminSecurityOtp = async (req, res) => {
     }
 
     const user = await User.findById(req.user._id);
-    if (!user?.phone) {
+    const phone = getAdminPhone(user || req.user);
+    if (!phone) {
       return res.status(400).json({
         success: false,
         message: "No registered phone number found for this admin account",
       });
     }
 
-    await sendOtp({
-      phone: user.phone,
+    // Dispatched via GreenGrocc Common OTP (GREGRC_Common_OTP)
+    const templateId = MSG91_TEMPLATES.COMMON_OTP || MSG91_TEMPLATES.ADMIN_LOGIN;
+    const result = await sendOtp({
+      phone,
       role: "admin",
-      purpose: "admin_login",
-      templateId: MSG91_TEMPLATES.ADMIN_LOGIN,
+      purpose: "common_security_otp",
+      templateId,
     });
 
     res.status(200).json({
       success: true,
-      message: `OTP sent to ${maskPhoneNumber(user.phone)}`,
+      message: `OTP sent successfully to ${maskPhoneNumber(phone)} via GreenGrocc Common OTP (GREGRC_Common_OTP)`,
       data: {
-        phoneHint: maskPhoneNumber(user.phone),
+        phoneHint: maskPhoneNumber(phone),
+        ...(result?.devMock ? { devOtp: result.code } : {}),
       },
     });
   } catch (error) {
