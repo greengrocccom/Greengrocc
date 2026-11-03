@@ -248,6 +248,13 @@ class AppLocalizationsMr extends AppLocalizations {
   String get insuranceSubtitle => 'वैध वाहन विमा';
 
   @override
+  String get policeVerification => 'पोलीस पडताळणी';
+
+  @override
+  String get policeVerificationSubtitle =>
+      'पोलीस पडताळणी प्रमाणपत्र किंवा प्रत';
+
+  @override
   String get bankDetails => 'बँक तपशील';
 
   @override

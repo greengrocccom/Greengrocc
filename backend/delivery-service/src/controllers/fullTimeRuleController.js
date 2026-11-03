@@ -13,6 +13,29 @@ function readCustomRules(value) {
     .slice(0, 50);
 }
 
+function validatePayPolicy(body = {}) {
+  if (body.paidLeavesPerMonth !== undefined) {
+    const n = Number(body.paidLeavesPerMonth);
+    if (!Number.isInteger(n) || n < 0 || n > 31) return "Paid leaves per month must be between 0 and 31";
+  }
+  if (body.unpaidLeaveDeductionPerDay !== undefined && body.unpaidLeaveDeductionPerDay !== null && body.unpaidLeaveDeductionPerDay !== "") {
+    const n = Number(body.unpaidLeaveDeductionPerDay);
+    if (!Number.isFinite(n) || n < 0) return "Unpaid leave deduction must be 0 or more";
+  }
+  if (body.lateAfterMinutes !== undefined) {
+    const n = Number(body.lateAfterMinutes);
+    if (!Number.isInteger(n) || n < 1 || n > 1440) return "Late threshold must be between 1 minute and 24 hours";
+  }
+  if (body.latePenaltyAmount !== undefined) {
+    const n = Number(body.latePenaltyAmount);
+    if (!Number.isFinite(n) || n < 0) return "Late penalty amount must be 0 or more";
+  }
+  if (body.latePenaltyEnabled && !(Number(body.latePenaltyAmount) > 0) && body.latePenaltyAmount !== undefined) {
+    return "Enter a positive late attendance penalty";
+  }
+  return null;
+}
+
 /** GET /api/delivery-managers/fulltime-rules */
 export const listFullTimeRules = async (req, res, next) => {
   try {
@@ -30,16 +53,25 @@ export const listFullTimeRules = async (req, res, next) => {
  */
 export const createFullTimeRule = async (req, res, next) => {
   try {
+    const payPolicyError = validatePayPolicy(req.body);
+    if (payPolicyError) return res.status(400).json({ success: false, message: payPolicyError });
     const fields = {
       ruleName: req.body.ruleName,
       attendanceStartTime: req.body.attendanceStartTime,
       attendanceEndTime: req.body.attendanceEndTime,
+      requireAttendance: req.body.requireAttendance !== undefined ? Boolean(req.body.requireAttendance) : undefined,
       requireLocationValidation: req.body.requireLocationValidation,
       attendanceRadiusMeters: req.body.attendanceRadiusMeters,
       workingDays: req.body.workingDays,
       minimumAttendanceDays: req.body.minimumAttendanceDays,
       compulsoryDailyOnlineHours: req.body.compulsoryDailyOnlineHours !== undefined ? Number(req.body.compulsoryDailyOnlineHours) : undefined,
       requireCompulsoryOnlineHours: req.body.requireCompulsoryOnlineHours !== undefined ? Boolean(req.body.requireCompulsoryOnlineHours) : undefined,
+      leavePolicyEnabled: req.body.leavePolicyEnabled !== undefined ? Boolean(req.body.leavePolicyEnabled) : undefined,
+      paidLeavesPerMonth: req.body.paidLeavesPerMonth !== undefined ? Number(req.body.paidLeavesPerMonth) : undefined,
+      unpaidLeaveDeductionPerDay: req.body.unpaidLeaveDeductionPerDay == null || req.body.unpaidLeaveDeductionPerDay === "" ? (req.body.unpaidLeaveDeductionPerDay !== undefined ? null : undefined) : Number(req.body.unpaidLeaveDeductionPerDay),
+      latePenaltyEnabled: req.body.latePenaltyEnabled !== undefined ? Boolean(req.body.latePenaltyEnabled) : undefined,
+      lateAfterMinutes: req.body.lateAfterMinutes !== undefined ? Number(req.body.lateAfterMinutes) : undefined,
+      latePenaltyAmount: req.body.latePenaltyAmount !== undefined ? Number(req.body.latePenaltyAmount) : undefined,
       notes: req.body.notes,
       customRules: readCustomRules(req.body.customRules),
     };
@@ -62,6 +94,8 @@ export const createFullTimeRule = async (req, res, next) => {
 /** PUT /api/delivery-managers/fulltime-rules/:id */
 export const updateFullTimeRule = async (req, res, next) => {
   try {
+    const payPolicyError = validatePayPolicy(req.body);
+    if (payPolicyError) return res.status(400).json({ success: false, message: payPolicyError });
     const rule = await FullTimeRule.findOneAndUpdate(
       { _id: req.params.id, managerId: req.user.id },
       {
@@ -69,12 +103,19 @@ export const updateFullTimeRule = async (req, res, next) => {
           ruleName: req.body.ruleName,
           attendanceStartTime: req.body.attendanceStartTime,
           attendanceEndTime: req.body.attendanceEndTime,
+          requireAttendance: req.body.requireAttendance !== undefined ? Boolean(req.body.requireAttendance) : undefined,
           requireLocationValidation: req.body.requireLocationValidation,
           attendanceRadiusMeters: req.body.attendanceRadiusMeters,
           workingDays: req.body.workingDays,
           minimumAttendanceDays: req.body.minimumAttendanceDays,
           compulsoryDailyOnlineHours: req.body.compulsoryDailyOnlineHours !== undefined ? Number(req.body.compulsoryDailyOnlineHours) : undefined,
           requireCompulsoryOnlineHours: req.body.requireCompulsoryOnlineHours !== undefined ? Boolean(req.body.requireCompulsoryOnlineHours) : undefined,
+          leavePolicyEnabled: req.body.leavePolicyEnabled !== undefined ? Boolean(req.body.leavePolicyEnabled) : undefined,
+          paidLeavesPerMonth: req.body.paidLeavesPerMonth !== undefined ? Number(req.body.paidLeavesPerMonth) : undefined,
+          unpaidLeaveDeductionPerDay: req.body.unpaidLeaveDeductionPerDay == null || req.body.unpaidLeaveDeductionPerDay === "" ? (req.body.unpaidLeaveDeductionPerDay !== undefined ? null : undefined) : Number(req.body.unpaidLeaveDeductionPerDay),
+          latePenaltyEnabled: req.body.latePenaltyEnabled !== undefined ? Boolean(req.body.latePenaltyEnabled) : undefined,
+          lateAfterMinutes: req.body.lateAfterMinutes !== undefined ? Number(req.body.lateAfterMinutes) : undefined,
+          latePenaltyAmount: req.body.latePenaltyAmount !== undefined ? Number(req.body.latePenaltyAmount) : undefined,
           notes: req.body.notes,
           customRules: readCustomRules(req.body.customRules),
         },

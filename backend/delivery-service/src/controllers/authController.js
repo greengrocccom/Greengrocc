@@ -128,7 +128,7 @@ const ALLOWED_VEHICLES = [
   "van",
   "no_vehicle",
 ];
-const DOC_KEYS = ["aadhaar", "pan", "passport", "license", "rc", "insurance"];
+const DOC_KEYS = ["aadhaar", "pan", "passport", "license", "rc", "insurance", "policeVerification"];
 
 const signToken = (deliveryBoy) => {
   if (!process.env.JWT_SECRET) {

@@ -568,6 +568,18 @@ abstract class AppLocalizations {
   /// **'Valid vehicle insurance'**
   String get insuranceSubtitle;
 
+  /// No description provided for @policeVerification.
+  ///
+  /// In en, this message translates to:
+  /// **'Police Verification'**
+  String get policeVerification;
+
+  /// No description provided for @policeVerificationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Police clearance certificate / verification copy'**
+  String get policeVerificationSubtitle;
+
   /// No description provided for @bankDetails.
   ///
   /// In en, this message translates to:

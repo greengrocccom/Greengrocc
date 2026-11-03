@@ -30,9 +30,6 @@ const shiftPayload = (shift) =>
         startTime: shift.startTime,
         endTime: shift.endTime,
         workingDays: shift.workingDays || [],
-        requireAttendance: shift.requireAttendance !== false,
-        requireLocationValidation: shift.requireLocationValidation !== false,
-        attendanceRadiusMeters: shift.attendanceRadiusMeters ?? null,
         notes: shift.notes || "",
       }
     : null;
@@ -68,7 +65,7 @@ export const markFullTimeAttendance = async (req, res, next) => {
     }
 
     const today = istDateString();
-    const { manager, shift, requirement } = await loadFullTimeContext(rider);
+    const { manager, rule, shift, requirement } = await loadFullTimeContext(rider);
     const existing = await FullTimeAttendance.findOne({ deliveryBoyId: rider._id, date: today });
     const state = attendanceStatusFor({ record: existing, requirement, dateString: today });
 
@@ -160,7 +157,7 @@ export const markFullTimeAttendance = async (req, res, next) => {
       { upsert: true, returnDocument: 'after' }
     );
 
-    const policy = shiftPayPolicy(shift);
+    const policy = shiftPayPolicy(rule);
     const latePenalty =
       policy.latePenaltyEnabled && policy.latePenaltyAmount > 0 && lateMinutes >= policy.lateAfterMinutes
         ? policy.latePenaltyAmount
@@ -223,6 +220,7 @@ export const getFullTimeAttendanceToday = async (req, res, next) => {
             ruleName: rule.ruleName,
             attendanceStartTime: rule.attendanceStartTime,
             attendanceEndTime: rule.attendanceEndTime,
+            requireAttendance: rule.requireAttendance !== false,
             requireLocationValidation: rule.requireLocationValidation,
             attendanceRadiusMeters: rule.attendanceRadiusMeters,
             workingDays: rule.workingDays,
@@ -234,7 +232,7 @@ export const getFullTimeAttendanceToday = async (req, res, next) => {
             name: darkStoreName(manager),
             latitude: manager.latitude,
             longitude: manager.longitude,
-            monthlySalary: effectiveMonthlySalary(rider, manager, shift),
+          monthlySalary: effectiveMonthlySalary(rider, manager),
           }
         : null,
       shift: shiftPayload(shift),
@@ -243,7 +241,7 @@ export const getFullTimeAttendanceToday = async (req, res, next) => {
       canMark: state.canMark,
       windowPhase: state.phase,
       month: { ...month, minimumAttendanceDays: rule?.minimumAttendanceDays ?? null },
-      payPolicy: shiftPayPolicy(shift),
+      payPolicy: shiftPayPolicy(rule),
       payroll,
     });
   } catch (err) {
@@ -268,14 +266,14 @@ export const getFullTimeRulesForRider = async (req, res, next) => {
     return res.json({
       success: true,
       rules,
-      monthlySalary: effectiveMonthlySalary(rider, manager, shift),
-      salarySource: salarySource(rider, shift),
+      monthlySalary: effectiveMonthlySalary(rider, manager),
+      salarySource: salarySource(rider),
       darkStoreName: darkStoreName(manager),
       shift: shiftPayload(shift),
       requirement,
       customRules: rules.flatMap((r) => r.customRules || []),
       orderAssignmentMode: "manual",
-      payPolicy: shiftPayPolicy(shift),
+      payPolicy: shiftPayPolicy(rule),
       payroll,
     });
   } catch (err) {

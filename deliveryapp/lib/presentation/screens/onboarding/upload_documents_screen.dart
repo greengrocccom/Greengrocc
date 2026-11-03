@@ -36,6 +36,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
     'license',
     'rc',
     'insurance',
+    'policeVerification',
   ];
 
   bool _submitting = false;
@@ -265,6 +266,14 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
                     icon: Icons.verified_user_outlined,
                     file: _files['insurance'],
                     onTap: () => _pick('insurance'),
+                  ),
+                  const SizedBox(height: 10),
+                  _DocumentUploadCard(
+                    title: l10n.policeVerification,
+                    subtitle: l10n.policeVerificationSubtitle,
+                    icon: Icons.local_police_outlined,
+                    file: _files['policeVerification'],
+                    onTap: () => _pick('policeVerification'),
                   ),
                   const SizedBox(height: 24),
 

@@ -78,6 +78,8 @@
   "vehicleRcSubtitle": "नोंदणी प्रमाणपत्र",
   "insurance": "विमा",
   "insuranceSubtitle": "वैध वाहन विमा",
+  "policeVerification": "पोलीस पडताळणी",
+  "policeVerificationSubtitle": "पोलीस पडताळणी प्रमाणपत्र किंवा प्रत",
   "bankDetails": "बँक तपशील",
   "accountHolderName": "खातेदाराचे नाव",
   "accountHolderNameHint": "बँक खात्यानुसार नाव",

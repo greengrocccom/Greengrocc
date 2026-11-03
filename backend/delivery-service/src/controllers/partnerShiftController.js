@@ -1,6 +1,7 @@
 import Shift from "../models/Shift.js";
 import DeliveryBoy from "../models/DeliveryBoy.js";
 import DeliveryManager from "../models/DeliveryManager.js";
+import FullTimeAttendance from "../models/FullTimeAttendance.js";
 import { getIO } from "../../../socket.js";
 import { emitRiderStatusUpdated, applyGigStatusChange } from "../services/riderSocketService.js";
 import { checkInToBooking, formatDateStringIST } from "./shiftController.js";
@@ -12,6 +13,14 @@ import {
   isWithinSlot,
   timeToMinutes,
 } from "../utils/shiftTimeHelper.js";
+import {
+  attendanceStatusFor,
+  getActiveFullTimeRule,
+  getDriverFullTimeShift,
+  istDateString,
+  lateMinutesFor,
+  resolveAttendanceRequirement,
+} from "../services/fullTimeService.js";
 
 /** Calculates distance in meters between two lat/lng coordinates (Haversine formula) */
 const calculateHaversineDistanceMeters = (lat1, lon1, lat2, lon2) => {
@@ -28,6 +37,59 @@ const calculateHaversineDistanceMeters = (lat1, lon1, lat2, lon2) => {
 
   return Math.round(R * c);
 };
+
+async function autoMarkFullTimeAttendance(rider, manager, latitude, longitude, now = new Date()) {
+  if (rider.employmentType !== "FULL_TIME") return { marked: false, reason: "not_full_time" };
+  const [rule, shift] = await Promise.all([
+    getActiveFullTimeRule(manager._id),
+    getDriverFullTimeShift(manager._id, rider._id),
+  ]);
+  const requirement = resolveAttendanceRequirement({ rule, shift });
+  if (!requirement?.requireAttendance) return { marked: false, reason: "attendance_not_required" };
+
+  const today = istDateString(now);
+  const existing = await FullTimeAttendance.findOne({ deliveryBoyId: rider._id, date: today });
+  if (existing?.status === "present" || existing?.manualOverride) {
+    return { marked: existing?.status === "present", reason: "already_recorded" };
+  }
+  const state = attendanceStatusFor({ record: existing, requirement, dateString: today, now });
+  if (!state.canMark) return { marked: false, reason: state.status === "off_day" ? "off_day" : "outside_attendance_time" };
+
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
+  let distanceFromStoreMeters = null;
+  if (requirement.requireLocationValidation) {
+    if (!hasCoordinates || manager.latitude == null || manager.longitude == null) {
+      return { marked: false, reason: "store_location_unavailable" };
+    }
+    distanceFromStoreMeters = calculateHaversineDistanceMeters(lat, lng, manager.latitude, manager.longitude);
+    if (distanceFromStoreMeters > (requirement.attendanceRadiusMeters || 200)) {
+      return { marked: false, reason: "outside_attendance_radius", distanceFromStoreMeters };
+    }
+  } else if (hasCoordinates && manager.latitude != null && manager.longitude != null) {
+    distanceFromStoreMeters = calculateHaversineDistanceMeters(lat, lng, manager.latitude, manager.longitude);
+  }
+
+  const markedAt = now;
+  const lateMinutes = lateMinutesFor(requirement.startTime, markedAt);
+  const attendance = await FullTimeAttendance.findOneAndUpdate(
+    { deliveryBoyId: rider._id, date: today },
+    { $set: {
+      managerId: manager._id,
+      status: "present",
+      markedAt,
+      locationLat: hasCoordinates ? lat : null,
+      locationLng: hasCoordinates ? lng : null,
+      distanceFromStoreMeters,
+      validationPassed: true,
+      lateMinutes,
+      manualOverride: false,
+    } },
+    { upsert: true, new: true }
+  );
+  return { marked: true, attendance };
+}
 
 /** Helper to resolve the exact DeliveryManager for a rider */
 const getRiderManager = async (rider) => {
@@ -612,17 +674,6 @@ export const goOnline = async (req, res, next) => {
     const partnerLat = parseFloat(latitude);
     const partnerLng = parseFloat(longitude);
 
-    const isDefaultStoreCoords =
-      Math.abs(storeLat - 18.559) < 0.001 && Math.abs(storeLng - 73.7868) < 0.001;
-
-    if (isDefaultStoreCoords && !isNaN(partnerLat) && !isNaN(partnerLng)) {
-      manager.latitude = partnerLat;
-      manager.longitude = partnerLng;
-      await manager.save().catch(() => {});
-      storeLat = partnerLat;
-      storeLng = partnerLng;
-    }
-
     const distanceMeters = calculateHaversineDistanceMeters(
       partnerLat,
       partnerLng,
@@ -663,6 +714,16 @@ export const goOnline = async (req, res, next) => {
       updatedAt: new Date(),
     };
     await rider.save();
+
+    let automaticAttendance = null;
+    if (isFullTime) {
+      try {
+        automaticAttendance = await autoMarkFullTimeAttendance(rider, manager, partnerLat, partnerLng);
+      } catch (attendanceError) {
+        console.error("[full-time] automatic attendance could not be recorded:", attendanceError.message);
+        automaticAttendance = { marked: false, reason: "recording_failed" };
+      }
+    }
 
     const { retryWaitingAssignmentsForStore } = await import(
       "../services/OrderAssignmentService.js"
@@ -708,6 +769,9 @@ export const goOnline = async (req, res, next) => {
       startTime: targetSlot?.startTime || (isFullTime ? undefined : liveGig?.startTime),
       endTime: targetSlot?.endTime || (isFullTime ? undefined : liveGig?.endTime),
       deliveryBoy: rider.toSafeJSON(),
+      automaticAttendance: isFullTime
+        ? { marked: Boolean(automaticAttendance?.marked), reason: automaticAttendance?.reason || "recorded" }
+        : undefined,
     });
   } catch (error) {
     next(error);

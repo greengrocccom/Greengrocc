@@ -22,6 +22,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
     _DocBadge(title: 'DL', icon: Icons.subtitles_outlined),
     _DocBadge(title: 'RC', icon: Icons.description_outlined),
     _DocBadge(title: 'Insurance', icon: Icons.verified_user_outlined),
+    _DocBadge(title: 'Police Verification', icon: Icons.local_police_outlined),
   ];
 
   void _submit() {

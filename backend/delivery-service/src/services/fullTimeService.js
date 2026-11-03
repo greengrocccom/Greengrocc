@@ -23,29 +23,26 @@ export function istDayOfWeek(dateString = istDateString()) {
   return new Date(`${dateString}T12:00:00+05:30`).getUTCDay();
 }
 
-/** Driver override → Full-Time shift salary → store default. */
-export function effectiveMonthlySalary(rider, manager, shift = null) {
+/** Rider payment setting → store default. */
+export function effectiveMonthlySalary(rider, manager) {
   if (rider?.monthlySalary != null) return Number(rider.monthlySalary) || 0;
-  if (shift?.monthlySalary != null) return Number(shift.monthlySalary) || 0;
   return Number(manager?.fullTimeMonthlySalary) || 0;
 }
 
-export function salarySource(rider, shift = null) {
+export function salarySource(rider) {
   if (rider?.monthlySalary != null) return "driver";
-  if (shift?.monthlySalary != null) return "shift";
   return "store";
 }
 
-/** Leave / late-penalty settings of a Full-Time shift (all off when there is no shift). */
-export function shiftPayPolicy(shift) {
+/** Leave and late-penalty policy is managed centrally in Full-Time Rules. */
+export function shiftPayPolicy(rule) {
   return {
-    shiftMonthlySalary: shift?.monthlySalary ?? null,
-    leavePolicyEnabled: Boolean(shift?.leavePolicyEnabled),
-    paidLeavesPerMonth: Number(shift?.paidLeavesPerMonth) || 0,
-    unpaidLeaveDeductionPerDay: shift?.unpaidLeaveDeductionPerDay ?? null,
-    latePenaltyEnabled: Boolean(shift?.latePenaltyEnabled),
-    lateAfterMinutes: Number(shift?.lateAfterMinutes) || 120,
-    latePenaltyAmount: Number(shift?.latePenaltyAmount) || 0,
+    leavePolicyEnabled: Boolean(rule?.leavePolicyEnabled),
+    paidLeavesPerMonth: Number(rule?.paidLeavesPerMonth) || 0,
+    unpaidLeaveDeductionPerDay: rule?.unpaidLeaveDeductionPerDay ?? null,
+    latePenaltyEnabled: Boolean(rule?.latePenaltyEnabled),
+    lateAfterMinutes: Number(rule?.lateAfterMinutes) || 120,
+    latePenaltyAmount: Number(rule?.latePenaltyAmount) || 0,
   };
 }
 
@@ -76,9 +73,10 @@ export async function getActiveFullTimeRule(managerId) {
 
 export async function getDriverFullTimeShift(managerId, riderId) {
   if (!managerId || !riderId) return null;
-  return FullTimeShift.findOne({ managerId, isActive: true, driverIds: riderId }).sort({
+  const shifts = await FullTimeShift.find({ managerId, isActive: true, driverIds: riderId }).sort({
     updatedAt: -1,
   });
+  return shifts[0] || null;
 }
 
 /**
@@ -87,22 +85,19 @@ export async function getDriverFullTimeShift(managerId, riderId) {
  * Returns null when the manager has configured neither.
  */
 export function resolveAttendanceRequirement({ rule, shift }) {
-  if (!rule && !shift) return null;
-  const fromShift = Boolean(shift);
+  if (!rule) return null;
   return {
-    source: fromShift ? "shift" : "rule",
-    startTime: fromShift ? shift.startTime : rule.attendanceStartTime,
-    endTime: fromShift ? shift.endTime : rule.attendanceEndTime,
-    workingDays: (fromShift ? shift.workingDays : rule.workingDays) || [],
-    requireAttendance: fromShift ? shift.requireAttendance !== false : true,
-    requireLocationValidation: fromShift
-      ? shift.requireLocationValidation !== false
-      : rule.requireLocationValidation !== false,
-    attendanceRadiusMeters:
-      (fromShift ? shift.attendanceRadiusMeters : null) ??
-      rule?.attendanceRadiusMeters ??
-      200,
-    shiftName: fromShift ? shift.name : "",
+    source: "rule",
+    startTime: shift?.startTime || rule.attendanceStartTime,
+    endTime: shift?.endTime || rule.attendanceEndTime,
+    workingDays: shift?.workingDays?.length ? shift.workingDays : rule.workingDays || [],
+    scheduleStartDate: shift?.scheduleStartDate || "",
+    scheduleEndDate: shift?.scheduleEndDate || "",
+    excludedDates: shift?.excludedDates || [],
+    requireAttendance: rule.requireAttendance !== false,
+    requireLocationValidation: rule.requireLocationValidation !== false,
+    attendanceRadiusMeters: rule.attendanceRadiusMeters ?? 200,
+    shiftName: shift?.name || "",
   };
 }
 
@@ -135,6 +130,15 @@ export function attendanceStatusFor({ record, requirement, dateString, now = new
   }
   if (!requirement.requireAttendance) {
     return { status: "not_required", canMark: false, phase: "none" };
+  }
+  if (requirement.scheduleStartDate && dateString < requirement.scheduleStartDate) {
+    return { status: "off_day", canMark: false, phase: "none" };
+  }
+  if (requirement.scheduleEndDate && dateString > requirement.scheduleEndDate) {
+    return { status: "off_day", canMark: false, phase: "none" };
+  }
+  if ((requirement.excludedDates || []).includes(dateString)) {
+    return { status: "off_day", canMark: false, phase: "none" };
   }
   const days = requirement.workingDays || [];
   if (days.length && !days.includes(istDayOfWeek(dateString))) {
@@ -169,11 +173,16 @@ export function buildMonthPayroll({ rider, manager, shift, rule, month, records 
   const [y, m] = month.split("-").map((n) => parseInt(n, 10));
   const dates = listIstDatesInMonth(y, m);
   const requirement = resolveAttendanceRequirement({ rule, shift });
-  const policy = shiftPayPolicy(shift);
-  const baseSalary = effectiveMonthlySalary(rider, manager, shift);
+  const policy = shiftPayPolicy(rule);
+  const baseSalary = effectiveMonthlySalary(rider, manager);
 
   const workingDays = requirement?.workingDays?.length ? requirement.workingDays : [0, 1, 2, 3, 4, 5, 6];
-  const scheduled = dates.filter((d) => workingDays.includes(istDayOfWeek(d)));
+  const scheduled = dates.filter((d) => {
+    if (!workingDays.includes(istDayOfWeek(d))) return false;
+    if (shift?.scheduleStartDate && d < shift.scheduleStartDate) return false;
+    if (shift?.scheduleEndDate && d > shift.scheduleEndDate) return false;
+    return !(shift?.excludedDates || []).includes(d);
+  });
   const trackFrom = [
     dates[0],
     rider?.createdAt ? istDateString(rider.createdAt) : "",
@@ -225,7 +234,7 @@ export function buildMonthPayroll({ rider, manager, shift, rule, month, records 
   return {
     month,
     baseSalary,
-    salarySource: salarySource(rider, shift),
+    salarySource: salarySource(rider),
     scheduledWorkingDays: scheduled.length,
     presentDays,
     absentDays,
@@ -282,17 +291,11 @@ export function serializeFullTimeShift(shift, driverMap = new Map()) {
     startTime: shift.startTime,
     endTime: shift.endTime,
     workingDays: shift.workingDays || [],
-    requireAttendance: shift.requireAttendance !== false,
-    requireLocationValidation: shift.requireLocationValidation !== false,
-    attendanceRadiusMeters: shift.attendanceRadiusMeters ?? null,
+    scheduleMode: shift.scheduleMode || "full_week",
+    scheduleStartDate: shift.scheduleStartDate || "",
+    scheduleEndDate: shift.scheduleEndDate || "",
+    excludedDates: shift.excludedDates || [],
     notes: shift.notes || "",
-    monthlySalary: shift.monthlySalary ?? null,
-    leavePolicyEnabled: Boolean(shift.leavePolicyEnabled),
-    paidLeavesPerMonth: Number(shift.paidLeavesPerMonth) || 0,
-    unpaidLeaveDeductionPerDay: shift.unpaidLeaveDeductionPerDay ?? null,
-    latePenaltyEnabled: Boolean(shift.latePenaltyEnabled),
-    lateAfterMinutes: Number(shift.lateAfterMinutes) || 120,
-    latePenaltyAmount: Number(shift.latePenaltyAmount) || 0,
     isActive: shift.isActive !== false,
     driverIds: (shift.driverIds || []).map(String),
     drivers: (shift.driverIds || [])

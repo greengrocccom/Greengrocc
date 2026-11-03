@@ -217,13 +217,13 @@ class PayPolicyCard extends StatelessWidget {
             icon: Icons.timer_off_outlined,
             label: 'Late Penalty',
             value: lateOn
-                ? '${formatRupees(policy['latePenaltyAmount'] as num?)} cut if attendance is '
-                    '${formatMinutes(policy['lateAfterMinutes'] as num?)} or more late'
+                ? '${formatRupees(policy['latePenaltyAmount'] as num?)} cut if you go online '
+                    '${formatMinutes(policy['lateAfterMinutes'] as num?)} or more after shift start'
                 : 'None',
           ),
           if (leaveOn)
             Text(
-              'Not marking attendance on a working day counts as a leave.',
+              'Not going online during a scheduled shift counts as a leave.',
               style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
             ),
         ],

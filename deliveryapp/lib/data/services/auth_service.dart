@@ -725,6 +725,8 @@ class AuthService {
     }
 
     return switch (step) {
+      'employment_type' => '/select-employment-type',
+      'employment' => '/select-employment-type',
       'city' => '/select-city',
       'area' => '/select-area',
       'documents' => '/upload-documents',

@@ -50,16 +50,6 @@ const statusDisplay = (slot) =>
   slot.statusLabel ||
   (slot.isExpired ? "Expired" : slot.isLive ? "Live" : slot.lifecycle === "past" ? "Expired" : slot.lifecycle === "current" ? "Live" : "Upcoming");
 
-/** Default rider rate: ₹15 per KM (0–1 → ₹15, 1–2 → ₹30, …). */
-const RATE_PER_KM = 15;
-
-const defaultKmSlabs = () => [
-  { minKm: 0, maxKm: 1, riderAmount: RATE_PER_KM * 1 },
-  { minKm: 1, maxKm: 2, riderAmount: RATE_PER_KM * 2 },
-  { minKm: 2, maxKm: 3, riderAmount: RATE_PER_KM * 3 },
-  { minKm: 3, maxKm: 4, riderAmount: RATE_PER_KM * 4 },
-];
-
 const formatDateWithDay = (dateStr) => {
   if (!dateStr) return { formatted: "", dayName: "", ddmmyyyy: "" };
   try {
@@ -117,99 +107,115 @@ const SHIFT_TYPES = [
   { id: "custom", label: "Custom Shift (Manager Defined)", defaultStart: "09:00 AM", defaultEnd: "05:00 PM" },
 ];
 
+export const SHIFT_PALETTE = {
+  early_morning: {
+    key: "early_morning",
+    label: "Early Morning",
+    hex: "#F6DCC5",
+    isDark: false,
+    textClass: "text-slate-900",
+    subtextClass: "text-slate-600",
+    borderClass: "border-l-4 border-l-[#d4aa8c]",
+    dotClass: "bg-[#b8825e]",
+  },
+  morning: {
+    key: "morning",
+    label: "Morning",
+    hex: "#DCEEFF",
+    isDark: false,
+    textClass: "text-slate-900",
+    subtextClass: "text-slate-600",
+    borderClass: "border-l-4 border-l-[#9bc2e8]",
+    dotClass: "bg-[#6ba0d6]",
+  },
+  afternoon: {
+    key: "afternoon",
+    label: "Afternoon",
+    hex: "#FFF0C2",
+    isDark: false,
+    textClass: "text-slate-900",
+    subtextClass: "text-slate-600",
+    borderClass: "border-l-4 border-l-[#ebd07a]",
+    dotClass: "bg-[#d6af38]",
+  },
+  evening: {
+    key: "evening",
+    label: "Evening",
+    hex: "#F4DCEC",
+    isDark: false,
+    textClass: "text-slate-900",
+    subtextClass: "text-slate-600",
+    borderClass: "border-l-4 border-l-[#d6a9c8]",
+    dotClass: "bg-[#b876a3]",
+  },
+  night: {
+    key: "night",
+    label: "Night",
+    hex: "#202B4A",
+    isDark: true,
+    textClass: "text-white",
+    subtextClass: "text-slate-200",
+    borderClass: "border-l-4 border-l-[#415383]",
+    dotClass: "bg-[#6c85c2]",
+  },
+  late_night: {
+    key: "late_night",
+    label: "Late Night",
+    hex: "#17172F",
+    isDark: true,
+    textClass: "text-white",
+    subtextClass: "text-slate-200",
+    borderClass: "border-l-4 border-l-[#444473]",
+    dotClass: "bg-[#6e6ea3]",
+  },
+  expired: {
+    key: "expired",
+    label: "Expired",
+    hex: "#E2E8F0",
+    isDark: false,
+    textClass: "text-slate-700",
+    subtextClass: "text-slate-500",
+    borderClass: "border-l-4 border-l-slate-400",
+    dotClass: "bg-slate-400",
+  },
+};
+
 const getShiftTypeTheme = (row) => {
   const typeStr = (row?.shiftType || row?.type || row?.parentShift?.type || "").toLowerCase();
   const nameStr = (row?.shiftName || "").toLowerCase();
   const startMin = parseTimeToMinutes(row?.startTime);
 
-  // 1. Early Morning (approx 5 AM - 9 AM)
-  if (typeStr.includes("early_morning") || nameStr.includes("early morning") || (startMin >= 300 && startMin < 540)) {
-    return {
-      key: "early_morning",
-      type: "Early Morning",
-      label: "Early Morning",
-      rowBg: "bg-amber-100/75 hover:bg-amber-200/60",
-      accentBorder: "border-l-4 border-l-amber-500",
-      pillBg: "bg-amber-100 text-amber-900 border-amber-300",
-      dotColor: "bg-amber-500",
-    };
-  }
-
-  // 2. Morning (approx 9 AM - 1 PM)
-  if (typeStr.includes("morning") || nameStr.includes("morning") || (startMin >= 540 && startMin < 780)) {
-    return {
-      key: "morning",
-      type: "Morning",
-      label: "Morning",
-      rowBg: "bg-yellow-100/75 hover:bg-yellow-200/60",
-      accentBorder: "border-l-4 border-l-yellow-500",
-      pillBg: "bg-yellow-100 text-yellow-900 border-yellow-300",
-      dotColor: "bg-yellow-500",
-    };
-  }
-
-  // 3. Afternoon (approx 1 PM - 5 PM)
-  if (typeStr.includes("afternoon") || nameStr.includes("afternoon") || (startMin >= 780 && startMin < 1020)) {
-    return {
-      key: "afternoon",
-      type: "Afternoon",
-      label: "Afternoon",
-      rowBg: "bg-emerald-100/75 hover:bg-emerald-200/60",
-      accentBorder: "border-l-4 border-l-emerald-500",
-      pillBg: "bg-emerald-100 text-emerald-900 border-emerald-300",
-      dotColor: "bg-emerald-500",
-    };
-  }
-
-  // 4. Evening (approx 5 PM - 9 PM)
-  if (typeStr.includes("evening") || nameStr.includes("evening") || (startMin >= 1020 && startMin < 1260)) {
-    return {
-      key: "evening",
-      type: "Evening",
-      label: "Evening",
-      rowBg: "bg-indigo-100/75 hover:bg-indigo-200/60",
-      accentBorder: "border-l-4 border-l-indigo-500",
-      pillBg: "bg-indigo-100 text-indigo-900 border-indigo-300",
-      dotColor: "bg-indigo-500",
-    };
-  }
-
-  // 5. Late Night (approx 12 AM - 5 AM)
+  // 1. Late Night (12 AM - 5 AM or type)
   if (typeStr.includes("late_night") || nameStr.includes("late night") || (startMin >= 0 && startMin < 300)) {
-    return {
-      key: "late_night",
-      type: "Late Night",
-      label: "Late Night",
-      rowBg: "bg-purple-100/75 hover:bg-purple-200/60",
-      accentBorder: "border-l-4 border-l-purple-600",
-      pillBg: "bg-purple-100 text-purple-900 border-purple-300",
-      dotColor: "bg-purple-600",
-    };
+    return SHIFT_PALETTE.late_night;
+  }
+
+  // 2. Early Morning (approx 5 AM - 9 AM)
+  if (typeStr.includes("early_morning") || nameStr.includes("early morning") || (startMin >= 300 && startMin < 540)) {
+    return SHIFT_PALETTE.early_morning;
+  }
+
+  // 3. Morning (approx 9 AM - 1 PM)
+  if (typeStr.includes("morning") || nameStr.includes("morning") || (startMin >= 540 && startMin < 780)) {
+    return SHIFT_PALETTE.morning;
+  }
+
+  // 4. Afternoon (approx 1 PM - 5 PM)
+  if (typeStr.includes("afternoon") || nameStr.includes("afternoon") || (startMin >= 780 && startMin < 1020)) {
+    return SHIFT_PALETTE.afternoon;
+  }
+
+  // 5. Evening (approx 5 PM - 9 PM)
+  if (typeStr.includes("evening") || nameStr.includes("evening") || (startMin >= 1020 && startMin < 1260)) {
+    return SHIFT_PALETTE.evening;
   }
 
   // 6. Night (approx 9 PM - 12 AM)
   if (typeStr.includes("night") || nameStr.includes("night") || startMin >= 1260) {
-    return {
-      key: "night",
-      type: "Night",
-      label: "Night",
-      rowBg: "bg-violet-100/75 hover:bg-violet-200/60",
-      accentBorder: "border-l-4 border-l-violet-500",
-      pillBg: "bg-violet-100 text-violet-900 border-violet-300",
-      dotColor: "bg-violet-500",
-    };
+    return SHIFT_PALETTE.night;
   }
 
-  // 7. Custom / default
-  return {
-    key: "custom",
-    type: "Custom",
-    label: "Custom",
-    rowBg: "bg-slate-100/60 hover:bg-slate-200/50",
-    accentBorder: "border-l-4 border-l-slate-400",
-    pillBg: "bg-slate-100 text-slate-800 border-slate-300",
-    dotColor: "bg-slate-500",
-  };
+  return SHIFT_PALETTE.morning;
 };
 
 export default function ShiftManagementPage() {
@@ -227,6 +233,7 @@ export default function ShiftManagementPage() {
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showFixedPayConfirm, setShowFixedPayConfirm] = useState(false);
   const [selectedSlotForRiders, setSelectedSlotForRiders] = useState(null);
   const [riderDetailsModalData, setRiderDetailsModalData] = useState(null);
   const [editingSlot, setEditingSlot] = useState(null);
@@ -288,38 +295,6 @@ export default function ShiftManagementPage() {
   const [slotsList, setSlotsList] = useState([
     { startTime: "09:00 AM", endTime: "01:00 PM", capacity: 10 },
   ]);
-
-  // KM-based delivery earning slabs — default ₹15 / KM
-  const [earningSlabs, setEarningSlabs] = useState(defaultKmSlabs);
-
-  const addEarningSlabRow = () => {
-    if (earningSlabs.length >= 8) {
-      showToast("Maximum 8 KM earning slabs allowed");
-      return;
-    }
-    const last = earningSlabs[earningSlabs.length - 1];
-    const nextMin = last ? Number(last.maxKm) || 0 : 0;
-    const nextMax = nextMin + 1;
-    setEarningSlabs([
-      ...earningSlabs,
-      {
-        minKm: nextMin,
-        maxKm: nextMax,
-        riderAmount: RATE_PER_KM * nextMax,
-      },
-    ]);
-  };
-
-  const removeEarningSlabRow = (index) => {
-    if (earningSlabs.length <= 1) return;
-    setEarningSlabs(earningSlabs.filter((_, i) => i !== index));
-  };
-
-  const updateEarningSlabRow = (index, field, value) => {
-    const updated = [...earningSlabs];
-    updated[index] = { ...updated[index], [field]: value === "" ? "" : Number(value) };
-    setEarningSlabs(updated);
-  };
 
   // Edit slot form state
   const [editCapacity, setEditCapacity] = useState(10);
@@ -439,37 +414,11 @@ export default function ShiftManagementPage() {
 
   const handleCreateShift = async (e) => {
     e.preventDefault();
-    const deliveryEarningSlabs = earningSlabs.map((s) => ({
-      minKm: Number(s.minKm),
-      maxKm: Number(s.maxKm),
-      riderAmount: Number(s.riderAmount),
-    }));
+    setShowFixedPayConfirm(true);
+  };
 
-    for (let i = 0; i < deliveryEarningSlabs.length; i++) {
-      const s = deliveryEarningSlabs[i];
-      if (isNaN(s.minKm) || s.minKm < 0) {
-        showToast(`Slab ${i + 1}: Min KM must be 0 or more`);
-        return;
-      }
-      if (isNaN(s.maxKm) || s.maxKm <= s.minKm) {
-        showToast(`Slab ${i + 1}: Max KM must be greater than Min KM`);
-        return;
-      }
-      if (isNaN(s.riderAmount) || s.riderAmount < 0) {
-        showToast(`Slab ${i + 1}: Rider earning (₹) must be 0 or more`);
-        return;
-      }
-      for (let j = 0; j < i; j++) {
-        const a = deliveryEarningSlabs[j];
-        if (s.minKm < a.maxKm && s.maxKm > a.minKm) {
-          showToast(
-            `Slabs overlap: #${j + 1} (${a.minKm}–${a.maxKm}) and #${i + 1} (${s.minKm}–${s.maxKm}). Use 0–1, then 1–2, then 2–3.`
-          );
-          return;
-        }
-      }
-    }
-
+  const confirmCreateShift = async () => {
+    setShowFixedPayConfirm(false);
     let finalTargetDate = targetDate;
     const isAfterMidnight = isAfterMidnightTime(newShiftType, slotsList);
     const baseDate = selectedDate || getTodayString();
@@ -492,7 +441,6 @@ export default function ShiftManagementPage() {
         recurrenceMode,
         targetDate: finalTargetDate,
         daysOfWeek: selectedDaysOfWeek,
-        deliveryEarningSlabs,
       });
 
       showToast(res.data.message || "Shift created successfully!");
@@ -663,61 +611,49 @@ export default function ShiftManagementPage() {
       key: "early_morning",
       label: "Early Morning",
       count: shiftTypeCounts.early_morning,
-      dot: "bg-amber-500",
-      boxBg: "bg-amber-100 hover:bg-amber-200/80 border border-amber-300 text-amber-950",
-      activeClass: "bg-amber-200 border-2 border-amber-600 text-amber-950 ring-2 ring-amber-400/40 shadow-sm font-extrabold",
-      badgeClass: "bg-amber-200/90 text-amber-950 font-bold border border-amber-300/80",
-      activeBadgeClass: "bg-amber-300 text-amber-950 font-extrabold border border-amber-500",
+      dot: "bg-[#b8825e]",
+      hex: "#F6DCC5",
+      isDark: false,
     },
     {
       key: "morning",
       label: "Morning",
       count: shiftTypeCounts.morning,
-      dot: "bg-yellow-500",
-      boxBg: "bg-yellow-100 hover:bg-yellow-200/80 border border-yellow-300 text-yellow-950",
-      activeClass: "bg-yellow-200 border-2 border-yellow-600 text-yellow-950 ring-2 ring-yellow-400/40 shadow-sm font-extrabold",
-      badgeClass: "bg-yellow-200/90 text-yellow-950 font-bold border border-yellow-300/80",
-      activeBadgeClass: "bg-yellow-300 text-yellow-950 font-extrabold border border-yellow-500",
+      dot: "bg-[#6ba0d6]",
+      hex: "#DCEEFF",
+      isDark: false,
     },
     {
       key: "afternoon",
       label: "Afternoon",
       count: shiftTypeCounts.afternoon,
-      dot: "bg-emerald-500",
-      boxBg: "bg-emerald-100 hover:bg-emerald-200/80 border border-emerald-300 text-emerald-950",
-      activeClass: "bg-emerald-200 border-2 border-emerald-600 text-emerald-950 ring-2 ring-emerald-500/40 shadow-sm font-extrabold",
-      badgeClass: "bg-emerald-200/90 text-emerald-950 font-bold border border-emerald-300/80",
-      activeBadgeClass: "bg-emerald-300 text-emerald-950 font-extrabold border border-emerald-500",
+      dot: "bg-[#d6af38]",
+      hex: "#FFF0C2",
+      isDark: false,
     },
     {
       key: "evening",
       label: "Evening",
       count: shiftTypeCounts.evening,
-      dot: "bg-indigo-500",
-      boxBg: "bg-indigo-100 hover:bg-indigo-200/80 border border-indigo-300 text-indigo-950",
-      activeClass: "bg-indigo-200 border-2 border-indigo-600 text-indigo-950 ring-2 ring-indigo-400/40 shadow-sm font-extrabold",
-      badgeClass: "bg-indigo-200/90 text-indigo-950 font-bold border border-indigo-300/80",
-      activeBadgeClass: "bg-indigo-300 text-indigo-950 font-extrabold border border-indigo-500",
+      dot: "bg-[#b876a3]",
+      hex: "#F4DCEC",
+      isDark: false,
     },
     {
       key: "night",
       label: "Night",
       count: shiftTypeCounts.night,
-      dot: "bg-violet-500",
-      boxBg: "bg-violet-100 hover:bg-violet-200/80 border border-violet-300 text-violet-950",
-      activeClass: "bg-violet-200 border-2 border-violet-600 text-violet-950 ring-2 ring-violet-400/40 shadow-sm font-extrabold",
-      badgeClass: "bg-violet-200/90 text-violet-950 font-bold border border-violet-300/80",
-      activeBadgeClass: "bg-violet-300 text-violet-950 font-extrabold border border-violet-500",
+      dot: "bg-[#6c85c2]",
+      hex: "#202B4A",
+      isDark: true,
     },
     {
       key: "late_night",
       label: "Late Night",
       count: shiftTypeCounts.late_night,
-      dot: "bg-purple-600",
-      boxBg: "bg-purple-100 hover:bg-purple-200/80 border border-purple-300 text-purple-950",
-      activeClass: "bg-purple-200 border-2 border-purple-600 text-purple-950 ring-2 ring-purple-400/40 shadow-sm font-extrabold",
-      badgeClass: "bg-purple-200/90 text-purple-950 font-bold border border-purple-300/80",
-      activeBadgeClass: "bg-purple-300 text-purple-950 font-extrabold border border-purple-500",
+      dot: "bg-[#6e6ea3]",
+      hex: "#17172F",
+      isDark: true,
     },
   ].filter((t) => t.count > 0);
 
@@ -789,39 +725,46 @@ export default function ShiftManagementPage() {
       {/* STATUS DOTS SUMMARY & ADD SHIFT BAR */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white p-2 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Active status dot */}
+          {/* Active status dot (Red blinking pulse animation) */}
           <button
             type="button"
             onClick={() => setActiveFilterTab(activeFilterTab === "active" ? "all" : "active")}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer ${
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer ${
               activeFilterTab === "active"
-                ? "border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-500/20"
-                : "border-slate-200/80 bg-slate-50/60 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/30"
+                ? "border-red-600 bg-red-50 text-red-900 ring-1 ring-red-500/20"
+                : "border-slate-200/80 bg-slate-50/60 text-slate-700 hover:border-red-300 hover:bg-red-50/30"
             }`}
             title="Filter by Active Shifts"
           >
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Active</span>
-            <span className="rounded-md bg-emerald-200/70 px-1.5 py-0.2 text-[11px] font-bold text-emerald-900">{activeCount}</span>
+            <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+            </span>
+            <span className="font-bold text-red-600">Active</span>
+            <span className="rounded-md bg-red-100 px-1.5 py-0.2 text-[11px] font-bold text-red-900">{activeCount}</span>
           </button>
 
-          {/* Upcoming status dot */}
+          {/* Upcoming status dot (Black loading animation 3 dots) */}
           <button
             type="button"
             onClick={() => setActiveFilterTab(activeFilterTab === "upcoming" ? "all" : "upcoming")}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer ${
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer ${
               activeFilterTab === "upcoming"
-                ? "border-sky-600 bg-sky-50 text-sky-900 ring-1 ring-sky-500/20"
-                : "border-slate-200/80 bg-slate-50/60 text-slate-700 hover:border-sky-300 hover:bg-sky-50/30"
+                ? "border-slate-800 bg-slate-100 text-slate-900 ring-1 ring-slate-800/20"
+                : "border-slate-200/80 bg-slate-50/60 text-slate-700 hover:border-slate-400 hover:bg-slate-100/50"
             }`}
             title="Filter by Upcoming Shifts"
           >
-            <span className="h-2 w-2 rounded-full bg-sky-500" />
+            <span className="inline-flex items-center gap-1 py-0.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-black animate-bounce" style={{ animationDuration: "1s", animationDelay: "0ms" }} />
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-black animate-bounce" style={{ animationDuration: "1s", animationDelay: "200ms" }} />
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-black animate-bounce" style={{ animationDuration: "1s", animationDelay: "400ms" }} />
+            </span>
             <span>Upcoming</span>
-            <span className="rounded-md bg-sky-200/70 px-1.5 py-0.2 text-[11px] font-bold text-sky-900">{upcomingCount}</span>
+            <span className="rounded-md bg-slate-200 px-1.5 py-0.2 text-[11px] font-bold text-slate-900">{upcomingCount}</span>
           </button>
 
-          {/* Expired status dot */}
+          {/* Expired status dot (Grey dot) */}
           <button
             type="button"
             onClick={() => setActiveFilterTab(activeFilterTab === "expired" ? "all" : "expired")}
@@ -873,26 +816,34 @@ export default function ShiftManagementPage() {
             </span>
           </button>
 
-          {availableShiftTypes.map((type) => (
-            <button
-              key={type.key}
-              type="button"
-              onClick={() => setActiveFilterTab(activeFilterTab === type.key ? "all" : type.key)}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
-                activeFilterTab === type.key ? type.activeClass : type.boxBg
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${type.dot}`} />
-              <span>{type.label}</span>
-              <span
-                className={`rounded px-1.5 py-0.2 text-[10px] ${
-                  activeFilterTab === type.key ? type.activeBadgeClass : type.badgeClass
+          {availableShiftTypes.map((type) => {
+            const isSelected = activeFilterTab === type.key;
+            return (
+              <button
+                key={type.key}
+                type="button"
+                onClick={() => setActiveFilterTab(isSelected ? "all" : type.key)}
+                style={{ backgroundColor: type.hex, color: type.isDark ? "#FFFFFF" : "#0f172a" }}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer border ${
+                  isSelected
+                    ? "ring-2 ring-emerald-600 border-emerald-700 shadow-sm"
+                    : "border-black/10 hover:opacity-90"
                 }`}
               >
-                {type.count}
-              </span>
-            </button>
-          ))}
+                <span className={`h-2 w-2 rounded-full ${type.dot}`} />
+                <span>{type.label}</span>
+                <span
+                  className={`rounded px-1.5 py-0.2 text-[10px] ${
+                    type.isDark
+                      ? "bg-white/20 text-white font-bold"
+                      : "bg-black/10 text-slate-900 font-bold"
+                  }`}
+                >
+                  {type.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Right side controls: Date Picker, Zone dropdown, Search input — all in the same line */}
@@ -1001,65 +952,95 @@ export default function ShiftManagementPage() {
                   const isExpired = rowCategory === "expired";
                   const slotDateObj = formatDateWithDay(row.dateString);
                   const durationText = getDurationText(row.startTime, row.endTime);
-                  const theme = getShiftTypeTheme(row);
-
-                  const rowClass = isExpired
-                    ? "bg-slate-100/90 hover:bg-slate-200/80 border-l-4 border-l-slate-400 text-slate-600"
-                    : `${theme.rowBg} ${theme.accentBorder} text-slate-900`;
+                  const theme = isExpired ? SHIFT_PALETTE.expired : getShiftTypeTheme(row);
+                  const isDark = !isExpired && theme.isDark;
 
                   return (
                     <tr
                       key={row.uniqueRowKey}
-                      className={`${rowClass} transition border-b border-slate-200/70 cursor-pointer`}
+                      style={{ backgroundColor: isExpired ? "#E2E8F0" : theme.hex }}
+                      className={`${theme.borderClass} ${
+                        isDark ? "text-white" : isExpired ? "text-slate-700" : "text-slate-900"
+                      } transition border-b border-black/10 cursor-pointer hover:opacity-95`}
                       onClick={() => handleOpenSlotDetails(row.id || row.slotId)}
                     >
                       {/* SHIFT */}
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <p className={`font-bold text-xs sm:text-sm ${isExpired ? "text-slate-600" : "text-slate-900"}`}>{row.shiftName || "Shift"}</p>
+                        <p className={`font-bold text-xs sm:text-sm ${isDark ? "text-white" : isExpired ? "text-slate-600" : "text-slate-900"}`}>
+                          {row.shiftName || "Shift"}
+                        </p>
                       </td>
 
                       {/* DATE */}
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className={`font-semibold text-xs block ${isExpired ? "text-slate-600" : "text-slate-800"}`}>{slotDateObj.formatted}</span>
-                        <span className="text-slate-400 text-[11px] block mt-0.5 font-medium">({slotDateObj.dayName})</span>
+                        <span className={`font-semibold text-xs block ${isDark ? "text-white" : isExpired ? "text-slate-700" : "text-slate-800"}`}>
+                          {slotDateObj.formatted}
+                        </span>
+                        <span className={`text-[11px] block mt-0.5 font-medium ${isDark ? "text-slate-300" : "text-slate-500"}`}>
+                          ({slotDateObj.dayName})
+                        </span>
                       </td>
 
                       {/* TIME */}
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className={`font-semibold text-xs block ${isExpired ? "text-slate-600" : "text-slate-800"}`}>{row.startTime} – {row.endTime}</span>
-                        <span className="text-slate-400 text-[11px] block mt-0.5 font-medium">({durationText})</span>
+                        <span className={`font-semibold text-xs block ${isDark ? "text-white" : isExpired ? "text-slate-700" : "text-slate-800"}`}>
+                          {row.startTime} – {row.endTime}
+                        </span>
+                        <span className={`text-[11px] block mt-0.5 font-medium ${isDark ? "text-slate-300" : "text-slate-500"}`}>
+                          ({durationText})
+                        </span>
                       </td>
 
                       {/* RIDERS */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <svg className={`h-4.5 w-4.5 shrink-0 ${isExpired ? "text-slate-400" : "text-slate-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className={`h-4.5 w-4.5 shrink-0 ${isDark ? "text-slate-200" : isExpired ? "text-slate-500" : "text-slate-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
                           <div className="flex flex-col leading-tight">
-                            <span className={`font-bold text-xs ${isExpired ? "text-slate-600" : "text-slate-900"}`}>{row.bookedCount || 0}</span>
-                            <span className="text-[10px] text-slate-400 font-medium">of {row.capacity}</span>
+                            <span className={`font-bold text-xs ${isDark ? "text-white" : isExpired ? "text-slate-700" : "text-slate-900"}`}>
+                              {row.bookedCount || 0}
+                            </span>
+                            <span className={`text-[10px] font-medium ${isDark ? "text-slate-300" : "text-slate-500"}`}>
+                              of {row.capacity}
+                            </span>
                           </div>
                         </div>
                       </td>
 
-                      {/* STATUS */}
+                      {/* STATUS (PULSE RED FOR ACTIVE, 3 BLACK LOADING DOTS FOR UPCOMING, GREY FOR EXPIRED) */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         {rowCategory === "active" && (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span>Active</span>
+                          <span className="inline-flex items-center gap-2 text-xs font-bold">
+                            <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+                            </span>
+                            <span className="text-red-600 font-extrabold">Active</span>
                           </span>
                         )}
                         {rowCategory === "upcoming" && (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-800">
-                            <span className="h-2 w-2 rounded-full bg-sky-500"></span>
-                            <span>Upcoming</span>
+                          <span className="inline-flex items-center gap-2 text-xs font-bold">
+                            <span className="inline-flex items-center gap-1 py-0.5">
+                              <span
+                                className={`inline-block h-1.5 w-1.5 rounded-full bg-black animate-bounce ${isDark ? "ring-1 ring-white/70" : ""}`}
+                                style={{ animationDuration: "1s", animationDelay: "0ms" }}
+                              />
+                              <span
+                                className={`inline-block h-1.5 w-1.5 rounded-full bg-black animate-bounce ${isDark ? "ring-1 ring-white/70" : ""}`}
+                                style={{ animationDuration: "1s", animationDelay: "200ms" }}
+                              />
+                              <span
+                                className={`inline-block h-1.5 w-1.5 rounded-full bg-black animate-bounce ${isDark ? "ring-1 ring-white/70" : ""}`}
+                                style={{ animationDuration: "1s", animationDelay: "400ms" }}
+                              />
+                            </span>
+                            <span className={isDark ? "text-slate-200" : "text-slate-900"}>Upcoming</span>
                           </span>
                         )}
                         {isExpired && (
                           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                            <span className="h-2 w-2 rounded-full bg-slate-400"></span>
+                            <span className="h-2 w-2 rounded-full bg-slate-400" />
                             <span>Expired</span>
                           </span>
                         )}
@@ -1069,24 +1050,26 @@ export default function ShiftManagementPage() {
                       <td className="px-5 py-4 whitespace-nowrap">
                         {(row.bookedCount || 0) > 0 ? (
                           <div className="flex items-center gap-1.5 text-xs">
-                            <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className={`h-4 w-4 ${isDark ? "text-slate-300" : "text-slate-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            <span className="font-semibold text-slate-700">{row.bookedCount} assigned</span>
+                            <span className={`font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>
+                              {row.bookedCount} assigned
+                            </span>
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenSlotDetails(row.id || row.slotId);
                               }}
-                              className="text-emerald-700 font-semibold underline hover:text-emerald-800 ml-1 cursor-pointer"
+                              className={`${isDark ? "text-emerald-300 hover:text-white" : "text-emerald-700 hover:text-emerald-800"} font-semibold underline ml-1 cursor-pointer`}
                             >
                               View
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                            <svg className="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <div className={`flex items-center gap-1.5 text-xs ${isDark ? "text-slate-400" : "text-slate-400"}`}>
+                            <svg className={`h-4 w-4 ${isDark ? "text-slate-400" : "text-slate-300"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                             <span>-</span>
@@ -1100,7 +1083,11 @@ export default function ShiftManagementPage() {
                           <button
                             type="button"
                             onClick={() => handleOpenSlotDetails(row.id || row.slotId)}
-                            className="rounded-lg border border-emerald-600/30 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50/70 transition shadow-2xs cursor-pointer"
+                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer ${
+                              isDark
+                                ? "bg-white/15 border border-white/30 text-white hover:bg-white/25"
+                                : "bg-white border border-emerald-600/30 text-emerald-700 hover:bg-emerald-50/70"
+                            }`}
                           >
                             View Details
                           </button>
@@ -1116,18 +1103,15 @@ export default function ShiftManagementPage() {
                                   key: row.uniqueRowKey,
                                   row,
                                   top: rect.bottom + 4,
-                                  right: Math.max(12, window.innerWidth - rect.right),
+                                  right: window.innerWidth - rect.right,
                                 });
                               }
                             }}
-                            className={`flex h-8 w-8 items-center justify-center rounded-lg cursor-pointer transition active:scale-95 ${
-                              actionMenu?.key === row.uniqueRowKey
-                                ? "bg-slate-200 text-slate-900"
-                                : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            className={`p-1.5 rounded-lg transition cursor-pointer ${
+                              isDark ? "text-slate-300 hover:text-white hover:bg-white/10" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
                             }`}
-                            title="Actions"
                           >
-                            <span className="text-lg font-bold leading-none select-none">⋮</span>
+                            ⋮
                           </button>
                         </div>
                       </td>
@@ -1335,81 +1319,8 @@ export default function ShiftManagementPage() {
                 ))}
               </div>
 
-              {/* KM-BASED DELIVERY EARNING SLABS */}
-              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <label className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
-                      Delivery Charges / KM Earning Slabs
-                    </label>
-                    <p className="text-[11px] text-emerald-800/80">
-                      ₹{RATE_PER_KM}/KM — till 1 KM → ₹{RATE_PER_KM}, 1–2 KM → ₹{RATE_PER_KM * 2}. Use bands 0–1, 1–2, 2–3 (not all Min=0).
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addEarningSlabRow}
-                    className="shrink-0 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition"
-                  >
-                    + Add KM Slab
-                  </button>
-                </div>
-
-                {earningSlabs.map((slab, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 rounded-xl bg-white p-2.5 border border-emerald-200"
-                  >
-                    <span className="text-[11px] font-bold text-emerald-800 w-5">#{idx + 1}</span>
-                    <div className="flex-1 grid grid-cols-3 gap-2">
-                      <div>
-                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Min KM</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.1"
-                          required
-                          value={slab.minKm}
-                          onChange={(e) => updateEarningSlabRow(idx, "minKm", e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs font-bold text-slate-900"
-                        />
-                      </div>
-                      <div>
-                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Max KM</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.1"
-                          required
-                          value={slab.maxKm}
-                          onChange={(e) => updateEarningSlabRow(idx, "maxKm", e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs font-bold text-slate-900"
-                        />
-                      </div>
-                      <div>
-                        <span className="block text-[9px] font-bold text-emerald-700 uppercase">Earn ₹</span>
-                        <input
-                          type="number"
-                          min="0"
-                          required
-                          value={slab.riderAmount}
-                          onChange={(e) => updateEarningSlabRow(idx, "riderAmount", e.target.value)}
-                          className="w-full rounded-lg border border-emerald-200 bg-emerald-50/40 px-2 py-1.5 text-xs font-bold text-emerald-800"
-                        />
-                      </div>
-                    </div>
-                    {earningSlabs.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeEarningSlabRow(idx)}
-                        className="text-xs text-rose-600 font-bold p-1 hover:bg-rose-50 rounded"
-                        title="Remove slab"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                ))}
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
+                Rider salary or KM commission is fixed in Rider Payment Settings. Creating this shift will not change the rider&apos;s payment amount.
               </div>
 
               {/* RECURRENCE SCHEDULE */}
@@ -1502,6 +1413,21 @@ export default function ShiftManagementPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showFixedPayConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="fixed-shift-pay-title">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <h2 id="fixed-shift-pay-title" className="text-base font-bold text-slate-900">Rider payment amount is fixed</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Salary or KM commission is already set in Rider Payment Settings. This shift will not change those amounts.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowFixedPayConfirm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Review shift</button>
+              <button type="button" disabled={isSubmitting} onClick={confirmCreateShift} className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-60">{isSubmitting ? "Creating…" : "Confirm & Create Shift"}</button>
+            </div>
           </div>
         </div>
       )}

@@ -78,6 +78,8 @@
   "vehicleRcSubtitle": "पंजीकरण प्रमाणपत्र",
   "insurance": "बीमा",
   "insuranceSubtitle": "वैध वाहन बीमा",
+  "policeVerification": "पुलिस सत्यापन",
+  "policeVerificationSubtitle": "पुलिस सत्यापन प्रमाण पत्र या कॉपी",
   "bankDetails": "बैंक विवरण",
   "accountHolderName": "खाताधारक का नाम",
   "accountHolderNameHint": "बैंक खाते के अनुसार नाम",

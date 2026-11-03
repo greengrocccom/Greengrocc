@@ -117,7 +117,7 @@ async function backfillRiderEarningIfMissing(order, darkStore) {
         },
       });
     }
-  } catch (_) {}
+  } catch (_) { }
 
   return order;
 }
@@ -172,6 +172,17 @@ export const serializeRider = (r) => ({
   phone: r.phone,
   vehicleType: r.vehicleType,
   employmentType: r.employmentType || 'PART_TIME',
+  paymentActive: r.paymentActive !== false,
+  paymentMode: r.paymentMode || null,
+  monthlySalary: r.monthlySalary ?? null,
+  commissionRatePerKm: Number(r.commissionRatePerKm) || 0,
+  paymentConfigHistory: (r.paymentConfigHistory || []).map((entry) => ({
+    mode: entry.mode || null,
+    active: entry.active !== false,
+    monthlySalary: entry.monthlySalary ?? null,
+    commissionRatePerKm: Number(entry.commissionRatePerKm) || 0,
+    changedAt: entry.changedAt || null,
+  })),
   status: r.status,
   pendingCashAmount: Number(r.pendingCashAmount) || 0,
   city: r.city,
@@ -189,15 +200,15 @@ export const serializeRider = (r) => ({
   verificationStatus: r.verificationStatus || "pending",
   verifiedAt: r.verifiedAt,
   verificationNote: r.verificationNote || "",
-  isActive: r.isActive,
+  isActive: r.isActive !== false,
   createdAt: r.createdAt,
   currentLocation:
     r.currentLocation?.lat != null && r.currentLocation?.lng != null
       ? {
-          lat: r.currentLocation.lat,
-          lng: r.currentLocation.lng,
-          updatedAt: r.currentLocation.updatedAt,
-        }
+        lat: r.currentLocation.lat,
+        lng: r.currentLocation.lng,
+        updatedAt: r.currentLocation.updatedAt,
+      }
       : null,
   activeOrderId: r.activeOrderId ? String(r.activeOrderId) : null,
 });
@@ -365,8 +376,8 @@ export const listIncomingOrders = async (req, res, next) => {
 
     const settlements = deliveredCodIds.length
       ? await CashSettlement.find({ orderId: { $in: deliveredCodIds } }).select(
-          "orderId amount status collectedAt submittedAt confirmedAt"
-        )
+        "orderId amount status collectedAt submittedAt confirmedAt"
+      )
       : [];
     const settlementMap = new Map(
       settlements.map((s) => [s.orderId.toString(), s])
@@ -407,31 +418,31 @@ export const listIncomingOrders = async (req, res, next) => {
           ...json,
           assignedRider: assigned
             ? {
-                id: assigned._id.toString(),
-                name: assigned.name,
-                phone: assigned.phone,
-                location: getLatestLocation(o, assigned),
-              }
+              id: assigned._id.toString(),
+              name: assigned.name,
+              phone: assigned.phone,
+              location: getLatestLocation(o, assigned),
+            }
             : null,
           offeredRider: offered
             ? { id: offered._id.toString(), name: offered.name, phone: offered.phone }
             : null,
           cashSettlement: settlement
             ? {
-                amount: settlement.amount,
-                status: settlement.status,
-                collectedAt: settlement.collectedAt,
-                submittedAt: settlement.submittedAt,
-                confirmedAt: settlement.confirmedAt,
-              }
+              amount: settlement.amount,
+              status: settlement.status,
+              collectedAt: settlement.collectedAt,
+              submittedAt: settlement.submittedAt,
+              confirmedAt: settlement.confirmedAt,
+            }
             : null,
           collectFromDriver:
             isCod && o.status === "delivered" && cashStatus !== "COMPLETED"
               ? {
-                  amount: cashAmount,
-                  driverName: assigned?.name || "Driver",
-                  status: cashStatus || "PENDING",
-                }
+                amount: cashAmount,
+                driverName: assigned?.name || "Driver",
+                status: cashStatus || "PENDING",
+              }
               : null,
         };
       }),
@@ -559,7 +570,7 @@ export const packOrder = async (req, res, next) => {
     }
 
     setTimeout(() => {
-      flushExpiredBatchWindows(manager._id).catch(() => {});
+      flushExpiredBatchWindows(manager._id).catch(() => { });
     }, BATCHING_WAIT_MS + 500);
 
     const stockMap = await stockMapForManager(manager._id);
@@ -860,7 +871,7 @@ export const createDemoStoreOrder = async (req, res, next) => {
         customerPhone: newOrder.customerPhone,
         itemsCount: newOrder.items.length,
       });
-    } catch (e) {}
+    } catch (e) { }
 
     const stockMap = await stockMapForManager(manager._id);
     return res.json({
@@ -917,6 +928,7 @@ export const listRiders = async (req, res, next) => {
             },
           },
           totalEarning: { $sum: { $ifNull: ["$riderDeliveryEarning", 0] } },
+          totalDistanceKm: { $sum: { $ifNull: ["$deliveryDistanceKm", 0] } },
         },
       },
     ]);
@@ -930,6 +942,7 @@ export const listRiders = async (req, res, next) => {
         const totalDelivered = stats?.totalDelivered || r.todayCompletedOrders || 0;
         const totalCancelled = stats?.totalCancelled || 0;
         const totalAssigned = stats?.totalAssigned || totalDelivered;
+        const totalDistanceKm = Math.round((stats?.totalDistanceKm || (totalDelivered * 6.5)) * 10) / 10;
         const onTimeRate = totalDelivered > 0
           ? Math.min(100, Math.max(80, Math.round(((totalDelivered - totalCancelled) / Math.max(1, totalDelivered)) * 100)))
           : 98;
@@ -941,6 +954,7 @@ export const listRiders = async (req, res, next) => {
           totalAccepted: totalDelivered + (r.activeOrderId ? 1 : 0),
           totalCancelled,
           totalAssigned,
+          totalDistanceKm,
           onTimeRate,
         };
       }),
@@ -1001,6 +1015,7 @@ export const verifyDriver = async (req, res, next) => {
       "license",
       "rc",
       "insurance",
+      "policeVerification",
       "selfie",
       "bankDetails",
       "liveness",
@@ -1024,6 +1039,7 @@ export const verifyDriver = async (req, res, next) => {
         "license",
         "rc",
         "insurance",
+        "policeVerification",
       ]) {
         if (!rider.documents[key]) rider.documents[key] = {};
         rider.documents[key].status = "verified";
@@ -1041,41 +1057,41 @@ export const verifyDriver = async (req, res, next) => {
       rider.verificationStatus = "rejected";
     }
 
-      rider.verifiedAt = new Date();
-      rider.verificationNote = note;
-      await rider.save();
+    rider.verifiedAt = new Date();
+    rider.verificationNote = note;
+    await rider.save();
 
-      if (decision === "approved") {
-        try {
-          const { notifyVerificationCompleted } = await import(
-            "../services/RiderNotificationService.js"
-          );
-          await notifyVerificationCompleted(rider._id);
-        } catch (err) {
-          console.warn("[verifyDriver] notification failed:", err.message);
-        }
-      }
-
+    if (decision === "approved") {
       try {
-        getIO().to(`store_${manager._id}`).emit("rider_document_updated", {
-          riderId: rider._id.toString(),
-          documentType: "verification",
-          verificationStatus: rider.verificationStatus,
-          updatedAt: new Date().toISOString(),
-        });
-        getIO().to(`rider_${rider._id}`).emit("document_review_update", {
-          documentType: "verification",
-          verificationStatus: rider.verificationStatus,
-          remarks: note,
-        });
-        getIO().to(`rider:${rider._id}`).emit("document_review_update", {
-          documentType: "verification",
-          verificationStatus: rider.verificationStatus,
-          remarks: note,
-        });
+        const { notifyVerificationCompleted } = await import(
+          "../services/RiderNotificationService.js"
+        );
+        await notifyVerificationCompleted(rider._id);
       } catch (err) {
-        console.warn("[socket] verifyDriver emit failed:", err.message);
+        console.warn("[verifyDriver] notification failed:", err.message);
       }
+    }
+
+    try {
+      getIO().to(`store_${manager._id}`).emit("rider_document_updated", {
+        riderId: rider._id.toString(),
+        documentType: "verification",
+        verificationStatus: rider.verificationStatus,
+        updatedAt: new Date().toISOString(),
+      });
+      getIO().to(`rider_${rider._id}`).emit("document_review_update", {
+        documentType: "verification",
+        verificationStatus: rider.verificationStatus,
+        remarks: note,
+      });
+      getIO().to(`rider:${rider._id}`).emit("document_review_update", {
+        documentType: "verification",
+        verificationStatus: rider.verificationStatus,
+        remarks: note,
+      });
+    } catch (err) {
+      console.warn("[socket] verifyDriver emit failed:", err.message);
+    }
 
     return res.json({
       success: true,
@@ -1493,7 +1509,7 @@ export const notifyCustomerOfDelay = async (req, res, next) => {
         message,
         at: new Date().toISOString(),
       });
-    } catch (_) {}
+    } catch (_) { }
 
     return res.json({
       success: true,

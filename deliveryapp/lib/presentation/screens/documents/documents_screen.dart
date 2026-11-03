@@ -33,6 +33,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     ('rc', 'Vehicle RC', Icons.two_wheeler_outlined),
     ('insurance', 'Insurance', Icons.security_outlined),
     ('passport', 'Passport', Icons.badge_outlined),
+    ('policeVerification', 'Police Verification', Icons.local_police_outlined),
   ];
 
   ImageProvider? _imageFor(Map<String, dynamic> map) {

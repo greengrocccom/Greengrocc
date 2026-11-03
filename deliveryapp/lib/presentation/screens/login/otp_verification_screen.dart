@@ -106,8 +106,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       );
       // New registrations choose Part-Time / Full-Time before vehicle selection.
       if (kFullTimeSignupEnabled &&
-          _isRegister &&
-          route == AppRoutes.selectVehicle) {
+          (_isRegister ||
+              boy.onboardingStep == 'employment' ||
+              boy.onboardingStep == 'employment_type') &&
+          (route == AppRoutes.selectVehicle || route == AppRoutes.selectEmploymentType)) {
         route = AppRoutes.selectEmploymentType;
       }
       Navigator.pushNamedAndRemoveUntil(

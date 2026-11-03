@@ -26,12 +26,12 @@ import PoliciesPage from "./pages/policies/PoliciesPage";
 import AnnouncementsPage from "./pages/announcements/AnnouncementsPage";
 import SupportPage from "./pages/support/SupportPage";
 import MeetingsPage from "./pages/meetings/MeetingsPage";
-import FullTimeSalaryPage from "./pages/fulltime/FullTimeSalaryPage";
 import FullTimeRulesPage from "./pages/fulltime/FullTimeRulesPage";
 import FullTimeShiftManagementPage from "./pages/shifts/FullTimeShiftManagementPage";
 import CreateFullTimeShiftPage from "./pages/shifts/CreateFullTimeShiftPage";
-import FullTimeAttendancePage from "./pages/fulltime/FullTimeAttendancePage";
 import FullTimeAssignOrdersPage from "./pages/fulltime/FullTimeAssignOrdersPage";
+import MonthlyPaymentsPage from "./pages/fulltime/MonthlyPaymentsPage";
+import RiderDistanceReportPage from "./pages/fulltime/RiderDistanceReportPage";
 
 function App() {
   return (
@@ -52,6 +52,8 @@ function App() {
               <Route path="/stock" element={<StockPage />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/drivers" element={<DriversPage />} />
+              <Route path="/drivers/fulltime" element={<DriversPage employmentType="FULL_TIME" />} />
+              <Route path="/drivers/parttime" element={<DriversPage employmentType="PART_TIME" />} />
               <Route path="/drivers/:driverId" element={<DriverDetailPage />} />
               <Route path="/drivers/pending" element={<PendingDriversPage />} />
               <Route path="/drivers/pending/:id" element={<PendingDriverDetailPage />} />
@@ -67,10 +69,12 @@ function App() {
               <Route path="/support" element={<SupportPage />} />
               <Route path="/leave" element={<ApplyLeavePage />} />
               <Route path="/meetings" element={<MeetingsPage />} />
-              <Route path="/fulltime/salary" element={<FullTimeSalaryPage />} />
+              <Route path="/fulltime/salary" element={<Navigate to="/shifts/fulltime" replace />} />
               <Route path="/fulltime/rules" element={<FullTimeRulesPage />} />
-              <Route path="/fulltime/attendance" element={<FullTimeAttendancePage />} />
+              <Route path="/fulltime/attendance" element={<Navigate to="/shifts/fulltime" replace />} />
               <Route path="/fulltime/assign-orders" element={<FullTimeAssignOrdersPage />} />
+              <Route path="/payments/monthly" element={<MonthlyPaymentsPage />} />
+              <Route path="/payments/distance" element={<RiderDistanceReportPage />} />
             </Route>
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

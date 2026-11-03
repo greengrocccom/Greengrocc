@@ -5,7 +5,6 @@ import { managerApi } from "../../api/managerApi";
 import {
   DayPicker,
   apiError,
-  formatMoney,
   inputCls,
   labelCls,
   to24h,
@@ -16,26 +15,30 @@ const EMPTY = {
   startTime: "09:00",
   endTime: "18:00",
   workingDays: [1, 2, 3, 4, 5, 6],
-  requireAttendance: true,
-  requireLocationValidation: true,
-  attendanceRadiusMeters: "",
-  compulsoryDailyOnlineHours: "",
   notes: "",
   driverIds: [],
-  monthlySalary: "",
-  leavePolicyEnabled: false,
-  paidLeavesPerMonth: 2,
-  unpaidLeaveDeductionPerDay: "",
-  latePenaltyEnabled: false,
-  lateAfterHours: 2,
-  lateAfterMins: 0,
-  latePenaltyAmount: "",
+  scheduleMode: "full_week",
+  scheduleDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()),
+  excludedDates: [],
 };
 
-const formatLateThreshold = (h, m) =>
-  [Number(h) ? `${Number(h)} hr${Number(h) > 1 ? "s" : ""}` : "", Number(m) ? `${Number(m)} min` : ""]
-    .filter(Boolean)
-    .join(" ") || "0 min";
+const dateString = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+function scheduleRange(mode, selectedDate) {
+  const date = new Date(`${selectedDate}T12:00:00`);
+  if (mode === "single_day") return { start: selectedDate, end: selectedDate };
+  if (mode === "full_month") {
+    return {
+      start: dateString(new Date(date.getFullYear(), date.getMonth(), 1)),
+      end: dateString(new Date(date.getFullYear(), date.getMonth() + 1, 0)),
+    };
+  }
+  const start = new Date(date);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  return { start: dateString(start), end: dateString(end) };
+}
 
 export default function CreateFullTimeShiftPage() {
   const { id } = useParams();
@@ -43,23 +46,21 @@ export default function CreateFullTimeShiftPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY);
   const [drivers, setDrivers] = useState([]);
-  const [storeSalary, setStoreSalary] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showFixedPayConfirm, setShowFixedPayConfirm] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [driversRes, shiftsRes, configRes] = await Promise.all([
+        const [driversRes, shiftsRes] = await Promise.all([
           managerApi.getFullTimeDrivers(),
           isEdit ? managerApi.getFullTimeShifts() : Promise.resolve(null),
-          managerApi.getFullTimeConfig().catch(() => null),
         ]);
         if (cancelled) return;
         setDrivers(driversRes.data.drivers || []);
-        setStoreSalary(Number(configRes?.data?.fullTimeMonthlySalary) || 0);
         if (isEdit) {
           const shift = (shiftsRes?.data.shifts || []).find((s) => s.id === id);
           if (!shift) {
@@ -70,20 +71,11 @@ export default function CreateFullTimeShiftPage() {
               startTime: to24h(shift.startTime),
               endTime: to24h(shift.endTime),
               workingDays: shift.workingDays || [],
-              requireAttendance: shift.requireAttendance,
-              requireLocationValidation: shift.requireLocationValidation,
-              attendanceRadiusMeters: shift.attendanceRadiusMeters ?? "",
-              compulsoryDailyOnlineHours: shift.compulsoryDailyOnlineHours ?? "",
               notes: shift.notes || "",
               driverIds: shift.driverIds || [],
-              monthlySalary: shift.monthlySalary ?? "",
-              leavePolicyEnabled: Boolean(shift.leavePolicyEnabled),
-              paidLeavesPerMonth: shift.paidLeavesPerMonth ?? 0,
-              unpaidLeaveDeductionPerDay: shift.unpaidLeaveDeductionPerDay ?? "",
-              latePenaltyEnabled: Boolean(shift.latePenaltyEnabled),
-              lateAfterHours: Math.floor((shift.lateAfterMinutes ?? 120) / 60),
-              lateAfterMins: (shift.lateAfterMinutes ?? 120) % 60,
-              latePenaltyAmount: shift.latePenaltyAmount || "",
+              scheduleMode: shift.scheduleMode || "full_week",
+              scheduleDate: shift.scheduleStartDate || EMPTY.scheduleDate,
+              excludedDates: shift.excludedDates || [],
             });
           }
         }
@@ -99,6 +91,7 @@ export default function CreateFullTimeShiftPage() {
   }, [id, isEdit]);
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+  const activeRange = scheduleRange(form.scheduleMode, form.scheduleDate || EMPTY.scheduleDate);
   const toggleDriver = (driverId) =>
     set(
       "driverIds",
@@ -106,39 +99,40 @@ export default function CreateFullTimeShiftPage() {
         ? form.driverIds.filter((d) => d !== driverId)
         : [...form.driverIds, driverId]
     );
+  const availableDrivers = drivers.filter((driver) => !driver.shift || driver.shift.id === id);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.workingDays.length) {
+    if (form.scheduleMode !== "single_day" && !form.workingDays.length) {
       setError("Select at least one working day");
       return;
     }
-    const lateAfterMinutes = Number(form.lateAfterHours || 0) * 60 + Number(form.lateAfterMins || 0);
-    if (form.latePenaltyEnabled) {
-      if (lateAfterMinutes < 1) {
-        setError("Set how late (hours / minutes) before the penalty applies");
-        return;
-      }
-      if (!(Number(form.latePenaltyAmount) > 0)) {
-        setError("Enter the amount to cut for late attendance");
-        return;
-      }
+    if (!form.scheduleDate) {
+      setError("Choose a date for this shift schedule");
+      return;
     }
+    setError("");
+    setShowFixedPayConfirm(true);
+  };
+
+  const confirmSave = async () => {
+    setShowFixedPayConfirm(false);
     setSaving(true);
     setError("");
-    const { lateAfterHours, lateAfterMins, ...rest } = form;
+    const range = scheduleRange(form.scheduleMode, form.scheduleDate);
+    const selectedDate = new Date(`${form.scheduleDate}T12:00:00`);
     const payload = {
-      ...rest,
-      attendanceRadiusMeters:
-        form.attendanceRadiusMeters === "" ? null : Number(form.attendanceRadiusMeters),
-      compulsoryDailyOnlineHours:
-        form.compulsoryDailyOnlineHours === "" ? null : Number(form.compulsoryDailyOnlineHours),
-      monthlySalary: form.monthlySalary === "" ? null : Number(form.monthlySalary),
-      paidLeavesPerMonth: Number(form.paidLeavesPerMonth || 0),
-      unpaidLeaveDeductionPerDay:
-        form.unpaidLeaveDeductionPerDay === "" ? null : Number(form.unpaidLeaveDeductionPerDay),
-      lateAfterMinutes: lateAfterMinutes || 120,
-      latePenaltyAmount: Number(form.latePenaltyAmount || 0),
+      ...form,
+      workingDays: form.scheduleMode === "single_day" ? [selectedDate.getDay()] : form.workingDays,
+      scheduleStartDate: range.start,
+      scheduleEndDate: range.end,
+      monthlySalary: null,
+      leavePolicyEnabled: false,
+      paidLeavesPerMonth: 0,
+      unpaidLeaveDeductionPerDay: null,
+      latePenaltyEnabled: false,
+      lateAfterMinutes: 120,
+      latePenaltyAmount: 0,
     };
     try {
       if (isEdit) await managerApi.updateFullTimeShift(id, payload);
@@ -204,85 +198,71 @@ export default function CreateFullTimeShiftPage() {
             </div>
           </div>
 
-          <div>
-            <label className={labelCls}>Working Days</label>
-            <DayPicker value={form.workingDays} onChange={(v) => set("workingDays", v)} />
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+            <div>
+              <label className={labelCls}>Schedule Period</label>
+              <div className="inline-flex flex-wrap rounded-lg border border-slate-200 bg-white p-1">
+                {[{ id: "single_day", label: "Single day" }, { id: "full_week", label: "Week" }, { id: "full_month", label: "Month" }].map((mode) => (
+                  <button key={mode.id} type="button" onClick={() => set("scheduleMode", mode.id)} className={`rounded-md px-4 py-2 text-xs font-bold ${form.scheduleMode === mode.id ? "bg-emerald-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>{mode.label}</button>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className={labelCls}>{form.scheduleMode === "full_month" ? "Choose month" : form.scheduleMode === "full_week" ? "Choose a date in the week" : "Shift date"}</label>
+                <input type={form.scheduleMode === "full_month" ? "month" : "date"} value={form.scheduleMode === "full_month" ? form.scheduleDate.slice(0, 7) : form.scheduleDate} onChange={(e) => set("scheduleDate", form.scheduleMode === "full_month" ? `${e.target.value}-01` : e.target.value)} className={inputCls} required />
+                <p className="mt-1 text-[11px] text-slate-500">{form.scheduleMode === "full_week" ? "The selected week runs Monday through Sunday." : form.scheduleMode === "full_month" ? "The shift runs for the selected calendar month." : "This shift runs only on the selected date."}</p>
+              </div>
+              {form.scheduleMode !== "single_day" && <div>
+                <label className={labelCls}>Working Days</label>
+                <DayPicker value={form.workingDays} onChange={(v) => set("workingDays", v)} />
+              </div>}
+            </div>
+            {form.scheduleMode !== "single_day" && <div className="max-w-sm">
+              <label className={labelCls}>Skip a date (optional)</label>
+              <div className="flex gap-2">
+                <input aria-label="Date to skip" type="date" min={activeRange.start} max={activeRange.end} id="full-time-skip-date" className={inputCls} />
+                <button type="button" onClick={() => { const input = document.getElementById("full-time-skip-date"); if (input?.value && !form.excludedDates.includes(input.value)) set("excludedDates", [...form.excludedDates, input.value].sort()); if (input) input.value = ""; }} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100">Add date</button>
+              </div>
+              {form.excludedDates.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{form.excludedDates.map((day) => <span key={day} className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Skip {day}<button type="button" aria-label={`Remove skipped date ${day}`} onClick={() => set("excludedDates", form.excludedDates.filter((value) => value !== day))} className="font-bold">×</button></span>)}</div>}
+              <p className="mt-1 text-[11px] text-slate-500">Skipped dates apply within the selected week or month.</p>
+            </div>}
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.requireAttendance}
-                onChange={(e) => set("requireAttendance", e.target.checked)}
-              />
-              Attendance required
-            </label>
-            <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.requireLocationValidation}
-                onChange={(e) => set("requireLocationValidation", e.target.checked)}
-              />
-              Must be at dark store (GPS)
-            </label>
-            <div>
-              <input
-                type="number"
-                min="10"
-                placeholder="Radius (m) — blank uses rule default"
-                value={form.attendanceRadiusMeters}
-                onChange={(e) => set("attendanceRadiusMeters", e.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <input
-                type="number"
-                min="1"
-                max="24"
-                step="0.5"
-                placeholder="Compulsory Daily Online Hours (e.g. 8)"
-                value={form.compulsoryDailyOnlineHours}
-                onChange={(e) => set("compulsoryDailyOnlineHours", e.target.value)}
-                className={inputCls}
-              />
-            </div>
-          </div>
-
-          <SalaryLeaveSection form={form} set={set} storeSalary={storeSalary} />
-
           <div>
-            <label className={labelCls}>Applicable Full-Time Drivers</label>
-            {drivers.length === 0 ? (
-              <p className="text-xs text-slate-500">No Full-Time drivers yet.</p>
+            <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <label className={labelCls}>Available Full-Time Riders</label>
+                <p className="text-[11px] text-slate-500">Only riders without another assigned shift are listed.</p>
+              </div>
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
+                {availableDrivers.length} available · {form.driverIds.length} selected
+              </span>
+            </div>
+            {availableDrivers.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-xs font-medium text-slate-500">No unassigned Full-Time riders are available.</p>
             ) : (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {drivers.map((d) => {
-                  const otherShift = d.shift && d.shift.id !== id ? d.shift.name : null;
+                {availableDrivers.map((d) => {
                   return (
                     <label
                       key={d.id}
-                      className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-xs transition ${
+                      className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-xs transition ${
                         form.driverIds.includes(d.id)
-                          ? "border-emerald-400 bg-emerald-50"
-                          : "border-slate-200 bg-white hover:bg-slate-50"
+                          ? "border-emerald-400 bg-emerald-50 shadow-sm"
+                          : "border-slate-200 bg-white hover:border-emerald-200 hover:bg-slate-50"
                       }`}
                     >
                       <input
                         type="checkbox"
-                        className="mt-0.5"
+                        className="mt-0.5 h-4 w-4 accent-emerald-600"
                         checked={form.driverIds.includes(d.id)}
                         onChange={() => toggleDriver(d.id)}
                       />
                       <span>
                         <span className="block font-bold text-slate-900">{d.name}</span>
                         <span className="block text-slate-500">{d.phone}</span>
-                        {otherShift && (
-                          <span className="block text-[10px] font-semibold text-amber-700">
-                            Currently on “{otherShift}” — will be moved
-                          </span>
-                        )}
+                        <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">Available</span>
                       </span>
                     </label>
                   );
@@ -318,164 +298,21 @@ export default function CreateFullTimeShiftPage() {
           </div>
         </form>
       )}
+      {showFixedPayConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="fixed-pay-title">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <h2 id="fixed-pay-title" className="text-base font-bold text-slate-900">Rider payment is fixed</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Salary or KM commission is configured on each rider&apos;s payment settings. This shift will not change their pay amount.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowFixedPayConfirm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Review shift</button>
+              <button type="button" disabled={saving} onClick={confirmSave} className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-60">{saving ? "Saving…" : isEdit ? "Confirm Changes" : "Confirm & Create Shift"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }
 
-function SalaryLeaveSection({ form, set, storeSalary }) {
-  const salary = form.monthlySalary === "" ? storeSalary : Number(form.monthlySalary) || 0;
-  const daysPerMonth = Math.round((form.workingDays.length || 0) * 4.33);
-  const autoPerDay = daysPerMonth ? Math.round(salary / daysPerMonth) : 0;
-  const perDay =
-    form.unpaidLeaveDeductionPerDay === "" ? autoPerDay : Number(form.unpaidLeaveDeductionPerDay) || 0;
-  const paid = Number(form.paidLeavesPerMonth) || 0;
-  const lateLabel = formatLateThreshold(form.lateAfterHours, form.lateAfterMins);
-  const toggleCls =
-    "flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer select-none";
-
-  return (
-    <div className="space-y-4 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
-      <div>
-        <h3 className="text-sm font-bold text-slate-900">Salary &amp; Leave Policy</h3>
-        <p className="text-[11px] text-slate-500">
-          All optional. Drivers on this shift see these rules and their salary breakdown in the Delivery App.
-        </p>
-      </div>
-
-      <div className="max-w-xs">
-        <label className={labelCls}>Monthly Salary (₹)</label>
-        <input
-          type="number"
-          min="0"
-          step="100"
-          placeholder={`Blank = store salary (${formatMoney(storeSalary)})`}
-          value={form.monthlySalary}
-          onChange={(e) => set("monthlySalary", e.target.value)}
-          className={inputCls}
-        />
-        <p className="mt-1 text-[10px] text-slate-400">A driver&apos;s personal salary override still takes priority.</p>
-      </div>
-
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3.5">
-        <label className={toggleCls}>
-          <input
-            type="checkbox"
-            checked={form.leavePolicyEnabled}
-            onChange={(e) => set("leavePolicyEnabled", e.target.checked)}
-          />
-          Monthly leave policy
-        </label>
-        {form.leavePolicyEnabled && (
-          <>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className={labelCls}>Paid Leaves / Month</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {[0, 1, 2, 3, 4].map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => set("paidLeavesPerMonth", n)}
-                      className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
-                        paid === n
-                          ? "border-emerald-600 bg-emerald-600 text-white"
-                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                  <input
-                    type="number"
-                    min="0"
-                    max="31"
-                    value={form.paidLeavesPerMonth}
-                    onChange={(e) => set("paidLeavesPerMonth", e.target.value)}
-                    className="w-16 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs font-bold text-slate-900 focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className={labelCls}>Cut per Unpaid Leave (₹)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="10"
-                  placeholder={`Blank = 1 day salary (~${formatMoney(autoPerDay)})`}
-                  value={form.unpaidLeaveDeductionPerDay}
-                  onChange={(e) => set("unpaidLeaveDeductionPerDay", e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-            </div>
-            <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
-              Missing attendance on a working day counts as a leave. First <b>{paid}</b> leave
-              {paid === 1 ? "" : "s"} each month {paid === 1 ? "is" : "are"} paid; every extra leave cuts{" "}
-              <b>{formatMoney(perDay)}</b>
-              {form.unpaidLeaveDeductionPerDay === "" && " (salary ÷ working days that month)"}.
-            </p>
-          </>
-        )}
-      </div>
-
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3.5">
-        <label className={toggleCls}>
-          <input
-            type="checkbox"
-            checked={form.latePenaltyEnabled}
-            onChange={(e) => set("latePenaltyEnabled", e.target.checked)}
-          />
-          Late attendance penalty
-        </label>
-        {form.latePenaltyEnabled && (
-          <>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div>
-                <label className={labelCls}>Late By (Hours)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="23"
-                  value={form.lateAfterHours}
-                  onChange={(e) => set("lateAfterHours", e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className={labelCls}>+ Minutes</label>
-                <select
-                  value={form.lateAfterMins}
-                  onChange={(e) => set("lateAfterMins", Number(e.target.value))}
-                  className={inputCls}
-                >
-                  {[0, 15, 30, 45].map((m) => (
-                    <option key={m} value={m}>
-                      {m} min
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Amount to Cut (₹)</label>
-                <input
-                  type="number"
-                  min="1"
-                  step="10"
-                  placeholder="e.g. 100"
-                  value={form.latePenaltyAmount}
-                  onChange={(e) => set("latePenaltyAmount", e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-            </div>
-            <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
-              Marking attendance <b>{lateLabel}</b> or more after{" "}
-              <b>{form.startTime || "shift start"}</b> cuts{" "}
-              <b>{formatMoney(form.latePenaltyAmount)}</b> per late day.
-            </p>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}

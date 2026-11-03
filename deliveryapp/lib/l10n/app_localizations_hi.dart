@@ -247,6 +247,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get insuranceSubtitle => 'वैध वाहन बीमा';
 
   @override
+  String get policeVerification => 'पुलिस सत्यापन';
+
+  @override
+  String get policeVerificationSubtitle => 'पुलिस सत्यापन प्रमाण पत्र या कॉपी';
+
+  @override
   String get bankDetails => 'बैंक विवरण';
 
   @override

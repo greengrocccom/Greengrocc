@@ -13,6 +13,7 @@ const CHECK_ITEMS = [
   { key: "license", label: "Driving license", type: "doc" },
   { key: "rc", label: "Vehicle RC", type: "doc" },
   { key: "insurance", label: "Insurance", type: "doc" },
+  { key: "policeVerification", label: "Police Verification", type: "doc" },
   { key: "selfie", label: "Selfie Photo", type: "selfie" },
   { key: "bankDetails", label: "Bank details", type: "bank" },
   { key: "liveness", label: "Liveness check", type: "liveness" },

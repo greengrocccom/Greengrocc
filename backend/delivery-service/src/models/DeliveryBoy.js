@@ -108,6 +108,8 @@ const deliveryBoySchema = new mongoose.Schema(
       license: { type: documentMetaSchema, default: () => ({}) },
       rc: { type: documentMetaSchema, default: () => ({}) },
       insurance: { type: documentMetaSchema, default: () => ({}) },
+      police_verification: { type: documentMetaSchema, default: () => ({}) },
+      policeVerification: { type: documentMetaSchema, default: () => ({}) },
     },
 
     selfie: {
@@ -279,6 +281,8 @@ const deliveryBoySchema = new mongoose.Schema(
     onboardingStep: {
       type: String,
       enum: [
+        "employment_type",
+        "employment",
         "vehicle",
         "city",
         "area",
@@ -286,7 +290,7 @@ const deliveryBoySchema = new mongoose.Schema(
         "selfie",
         "home",
       ],
-      default: "vehicle",
+      default: "employment_type",
     },
     employmentType: {
       type: String,
@@ -295,6 +299,18 @@ const deliveryBoySchema = new mongoose.Schema(
     },
     /** Monthly salary set by admin (any rider) or the store (full-time override). */
     monthlySalary: { type: Number, default: null, min: 0 },
+    /** Manager controlled pay configuration; order snapshots preserve the rate used at completion. */
+    paymentActive: { type: Boolean, default: true },
+    paymentMode: {
+      type: String,
+      enum: ["monthly_salary", "per_km_commission", null],
+      default: null,
+    },
+    commissionRatePerKm: { type: Number, default: 0, min: 0 },
+    paymentConfigHistory: {
+      type: [{ mode: String, active: Boolean, monthlySalary: Number, commissionRatePerKm: Number, changedAt: { type: Date, default: Date.now }, changedBy: { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryManager", default: null } }],
+      default: [],
+    },
     /** Admin announcements already copied into this rider's notification inbox. */
     syncedAnnouncementIds: { type: [String], default: [] },
     /** Salary as set on the assigned slot (day / week / month); monthlySalary holds the monthly equivalent. */
@@ -382,10 +398,10 @@ deliveryBoySchema.methods.toSafeJSON = function toSafeJSON() {
     currentLocation:
       this.currentLocation?.lat != null && this.currentLocation?.lng != null
         ? {
-            lat: this.currentLocation.lat,
-            lng: this.currentLocation.lng,
-            updatedAt: this.currentLocation.updatedAt,
-          }
+          lat: this.currentLocation.lat,
+          lng: this.currentLocation.lng,
+          updatedAt: this.currentLocation.updatedAt,
+        }
         : null,
     todayOnlineMinutes: this.todayOnlineMinutes || 0,
     todayOnlineDate: this.todayOnlineDate || "",
@@ -400,10 +416,10 @@ deliveryBoySchema.methods.toSafeJSON = function toSafeJSON() {
     lastAssignedAt: this.lastAssignedAt || this.lastOrderAssignedAt,
     currentBooking: this.currentBooking?.shiftId
       ? {
-          shiftId: this.currentBooking.shiftId.toString(),
-          slotId: this.currentBooking.slotId ? this.currentBooking.slotId.toString() : "",
-          bookingId: this.currentBooking.bookingId ? this.currentBooking.bookingId.toString() : "",
-        }
+        shiftId: this.currentBooking.shiftId.toString(),
+        slotId: this.currentBooking.slotId ? this.currentBooking.slotId.toString() : "",
+        bookingId: this.currentBooking.bookingId ? this.currentBooking.bookingId.toString() : "",
+      }
       : null,
     activeOrderId: this.activeOrderId ? this.activeOrderId.toString() : null,
     isActive: this.isActive,
@@ -414,6 +430,16 @@ deliveryBoySchema.methods.toSafeJSON = function toSafeJSON() {
     onboardingStep: this.onboardingStep,
     employmentType: this.employmentType || 'PART_TIME',
     monthlySalary: this.monthlySalary ?? null,
+    paymentActive: this.paymentActive !== false,
+    paymentMode: this.paymentMode || null,
+    commissionRatePerKm: Number(this.commissionRatePerKm) || 0,
+    paymentConfigHistory: (this.paymentConfigHistory || []).map((entry) => ({
+      mode: entry.mode || null,
+      active: entry.active !== false,
+      monthlySalary: entry.monthlySalary ?? null,
+      commissionRatePerKm: Number(entry.commissionRatePerKm) || 0,
+      changedAt: entry.changedAt || null,
+    })),
     salaryAmount: this.salaryAmount ?? this.monthlySalary ?? null,
     salaryPeriod: this.salaryAmount != null ? this.salaryPeriod || "month" : "month",
     pendingSlotAlerts: (this.pendingSlotAlerts || [])

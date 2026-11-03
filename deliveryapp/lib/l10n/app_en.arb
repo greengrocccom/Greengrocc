@@ -78,6 +78,8 @@
   "vehicleRcSubtitle": "Registration certificate",
   "insurance": "Insurance",
   "insuranceSubtitle": "Valid vehicle insurance",
+  "policeVerification": "Police Verification",
+  "policeVerificationSubtitle": "Police clearance certificate / verification copy",
   "bankDetails": "Bank Details",
   "accountHolderName": "Account Holder Name",
   "accountHolderNameHint": "Name as per bank account",

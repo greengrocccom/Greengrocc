@@ -21,6 +21,7 @@ const fullTimeRuleSchema = new mongoose.Schema(
       type: String,
       default: "06:00 PM",
     },
+    requireAttendance: { type: Boolean, default: true },
     requireLocationValidation: {
       type: Boolean,
       default: true,
@@ -47,6 +48,12 @@ const fullTimeRuleSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    leavePolicyEnabled: { type: Boolean, default: false },
+    paidLeavesPerMonth: { type: Number, default: 0, min: 0, max: 31 },
+    unpaidLeaveDeductionPerDay: { type: Number, default: null, min: 0 },
+    latePenaltyEnabled: { type: Boolean, default: false },
+    lateAfterMinutes: { type: Number, default: 120, min: 1, max: 1440 },
+    latePenaltyAmount: { type: Number, default: 0, min: 0 },
     notes: {
       type: String,
       default: "",

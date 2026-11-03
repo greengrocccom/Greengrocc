@@ -160,6 +160,27 @@ function readShiftBody(body, { partial = false } = {}) {
     if (!days || !days.length) return { error: "Select at least one working day" };
     out.workingDays = days;
   }
+  if (body.scheduleMode !== undefined) {
+    if (!["single_day", "full_week", "full_month"].includes(body.scheduleMode)) {
+      return { error: "Choose a valid schedule period" };
+    }
+    out.scheduleMode = body.scheduleMode;
+  }
+  if (body.scheduleStartDate !== undefined || body.scheduleEndDate !== undefined) {
+    const start = String(body.scheduleStartDate || "");
+    const end = String(body.scheduleEndDate || "");
+    if (!DATE_RE.test(start) || !DATE_RE.test(end) || start > end) {
+      return { error: "Choose valid shift schedule dates" };
+    }
+    out.scheduleStartDate = start;
+    out.scheduleEndDate = end;
+  }
+  if (body.excludedDates !== undefined) {
+    if (!Array.isArray(body.excludedDates) || body.excludedDates.some((d) => !DATE_RE.test(String(d)))) {
+      return { error: "Skipped dates must be valid dates" };
+    }
+    out.excludedDates = [...new Set(body.excludedDates.map(String))].sort();
+  }
   if (body.requireAttendance !== undefined) out.requireAttendance = Boolean(body.requireAttendance);
   if (body.requireLocationValidation !== undefined) {
     out.requireLocationValidation = Boolean(body.requireLocationValidation);
@@ -349,11 +370,8 @@ async function buildDriverSummaries(manager, riders, dateString = istDateString(
     const payroll = buildMonthPayroll({ rider: r, manager, shift, rule, month, records });
 
     // Compulsory daily online hours: shift override or rule setting (default 8)
-    const compulsoryHours =
-      Number(shift?.compulsoryDailyOnlineHours) ||
-      Number(rule?.compulsoryDailyOnlineHours) ||
-      8;
-    const requireCompulsory = rule?.requireCompulsoryOnlineHours !== false;
+    const compulsoryHours = Number(rule?.compulsoryDailyOnlineHours) || 0;
+    const requireCompulsory = Boolean(rule && rule.requireCompulsoryOnlineHours !== false);
 
     // Daily online minutes calculation
     ensureTodayOnlineTracking(r);
@@ -385,9 +403,8 @@ async function buildDriverSummaries(manager, riders, dateString = istDateString(
 
     return {
       ...lightDriver(r),
-      monthlySalary: effectiveMonthlySalary(r, manager, shift),
-      salarySource: salarySource(r, shift),
-      shiftSalary: shift?.monthlySalary ?? null,
+      monthlySalary: effectiveMonthlySalary(r, manager),
+      salarySource: salarySource(r),
       salaryOverride: r.monthlySalary ?? null,
       storeDefaultSalary: Number(manager.fullTimeMonthlySalary) || 0,
       walletBalance: Number(r.walletBalance) || 0,
@@ -402,7 +419,6 @@ async function buildDriverSummaries(manager, riders, dateString = istDateString(
             startTime: shift.startTime,
             endTime: shift.endTime,
             workingDays: shift.workingDays || [],
-            monthlySalary: shift.monthlySalary ?? null,
           }
         : null,
       requirement,
@@ -500,11 +516,10 @@ export const setFullTimeDriverSalary = async (req, res, next) => {
     }
     await rider.save();
 
-    const shift = await getDriverFullTimeShift(manager._id, rider._id);
     res.json({
       success: true,
-      monthlySalary: effectiveMonthlySalary(rider, manager, shift),
-      salarySource: salarySource(rider, shift),
+      monthlySalary: effectiveMonthlySalary(rider, manager),
+      salarySource: salarySource(rider),
       salaryOverride: rider.monthlySalary ?? null,
     });
   } catch (err) {
@@ -636,6 +651,216 @@ export const setDriverEmploymentType = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+/** PUT /drivers/:driverId/payment-config */
+export const setDriverPaymentConfig = async (req, res, next) => {
+  try {
+    const manager = await getManager(req);
+    if (!mongoose.isValidObjectId(req.params.driverId)) return badRequest(res, "Invalid driver id");
+    const rider = await DeliveryBoy.findOne(riderQuery(manager, { _id: req.params.driverId }));
+    if (!rider) return res.status(404).json({ success: false, message: "Driver not found" });
+    const { active, mode } = req.body || {};
+    const monthlySalary = req.body?.monthlySalary;
+    const commissionRatePerKm = req.body?.commissionRatePerKm;
+    if (typeof active !== "boolean") return badRequest(res, "active must be true or false");
+    if (!["monthly_salary", "per_km_commission"].includes(mode)) {
+      return badRequest(res, 'mode must be "monthly_salary" or "per_km_commission"');
+    }
+    if (mode === "monthly_salary") {
+      const amount = Number(monthlySalary);
+      if (!Number.isFinite(amount) || amount < 0) return badRequest(res, "monthlySalary must be a non-negative number");
+      rider.monthlySalary = Math.round(amount);
+    } else {
+      const rate = Number(commissionRatePerKm);
+      if (!Number.isFinite(rate) || rate < 0) return badRequest(res, "commissionRatePerKm must be a non-negative number");
+      rider.commissionRatePerKm = Math.round(rate * 100) / 100;
+    }
+    rider.paymentConfigHistory.push({
+      mode, active, monthlySalary: rider.monthlySalary ?? null,
+      commissionRatePerKm: rider.commissionRatePerKm || 0,
+      changedAt: new Date(), changedBy: manager._id,
+    });
+    rider.paymentMode = mode;
+    rider.paymentActive = active;
+    await rider.save();
+    res.json({ success: true, payment: { active, mode, monthlySalary: rider.monthlySalary ?? null, commissionRatePerKm: rider.commissionRatePerKm || 0 } });
+  } catch (err) { next(err); }
+};
+
+/** PUT /drivers/payment-config/bulk { employmentType, active, mode, monthlySalary, commissionRatePerKm } */
+export const setBulkDriverPaymentConfig = async (req, res, next) => {
+  try {
+    const manager = await getManager(req);
+    const { employmentType, active, mode } = req.body || {};
+    if (!["FULL_TIME", "PART_TIME"].includes(employmentType)) {
+      return badRequest(res, 'employmentType must be "FULL_TIME" or "PART_TIME"');
+    }
+    if (typeof active !== "boolean") return badRequest(res, "active must be true or false");
+    if (!["monthly_salary", "per_km_commission"].includes(mode)) {
+      return badRequest(res, 'mode must be "monthly_salary" or "per_km_commission"');
+    }
+
+    let amount;
+    if (mode === "monthly_salary") {
+      amount = Number(req.body?.monthlySalary);
+      if (!Number.isFinite(amount) || amount < 0) return badRequest(res, "monthlySalary must be a non-negative number");
+      amount = Math.round(amount);
+    } else {
+      amount = Number(req.body?.commissionRatePerKm);
+      if (!Number.isFinite(amount) || amount < 0) return badRequest(res, "commissionRatePerKm must be a non-negative number");
+      amount = Math.round(amount * 100) / 100;
+    }
+
+    const riders = await DeliveryBoy.find(riderQuery(manager, { employmentType })).select("_id").lean();
+    if (!riders.length) return res.json({ success: true, updatedCount: 0 });
+
+    const changedAt = new Date();
+    const operations = riders.map(({ _id }) => ({
+      updateOne: {
+        filter: { _id },
+        update: {
+          $set: {
+            paymentMode: mode,
+            paymentActive: active,
+            ...(mode === "monthly_salary" ? { monthlySalary: amount } : { commissionRatePerKm: amount }),
+          },
+          $push: {
+            paymentConfigHistory: {
+              mode,
+              active,
+              monthlySalary: mode === "monthly_salary" ? amount : null,
+              commissionRatePerKm: mode === "per_km_commission" ? amount : 0,
+              changedAt,
+              changedBy: manager._id,
+            },
+          },
+        },
+      },
+    }));
+    const result = await DeliveryBoy.bulkWrite(operations);
+    return res.json({ success: true, updatedCount: result.modifiedCount });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/** GET /payments/monthly?month=YYYY-MM&employmentType=FULL_TIME|PART_TIME */
+export const getMonthlyRiderPayments = async (req, res, next) => {
+  try {
+    const manager = await getManager(req);
+    const month = String(req.query.month || istMonthString());
+    const employmentType = String(req.query.employmentType || "").toUpperCase();
+    if (!MONTH_RE.test(month)) return badRequest(res, "month must be YYYY-MM");
+    if (employmentType && !["FULL_TIME", "PART_TIME"].includes(employmentType)) return badRequest(res, "Invalid employmentType");
+    const start = new Date(`${month}-01T00:00:00+05:30`);
+    const [yearNum, monthNum] = month.split("-").map(Number);
+    const nextMonth = monthNum === 12
+      ? `${yearNum + 1}-01`
+      : `${yearNum}-${String(monthNum + 1).padStart(2, "0")}`;
+    const end = new Date(`${nextMonth}-01T00:00:00+05:30`);
+    const riders = await DeliveryBoy.find(riderQuery(manager, employmentType ? { employmentType } : {}))
+      .select("name phone employmentType paymentActive paymentMode monthlySalary commissionRatePerKm incentiveCredits")
+      .sort({ name: 1 }).lean();
+    const ids = riders.map((r) => r._id.toString());
+    const orders = ids.length ? await StoreOrder.find({
+      managerId: manager._id, assignedRiderId: { $in: ids }, status: "delivered",
+      deliveredAt: { $gte: start, $lt: end },
+    }).select("assignedRiderId orderNumber deliveredAt deliveryDistanceKm riderDeliveryEarning paymentSnapshot").lean() : [];
+    const rule = employmentType === "PART_TIME" ? null : await getActiveFullTimeRule(manager._id);
+    const rows = await Promise.all(riders.map(async (r) => {
+      const completed = orders.filter((o) => String(o.assignedRiderId) === String(r._id));
+      const km = completed.reduce((n, o) => n + (Number(o.paymentSnapshot?.distanceKm ?? o.deliveryDistanceKm) || 0), 0);
+      const commission = completed.reduce((n, o) => n + (
+        o.paymentSnapshot?.mode
+          ? (Number(o.paymentSnapshot.commissionAmount) || 0)
+          : (Number(o.riderDeliveryEarning) || 0)
+      ), 0);
+      const rate = Number(r.commissionRatePerKm) || 0;
+      const mode = r.paymentMode || (r.employmentType === "FULL_TIME" ? "monthly_salary" : "per_km_commission");
+      const incentives = (r.incentiveCredits || []).filter((credit) => credit.month === month)
+        .reduce((n, credit) => n + (Number(credit.amount) || 0), 0);
+      const shift = r.employmentType === "FULL_TIME" ? await getDriverFullTimeShift(manager._id, r._id) : null;
+      const payroll = r.employmentType === "FULL_TIME"
+        ? await computeMonthPayroll({ rider: r, manager, shift, rule, month })
+        : null;
+      return {
+        riderId: String(r._id), name: r.name || "Rider", phone: r.phone,
+        employmentType: r.employmentType || "PART_TIME", paymentActive: r.paymentActive === true,
+        paymentMode: mode, monthlySalary: r.monthlySalary ?? null,
+        commissionRatePerKm: rate, completedDeliveries: completed.length,
+        totalDeliveryKm: Math.round(km * 100) / 100,
+        commission: Math.round(commission * 100) / 100,
+        incentives: Math.round(incentives * 100) / 100,
+        payroll: payroll ? {
+          scheduledWorkingDays: payroll.scheduledWorkingDays, presentDays: payroll.presentDays,
+          absentDays: payroll.absentDays, paidLeaves: payroll.leave.paid,
+          unpaidLeaves: payroll.leave.unpaid, deductions: payroll.totalDeductions,
+          baseSalary: payroll.baseSalary, netSalary: payroll.netSalary,
+        } : null,
+        payable: r.paymentActive === false ? 0 : (mode === "monthly_salary"
+          ? (payroll?.netSalary ?? Number(r.monthlySalary || 0))
+          : Math.round(commission * 100) / 100) + incentives,
+      };
+    }));
+    res.json({ success: true, month, rows, totals: {
+      riders: rows.length, completedDeliveries: rows.reduce((n, r) => n + r.completedDeliveries, 0),
+      deliveryKm: Math.round(rows.reduce((n, r) => n + r.totalDeliveryKm, 0) * 100) / 100,
+      incentives: Math.round(rows.reduce((n, r) => n + r.incentives, 0) * 100) / 100,
+      payable: Math.round(rows.reduce((n, r) => n + r.payable, 0) * 100) / 100,
+    } });
+  } catch (err) { next(err); }
+};
+
+/** GET /payments/distance?from=YYYY-MM-DD&to=YYYY-MM-DD&employmentType=... */
+export const getRiderDistanceReport = async (req, res, next) => {
+  try {
+    const manager = await getManager(req);
+    const from = String(req.query.from || "");
+    const to = String(req.query.to || "");
+    const employmentType = String(req.query.employmentType || "").toUpperCase();
+    if (!DATE_RE.test(from) || !DATE_RE.test(to) || from > to) return badRequest(res, "from and to must be valid YYYY-MM-DD dates");
+    if (employmentType && !["FULL_TIME", "PART_TIME"].includes(employmentType)) return badRequest(res, "Invalid employmentType");
+    const start = new Date(`${from}T00:00:00+05:30`);
+    const end = new Date(`${to}T00:00:00+05:30`); end.setTime(end.getTime() + 24 * 60 * 60 * 1000);
+    const riders = await DeliveryBoy.find(riderQuery(manager, employmentType ? { employmentType } : {}))
+      .select("name phone employmentType commissionRatePerKm paymentMode paymentActive").sort({ name: 1 }).lean();
+    const riderById = new Map(riders.map((r) => [String(r._id), r]));
+    const orders = await StoreOrder.find({
+      managerId: manager._id, assignedRiderId: { $in: [...riderById.keys()] }, status: "delivered",
+      deliveredAt: { $gte: start, $lt: end },
+    }).select("assignedRiderId deliveredAt orderNumber paymentSnapshot deliveryDistanceKm riderDeliveryEarning").lean();
+    const grouped = new Map();
+    for (const order of orders) {
+      const riderId = String(order.assignedRiderId);
+      const rider = riderById.get(riderId);
+      if (!rider) continue;
+      const date = istDateString(order.deliveredAt);
+      const key = `${riderId}:${date}`;
+      const row = grouped.get(key) || { riderId, date, name: rider.name || "Rider", employmentType: rider.employmentType || "PART_TIME", deliveries: 0, totalDeliveryKm: 0, commission: 0 };
+      row.deliveries += 1;
+      row.totalDeliveryKm += Number(order.paymentSnapshot?.distanceKm ?? order.deliveryDistanceKm) || 0;
+      row.commission += order.paymentSnapshot?.mode
+        ? Number(order.paymentSnapshot.commissionAmount) || 0
+        : Number(order.riderDeliveryEarning) || 0;
+      grouped.set(key, row);
+    }
+    const rows = [...grouped.values()].map((row) => {
+      const rider = riderById.get(row.riderId);
+      return { ...row,
+        totalDeliveryKm: Math.round(row.totalDeliveryKm * 100) / 100,
+        commission: Math.round(row.commission * 100) / 100,
+        commissionRatePerKm: Number(rider?.commissionRatePerKm) || 0,
+        paymentActive: rider?.paymentActive !== false,
+      };
+    }).sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+    res.json({ success: true, from, to, rows, totals: {
+      riders: new Set(rows.map((r) => r.riderId)).size,
+      deliveries: rows.reduce((n, r) => n + r.deliveries, 0),
+      deliveryKm: Math.round(rows.reduce((n, r) => n + r.totalDeliveryKm, 0) * 100) / 100,
+      commission: Math.round(rows.reduce((n, r) => n + r.commission, 0) * 100) / 100,
+    } });
+  } catch (err) { next(err); }
 };
 
 // ─── Attendance ──────────────────────────────────────────────────────────────

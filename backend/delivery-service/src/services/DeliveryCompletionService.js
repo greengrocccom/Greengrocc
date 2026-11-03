@@ -26,6 +26,7 @@ import { calculateRiderEarning, applyEarningSnapshot } from "./ShiftEarningServi
 import { validatePaymentForCompletion } from "./PaymentCollectionService.js";
 import { getIO } from "../../../socket.js";
 import { syncCustomerOrderFromStore } from "./syncCustomerOrderFromStore.js";
+import { getRouteAndEta } from "./directionsService.js";
 
 const MAX_OTP_ATTEMPTS = 5;
 
@@ -124,6 +125,28 @@ export function validateCompletionConditions(order) {
  * @returns {Promise<{success: boolean, message: string, order?: object, earningBreakdown?: object}>}
  */
 export async function completeDelivery({ orderId, riderId, skipConditionCheck = false }) {
+  // Resolve the earning route before opening the Mongo transaction so a remote
+  // directions request cannot hold the transaction open. Only road routes from
+  // Google or OSRM count toward commission; estimates are deliberately excluded.
+  let routeKm = 0;
+  let routeSource = "";
+  try {
+    const routeOrder = await StoreOrder.findById(orderId).select("managerId customerLat customerLng").lean();
+    if (routeOrder?.managerId && routeOrder.customerLat != null && routeOrder.customerLng != null) {
+      const store = await DeliveryManager.findById(routeOrder.managerId).select("latitude longitude").lean();
+      const route = await getRouteAndEta({
+        cacheKey: `delivery:${orderId}`,
+        origin: { lat: store?.latitude, lng: store?.longitude },
+        destination: { lat: routeOrder.customerLat, lng: routeOrder.customerLng },
+      });
+      if (route && ["google", "google_v2", "osrm"].includes(route.source) && Number(route.distanceMeters) > 0) {
+        routeKm = Math.round((Number(route.distanceMeters) / 1000) * 100) / 100;
+        routeSource = route.source;
+      }
+    }
+  } catch (err) {
+    console.warn("[completion] road distance unavailable; commission distance set to zero:", err.message);
+  }
   const session = await mongoose.startSession();
   let committed = false;
   try {
@@ -193,10 +216,24 @@ export async function completeDelivery({ orderId, riderId, skipConditionCheck = 
     });
     // Full-Time drivers and pre-orders are salary-based: keep distance for tracking, never credit per-KM.
     const isFullTimeRider = rider?.employmentType === "FULL_TIME";
-    const salaryBased = isFullTimeRider || Boolean(order.isPreOrder);
-    const earningResult = salaryBased
-      ? { ...rawEarningResult, riderEarning: 0, earningSlab: null, shift: null }
-      : rawEarningResult;
+    const paymentMode = rider?.paymentMode || null;
+    const paymentActive = rider?.paymentActive === true;
+    const usesCommission = paymentActive && paymentMode === "per_km_commission";
+    const configuredInactive = paymentMode != null && !paymentActive;
+    const salaryBased = isFullTimeRider || Boolean(order.isPreOrder) ||
+      (paymentActive && paymentMode === "monthly_salary");
+    const earningResult = usesCommission
+      ? {
+          ...rawEarningResult,
+          distanceKm: routeKm,
+          riderEarning: routeKm > 0 ? Math.round(routeKm * (Number(rider.commissionRatePerKm) || 0) * 100) / 100 : 0,
+          earningSlab: null,
+          shift: null,
+          distanceBasis: "dark_store_to_customer_road_route",
+        }
+      : (salaryBased || configuredInactive)
+        ? { ...rawEarningResult, distanceKm: routeKm, riderEarning: 0, earningSlab: null, shift: null }
+        : rawEarningResult;
     const stayOffline = Boolean(order.isPreOrder) && rider?.status === "offline";
     if (isFullTimeRider) order.fullTimeDelivery = true;
 
@@ -209,6 +246,16 @@ export async function completeDelivery({ orderId, riderId, skipConditionCheck = 
     order.assignmentStatus = "DELIVERED";
     order.deliveredAt = now;
     applyEarningSnapshot(order, darkStore, earningResult, now);
+    order.paymentSnapshot = {
+      mode: paymentMode,
+      active: paymentActive,
+      ratePerKm: usesCommission ? Number(rider.commissionRatePerKm) || 0 : 0,
+      distanceKm: routeKm,
+      distanceSource: routeSource,
+      commissionAmount: usesCommission ? riderEarning : 0,
+      riderId: riderId.toString(),
+      capturedAt: now,
+    };
     if (earningResult.shift?._id && !order.shiftId) {
       order.shiftId = earningResult.shift._id;
     }

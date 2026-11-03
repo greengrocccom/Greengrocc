@@ -247,6 +247,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get insuranceSubtitle => 'Valid vehicle insurance';
 
   @override
+  String get policeVerification => 'Police Verification';
+
+  @override
+  String get policeVerificationSubtitle =>
+      'Police clearance certificate / verification copy';
+
+  @override
   String get bankDetails => 'Bank Details';
 
   @override

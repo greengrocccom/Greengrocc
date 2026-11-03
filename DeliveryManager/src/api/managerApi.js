@@ -175,9 +175,12 @@ export const managerApi = {
     api.post(`${BASE}/fulltime/drivers/${driverId}/credit-salary`, body),
   setDriverEmploymentType: (driverId, employmentType) =>
     api.put(`${BASE}/drivers/${driverId}/employment-type`, { employmentType }),
-  getFullTimeAttendance: (date) => api.get(`${BASE}/fulltime/attendance`, { params: { date } }),
-  markFullTimeAttendanceManual: (data) =>
-    api.post(`${BASE}/fulltime/attendance/mark-manual`, data),
+  setDriverPaymentConfig: (driverId, data) =>
+    api.put(`${BASE}/drivers/${driverId}/payment-config`, data),
+  setBulkDriverPaymentConfig: (data) =>
+    api.put(`${BASE}/drivers/payment-config/bulk`, data),
+  getMonthlyRiderPayments: (params) => api.get(`${BASE}/payments/monthly`, { params }),
+  getRiderDistanceReport: (params) => api.get(`${BASE}/payments/distance`, { params }),
   getFullTimeAssignableOrders: () => api.get(`${BASE}/fulltime/assignable-orders`),
   getFullTimeAssignedOrders: (riderId) =>
     api.get(`${BASE}/fulltime/assigned-orders`, { params: riderId ? { riderId } : {} }),

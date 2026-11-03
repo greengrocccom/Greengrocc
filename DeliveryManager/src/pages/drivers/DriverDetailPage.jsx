@@ -4,6 +4,7 @@ import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { useLive } from "../../realtime/useLive";
 import FullTimeDriverPanel from "../fulltime/FullTimeDriverPanel";
+import PaymentConfigPanel from "./PaymentConfigPanel";
 
 export default function DriverDetailPage() {
   const { driverId } = useParams();
@@ -246,6 +247,7 @@ export default function DriverDetailPage() {
     { key: "license", label: "Driving License", meta: documents.license },
     { key: "rc", label: "Vehicle RC", meta: documents.rc },
     { key: "insurance", label: "Vehicle Insurance", meta: documents.insurance },
+    { key: "policeVerification", label: "Police Verification", meta: documents.policeVerification },
     { key: "selfie", label: "Selfie Capture", meta: selfie },
   ];
 
@@ -970,6 +972,10 @@ export default function DriverDetailPage() {
       {/* TAB 2: DRIVER PROFILE, WALLET & BANK */}
       {activeTab === "profile" && (
         <div className="space-y-4">
+          <PaymentConfigPanel
+            driver={driver}
+            onSaved={() => loadDriverDetails({ silent: true, dateToFetch: selectedDate })}
+          />
           <FullTimeDriverPanel
             driverId={driverId}
             employmentType={driver.employmentType || "PART_TIME"}

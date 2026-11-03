@@ -10,6 +10,19 @@ const navSections = [
     title: "Operations",
     items: [
       { to: "/dashboard", label: "Dashboard", icon: "home", end: true },
+      {
+        key: "riders-dropdown",
+        label: "Riders",
+        icon: "user",
+        children: [
+          { to: "/drivers/fulltime", label: "Full-Time Riders", icon: "bike" },
+          { to: "/drivers/parttime", label: "Part-Time Riders", icon: "bike" },
+          { to: "/drivers", label: "All Riders Roster", icon: "truck", end: true },
+          { to: "/drivers/pending", label: "Verification", icon: "clipboard" },
+          { to: "/payments/monthly", label: "Monthly Payments", icon: "chart" },
+          { to: "/payments/distance", label: "Delivery KM Reports", icon: "chart" },
+        ],
+      },
       { to: "/orders", label: "Orders", icon: "orders" },
       { to: "/revenue", label: "Revenue", icon: "chart" },
       { to: "/preorders", label: "Pre-Orders", icon: "clock" },
@@ -18,10 +31,8 @@ const navSections = [
     ],
   },
   {
-    title: "Riders",
+    title: "Shifts & Scheduling",
     items: [
-      { to: "/drivers", label: "Riders", icon: "truck", end: true },
-      { to: "/drivers/pending", label: "Verification", icon: "user" },
       {
         key: "parttime-shifts",
         label: "Part-Time Shifts",
@@ -38,8 +49,6 @@ const navSections = [
         children: [
           { to: "/shifts/fulltime", label: "Show All Shifts", end: true },
           { to: "/shifts/fulltime/create", label: "Create Shift" },
-          { to: "/fulltime/attendance", label: "Employee Attendance" },
-          { to: "/fulltime/salary", label: "Employee Salary" },
           { to: "/fulltime/rules", label: "Full-Time Rules" },
           { to: "/fulltime/assign-orders", label: "Assign Orders" },
         ],
@@ -126,12 +135,21 @@ export default function ManagerLayout() {
                   end={child.end}
                   onClick={() => setIsMobileOpen(false)}
                   className={({ isActive }) =>
-                    `block truncate rounded-md px-2.5 py-1.5 text-[12.5px] font-medium transition ${
-                      isActive ? "bg-white/10 text-emerald-300" : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                    `flex items-center gap-2.5 truncate rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition ${
+                      isActive
+                        ? "bg-[#064e3b] text-white font-bold shadow-xs"
+                        : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
                     }`
                   }
                 >
-                  {child.label}
+                  {child.icon && (
+                    <Icon
+                      name={child.icon}
+                      size="sm"
+                      className={isPathActive(location.pathname, child) ? "text-emerald-300" : "text-slate-400"}
+                    />
+                  )}
+                  <span className="truncate">{child.label}</span>
                 </NavLink>
               ))}
             </div>
@@ -199,6 +217,15 @@ export default function ManagerLayout() {
             </div>
           ))}
         </nav>
+
+        {/* Growing Together card matching screenshot */}
+        <div className="mx-3 my-2 overflow-hidden rounded-xl bg-gradient-to-br from-[#064e3b] to-[#042f24] p-3 text-white shadow-inner border border-emerald-800/40">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-emerald-400 text-sm">🌱</span>
+            <p className="text-xs font-bold text-white tracking-tight">Growing Together</p>
+          </div>
+          <p className="text-[10.5px] text-emerald-200/80 leading-snug">For a Greener Tomorrow</p>
+        </div>
 
         <div className="shrink-0 border-t border-white/10 p-3">
           <div className="flex items-center gap-3 rounded-lg px-2 py-1.5">

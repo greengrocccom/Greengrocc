@@ -436,6 +436,7 @@ export default function CreateShiftPage() {
   const navigate = useNavigate();
   const [toast, setToast] = useState({ msg: "", ok: true });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showFixedPayConfirm, setShowFixedPayConfirm] = useState(false);
 
   const [newShiftType, setNewShiftType] = useState("morning");
   const [newShiftName, setNewShiftName] = useState("Morning Shift");
@@ -446,7 +447,6 @@ export default function CreateShiftPage() {
   const [slotsList, setSlotsList] = useState([
     { startTime: "09:00 AM", endTime: "01:00 PM", capacity: 10, ...NO_INCENTIVE },
   ]);
-  const [ratePerKm, setRatePerKm] = useState("10");
   const [modalSlotIndex, setModalSlotIndex] = useState(null);
   const [riders, setRiders] = useState([]);
   const [ridersLoading, setRidersLoading] = useState(true);
@@ -529,11 +529,6 @@ export default function CreateShiftPage() {
 
   const handleCreateShift = async (e) => {
     e.preventDefault();
-
-    if (!(Number(ratePerKm) > 0)) {
-      showToast("Enter a valid commission rate (₹/km)");
-      return;
-    }
     if (selectedRiderIds.length === 0) {
       showToast("Select at least one driver for this slot");
       return;
@@ -554,6 +549,12 @@ export default function CreateShiftPage() {
       }
     }
 
+    setShowFixedPayConfirm(true);
+  };
+
+  const confirmCreateShift = async () => {
+    setShowFixedPayConfirm(false);
+
     let finalTargetDate = targetDate;
     const isAfterMidnight = isAfterMidnightTime(newShiftType, slotsList);
     const todayStr = getTodayString();
@@ -568,12 +569,10 @@ export default function CreateShiftPage() {
         type: newShiftType,
         capacity: parseInt(newCapacity, 10) || 10,
         maxCapacityPerSlot: parseInt(newCapacity, 10) || 10,
-        ratePerKm: Number(ratePerKm) || 10,
         customSlots: slotsList.map((s) => ({
           startTime: s.startTime,
           endTime: s.endTime,
           capacity: parseInt(s.capacity || newCapacity, 10) || 10,
-          ratePerKm: Number(ratePerKm) || 10,
           incentiveMode: s.incentiveMode || "none",
           incentiveRate: s.incentiveMode === "none" ? 0 : Number(s.incentiveRate) || 0,
           incentiveAfterKm: s.incentiveMode === "per_km" ? Number(s.incentiveAfterKm) || 0 : 0,
@@ -636,7 +635,7 @@ export default function CreateShiftPage() {
       ) : null}
 
       <Card title="Shift details">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div>
             <label className={LABEL}>Shift preset</label>
             <select value={newShiftType} onChange={(e) => handleShiftTypeChange(e.target.value)} className={FIELD}>
@@ -661,25 +660,6 @@ export default function CreateShiftPage() {
               onChange={(e) => setNewCapacity(e.target.value)}
               className={FIELD}
             />
-          </div>
-          <div>
-            <label className={LABEL}>Commission Rate (₹/km)</label>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">₹</span>
-              <input
-                type="number"
-                min="0"
-                step="0.5"
-                required
-                value={ratePerKm}
-                onChange={(e) => setRatePerKm(e.target.value)}
-                placeholder="10"
-                className={`${FIELD} pl-7 pr-12`}
-              />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
-                / km
-              </span>
-            </div>
           </div>
           <div>
             <label className={LABEL}>Assign drivers</label>
@@ -930,6 +910,21 @@ export default function CreateShiftPage() {
           }
         }}
       />
+
+      {showFixedPayConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="fixed-pay-title">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <h2 id="fixed-pay-title" className="text-base font-bold text-slate-900">Rider payment is fixed</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              The rider&apos;s salary or KM commission is set in Rider Payment Settings. This shift will keep that amount unchanged; only the schedule and incentives below will apply.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowFixedPayConfirm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Review shift</button>
+              <button type="button" disabled={isSubmitting} onClick={confirmCreateShift} className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-60">{isSubmitting ? "Creating…" : "Confirm & Create Shift"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

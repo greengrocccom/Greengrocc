@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/fulltime_service.dart';
-import '../../../data/services/location_service.dart';
 import '../../widgets/charts/progress_ring.dart';
 import '../../widgets/common/app_panel.dart';
 import 'fulltime_widgets.dart';
@@ -17,7 +16,6 @@ class FullTimeAttendanceScreen extends StatefulWidget {
 
 class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
   bool _loading = true;
-  bool _marking = false;
   String? _error;
   Map<String, dynamic> _data = const {};
 
@@ -45,45 +43,6 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
         _error = e is FullTimeApiException ? e.message : 'Could not load attendance. Please try again.';
         _loading = false;
       });
-    }
-  }
-
-  Future<void> _mark() async {
-    setState(() => _marking = true);
-    try {
-      final requirement = _data['requirement'] as Map?;
-      final needsGps = requirement?['requireLocationValidation'] == true;
-      final pos = await LocationService.instance.getCurrentLocation();
-      if (pos == null && needsGps) {
-        throw FullTimeApiException(
-          'Location is required to mark attendance. Please enable GPS and allow location access.',
-        );
-      }
-      final res = await FullTimeService.instance.markAttendance(
-        lat: pos?.latitude,
-        lng: pos?.longitude,
-      );
-      if (!mounted) return;
-      final penalised = (((res['attendance'] as Map?)?['latePenalty'] as num?) ?? 0) > 0;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res['message']?.toString() ?? 'Attendance marked'),
-          backgroundColor: penalised ? AppColors.warning : AppColors.success,
-          duration: Duration(seconds: penalised ? 6 : 4),
-        ),
-      );
-      await _load();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e is FullTimeApiException ? e.message : 'Could not mark attendance'),
-          backgroundColor: AppColors.error,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _marking = false);
     }
   }
 
@@ -117,7 +76,6 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
     final darkStore = _data['darkStore'] as Map?;
     final month = _data['month'] as Map?;
     final status = _data['todayStatus']?.toString() ?? attendance['status']?.toString() ?? 'pending';
-    final canMark = _data['canMark'] == true;
     final phase = _data['windowPhase']?.toString() ?? '';
     final markedAt = DateTime.tryParse(attendance['markedAt']?.toString() ?? '')?.toLocal();
     final distance = attendance['distanceFromStoreMeters'] as num?;
@@ -142,12 +100,14 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
       hint = 'Attendance window has closed for today.';
     } else if (phase == 'before' && requirement != null) {
       hint = 'Attendance opens 30 minutes before ${requirement['startTime']}.';
-    } else if (requirement?['requireLocationValidation'] == true) {
-      hint = 'Be within ${requirement?['attendanceRadiusMeters'] ?? 200}m of the dark store to mark attendance.';
+    } else if (status == 'pending' && requirement?['requireLocationValidation'] == true) {
+      hint = 'Attendance is recorded automatically when you go online within ${requirement?['attendanceRadiusMeters'] ?? 200}m of the dark store during your shift.';
+    } else if (status == 'pending') {
+      hint = 'Attendance is recorded automatically when you go online during your scheduled shift.';
     }
     if (status == 'pending' && lateOn && requirement != null) {
       hint = '${hint.isEmpty ? '' : '$hint\n'}'
-          'Marking ${formatMinutes(lateAfter)} or more after ${requirement['startTime']} '
+          'Going online ${formatMinutes(lateAfter)} or more after ${requirement['startTime']} '
           'cuts ${formatRupees(policy?['latePenaltyAmount'] as num?)}.';
     }
 
@@ -273,30 +233,6 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ],
-              if (status != 'present') ...[
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton.icon(
-                    onPressed: canMark && !_marking ? _mark : null,
-                    icon: _marking
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.my_location_rounded),
-                    label: Text(_marking ? 'Checking location…' : 'Mark Attendance'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.35),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      textStyle: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700),
-                    ),
                   ),
                 ),
               ],

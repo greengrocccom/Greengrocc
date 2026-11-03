@@ -63,18 +63,6 @@ export default function FullTimeSalaryPage() {
           Full-Time Shifts
         </Link>
         <Link
-          to="/fulltime/attendance"
-          className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
-        >
-          Employee Attendance
-        </Link>
-        <Link
-          to="/fulltime/salary"
-          className="pb-2.5 px-0.5 border-b-2 border-emerald-600 text-emerald-700 font-bold transition whitespace-nowrap"
-        >
-          Employee Salary
-        </Link>
-        <Link
           to="/fulltime/rules"
           className="pb-2.5 px-0.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap"
         >

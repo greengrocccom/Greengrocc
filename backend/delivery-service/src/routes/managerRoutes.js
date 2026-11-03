@@ -103,6 +103,10 @@ import {
   setFullTimeDriverSalary,
   creditFullTimeSalary,
   setDriverEmploymentType,
+  setDriverPaymentConfig,
+  setBulkDriverPaymentConfig,
+  getMonthlyRiderPayments,
+  getRiderDistanceReport,
   listFullTimeAttendance,
   markFullTimeAttendanceManual,
   listFullTimeAssignableOrders,
@@ -232,6 +236,10 @@ router.get("/fulltime/drivers/:driverId", getFullTimeDriverSummary);
 router.put("/fulltime/drivers/:driverId/salary", setFullTimeDriverSalary);
 router.post("/fulltime/drivers/:driverId/credit-salary", creditFullTimeSalary);
 router.put("/drivers/:driverId/employment-type", setDriverEmploymentType);
+router.put("/drivers/:driverId/payment-config", setDriverPaymentConfig);
+router.put("/drivers/payment-config/bulk", setBulkDriverPaymentConfig);
+router.get("/payments/monthly", getMonthlyRiderPayments);
+router.get("/payments/distance", getRiderDistanceReport);
 router.get("/fulltime/attendance", listFullTimeAttendance);
 router.post("/fulltime/attendance/mark-manual", markFullTimeAttendanceManual);
 router.get("/fulltime/assignable-orders", listFullTimeAssignableOrders);

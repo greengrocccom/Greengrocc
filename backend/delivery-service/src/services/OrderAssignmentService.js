@@ -2,7 +2,9 @@ import DeliveryBoy from "../models/DeliveryBoy.js";
 import DeliveryManager from "../models/DeliveryManager.js";
 import StoreOrder from "../models/StoreOrder.js";
 import DriverOfferHistory from "../models/DriverOfferHistory.js";
+import FullTimeShift from "../models/FullTimeShift.js";
 import { haversineKm } from "./darkStoreResolver.js";
+import { timeToMinutes } from "../utils/shiftTimeHelper.js";
 import { getIO } from "../../../socket.js";
 import {
   LOCATION_FRESHNESS_MS,
@@ -11,6 +13,7 @@ import {
   OFFER_TIMEOUT_SECONDS,
 } from "../config/orderAssignmentConfig.js";
 import { estimateOfferEarning } from "./ShiftEarningService.js";
+import { syncCustomerOrderFromStore } from "./syncCustomerOrderFromStore.js";
 
 const activeOfferTimers = new Map();
 const currentlyAssigningOrders = new Set();
@@ -31,6 +34,100 @@ function darkStoreIdOf(orderOrManager) {
 function metersBetween(lat1, lng1, lat2, lng2) {
   if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return null;
   return haversineKm(lat1, lng1, lat2, lng2) * 1000;
+}
+
+const istParts = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type)?.value;
+  const days = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { day: days[get("weekday")], minutes: Number(get("hour")) * 60 + Number(get("minute")) };
+};
+
+function shiftIsActiveNow(shift, now) {
+  if (!shift.isActive) return false;
+  const { day, minutes } = istParts(now);
+  const start = timeToMinutes(shift.startTime);
+  const end = timeToMinutes(shift.endTime);
+  if ((shift.workingDays || []).includes(day) &&
+      (end > start ? minutes >= start && minutes < end : minutes >= start || minutes < end)) return true;
+  // Overnight shifts remain active after midnight on the following day.
+  const previousDay = (day + 6) % 7;
+  return end <= start && minutes < end && (shift.workingDays || []).includes(previousDay);
+}
+
+async function assignDirectToFullTime(order, darkStore, excludedIds = []) {
+  if (darkStore.latitude == null || darkStore.longitude == null) return false;
+  const now = new Date();
+  const storeAreaRegex = darkStore.area ? new RegExp(escapeRegex(darkStore.area), "i") : null;
+  const localMatch = [
+    { managerId: darkStore._id },
+    { storeId: String(darkStore._id) },
+    ...(storeAreaRegex ? [{ managerId: { $in: [null, undefined] }, area: { $regex: storeAreaRegex } }] : []),
+  ];
+  const shifts = await FullTimeShift.find({ managerId: darkStore._id, isActive: true, driverIds: { $exists: true, $ne: [] } })
+    .select("driverIds startTime endTime workingDays isActive").lean();
+  const shiftDriverIds = new Set(shifts.filter((s) => shiftIsActiveNow(s, now)).flatMap((s) => s.driverIds.map(String)));
+  if (!shiftDriverIds.size) return false;
+  const candidates = await DeliveryBoy.find({
+    _id: { $in: [...shiftDriverIds], $nin: excludedIds },
+    isActive: true, status: "online", activeOrderId: null, employmentType: "FULL_TIME",
+    $and: [
+      { $or: localMatch },
+      { $or: [{ verificationStatus: "approved" }, { verificationStatus: { $exists: false } }] },
+    ],
+  });
+  const fresh = candidates.flatMap((driver) => {
+    const loc = driver.currentLocation;
+    const seen = loc?.updatedAt || driver.lastStatusAt || driver.lastOnlineAt;
+    if (loc?.lat == null || loc?.lng == null || !seen || now - new Date(seen) > LOCATION_FRESHNESS_MS) return [];
+    const distanceM = metersBetween(darkStore.latitude, darkStore.longitude, loc.lat, loc.lng);
+    if (distanceM == null || distanceM < MIN_ASSIGNMENT_DISTANCE_M || distanceM > assignmentMaxDistanceM(darkStore)) return [];
+    return [{ driver, distanceM }];
+  }).sort((a, b) => (a.driver.roundRobinPosition ?? 0) - (b.driver.roundRobinPosition ?? 0) ||
+    new Date(waitingSince(a.driver)).getTime() - new Date(waitingSince(b.driver)).getTime() || a.distanceM - b.distanceM);
+
+  for (const { driver } of fresh) {
+    const reserved = await DeliveryBoy.findOneAndUpdate(
+      { _id: driver._id, isActive: true, status: "online", employmentType: "FULL_TIME", activeOrderId: null },
+      { $set: { activeOrderId: order._id, status: "on_delivery", lastAssignedAt: now, lastOrderAssignedAt: now, roundRobinPosition: Date.now() } },
+      { new: true }
+    );
+    if (!reserved) continue;
+    const eligibleState = order.status === "packed"
+      ? { status: "packed" }
+      : { status: "offered", $or: [{ offerExpiresAt: null }, { offerExpiresAt: { $exists: false } }, { offerExpiresAt: { $lte: now } }] };
+    const assigned = await StoreOrder.findOneAndUpdate(
+      { _id: order._id, ...eligibleState },
+      { $set: {
+        status: "assigned", assignmentStatus: "DRIVER_ASSIGNED", assignedRiderId: driver._id,
+        assignedAt: now, currentOfferDriverId: null, offeredRiderId: null, offerStartedAt: null,
+        offerExpiresAt: null, pickupVerified: false, customerAddressUnlocked: false,
+        pickupQrUnlocked: true, fullTimeDelivery: true, fullTimeAssignedAt: now,
+        fullTimeAssignedBy: null,
+      } }, { new: true }
+    );
+    if (!assigned) {
+      await DeliveryBoy.updateOne({ _id: driver._id, activeOrderId: order._id }, { $set: { activeOrderId: null, status: "online" } });
+      continue;
+    }
+    try {
+      const io = getIO();
+      io.to(`rider_${driver._id}`).emit("new_order_assigned", { orderId: assigned._id, orderNumber: assigned.orderNumber, status: "assigned", fullTimeDelivery: true, pickupQrUnlocked: true });
+      io.to(`rider_${driver._id}`).emit("active_delivery_updated", { reason: "fulltime_auto_assigned", orderIds: [assigned._id.toString()] });
+      io.to(`store_${darkStore._id}`).emit("order_status_updated", { orderId: assigned._id.toString(), orderNumber: assigned.orderNumber, status: "assigned", assignmentStatus: "DRIVER_ASSIGNED", assignedRiderId: driver._id.toString(), fullTimeDelivery: true });
+    } catch (err) { console.warn("[assignment] Full-Time dispatch socket failed:", err.message); }
+    try {
+      const { notifyOrdersAssigned } = await import("./RiderNotificationService.js");
+      await notifyOrdersAssigned(driver._id, { orders: [{ orderId: assigned._id, orderNumber: assigned.orderNumber }], preOrder: false, storeName: darkStore.storeName || "" });
+    } catch (err) { console.warn("[assignment] Full-Time dispatch notification failed:", err.message); }
+    syncCustomerOrderFromStore(assigned, "assigned").catch((err) =>
+      console.warn("[assignment] Full-Time customer sync failed:", err.message)
+    );
+    return true;
+  }
+  return false;
 }
 
 function formatDistance(meters) {
@@ -317,6 +414,17 @@ export async function assignNextDriver(orderId, opts = {}) {
     if (!darkStore) return { success: false, message: "Dark store not found" };
 
     clearOfferTimer(order._id);
+
+    // Full-Time riders on an active assigned shift get direct confirmed
+    // assignments. If none are currently eligible, preserve the existing
+    // Part-Time offer rotation unchanged.
+    if (order.status === "offered" && order.currentOfferDriverId) {
+      await releaseRider(order.currentOfferDriverId, order._id).catch(() => {});
+    }
+    const fullTimeAssigned = await assignDirectToFullTime(order, darkStore);
+    if (fullTimeAssigned) {
+      return { success: true, assigned: true, fullTime: true, message: "Order directly assigned to an available Full-Time rider" };
+    }
 
     const declinedIds = (order.declinedDriverIds || []).map(String);
     const softExcluded = [

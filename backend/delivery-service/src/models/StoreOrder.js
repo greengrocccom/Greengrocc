@@ -418,6 +418,17 @@ const storeOrderSchema = new mongoose.Schema(
       riderEarning: { type: Number, default: 0 },
       calculatedAt: { type: Date },
     },
+    /** Immutable pay basis and delivery route distance used for rider payment reporting. */
+    paymentSnapshot: {
+      mode: { type: String, enum: ["monthly_salary", "per_km_commission", null], default: null },
+      active: { type: Boolean, default: false },
+      ratePerKm: { type: Number, default: 0 },
+      distanceKm: { type: Number, default: 0 },
+      distanceSource: { type: String, default: "" },
+      commissionAmount: { type: Number, default: 0 },
+      riderId: { type: String, default: "" },
+      capturedAt: { type: Date, default: null },
+    },
 
     // ── Delayed Wallet Credit (5 minutes after delivery) ─────────────
     walletCreditPending: { type: Boolean, default: false },
@@ -677,6 +688,16 @@ storeOrderSchema.methods.toSafeJSON = function toSafeJSON(stockMap = null) {
           calculatedAt: this.earningSnapshot.calculatedAt,
         }
       : null,
+    paymentSnapshot: this.paymentSnapshot ? {
+      mode: this.paymentSnapshot.mode || null,
+      active: Boolean(this.paymentSnapshot.active),
+      ratePerKm: Number(this.paymentSnapshot.ratePerKm) || 0,
+      distanceKm: Number(this.paymentSnapshot.distanceKm) || 0,
+      distanceSource: this.paymentSnapshot.distanceSource || "",
+      commissionAmount: Number(this.paymentSnapshot.commissionAmount) || 0,
+      riderId: this.paymentSnapshot.riderId || "",
+      capturedAt: this.paymentSnapshot.capturedAt || null,
+    } : null,
     walletCreditPending: Boolean(this.walletCreditPending),
     walletCreditAmount: this.walletCreditAmount || 0,
     walletCreditAt: this.walletCreditAt || null,

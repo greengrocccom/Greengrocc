@@ -6,7 +6,7 @@ import PeakHoursConfig from "../models/PeakHoursConfig.js";
 import { areaMatchForManager } from "../utils/storeResolver.js";
 import { isCurrentlyPeak } from "../utils/peakHoursHelper.js";
 
-const DOC_KEYS = ["aadhaar", "pan", "passport", "license", "rc", "insurance"];
+const DOC_KEYS = ["aadhaar", "pan", "passport", "license", "rc", "insurance", "policeVerification"];
 
 const getManager = async (req) => {
   const manager = await DeliveryManager.findById(req.user.id);

@@ -437,7 +437,7 @@ export const getWalletSummary = async (req, res, next) => {
       totalEarnings += totalSalaryCredited;
       fullTime = {
         employmentType: "FULL_TIME",
-        monthlySalary: effectiveMonthlySalary(rider, manager, shift),
+        monthlySalary: effectiveMonthlySalary(rider, manager),
         currentMonth,
         currentMonthCredited: credits.some((c) => c.month === currentMonth),
         totalSalaryCredited,
@@ -448,7 +448,7 @@ export const getWalletSummary = async (req, res, next) => {
           breakdown: c.breakdown || null,
         })),
         perKmEarnings: false,
-        payPolicy: shiftPayPolicy(shift),
+        payPolicy: shiftPayPolicy(rule),
         currentMonthPayroll: await computeMonthPayroll({ rider, manager, shift, rule }),
       };
     }
