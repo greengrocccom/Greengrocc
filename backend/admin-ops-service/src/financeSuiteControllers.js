@@ -187,7 +187,7 @@ export async function updateEstimation(req, res) {
       const discount = Number(req.body.discount) || 0;
       extra = { subtotal, taxTotal, discount, grandTotal: Math.max(0, subtotal + taxTotal - discount) };
     }
-    const doc = await FinanceEstimation.findByIdAndUpdate(req.params.id, { ...req.body, ...extra }, { new: true });
+    const doc = await FinanceEstimation.findByIdAndUpdate(req.params.id, { ...req.body, ...extra }, { returnDocument: 'after' });
     if (!doc) return fail(res, 404, "Estimation not found");
     return ok(res, doc);
   } catch (err) {
@@ -229,7 +229,7 @@ export async function createTaxRate(req, res) {
 
 export async function updateTaxRate(req, res) {
   try {
-    const doc = await FinanceTaxRate.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const doc = await FinanceTaxRate.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     return ok(res, doc);
   } catch (err) {
     return fail(res, 500, err.message);
@@ -266,7 +266,7 @@ export async function createTaxZone(req, res) {
 
 export async function updateTaxZone(req, res) {
   try {
-    const doc = await FinanceTaxZone.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const doc = await FinanceTaxZone.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     return ok(res, doc);
   } catch (err) {
     return fail(res, 500, err.message);
@@ -303,7 +303,7 @@ export async function createTaxCategory(req, res) {
 
 export async function updateTaxCategory(req, res) {
   try {
-    const doc = await FinanceTaxCategory.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const doc = await FinanceTaxCategory.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     return ok(res, doc);
   } catch (err) {
     return fail(res, 500, err.message);
@@ -340,7 +340,7 @@ export async function createTaxAgency(req, res) {
 
 export async function updateTaxAgency(req, res) {
   try {
-    const doc = await FinanceTaxAgency.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const doc = await FinanceTaxAgency.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     return ok(res, doc);
   } catch (err) {
     return fail(res, 500, err.message);
@@ -440,7 +440,7 @@ export async function createExpense(req, res) {
 
 export async function updateExpense(req, res) {
   try {
-    const doc = await FinanceExpense.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const doc = await FinanceExpense.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     return ok(res, doc);
   } catch (err) {
     return fail(res, 500, err.message);
@@ -574,7 +574,7 @@ export async function updatePurchase(req, res) {
     const doc = await FinancePurchase.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true }
+      { returnDocument: 'after' }
     );
     return ok(res, doc);
   } catch (err) {
@@ -615,7 +615,7 @@ export async function createAccount(req, res) {
 
 export async function updateAccount(req, res) {
   try {
-    const doc = await FinanceAccount.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const doc = await FinanceAccount.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     return ok(res, doc);
   } catch (err) {
     return fail(res, 500, err.message);
@@ -744,7 +744,7 @@ export async function createContact(req, res) {
 
 export async function updateContact(req, res) {
   try {
-    const doc = await FinanceContact.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const doc = await FinanceContact.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     return ok(res, doc);
   } catch (err) {
     return fail(res, 500, err.message);

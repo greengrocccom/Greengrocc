@@ -97,7 +97,7 @@ export const updateHeroBanner = async (req, res) => {
     if (isActive !== undefined) updates.isActive = isActive;
 
     const banner = await HeroBanner.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

@@ -341,7 +341,7 @@ export const updateSection = async (req, res) => {
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
 
     const section = await Section.findByIdAndUpdate(oldSection._id, updates, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

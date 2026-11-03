@@ -223,7 +223,7 @@ export const setPeakHours = async (req, res, next) => {
     const config = await PeakHoursConfig.findOneAndUpdate(
       { storeId },
       { $set: { peakHours } },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     return res.json({

@@ -558,7 +558,7 @@ export async function processOrderRewardPoints(order, { rewardPointsUsed = 0, us
     const updatedUser = await User.findOneAndUpdate(
       { _id: userId, rewardPoints: { $gte: pointsUsed } },
       { $inc: { rewardPoints: -pointsUsed } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (updatedUser) {
@@ -584,7 +584,7 @@ export async function processOrderRewardPoints(order, { rewardPointsUsed = 0, us
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $inc: { rewardPoints: pointsEarned } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (updatedUser) {
@@ -625,7 +625,7 @@ export async function reverseOrderRewardPoints(order) {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $inc: { rewardPoints: pointsUsed } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (updatedUser) {
@@ -649,7 +649,7 @@ export async function reverseOrderRewardPoints(order) {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $inc: { rewardPoints: -pointsEarned } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (updatedUser) {

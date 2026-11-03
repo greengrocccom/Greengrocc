@@ -49,7 +49,7 @@ export async function seedErpMasters() {
       state: "Maharashtra",
       status: "ACTIVE",
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 
   const stateId = `ST-${LOCATIONS.state.code}`;

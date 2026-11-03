@@ -922,7 +922,7 @@ export const updateCategory = async (req, res) => {
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
 
     const category = await Category.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

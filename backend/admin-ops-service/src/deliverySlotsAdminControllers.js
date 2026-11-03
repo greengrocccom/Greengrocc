@@ -103,7 +103,7 @@ export async function setRiderMonthlySalaryAdmin(req, res, next) {
     const rider = await DeliveryBoy.findByIdAndUpdate(
       req.params.id,
       { $set: { monthlySalary: value, salaryAmount: value, salaryPeriod: "month" } },
-      { new: true }
+      { returnDocument: 'after' }
     ).select("name phone employmentType monthlySalary walletBalance salaryCredits incentiveCredits");
     if (!rider) return fail(res, 404, "Delivery partner not found");
     return res.json({
@@ -151,7 +151,7 @@ export async function creditRiderSalaryAdmin(req, res, next) {
           },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).select("name phone employmentType monthlySalary walletBalance salaryCredits incentiveCredits");
     if (!updated) {
       return res.status(409).json({

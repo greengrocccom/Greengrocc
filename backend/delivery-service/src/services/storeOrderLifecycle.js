@@ -251,7 +251,7 @@ export async function applyStoreOrderStatus({
           ...(audit ? { manualCompletion: audit } : {}),
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!closed) {
       return { success: false, statusCode: 409, message: "Order was already closed" };

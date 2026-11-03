@@ -230,7 +230,7 @@ export async function reviewManagerCropRequest(req, res) {
           requestId: request.id,
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
     res.json({
       ...serializeDoc(request),

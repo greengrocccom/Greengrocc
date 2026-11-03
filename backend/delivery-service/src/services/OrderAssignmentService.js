@@ -195,7 +195,7 @@ async function reserveRider(driverId, orderId, expiresAt) {
       ],
     },
     { $set: { pendingOfferOrderId: orderId, pendingOfferExpiresAt: expiresAt } },
-    { new: true }
+    { returnDocument: 'after' }
   );
 }
 
@@ -220,7 +220,7 @@ async function acquireAssignmentLock(orderId) {
       ],
     },
     { $set: { assignmentLockUntil: new Date(now.getTime() + ASSIGNMENT_LOCK_MS) } },
-    { new: true }
+    { returnDocument: 'after' }
   );
   return Boolean(locked);
 }
@@ -497,7 +497,7 @@ async function handleOfferExpired(orderId, driverId) {
         assignmentStatus: "SEARCHING_FOR_DRIVER",
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
   if (!fresh) return;
 
@@ -698,7 +698,7 @@ export async function acceptDriverOffer(orderId, driverId) {
         ...(riderShiftId ? { shiftId: riderShiftId } : {}),
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   if (!order) {
@@ -726,7 +726,7 @@ export async function acceptDriverOffer(orderId, driverId) {
         pendingOfferExpiresAt: null,
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   if (!driver) {

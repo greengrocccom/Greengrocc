@@ -490,7 +490,7 @@ export async function upsertHrLeavePolicy(req, res, next) {
           notes: String(req.body.notes || "").trim(),
         },
       },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
     return ok(res, row);
   } catch (error) {

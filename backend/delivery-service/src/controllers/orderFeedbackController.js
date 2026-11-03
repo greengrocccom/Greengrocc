@@ -170,7 +170,7 @@ export async function submitOrderFeedback(req, res) {
       skipped: false,
     };
     const feedback = existing
-      ? await OrderFeedback.findByIdAndUpdate(existing._id, payload, { new: true, runValidators: true })
+      ? await OrderFeedback.findByIdAndUpdate(existing._id, payload, { returnDocument: 'after', runValidators: true })
       : await OrderFeedback.create(payload);
 
     if (payload.riderId && payload.riderRating) {
@@ -199,7 +199,7 @@ export async function submitOrderFeedback(req, res) {
             rating: p.rating,
             comment: p.comment || `Rated ${p.rating} star${p.rating === 1 ? "" : "s"}`,
           },
-          { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+          { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, runValidators: true }
         );
         await refreshProductRating(p.product);
       }

@@ -467,7 +467,13 @@ const farmerHarvestOrderSchema = new mongoose.Schema(
 vendorSchema.index({ status: 1 });
 
 // Farmer Indexes
-farmerSchema.index({ farmerId: 1 }, { unique: true, sparse: true });
+// Farmer IDs are optional: blank legacy values must not collide.
+// Explicit names allow these constraints alongside older non-unique indexes.
+farmerSchema.index({ farmerId: 1 }, {
+  name: "farmerId_unique_nonempty",
+  unique: true,
+  partialFilterExpression: { farmerId: { $type: "string", $gt: "" } },
+});
 farmerSchema.index({ managerId: 1, vendorId: 1 });
 farmerSchema.index({ vendorId: 1, status: 1 });
 farmerSchema.index({ mobile: 1 });
@@ -652,7 +658,7 @@ const farmerCropPlanSchema = new mongoose.Schema(
 );
 
 farmerCropSchema.index({ farmerId: 1, createdAt: -1 });
-farmerCropSchema.index({ farmerId: 1, cropId: 1 }, { unique: true });
+farmerCropSchema.index({ farmerId: 1, cropId: 1 }, { name: "farmer_crop_unique", unique: true });
 farmerCropPlanSchema.index({ farmerId: 1, createdAt: -1 });
 farmerCropPlanSchema.index({ farmerId: 1, cropId: 1 }, { unique: true });
 

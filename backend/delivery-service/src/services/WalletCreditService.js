@@ -101,7 +101,7 @@ export async function executeWalletCredit(orderIdStr) {
         walletCreditedAt: new Date(),
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   if (!order) {
@@ -130,7 +130,7 @@ export async function executeWalletCredit(orderIdStr) {
         totalLifetimeEarnings: amount,
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   console.log(

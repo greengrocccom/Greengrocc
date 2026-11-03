@@ -192,7 +192,7 @@ export const setManagerProductStock = async (req, res, next) => {
     const row = await StoreInventory.findOneAndUpdate(
       { managerId: manager._id, productId: product._id },
       { $set: { stockCount: stock, isActive: true } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!row) {
       await StoreInventory.create({

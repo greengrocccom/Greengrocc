@@ -146,7 +146,7 @@ export async function approveZoneAdmin(req, res) {
     const zone = await VendorZone.findOneAndUpdate(
       { id: req.params.zoneId, status: "Pending" },
       { $set: { status: "Approved", reviewedAt: new Date(), adminRemarks: String(req.body?.remarks || "").trim().slice(0, 500) } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!zone) return res.status(404).json({ success: false, message: "Pending zone not found" });
     res.json({ success: true, message: `Zone "${zone.name}" approved`, data: serializeZone(zone) });
@@ -163,7 +163,7 @@ export async function rejectZoneAdmin(req, res) {
     const zone = await VendorZone.findOneAndUpdate(
       { id: req.params.zoneId, status: "Pending" },
       { $set: { status: "Rejected", reviewedAt: new Date(), adminRemarks: remarks } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!zone) return res.status(404).json({ success: false, message: "Pending zone not found" });
     res.json({ success: true, message: `Zone "${zone.name}" rejected`, data: serializeZone(zone) });

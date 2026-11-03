@@ -684,7 +684,7 @@ export async function createBillingInvoice(req, res) {
     await PosRegisterShift.findOneAndUpdate(
       { registerName: counterName, shiftDate: todayStr, status: "open" },
       shiftUpdate,
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     ).catch(() => {});
 
     // Notify realtime feeds

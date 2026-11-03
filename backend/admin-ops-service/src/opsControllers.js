@@ -1031,7 +1031,7 @@ export async function createVendorAdmin(req, res, next) {
             adminRemarks: "Assigned by admin",
           },
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       ).catch((err) => console.warn("[createVendorAdmin] Zone upsert failed:", err.message));
     }
     consumeVerifiedPhone(mobile);
@@ -1125,7 +1125,7 @@ export async function updateVendorAdmin(req, res, next) {
               adminRemarks: "Assigned by admin",
             },
           },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         ).catch(() => {});
       }
     }
@@ -3209,7 +3209,7 @@ export async function updateGlobalSupportAdmin(req, res, next) {
           hours: hours ? hours.trim() : "Mon – Sat · 10 AM – 10 PM",
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     return ok(res, updated, { message: "Platform default support updated successfully" });

@@ -906,7 +906,7 @@ export const confirmCashCollection = async (req, res, next) => {
           amountCollected: amount,
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!order) {
       return res.json({ success: true, alreadyCollected: true, message: "Cash already marked as collected" });
@@ -1047,7 +1047,7 @@ export const completeDelivery = async (req, res, next) => {
         },
         $unset: { otpLockedUntil: 1 },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!claimed) {
       const fresh = await StoreOrder.findById(order._id);
@@ -1239,7 +1239,7 @@ export const failDelivery = async (req, res, next) => {
         },
         $inc: { deliveryAttempts: 1 },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!failed) {
       return res.status(409).json({ success: false, message: "Order changed — refresh and try again" });

@@ -120,7 +120,7 @@ export async function checkAndTrackIncentive(riderId, storeId) {
           targetBonusEarned,
         },
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: 'after', runValidators: true }
     );
 
     return incentive;

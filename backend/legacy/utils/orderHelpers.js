@@ -1231,7 +1231,7 @@ export async function upsertCheckoutAttemptOrder(userId, prepared, paymentMethod
     ? await Order.findOneAndUpdate(
         { _id: existing._id, status: "attempted" },
         { $set: payload },
-        { new: true, runValidators: true }
+        { returnDocument: 'after', runValidators: true }
       )
     : null;
 

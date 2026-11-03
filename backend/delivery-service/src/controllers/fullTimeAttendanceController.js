@@ -157,7 +157,7 @@ export const markFullTimeAttendance = async (req, res, next) => {
           lateMinutes,
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     const policy = shiftPayPolicy(shift);

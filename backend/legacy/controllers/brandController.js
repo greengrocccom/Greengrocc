@@ -89,7 +89,7 @@ export const updateBrand = async (req, res) => {
     }
 
     const brand = await Brand.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

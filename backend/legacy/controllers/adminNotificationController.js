@@ -192,7 +192,7 @@ export const createAdminInboxAlert = async (req, res) => {
             "data.eventKey": String(eventKey),
           },
           { $setOnInsert: notificationData },
-          { new: true, upsert: true, runValidators: true }
+          { returnDocument: 'after', upsert: true, runValidators: true }
         )
       : await Notification.create(notificationData);
 
@@ -217,7 +217,7 @@ export const markAdminInboxAlertRead = async (req, res) => {
         "data.channel": "admin_inbox",
       },
       { $set: { isRead: true } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!notification) {
@@ -427,7 +427,7 @@ export const cancelScheduledNotification = async (req, res) => {
     const job = await ScheduledNotification.findOneAndUpdate(
       { _id: req.params.id, status: { $in: ["scheduled", "failed"] } },
       { $set: { status: "cancelled" } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!job) {
       return res.status(404).json({
@@ -976,7 +976,7 @@ export const markAdminSystemAlertRead = async (req, res) => {
     await AdminAlertState.findOneAndUpdate(
       { alertKey, userId },
       { $set: { isRead: true, readAt: new Date() } },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // If it's a Notification collection item, also update it
@@ -1005,7 +1005,7 @@ export const dismissAdminSystemAlert = async (req, res) => {
     await AdminAlertState.findOneAndUpdate(
       { alertKey, userId },
       { $set: { isDismissed: true, dismissedAt: new Date(), isRead: true } },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     return res.json({ success: true, message: "Alert dismissed" });

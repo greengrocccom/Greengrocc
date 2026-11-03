@@ -1640,7 +1640,7 @@ export const updateOrder = async (req, res) => {
     const savedOrder = await Order.findByIdAndUpdate(
       req.params.id,
       { $set: updates },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     try {

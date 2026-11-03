@@ -17,7 +17,7 @@ export const ErpCounter =
  * Deleted records do not reuse IDs because the counter is independent of documents.
  */
 export async function nextSequence(key, session) {
-  const options = { new: true, upsert: true };
+  const options = { returnDocument: 'after', upsert: true };
   if (session) options.session = session;
   const doc = await ErpCounter.findOneAndUpdate(
     { key },

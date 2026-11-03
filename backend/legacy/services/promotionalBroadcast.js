@@ -47,7 +47,7 @@ async function runDueJobs() {
       const job = await ScheduledNotification.findOneAndUpdate(
         { status: "scheduled", sendAt: { $lte: new Date() } },
         { $set: { status: "sending" } },
-        { sort: { sendAt: 1 }, new: true }
+        { sort: { sendAt: 1 }, returnDocument: 'after' }
       );
       if (!job) break;
 

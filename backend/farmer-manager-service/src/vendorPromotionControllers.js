@@ -103,7 +103,7 @@ export async function updateVendorCoupon(req, res) {
     const coupon = await VendorCoupon.findOneAndUpdate(
       { _id: req.params.id, vendorId: vendorIdOf(req) },
       { $set: payload },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     if (!coupon) return fail(res, 404, "Coupon not found");
     ok(res, coupon);

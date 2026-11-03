@@ -240,7 +240,7 @@ export async function createStaffUser(req, res, next) {
           workNotes: String(req.body.notes || "").trim(),
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     return ok(res, staff.toSafeJSON(), { message: "Staff account created successfully" });

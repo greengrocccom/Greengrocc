@@ -184,7 +184,7 @@ export const updateSupportMessageStatus = async (req, res) => {
     const message = await SupportMessage.findByIdAndUpdate(
       req.params.id,
       { status },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).select("-attachment");
 
     if (!message) {

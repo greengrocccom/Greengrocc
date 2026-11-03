@@ -69,7 +69,7 @@ async function takeStock(managerId, order) {
     const updated = await StoreInventory.findOneAndUpdate(
       { ...filter, stockCount: { $gte: item.quantity } },
       { $inc: { stockCount: -item.quantity } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!updated) {
       for (const done of deducted) {

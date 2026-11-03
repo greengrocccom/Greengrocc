@@ -306,7 +306,7 @@ export const deleteFullTimeShift = async (req, res, next) => {
     const shift = await FullTimeShift.findOneAndUpdate(
       { _id: req.params.id, managerId: manager._id, isActive: true },
       { $set: { isActive: false } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!shift) return res.status(404).json({ success: false, message: "Full-Time shift not found" });
     res.json({ success: true, message: "Full-Time shift removed" });
@@ -565,7 +565,7 @@ export const creditFullTimeSalary = async (req, res, next) => {
           },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!updated) {
       return res.status(409).json({
@@ -707,7 +707,7 @@ export const markFullTimeAttendanceManual = async (req, res, next) => {
           notes: String(notes || "").trim(),
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     res.json({
@@ -930,7 +930,7 @@ export async function assignOrdersDirectly({
             : {}),
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!updated) {
       skipped.push({
@@ -1030,7 +1030,7 @@ export const unassignFullTimeOrder = async (req, res, next) => {
           fullTimeAssignedBy: null,
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!updated) return badRequest(res, "Order changed state — refresh and try again");
 

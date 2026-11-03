@@ -363,7 +363,7 @@ async function shipHeldPreOrders({ orderIds, note, forwardedByName, forwardedBy,
         },
         $unset: { routeBatchWindowEndsAt: "" },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!order) {
@@ -727,7 +727,7 @@ export const markPreOrdersReceived = async (req, res, next) => {
       const order = await StoreOrder.findOneAndUpdate(
         { _id: id, managerId: manager._id, isPreOrder: true, status: "packed", storeReceivedAt: null },
         { $set: { storeReceivedAt: new Date(), storeReceivedByName: receivedByName } },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (!order) {
         const existing = await StoreOrder.findOne({ _id: id, managerId: manager._id }).select(
@@ -804,7 +804,7 @@ export const markPreOrdersOutForDelivery = async (req, res, next) => {
             pickupVerified: true,
           },
         },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (!order) {
         const existing = await StoreOrder.findOne({ _id: id, managerId: manager._id }).select(
@@ -1000,7 +1000,7 @@ export const confirmVendorPreOrders = async (req, res, next) => {
           vendorStatus: { $nin: ["confirmed", "rejected"] },
         },
         { $set: { vendorStatus: "confirmed", vendorConfirmedAt: new Date(), vendorActionByName: byName } },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (!order) {
         const existing = await StoreOrder.findOne({ _id: id, managerId: { $in: storeIds } }).select(
@@ -1070,7 +1070,7 @@ export const packVendorPreOrders = async (req, res, next) => {
           preOrderStage: { $in: ["pending", null, ""] },
         },
         { $set: { preOrderStage: "ready", readyAt: now } },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (order && !order.preparingAt) {
         order.preparingAt = now;

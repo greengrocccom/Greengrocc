@@ -79,7 +79,7 @@ export const updateFullTimeRule = async (req, res, next) => {
           customRules: readCustomRules(req.body.customRules),
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!rule) return res.status(404).json({ success: false, message: "Rule not found" });
     return res.json({ success: true, rule });
@@ -125,7 +125,7 @@ export const setFullTimeConfig = async (req, res, next) => {
     const manager = await DeliveryManager.findByIdAndUpdate(
       req.user.id,
       { $set: { fullTimeMonthlySalary: salary } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!manager) return res.status(404).json({ success: false, message: "Manager not found" });
     return res.json({

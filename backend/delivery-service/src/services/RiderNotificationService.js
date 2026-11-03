@@ -531,7 +531,7 @@ export async function markNotificationRead(riderId, notificationId) {
       $or: [{ deliveryPartnerId: riderId }, { deliveryBoyId: riderId }],
     },
     { $set: { isRead: true, readAt: new Date() } },
-    { new: true }
+    { returnDocument: 'after' }
   );
   return doc ? doc.toSafeJSON() : null;
 }

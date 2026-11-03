@@ -365,7 +365,7 @@ export const reviewInventoryRequest = async (req, res, next) => {
       const updated = await StoreInventory.findOneAndUpdate(
         { managerId: request.managerId, sku: request.sku },
         { $inc: { stockCount: request.quantity }, $set: { isActive: true } },
-        { new: true }
+        { returnDocument: 'after' }
       );
 
       if (!updated) {

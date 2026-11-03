@@ -1032,7 +1032,7 @@ export const heartbeat = async (req, res, next) => {
     const deliveryBoy = await DeliveryBoy.findByIdAndUpdate(
       req.user.id,
       { $set: updates },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!deliveryBoy) {
@@ -1071,7 +1071,7 @@ export const updateFcmToken = async (req, res, next) => {
     const deliveryBoy = await DeliveryBoy.findByIdAndUpdate(
       req.user.id,
       { $set: { fcmToken } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!deliveryBoy) {
       return res.status(404).json({ success: false, message: "Delivery boy not found" });
@@ -1105,7 +1105,7 @@ export const updateLocation = async (req, res, next) => {
           lastSeenAt: now,
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!deliveryBoy) {

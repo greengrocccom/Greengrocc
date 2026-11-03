@@ -97,7 +97,7 @@ export async function createProductReview(req, res) {
         title,
         comment,
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, runValidators: true }
     );
 
     const stats = await refreshProductRating(productId);

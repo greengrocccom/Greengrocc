@@ -282,7 +282,7 @@ export async function creditSlotIncentive({
         },
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
   if (!rider) return null;
 
@@ -375,7 +375,7 @@ export async function creditKmIncentiveForOrder(order, riderId) {
       { _id: match.shift._id },
       { $inc: { "slots.$[s].bookings.$[b].kmDelivered": orderKm } },
       {
-        new: true,
+        returnDocument: 'after',
         arrayFilters: [{ "s._id": match.slot._id }, { "b._id": match.booking._id }],
       }
     );

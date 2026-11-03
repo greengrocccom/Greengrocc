@@ -341,7 +341,7 @@ export async function approveVendorCatalogRequest(req, res) {
     const request = await VendorCatalogRequest.findOneAndUpdate(
       { id: req.params.requestId, status: "Pending" },
       { $set: { status: "Approved", reviewedAt: new Date(), adminRemarks: String(req.body?.remarks || "").trim().slice(0, 500) } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!request) return res.status(404).json({ success: false, message: "Pending request not found" });
 
@@ -376,7 +376,7 @@ export async function rejectVendorCatalogRequest(req, res) {
     const request = await VendorCatalogRequest.findOneAndUpdate(
       { id: req.params.requestId, status: "Pending" },
       { $set: { status: "Rejected", reviewedAt: new Date(), adminRemarks: remarks } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!request) return res.status(404).json({ success: false, message: "Pending request not found" });
     res.json({ success: true, message: "Request rejected", request: serializeRequest(request) });

@@ -1708,7 +1708,7 @@ export async function updateProductRecord(id, body = {}, { ownerManagerId = null
     const product = await Product.findByIdAndUpdate(
       id,
       buildPersistedProductFields(payload, pricingFields, categoryCheck),
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (product) {

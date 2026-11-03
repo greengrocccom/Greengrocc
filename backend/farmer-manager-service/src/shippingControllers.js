@@ -164,7 +164,7 @@ async function saveVendorConfig(vendorId, body = {}) {
         overrides: sanitizeOverrides(body.overrides, scopes),
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   ).lean();
   return { config: updated, scopes };
 }
