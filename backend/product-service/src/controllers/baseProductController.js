@@ -1,6 +1,7 @@
 import BaseProduct from "../models/BaseProduct.js";
 import Product from "../../../legacy/models/Product.js";
 import Category from "../models/Category.js";
+import { resolveImageUrl } from '../../../legacy/utils/urlResolver.js';
 
 /** Must match `baseProductKey` in admin Products.jsx so saved base products and product fields line up. */
 export function baseProductKey(category = "", name = "") {
@@ -77,7 +78,7 @@ export const getBaseProducts = async (req, res) => {
 
     res.json({
       success: true,
-      data: items.map((item) => ({ ...item, productCount: countByKey.get(item.key) || 0 })),
+      data: items.map((item) => ({ ...item, image: resolveImageUrl(item.image) || '', productCount: countByKey.get(item.key) || 0 })),
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -105,7 +106,7 @@ export const createBaseProduct = async (req, res) => {
       isActive: req.body.isActive !== false,
     });
 
-    res.status(201).json({ success: true, data: item });
+    res.status(201).json({ success: true, data: { ...item.toObject(), image: resolveImageUrl(item.image) || '' } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -131,7 +132,7 @@ export const updateBaseProduct = async (req, res) => {
       { $set: { baseProductName: item.name, baseProductImage: item.image } }
     );
 
-    res.json({ success: true, data: item });
+    res.json({ success: true, data: { ...item.toObject(), image: resolveImageUrl(item.image) || '' } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

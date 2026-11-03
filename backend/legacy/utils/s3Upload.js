@@ -1,6 +1,7 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
+import { publicImageUrl } from './imageUrlConfig.js';
 import {
   ALLOWED_UPLOAD_FOLDERS,
   buildS3ObjectKey,
@@ -40,14 +41,7 @@ export function isUploadFolder(value) {
 }
 
 export function buildCdnUrl(key) {
-  const base = (process.env.CLOUDFRONT_URL || "").replace(/\/$/, "");
-  if (base) {
-    return `${base}/${key.replace(/^\//, "")}`;
-  }
-  // Fallback: direct S3 URL when CloudFront is not configured
-  const bucket = process.env.AWS_BUCKET_NAME;
-  const region = process.env.AWS_REGION || "ap-south-1";
-  return `https://${bucket}.s3.${region}.amazonaws.com/${key.replace(/^\//, "")}`;
+  return publicImageUrl(key);
 }
 
 function extensionFromMime(mimeType) {

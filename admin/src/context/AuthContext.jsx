@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { readAdminToken as readStoredToken } from '../api/client';
 import { reconnectRealtime } from '../realtime/liveClient';
+import { clearExportSources } from '../utils/adminExportStore';
 
 const AuthContext = createContext();
 
@@ -19,6 +20,7 @@ export function AuthProvider({ children }) {
 
   const login = (userData, jwtToken) => {
     if (!userData || !jwtToken) return;
+    clearExportSources();
     setUser(userData);
     setToken(jwtToken);
     localStorage.setItem('greengrocc_admin_user', JSON.stringify(userData));
@@ -27,6 +29,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    clearExportSources();
     setUser(null);
     setToken(null);
     localStorage.removeItem('greengrocc_admin_user');

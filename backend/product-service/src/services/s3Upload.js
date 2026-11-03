@@ -1,9 +1,9 @@
 import { randomBytes } from "crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { publicImageUrl } from '../../../legacy/utils/imageUrlConfig.js';
 
 const BUCKET_NAME = () => process.env.AWS_BUCKET_NAME || "";
 const REGION = () => process.env.AWS_REGION || "ap-south-1";
-const CLOUDFRONT_URL = () => (process.env.CLOUDFRONT_URL || "").replace(/\/$/, "");
 // Keys are unique per upload and never overwritten, so objects can be cached indefinitely.
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
@@ -27,9 +27,7 @@ export function getS3Client() {
 }
 
 export function buildPublicUrl(s3Key) {
-  const cdn = CLOUDFRONT_URL();
-  if (cdn) return `${cdn}/${s3Key}`;
-  return `https://${BUCKET_NAME()}.s3.${REGION()}.amazonaws.com/${s3Key}`;
+  return publicImageUrl(s3Key);
 }
 
 /** Uploads under `<folder>/<timestamp>-<random><ext>` and returns `{ url, key }`. */

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import AdminDataExport from './AdminDataExport';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/admin.css';
 
@@ -11,6 +12,7 @@ export default function AdminLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const contentRef = useRef(null);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -39,7 +41,8 @@ export default function AdminLayout() {
             location.pathname.startsWith('/billing') ? 'p-3 sm:p-4 lg:p-5 lg:pb-2 pb-2' : 'p-3 sm:p-5 lg:p-6'
           }`}
         >
-          <Outlet context={{ search, setSearch }} />
+          <AdminDataExport key={`${location.pathname}${location.search}`} contentRef={contentRef} />
+          <div ref={contentRef}><Outlet context={{ search, setSearch }} /></div>
         </main>
       </div>
     </div>

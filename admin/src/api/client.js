@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { configureRealtime, withLiveAdapter } from '../realtime/liveClient';
+import { captureExportResponse, clearExportSources, currentExportScope, exportCaptureGeneration } from '../utils/adminExportStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -23,8 +24,12 @@ const apiClient = withLiveAdapter(
 );
 
 configureRealtime({ url: API_ORIGIN, getToken: readAdminToken });
+let exportRequestSequence = 0;
 
 apiClient.interceptors.request.use((config) => {
+  config.exportScope = currentExportScope();
+  config.exportRequestSequence = ++exportRequestSequence;
+  config.exportGeneration = exportCaptureGeneration();
   const token = readAdminToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -44,12 +49,16 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    captureExportResponse(response);
+    return response;
+  },
   (error) => {
     if (error.response && error.response.status === 401) {
       const onLogin = window.location.pathname.includes('/login');
       localStorage.removeItem('greengrocc_admin_token');
       localStorage.removeItem('greengrocc_admin_user');
+      clearExportSources();
       if (!onLogin) {
         window.location.assign('/login');
       }

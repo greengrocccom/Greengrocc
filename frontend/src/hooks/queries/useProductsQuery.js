@@ -53,10 +53,13 @@ export function useInfiniteProductsQuery(params, options = {}) {
   return useInfiniteQuery({
     queryKey: queryKeys.products.infiniteList({ ...params, locationKey }),
     queryFn: async ({ pageParam = 1 }) => {
+      // Fetch the matching catalog together for mobile-style local weight/discount sorting.
+      const needsLocalCatalog = Boolean(params?.weightSize || /^(weight|discount)-/.test(params?.sort || ""));
+      const apiParams = { ...params };
+      delete apiParams.weightSize;
       const { data } = await getProducts({
-        ...params,
-        page: pageParam,
-        limit: PRODUCTS_PAGE_SIZE,
+        ...apiParams,
+        ...(!needsLocalCatalog ? { page: pageParam, limit: PRODUCTS_PAGE_SIZE } : {}),
       });
 
       return {

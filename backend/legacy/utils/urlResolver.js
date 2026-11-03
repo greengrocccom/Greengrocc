@@ -1,24 +1,25 @@
+import { configuredCdnBase, publicImageUrl } from './imageUrlConfig.js';
+import { bundledSiteImageUrl } from './bundledSiteImages.js';
+
 export const resolveImageUrl = (imageKey) => {
   if (!imageKey || typeof imageKey !== "string") return null;
 
-  let cleanKey = imageKey;
-  if (cleanKey.startsWith("http://") || cleanKey.startsWith("https://")) {
-    const s3Regex = /^https?:\/\/[^\/]+\.s3\.[^\/]+\.amazonaws\.com\/(.+)$/;
-    const match = cleanKey.match(s3Regex);
-    if (match) {
-      cleanKey = match[1];
-    } else if (cleanKey.includes(process.env.CLOUDFRONT_DOMAIN || "cdn.greengrocc.com")) {
+  const cleanKey = imageKey.trim();
+  if (!cleanKey) return null;
+  const siteImage = bundledSiteImageUrl(cleanKey);
+  if (siteImage) return siteImage;
+  if (/^https?:\/\//i.test(cleanKey)) {
+    try {
+      const url = new URL(cleanKey);
+      const s3Host = /\.s3(?:[.-][a-z0-9-]+)?\.amazonaws\.com$/i.test(url.hostname);
+      // An explicitly configured CDN serves copied S3 object keys. Preserve
+      // signed/versioned URLs and external URLs, whose origins are authoritative.
+      if (s3Host && configuredCdnBase() && !url.search) return publicImageUrl(url.pathname);
       return cleanKey;
-    } else {
-      return cleanKey;
-    }
+    } catch { return null; }
   }
-
-  const domain = process.env.CLOUDFRONT_DOMAIN || "cdn.greengrocc.com";
-  const cleanDomain = domain.replace(/\/+$/, "").replace(/^https?:\/\//, "");
-  cleanKey = cleanKey.replace(/^\/+/, "");
-
-  return `https://${cleanDomain}/${cleanKey}`;
+  if (/^data:image\//i.test(cleanKey)) return cleanKey;
+  return publicImageUrl(cleanKey);
 };
 
 export const resolveImageArray = (images) => {
@@ -36,6 +37,11 @@ export const transformProductResponse = (product) => {
   if (data.productImages) {
     data.productImages = resolveImageArray(data.productImages);
   }
+  if (data.baseProductImage) data.baseProductImage = resolveImageUrl(data.baseProductImage);
+  if (data.image) data.image = resolveImageUrl(data.image);
+  if (Array.isArray(data.variants)) {
+    data.variants = data.variants.map(variant => ({ ...variant, ...(variant.image ? { image: resolveImageUrl(variant.image) } : {}) }));
+  }
   if (data.farmerImage) {
     data.farmerImage = resolveImageUrl(data.farmerImage);
   }
@@ -43,6 +49,7 @@ export const transformProductResponse = (product) => {
     data.farmImage = resolveImageUrl(data.farmImage);
   }
   if (data.farmerDetails) {
+    data.farmerDetails = { ...data.farmerDetails };
     if (data.farmerDetails.farmerImage) {
       data.farmerDetails.farmerImage = resolveImageUrl(data.farmerDetails.farmerImage);
     }

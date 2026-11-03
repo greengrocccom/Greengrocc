@@ -7,6 +7,8 @@ import { groupBaseProducts, productImage } from "../../utils/baseProducts";
 import { getProductDisplayDetails } from "../../utils/productLocalization";
 import { getProductListPriceInfo, isMultiVariant } from "../../utils/productPricing";
 import { useCart } from "../../context/CartContext";
+import ProductFiltersBar from "./ProductFiltersBar";
+import { useProductFilters } from "../../hooks/useProductFilters";
 import WishlistButton from "./WishlistButton";
 import QuickCommerceProductCard from "./QuickCommerceProductCard";
 import OptimizedImg from "../common/OptimizedImg";
@@ -227,6 +229,7 @@ function CatalogFlow({
   const [baseFilter, setBaseFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
   const { cartCount } = useCart();
+  const productFilters = useProductFilters(products);
 
   useEffect(() => {
     if (hasNextPage && !isFetchingNextPage && onLoadMore) onLoadMore();
@@ -262,7 +265,8 @@ function CatalogFlow({
 
   if (baseKey && view === "products") {
     const source = activeBase?.items || [];
-    const items = source.filter((product) => {
+    const items = productFilters.sortedProducts.filter((product) => {
+      if (!source.includes(product)) return false;
       if (productFilter !== "all" && productTier(product) !== productFilter) return false;
       return needle ? String(product.name || "").toLowerCase().includes(needle) : true;
     });
@@ -316,6 +320,7 @@ function CatalogFlow({
               autoFocus
             />
           ) : null}
+          <ProductFiltersBar products={source} />
           <div className="flex gap-2 overflow-x-auto pb-3">
             {PRODUCT_FILTERS.map((filter) => (
               <button

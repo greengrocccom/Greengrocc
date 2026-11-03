@@ -1,0 +1,153 @@
+{
+  "summary": {
+    "files": 65,
+    "models": 172,
+    "schemaDefinitions": 173,
+    "live": true,
+    "issueCounts": {
+      "model-redefinition": 1,
+      "import-error": 1,
+      "multiple-model-declarations": 1,
+      "unregistered-reference": 8,
+      "callback-pre-hook": 3,
+      "index-options-mismatch": 2,
+      "index-missing": 1
+    }
+  },
+  "issues": [
+    {
+      "kind": "model-redefinition",
+      "model": "Order",
+      "first": "delivery-service/src/models/Order.js",
+      "second": "legacy/models/order/Order.js"
+    },
+    {
+      "kind": "import-error",
+      "file": "legacy/models/order/Order.js",
+      "message": "Cannot overwrite `Order` model once compiled."
+    },
+    {
+      "kind": "multiple-model-declarations",
+      "model": "GreenGroccCategory",
+      "files": [
+        "legacy/models/Category.js",
+        "product-service/src/models/Category.js"
+      ]
+    },
+    {
+      "kind": "unregistered-reference",
+      "model": "Alert",
+      "field": "managerId",
+      "ref": "Manager"
+    },
+    {
+      "kind": "unregistered-reference",
+      "model": "Alert",
+      "field": "storeId",
+      "ref": "Manager"
+    },
+    {
+      "kind": "unregistered-reference",
+      "model": "Alert",
+      "field": "relatedRiderId",
+      "ref": "Rider"
+    },
+    {
+      "kind": "callback-pre-hook",
+      "model": "Alert",
+      "hook": "validate",
+      "file": "delivery-service/src/models/Alert.js"
+    },
+    {
+      "kind": "callback-pre-hook",
+      "model": "Incentive",
+      "hook": "validate",
+      "file": "delivery-service/src/models/Incentive.js"
+    },
+    {
+      "kind": "unregistered-reference",
+      "model": "Order",
+      "field": "managerId",
+      "ref": "Manager"
+    },
+    {
+      "kind": "unregistered-reference",
+      "model": "Order",
+      "field": "storeId",
+      "ref": "Manager"
+    },
+    {
+      "kind": "unregistered-reference",
+      "model": "Order",
+      "field": "assignedRiderId",
+      "ref": "Rider"
+    },
+    {
+      "kind": "unregistered-reference",
+      "model": "Order",
+      "field": "pickupScannedBy",
+      "ref": "Rider"
+    },
+    {
+      "kind": "callback-pre-hook",
+      "model": "Order",
+      "hook": "validate",
+      "file": "delivery-service/src/models/Order.js"
+    },
+    {
+      "kind": "unregistered-reference",
+      "model": "UnblockRequest",
+      "field": "reviewedBy",
+      "ref": "Admin"
+    },
+    {
+      "kind": "index-options-mismatch",
+      "model": "AdminInventoryBatch",
+      "key": {
+        "batchNumber": 1
+      },
+      "expected": {
+        "unique": true
+      },
+      "actual": [
+        {
+          "v": 2,
+          "key": {
+            "batchNumber": 1
+          },
+          "name": "batchNumber_1"
+        }
+      ]
+    },
+    {
+      "kind": "index-options-mismatch",
+      "model": "FullTimeRule",
+      "key": {
+        "managerId": 1
+      },
+      "expected": {},
+      "actual": [
+        {
+          "v": 2,
+          "key": {
+            "managerId": 1
+          },
+          "name": "managerId_1",
+          "unique": true
+        }
+      ]
+    },
+    {
+      "kind": "index-missing",
+      "model": "ErpVillage",
+      "key": {
+        "talukaId": 1,
+        "villageCode": 1
+      },
+      "expected": {
+        "unique": true
+      },
+      "actual": []
+    }
+  ]
+}

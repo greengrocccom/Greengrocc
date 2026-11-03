@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Plus, Trash2, Check, X, Loader2 } from 'lucide-react';
 import { PAGE_TITLE, PAGE_SUB, PANEL, BTN_PRIMARY } from '../utils/ui';
-import { API_ORIGIN as API_BASE } from '../api/client';
+import apiClient, { API_ORIGIN as API_BASE } from '../api/client';
 
 export default function PreOrderSlots() {
   const [slots, setSlots] = useState([]);
@@ -16,15 +16,7 @@ export default function PreOrderSlots() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('greengrocc_admin_token');
-      // Use /api/settings/admin or /api/settings based on the routes
-      const res = await fetch(`${API_BASE}/api/settings/admin`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!res.ok) throw new Error('Failed to fetch settings');
-      const data = await res.json();
+      const { data } = await apiClient.get('/settings/admin');
       // data might be wrapped in { data: settings } or direct
       const settings = data.data || data;
       if (settings.preOrderSlots) {

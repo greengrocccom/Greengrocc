@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { IndianRupee, Plus, Trash2, Check, X, Loader2, Package } from 'lucide-react';
 import { PAGE_TITLE, PAGE_SUB, PANEL, BTN_PRIMARY } from '../utils/ui';
-import { API_ORIGIN as API_BASE } from '../api/client';
+import apiClient, { API_ORIGIN as API_BASE } from '../api/client';
 
 const INPUT =
   'w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all';
@@ -32,9 +32,7 @@ export default function OrderCharges() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/settings/admin`, { headers: authHeaders() });
-        if (!res.ok) throw new Error('Failed to fetch settings');
-        const body = await res.json();
+        const { data: body } = await apiClient.get('/settings/admin');
         const settings = body.data || body;
         if (cancelled) return;
         setMinimumOrderValue(String(settings.minimumOrderValue ?? 0));

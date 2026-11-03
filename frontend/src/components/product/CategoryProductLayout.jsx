@@ -1,11 +1,12 @@
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { groupBaseProducts } from "../../utils/baseProducts";
 import { buildStoreProductUrl } from "../../utils/storeSection";
 import DealProductCard from "./DealProductCard";
 import SidebarCategoryImage from "./SidebarCategoryImage";
 import CategoryHeaderSection from "./CategoryHeaderSection";
 import ProductFiltersBar from "./ProductFiltersBar";
+import { useProductFilters } from "../../hooks/useProductFilters";
 import ShopTopSlidingBanners from "./ShopTopSlidingBanners";
 import MobileCategoryBrowse from "./MobileCategoryBrowse";
 import OptimizedImg from "../common/OptimizedImg";
@@ -19,168 +20,12 @@ function buildCategoryUrl(categoryName, params = {}, storeParam = "") {
   return `/product?${search.toString()}`;
 }
 
-function useCategoryFilters(products, categoryName) {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const selectedBrand = searchParams.get("brand")?.trim() || "";
-  const sortBy = searchParams.get("sort")?.trim() || "newest";
-  const maxPrice = searchParams.get("maxPrice")?.trim() || "";
-  const onSale = searchParams.get("onSale") === "true";
-  const inStock = searchParams.get("inStock") === "true";
-
-  const filteredProducts = products.filter((product) => {
-    if (selectedBrand && product.brandName?.toLowerCase() !== selectedBrand.toLowerCase()) {
-      return false;
-    }
-
-    const price = product.discountedPrice ?? product.price ?? 0;
-    if (maxPrice && price > Number(maxPrice)) {
-      return false;
-    }
-
-    if (onSale) {
-      const originalPrice = product.price ?? price;
-      if (!(originalPrice > price && price > 0)) {
-        return false;
-      }
-    }
-
-    if (inStock) {
-      const stockAmt = product.storeStock ?? product.stock ?? 0;
-      if (stockAmt <= 0 && product.inStock !== true) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === "price-asc") {
-      return (a.discountedPrice ?? a.price) - (b.discountedPrice ?? b.price);
-    }
-    if (sortBy === "price-desc") {
-      return (b.discountedPrice ?? b.price) - (a.discountedPrice ?? a.price);
-    }
-    if (sortBy === "newest") {
-      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-    }
-    if (sortBy === "oldest") {
-      return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-    }
-    return 0;
-  });
-
-  const updateParam = (key, value) => {
-    const next = new URLSearchParams(searchParams);
-    if (value && value !== "false") next.set(key, value);
-    else next.delete(key);
-    next.delete("subcategory");
-    setSearchParams(next, { replace: true });
-  };
-
-  const clearFilters = () => {
-    const next = new URLSearchParams();
-    next.set("categoryName", categoryName);
-    setSearchParams(next, { replace: true });
-  };
-
-  const hasActiveFilters = Boolean(
-    selectedBrand || (sortBy && sortBy !== "newest") || maxPrice || onSale || inStock
-  );
-
-  return {
-    subcategory: "",
-    selectedBrand,
-    sortBy,
-    maxPrice,
-    onSale,
-    inStock,
-    sortedProducts,
-    updateParam,
-    clearFilters,
-    hasActiveFilters,
-  };
+function useCategoryFilters(products) {
+  return useProductFilters(products);
 }
 
 function useAllProductsFilters(products) {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const selectedBrand = searchParams.get("brand")?.trim() || "";
-  const sortBy = searchParams.get("sort")?.trim() || "newest";
-  const maxPrice = searchParams.get("maxPrice")?.trim() || "";
-  const onSale = searchParams.get("onSale") === "true";
-  const inStock = searchParams.get("inStock") === "true";
-
-  const filteredProducts = products.filter((product) => {
-    if (selectedBrand && product.brandName?.toLowerCase() !== selectedBrand.toLowerCase()) {
-      return false;
-    }
-
-    const price = product.discountedPrice ?? product.price ?? 0;
-    if (maxPrice && price > Number(maxPrice)) {
-      return false;
-    }
-
-    if (onSale) {
-      const originalPrice = product.price ?? price;
-      if (!(originalPrice > price && price > 0)) {
-        return false;
-      }
-    }
-
-    if (inStock) {
-      const stockAmt = product.storeStock ?? product.stock ?? 0;
-      if (stockAmt <= 0 && product.inStock !== true) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === "price-asc") {
-      return (a.discountedPrice ?? a.price) - (b.discountedPrice ?? b.price);
-    }
-    if (sortBy === "price-desc") {
-      return (b.discountedPrice ?? b.price) - (a.discountedPrice ?? a.price);
-    }
-    if (sortBy === "newest") {
-      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-    }
-    if (sortBy === "oldest") {
-      return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-    }
-    return 0;
-  });
-
-  const updateParam = (key, value) => {
-    const next = new URLSearchParams(searchParams);
-    if (value && value !== "false") next.set(key, value);
-    else next.delete(key);
-    setSearchParams(next, { replace: true });
-  };
-
-  const clearFilters = () => {
-    setSearchParams({}, { replace: true });
-  };
-
-  const hasActiveFilters = Boolean(
-    selectedBrand || (sortBy && sortBy !== "newest") || maxPrice || onSale || inStock
-  );
-
-  return {
-    selectedBrand,
-    sortBy,
-    maxPrice,
-    onSale,
-    inStock,
-    sortedProducts,
-    updateParam,
-    clearFilters,
-    hasActiveFilters,
-  };
+  return useProductFilters(products);
 }
 
 function CategoryFilterToolbar() {
@@ -408,54 +253,6 @@ function DesktopCategorySidebar({ categories, activeCategory }) {
   return <CategoryListBox categories={categories} activeCategory={activeCategory} variant="desktop" />;
 }
 
-function FilterSheet({ filters, showFilters, setShowFilters }) {
-  return (
-    <>
-      <button
-        onClick={() => setShowFilters(true)}
-        className="fixed bottom-[90px] right-4 sm:right-8 z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-slate-800 text-white shadow-xl hover:bg-slate-700 active:scale-95 transition-all"
-        aria-label="Filters"
-      >
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h18M6 9.75h12M9 15h6M10.5 20.25h3" />
-        </svg>
-      </button>
-
-      {showFilters && (
-        <>
-          <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowFilters(false)} />
-          <div className="fixed inset-x-0 bottom-0 sm:inset-x-auto sm:bottom-[150px] sm:right-8 sm:w-[340px] z-[70] rounded-t-3xl sm:rounded-2xl bg-white p-5 pb-8 sm:pb-5 shadow-2xl animate-in sm:slide-in-from-bottom-4 slide-in-from-bottom duration-200">
-            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-800 text-[16px]">Filters & Sorting</h3>
-              <button onClick={() => setShowFilters(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 transition">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <ProductFiltersBar
-              showBrand={true}
-              selectedBrand={filters.selectedBrand}
-              onBrandChange={(value) => filters.updateParam("brand", value)}
-              sortBy={filters.sortBy}
-              onSortChange={(value) => filters.updateParam("sort", value)}
-              maxPrice={filters.maxPrice}
-              onMaxPriceChange={(value) => filters.updateParam("maxPrice", value)}
-              onSale={filters.onSale}
-              onOnSaleChange={(value) => filters.updateParam("onSale", value ? "true" : "false")}
-              inStock={filters.inStock}
-              onInStockChange={(value) => filters.updateParam("inStock", value ? "true" : "false")}
-              onClear={filters.clearFilters}
-              hasActiveFilters={filters.hasActiveFilters}
-              className="px-0 py-0 flex-col !items-stretch [&>select]:w-full [&>select]:h-11 [&>select]:text-[14px] [&>button]:h-11 [&>button]:text-[14px] gap-4 bg-transparent"
-            />
-          </div>
-        </>
-      )}
-    </>
-  );
-}
-
 function CategoryProductMain({
   categories,
   activeCategory,
@@ -474,13 +271,13 @@ function CategoryProductMain({
   const [searchParams] = useSearchParams();
   const baseKey = searchParams.get("base") || "";
   const storeParam = searchParams.get("store") || "";
-  const baseCards = useMemo(() => groupBaseProducts(products), [products]);
+  const categoryFilters = useProductFilters(products);
+  const baseCards = groupBaseProducts(categoryFilters.sortedProducts);
   const activeBase = baseKey ? baseCards.find((card) => card.id === baseKey) : null;
   const filters = useCategoryFilters(activeBase ? activeBase.items : products, categoryName);
   const activeCategoryDoc = categories.find(
     (cat) => cat.categoryName.toLowerCase() === categoryName.toLowerCase()
   );
-  const [showFilters, setShowFilters] = useState(false);
   const categoryUrl = buildStoreProductUrl({ categoryName, store: storeParam });
   const loadMoreRef = useLoadMoreOnVisible({
     enabled: Boolean(!activeBase && hasNextPage && !isFetchingNextPage && !loading && onLoadMore),
@@ -499,6 +296,7 @@ function CategoryProductMain({
             activeSubcategory=""
           />
         </div>
+        <ProductFiltersBar products={products} />
         {activeBase ? (
           <Link to={categoryUrl} className="mb-3 inline-flex text-sm font-semibold text-emerald-800">
             ← {categoryName}
@@ -546,7 +344,6 @@ function CategoryProductMain({
           <p className="py-4 text-center text-sm text-text-secondary">Loading more products...</p>
         ) : null}
       </div>
-      <FilterSheet filters={filters} showFilters={showFilters} setShowFilters={setShowFilters} />
     </div>
   );
 }
@@ -564,7 +361,6 @@ function AllProductsMain({
   onLoadMore,
 }) {
   const filters = useAllProductsFilters(products);
-  const [showFilters, setShowFilters] = useState(false);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -572,6 +368,7 @@ function AllProductsMain({
         <div className="mb-2">
           <ShopTopSlidingBanners />
         </div>
+        <ProductFiltersBar products={products} />
         <ProductResultsGrid
           products={filters.sortedProducts}
           loading={loading}
@@ -585,7 +382,6 @@ function AllProductsMain({
           onLoadMore={onLoadMore}
         />
       </div>
-      <FilterSheet filters={filters} showFilters={showFilters} setShowFilters={setShowFilters} />
     </div>
   );
 }

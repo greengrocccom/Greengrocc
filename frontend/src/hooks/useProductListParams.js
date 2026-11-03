@@ -21,6 +21,9 @@ export function useProductListParams(searchParams) {
     // subcategory navigation is disabled on the customer site
     if (minPrice) params.minPrice = minPrice;
     if (maxPrice) params.maxPrice = maxPrice;
+    for (const key of ["minDiscount", "weightSize", "inStock"]) {
+      if (searchParams.get(key)) params[key] = searchParams.get(key);
+    }
     if (sort && sort !== "default") params.sort = sort;
     if (searchParams.get("justArrived") === "true") params.justArrived = true;
     if (searchParams.get("hotSelling") === "true") params.hotSelling = true;
