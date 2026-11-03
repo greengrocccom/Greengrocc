@@ -2,12 +2,84 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
+import FinanceDateFilter from "../../components/finance/FinanceDateFilter";
 import PickupQrModal from "../../components/PickupQrModal";
 import OrderTrackingDrawer from "../../components/tracking/OrderTrackingDrawer";
 import { useLive } from "../../realtime/useLive";
 import { mapsLink, useRiderLiveLocations } from "../../hooks/useRiderLiveLocations";
 import { subscribeToSocketEvent } from "../../services/socket";
 import { STATUS_TABS, matchesTab, countBySummaryBucket, OrderStatusText, OrderDepartmentTags, DriverAssignmentText, isInitialOrderStatus, allItemsAvailable, actionBtnOutline, actionBtnPrimary, actionBtnDanger, isCodPayment, isPickupOrder, formatRupee } from "./orderUtils";
+
+
+const orderMatchesDate = (order, dateFilter) => {
+  if (!dateFilter || !dateFilter.preset || dateFilter.preset === "all") return true;
+  const dStr = order.createdAt || order.orderDate || order.deliveredAt;
+  if (!dStr) return true;
+  const d = new Date(dStr);
+  if (Number.isNaN(d.getTime())) return true;
+
+  const offsetMs = 330 * 60 * 1000;
+  const nowIst = new Date(Date.now() + offsetMs);
+  const ny = nowIst.getUTCFullYear();
+  const nm = nowIst.getUTCMonth();
+  const nd = nowIst.getUTCDate();
+
+  const startOfIstDay = (year, month, day) => new Date(Date.UTC(year, month, day) - offsetMs);
+  const endOfIstDay = (year, month, day) =>
+    new Date(Date.UTC(year, month, day, 23, 59, 59, 999) - offsetMs);
+
+  let from = null;
+  let to = null;
+
+  switch (dateFilter.preset) {
+    case "today":
+      from = startOfIstDay(ny, nm, nd);
+      to = endOfIstDay(ny, nm, nd);
+      break;
+    case "yesterday":
+      from = startOfIstDay(ny, nm, nd - 1);
+      to = endOfIstDay(ny, nm, nd - 1);
+      break;
+    case "last7":
+      from = startOfIstDay(ny, nm, nd - 6);
+      to = endOfIstDay(ny, nm, nd);
+      break;
+    case "last15":
+      from = startOfIstDay(ny, nm, nd - 14);
+      to = endOfIstDay(ny, nm, nd);
+      break;
+    case "last30":
+      from = startOfIstDay(ny, nm, nd - 29);
+      to = endOfIstDay(ny, nm, nd);
+      break;
+    case "thisMonth":
+      from = startOfIstDay(ny, nm, 1);
+      to = endOfIstDay(ny, nm, nd);
+      break;
+    case "lastMonth": {
+      const lastMonthDate = new Date(Date.UTC(ny, nm, 0));
+      const lmY = lastMonthDate.getUTCFullYear();
+      const lmM = lastMonthDate.getUTCMonth();
+      const lmLastDay = lastMonthDate.getUTCDate();
+      from = startOfIstDay(lmY, lmM, 1);
+      to = endOfIstDay(lmY, lmM, lmLastDay);
+      break;
+    }
+    case "thisYear":
+      from = startOfIstDay(ny, 0, 1);
+      to = endOfIstDay(ny, nm, nd);
+      break;
+    case "custom":
+    default:
+      if (dateFilter.startDate) from = new Date(`${dateFilter.startDate}T00:00:00.000+05:30`);
+      if (dateFilter.endDate) to = new Date(`${dateFilter.endDate}T23:59:59.999+05:30`);
+      break;
+  }
+
+  if (from && d < from) return false;
+  if (to && d > to) return false;
+  return true;
+};
 
 export default function OrdersPage() {
   const navigate = useNavigate();
@@ -18,6 +90,11 @@ export default function OrdersPage() {
   const [busyKey, setBusyKey] = useState("");
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
+  const [dateFilter, setDateFilter] = useState({
+    preset: "all",
+    startDate: "",
+    endDate: "",
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [pickupQrOrderId, setPickupQrOrderId] = useState(null);
@@ -595,6 +672,14 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
+
+      {/* Date Filter Bar */}
+      <FinanceDateFilter
+        preset={dateFilter.preset}
+        startDate={dateFilter.startDate}
+        endDate={dateFilter.endDate}
+        onFilterChange={(newFilter) => setDateFilter(newFilter)}
+      />
 
       {/* Summary boxes */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

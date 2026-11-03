@@ -1,5 +1,6 @@
 import StoreOrder from "../models/StoreOrder.js";
 import { getManager } from "./managerDashboardController.js";
+import { toObjectId } from "./managerExpenseController.js";
 
 const TZ = "Asia/Kolkata";
 const PERIODS = new Set(["day", "week", "month"]);
@@ -71,11 +72,89 @@ const istBoundaries = () => {
   return { dayStart, weekStart, monthStart };
 };
 
-export const deliveredMatch = (managerId, extra = {}) => ({
-  managerId,
-  status: "delivered",
-  ...extra,
-});
+export const deliveredMatch = (managerId, extra = {}) => {
+  const mMatch = managerId
+    ? toObjectId(managerId)
+      ? { $in: [toObjectId(managerId), String(managerId)] }
+      : managerId
+    : managerId;
+  return {
+    managerId: mMatch,
+    status: "delivered",
+  
+    ...extra,
+  };
+};
+
+const buildRevenueDateRange = (preset, fromVal, toVal) => {
+  const offsetMs = 330 * 60 * 1000;
+  const now = new Date();
+  const istNow = new Date(now.getTime() + offsetMs);
+  const y = istNow.getUTCFullYear();
+  const m = istNow.getUTCMonth();
+  const d = istNow.getUTCDate();
+
+  const startOfIstDay = (year, month, day) => new Date(Date.UTC(year, month, day) - offsetMs);
+  const endOfIstDay = (year, month, day) =>
+    new Date(Date.UTC(year, month, day, 23, 59, 59, 999) - offsetMs);
+
+  let from = null;
+  let to = null;
+
+  switch (preset) {
+    case "today":
+      from = startOfIstDay(y, m, d);
+      to = endOfIstDay(y, m, d);
+      break;
+    case "yesterday":
+      from = startOfIstDay(y, m, d - 1);
+      to = endOfIstDay(y, m, d - 1);
+      break;
+    case "last7":
+      from = startOfIstDay(y, m, d - 6);
+      to = endOfIstDay(y, m, d);
+      break;
+    case "last15":
+      from = startOfIstDay(y, m, d - 14);
+      to = endOfIstDay(y, m, d);
+      break;
+    case "last30":
+      from = startOfIstDay(y, m, d - 29);
+      to = endOfIstDay(y, m, d);
+      break;
+    case "thisMonth":
+      from = startOfIstDay(y, m, 1);
+      to = endOfIstDay(y, m, d);
+      break;
+    case "lastMonth": {
+      const lastMonthDate = new Date(Date.UTC(y, m, 0));
+      const lmY = lastMonthDate.getUTCFullYear();
+      const lmM = lastMonthDate.getUTCMonth();
+      const lmLastDay = lastMonthDate.getUTCDate();
+      from = startOfIstDay(lmY, lmM, 1);
+      to = endOfIstDay(lmY, lmM, lmLastDay);
+      break;
+    }
+    case "thisYear":
+      from = startOfIstDay(y, 0, 1);
+      to = endOfIstDay(y, m, d);
+      break;
+    case "all":
+      from = null;
+      to = null;
+      break;
+    case "custom":
+    default:
+      if (fromVal) from = parseIstDay(fromVal, false);
+      if (toVal) to = parseIstDay(toVal, true);
+      break;
+  }
+
+  const range = {};
+  if (from) range.$gte = from;
+  if (to) range.$lte = to;
+  return range;
+};
 
 export async function revenueTotals(managerId) {
   const { dayStart, weekStart, monthStart } = istBoundaries();

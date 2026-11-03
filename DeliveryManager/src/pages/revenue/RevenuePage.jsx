@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
+import FinanceDateFilter from "../../components/finance/FinanceDateFilter";
 import { Icon } from "../../components/ui/Icon";
 
 const rupee = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -39,8 +40,12 @@ function periodLabel(start, period) {
 
 export default function RevenuePage() {
   const [period, setPeriod] = useState("day");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [dateFilter, setDateFilter] = useState({
+    preset: "all",
+    startDate: "",
+    endDate: "",
+  });
+
   const [data, setData] = useState({ rows: [], totals: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,8 +56,11 @@ export default function RevenuePage() {
     try {
       const res = await managerApi.revenue({
         period,
-        ...(from ? { from } : {}),
-        ...(to ? { to } : {}),
+        preset: dateFilter.preset,
+        startDate: dateFilter.startDate,
+        endDate: dateFilter.endDate,
+        from: dateFilter.startDate,
+        to: dateFilter.endDate,
       });
       setData({ rows: res.data?.rows || [], totals: res.data?.totals || null });
       setError("");
@@ -66,7 +74,7 @@ export default function RevenuePage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, from, to]);
+  }, [period, dateFilter]);
 
   const rows = useMemo(() => {
     const list = [...data.rows];
@@ -135,6 +143,14 @@ export default function RevenuePage() {
         ))}
       </div>
 
+            {/* Unified Date Filter */}
+      <FinanceDateFilter
+        preset={dateFilter.preset}
+        startDate={dateFilter.startDate}
+        endDate={dateFilter.endDate}
+        onFilterChange={(newFilter) => setDateFilter(newFilter)}
+      />
+
       <section className="card">
         <div className="card-header flex-wrap gap-3">
           <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
@@ -151,40 +167,7 @@ export default function RevenuePage() {
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <label className="flex items-center gap-2 font-medium text-slate-600">
-              From
-              <input
-                type="date"
-                value={from}
-                max={to || undefined}
-                onChange={(e) => setFrom(e.target.value)}
-                className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-              />
-            </label>
-            <label className="flex items-center gap-2 font-medium text-slate-600">
-              To
-              <input
-                type="date"
-                value={to}
-                min={from || undefined}
-                onChange={(e) => setTo(e.target.value)}
-                className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-              />
-            </label>
-            {(from || to) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFrom("");
-                  setTo("");
-                }}
-                className="text-sm font-semibold text-slate-500 hover:text-slate-800"
-              >
-                Clear
-              </button>
-            )}
-          </div>
+          <span className="text-xs font-semibold text-slate-500">Grouping: <span className="capitalize text-slate-800">{period}</span></span>
         </div>
 
         <div className="overflow-x-auto">

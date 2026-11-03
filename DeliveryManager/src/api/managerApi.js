@@ -187,4 +187,22 @@ export const managerApi = {
   assignOrdersToFullTime: (riderId, orderIds) =>
     api.post(`${BASE}/fulltime/assign-orders`, { riderId, orderIds }),
   unassignFullTimeOrder: (orderId) => api.post(`${BASE}/fulltime/orders/${orderId}/unassign`),
+
+  // Settlements API
+  listSettlements: (params) => api.get(`${BASE}/settlements`, { params }),
+  createSettlement: (data) => api.post(`${BASE}/settlements`, data),
+  updateSettlement: (id, data) => api.put(`${BASE}/settlements/${id}`, data),
+  calculateRiderPayable: (params) => api.get(`${BASE}/settlements/calculate-rider`, { params }),
+
+  // Profit & Loss API
+  getProfitLoss: (params) => api.get(`${BASE}/profit-loss`, { params }),
+
+  // Sales Reports API
+  getSalesReports: (params) => api.get(`${BASE}/sales-reports`, { params }),
+
+  // Finance & Expense APIs
+  listExpenses: (params) => api.get(`${BASE}/expenses`, { params }),
+  createExpense: (data) => api.post(`${BASE}/expenses`, data),
+  updateExpense: (id, data) => api.put(`${BASE}/expenses/${id}`, data),
+  deleteExpense: (id) => api.delete(`${BASE}/expenses/${id}`),
 };

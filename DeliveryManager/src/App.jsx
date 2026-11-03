@@ -6,6 +6,10 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import RevenuePage from "./pages/revenue/RevenuePage";
+import ExpensesPage from "./pages/expenses/ExpensesPage";
+import SalesReportsPage from "./pages/sales/SalesReportsPage";
+import ProfitLossPage from "./pages/profit-loss/ProfitLossPage";
+import SettlementsPage from "./pages/settlements/SettlementsPage";
 import StockPage from "./pages/stock/StockPage";
 import ProductsPage from "./pages/products/ProductsPage";
 import DriversPage from "./pages/drivers/DriversPage";
@@ -44,6 +48,10 @@ function App() {
             <Route element={<ManagerLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/revenue" element={<RevenuePage />} />
+              <Route path="/sales-reports" element={<SalesReportsPage />} />
+              <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/profit-loss" element={<ProfitLossPage />} />
+              <Route path="/settlements" element={<SettlementsPage />} />
               <Route path="/shifts" element={<ShiftManagementPage />} />
               <Route path="/shifts/create" element={<CreateShiftPage />} />
               <Route path="/shifts/fulltime" element={<FullTimeShiftManagementPage />} />

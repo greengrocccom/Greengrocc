@@ -124,6 +124,20 @@ import {
   markReturnSuccessful,
 } from "../controllers/returnPickupController.js";
 import { getRevenueReport } from "../controllers/managerRevenueController.js";
+import { getSalesReports } from "../controllers/managerSalesReportController.js";
+import { getProfitLoss } from "../controllers/managerProfitLossController.js";
+import {
+  listSettlements,
+  createSettlement,
+  updateSettlement,
+  calculateRiderPayable,
+} from "../controllers/managerSettlementController.js";
+import {
+  listExpenses,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+} from "../controllers/managerExpenseController.js";
 
 const router = express.Router();
 
@@ -136,6 +150,14 @@ router.use(protect, requireDeliveryManager);
 router.get("/me", me);
 router.get("/dashboard", getDashboardSummary);
 router.get("/revenue", getRevenueReport);
+router.get("/sales-reports", getSalesReports);
+router.get("/profit-loss", getProfitLoss);
+
+// Settlement Management
+router.get("/settlements", listSettlements);
+router.post("/settlements", createSettlement);
+router.put("/settlements/:id", updateSettlement);
+router.get("/settlements/calculate-rider", calculateRiderPayable);
 router.get("/orders", listIncomingOrders);
 router.get("/preorders", listManagerPreOrders);
 router.post("/preorders/receive", markPreOrdersReceived);
@@ -246,5 +268,11 @@ router.get("/fulltime/assignable-orders", listFullTimeAssignableOrders);
 router.get("/fulltime/assigned-orders", listFullTimeAssignedOrders);
 router.post("/fulltime/assign-orders", assignOrdersToFullTimeDriver);
 router.post("/fulltime/orders/:orderId/unassign", unassignFullTimeOrder);
+
+// Expenses Management
+router.get("/expenses", listExpenses);
+router.post("/expenses", createExpense);
+router.put("/expenses/:id", updateExpense);
+router.delete("/expenses/:id", deleteExpense);
 
 export default router;
