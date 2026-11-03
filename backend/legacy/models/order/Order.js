@@ -97,6 +97,7 @@ const orderSchema = new mongoose.Schema(
       type: addressSnapshotSchema,
       required: true,
     },
+    checkoutMode: { type: String, enum: ["cart", "buyNow"], default: "cart" },
     paymentMethod: {
       type: String,
       enum: ["cod", "online"],

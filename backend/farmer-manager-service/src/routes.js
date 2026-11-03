@@ -100,8 +100,6 @@ import {
   updateVendorCustomerSupport,
   getVendorSettings,
   updateVendorSettings,
-  getVendorCustomerSupport,
-  updateVendorCustomerSupport,
   getVendors,
   createVendor,
   updateVendor,

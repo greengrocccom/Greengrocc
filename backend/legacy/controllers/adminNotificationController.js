@@ -1,3 +1,4 @@
+import { parseSegment, resolveNotificationAudience } from "../services/notificationAudience.js";
 import User from "../models/user.js";
 import Order from "../models/order/Order.js";
 import Payment from "../models/payment/Payment.js";
@@ -287,12 +288,12 @@ function normalizeImageUrl(value) {
 export const getPromotionalAudienceStats = async (req, res) => {
   try {
     const audience = normalizeAudience(req.query.accountType);
-    const filter = audienceFilter(audience);
+    const filter = await resolveNotificationAudience(audienceFilter(audience), req.query);
     const [totalUsers, pushEnabledUsers] = await Promise.all([
       User.countDocuments(filter),
       User.countDocuments({
         ...filter,
-        fcmToken: { $exists: true, $ne: "" },
+        $or: [{ fcmToken: { $type: "string", $ne: "" } }, { "fcmTokens.0": { $exists: true } }],
       }),
     ]);
 
@@ -307,7 +308,7 @@ export const getPromotionalAudienceStats = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       success: false,
       message: error.message || "Failed to load promotional audience stats",
     });
@@ -333,6 +334,8 @@ export const getPromotionalNotificationHistory = async (req, res) => {
             linkTarget: "$data.linkTarget",
             offerId: "$data.offerId",
             audience: "$data.audience",
+            segment: "$data.segment",
+            days: "$data.days",
             imageUrl: "$data.imageUrl",
             minuteBucket: {
               $dateToString: {
@@ -365,6 +368,8 @@ export const getPromotionalNotificationHistory = async (req, res) => {
         linkTarget: item._id.linkTarget || "none",
         productId: item._id.offerId || "",
         audience: item._id.audience || "all",
+        segment: item._id.segment || "all",
+        days: item._id.days ?? 30,
         imageUrl: item._id.imageUrl || "",
         recipients: item.recipients,
         pushDelivered: item.pushDelivered,
@@ -383,6 +388,8 @@ function mapScheduled(job) {
   return {
     id: job._id,
     audience: job.audience,
+    segment: job.data?.segment || "all",
+    days: job.data?.days ?? 30,
     title: job.title,
     body: job.body,
     imageUrl: job.imageUrl,
@@ -483,6 +490,7 @@ export const sendPromotionalNotification = async (req, res) => {
       });
     }
     const audience = normalizeAudience(accountType);
+    const selection = parseSegment(req.body);
 
     const trimmedTitle = title.trim().slice(0, 200);
     const trimmedBody = String(body || "").trim().slice(0, 1000);
@@ -495,10 +503,10 @@ export const sendPromotionalNotification = async (req, res) => {
       });
     }
 
-    const data = buildPromotionalPayload({
+    const data = { ...buildPromotionalPayload({
       linkTarget: normalizedTarget,
       productId,
-    });
+    }), ...selection };
 
     if (sendAt) {
       const job = await ScheduledNotification.create({
@@ -524,6 +532,7 @@ export const sendPromotionalNotification = async (req, res) => {
       data,
       audience,
       imageUrl: normalizedImageUrl,
+      ...selection,
     });
 
     return res.status(200).json({
@@ -532,7 +541,7 @@ export const sendPromotionalNotification = async (req, res) => {
       data: summary,
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       success: false,
       message: error.message || "Failed to send promotional notification",
     });

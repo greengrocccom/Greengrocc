@@ -259,6 +259,7 @@ export default function App() {
               <Route path="user-management/zones/:zoneKey" element={<UserManagementStoresPage />} />
               <Route path="user-management/zones/:zoneKey/stores/:storeId" element={<UserManagementUsersPage />} />
               <Route path="user-management/:accountType" element={<UserManagementZonesPage />} />
+              <Route path="user-notifications" element={<UserNotificationsPage />} />
               <Route path="user-management/:accountType/notifications" element={<UserNotificationsPage />} />
               <Route path="user-management/:accountType/zones/:zoneKey" element={<UserManagementStoresPage />} />
               <Route

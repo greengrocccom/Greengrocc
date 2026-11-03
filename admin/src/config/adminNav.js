@@ -94,6 +94,13 @@ export const NAV_GROUPS = [
         ],
       },
       {
+        name: 'User Notifications',
+        href: '/user-notifications',
+        icon: Bell,
+        implemented: true,
+        description: 'Manually send custom app notifications to all users or audiences filtered by shopping activity.',
+      },
+      {
         name: 'Notifications & Alerts',
         href: '/notifications',
         icon: Bell,

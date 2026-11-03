@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   BellRing,
@@ -26,6 +26,9 @@ const LINK_TARGETS = [
 ];
 
 const EMPTY_FORM = {
+  segment: 'all',
+  days: 30,
+  audience: '',
   title: '',
   body: '',
   imageUrl: '',
@@ -48,7 +51,7 @@ function normalizeType(type) {
 }
 
 function accountLabel(type) {
-  return type === 'bulk' ? 'Bulk user' : 'Normal user';
+  return type === 'all' ? 'All customer' : type === 'bulk' ? 'Bulk user' : 'Normal user';
 }
 
 function formatDateTime(value) {
@@ -102,38 +105,50 @@ function PhonePreview({ title, body, imageUrl }) {
 
 export default function UserNotificationsPage() {
   const { accountType: rawType } = useParams();
-  const accountType = normalizeType(rawType);
-  const label = accountLabel(accountType);
+  const defaultType = rawType ? normalizeType(rawType) : 'all';
 
+
+  const requestVersion = useRef(0);
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);
   const [scheduled, setScheduled] = useState([]);
   const [cancellingId, setCancellingId] = useState('');
   const [historyLoading, setHistoryLoading] = useState(true);
   const [form, setForm] = useState(EMPTY_FORM);
+  const accountType = form.audience || defaultType;
+  const label = accountLabel(accountType);
+  const [audienceLoading, setAudienceLoading] = useState(true);
+  const [audienceError, setAudienceError] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
 
   const loadMeta = useCallback(async () => {
+    const version = ++requestVersion.current;
     const params = { accountType };
+    setAudienceLoading(true);
+    setAudienceError('');
+    setStats(null);
     const [statsRes, historyRes, scheduledRes] = await Promise.allSettled([
-      apiClient.get('/admin/notifications/promotional/audience', { params }),
+      apiClient.get('/admin/notifications/promotional/audience', { params: { ...params, segment: form.segment, days: form.days } }),
       apiClient.get('/admin/notifications/promotional/history', { params: { ...params, limit: 20 } }),
       apiClient.get('/admin/notifications/promotional/scheduled', { params }),
     ]);
+    if (version !== requestVersion.current) return;
     if (statsRes.status === 'fulfilled') setStats(statsRes.value.data?.data || null);
+    else setAudienceError(statsRes.reason.response?.data?.message || 'Could not load audience. Try again before sending.');
+    setAudienceLoading(false);
     if (historyRes.status === 'fulfilled') setHistory(historyRes.value.data?.data || []);
     if (scheduledRes.status === 'fulfilled') setScheduled(scheduledRes.value.data?.data || []);
     setHistoryLoading(false);
-  }, [accountType]);
+  }, [accountType, form.segment, form.days]);
 
   useEffect(() => {
-    setForm(EMPTY_FORM);
     setResult(null);
     setError('');
     setHistoryLoading(true);
     loadMeta();
+    return () => { requestVersion.current += 1; };
   }, [loadMeta]);
 
   const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -143,6 +158,7 @@ export default function UserNotificationsPage() {
     setError('');
     setResult(null);
 
+    if (audienceLoading || audienceError || !stats?.totalUsers) return;
     const title = form.title.trim();
     const body = form.body.trim();
     if (!title) {
@@ -183,6 +199,8 @@ export default function UserNotificationsPage() {
         '/admin/notifications/promotional/send',
         {
           accountType,
+          segment: form.segment,
+          days: Number(form.days),
           title,
           body,
           imageUrl: form.imageUrl.trim(),
@@ -193,7 +211,7 @@ export default function UserNotificationsPage() {
         { timeout: 120000 }
       );
       setResult(data?.data || {});
-      setForm(EMPTY_FORM);
+      setForm((prev) => ({ ...EMPTY_FORM, audience: prev.audience, segment: prev.segment, days: prev.days }));
       loadMeta();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send notification');
@@ -234,7 +252,7 @@ export default function UserNotificationsPage() {
               User management
             </Link>
             <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
-            <Link to={`/user-management/${accountType}`} className="font-medium text-slate-600 hover:text-emerald-700">
+            <Link to={accountType === 'all' ? '/user-management' : `/user-management/${accountType}`} className="font-medium text-slate-600 hover:text-emerald-700">
               {label}
             </Link>
             <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
@@ -242,11 +260,10 @@ export default function UserNotificationsPage() {
           </nav>
           <h1 className={PAGE_TITLE}>{label} notifications</h1>
           <p className={PAGE_SUB}>
-            Push notification to every {label.toLowerCase()}&apos;s phone, even when the app is closed, and saved in
-            their in-app notification list. Send instantly or schedule it for a date and time.
+            Choose the users, write your message, and manually send a notification to their app and notification inbox.
           </p>
         </div>
-        <Link to={`/user-management/${accountType}`} className={BTN}>
+        <Link to={accountType === 'all' ? '/user-management' : `/user-management/${accountType}`} className={BTN}>
           <ArrowLeft className="mr-1.5 h-4 w-4" />
           Back
         </Link>
@@ -287,6 +304,35 @@ export default function UserNotificationsPage() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <form onSubmit={handleSubmit} className={`${PANEL} space-y-4 p-5`}>
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 space-y-3">
+            <h2 className="font-semibold text-slate-900">Who should receive this?</h2>
+            <label className="block text-sm text-slate-700">User type
+              <select className={`${INPUT} mt-1`} value={accountType} onChange={update('audience')}>
+                <option value="all">All users (normal and bulk)</option>
+                <option value="retail">Normal users</option>
+                <option value="bulk">Bulk users</option>
+              </select>
+            </label>
+            <label className="block text-sm text-slate-700">Audience filter
+              <select className={`${INPUT} mt-1`} value={form.segment} onChange={update('segment')}>
+                <option value="all">Everyone — custom announcement</option>
+                <option value="inactive">Have not purchased for a long time</option>
+                <option value="never_purchased">Have never purchased</option>
+                <option value="buy_now_abandoned">Buy Now checkout started, but did not purchase</option>
+                <option value="cart_abandoned">Added to cart, but did not purchase</option>
+                <option value="checkout_abandoned">Started any checkout, but did not purchase</option>
+              </select>
+            </label>
+            {!['all', 'never_purchased'].includes(form.segment) ? (
+              <label className="block text-sm text-slate-700">
+                {form.segment === 'inactive' ? 'No purchases in the last (days)' : 'Activity idle for at least (days)'}
+                <input className={`${INPUT} mt-1`} type="number" min="1" max="3650" step="1" value={form.days} onChange={update('days')} required />
+              </label>
+            ) : null}
+            <p className="text-xs text-slate-600">{audienceLoading ? 'Counting matching users…' : `${stats?.totalUsers ?? 0} matching users. Notifications are sent only when you submit this form.`}</p>
+            {form.segment === 'buy_now_abandoned' ? <p className="text-xs text-slate-500">Uses recorded Buy Now checkout attempts. Older attempts without a checkout type are excluded.</p> : null}
+            {audienceError ? <p role="alert" className="text-sm text-red-700">{audienceError}</p> : null}
+          </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Title</label>
             <input
@@ -393,7 +439,7 @@ export default function UserNotificationsPage() {
           {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
           <div className="flex justify-end">
-            <button type="submit" className={BTN_PRIMARY} disabled={sending}>
+            <button type="submit" className={BTN_PRIMARY} disabled={sending || audienceLoading || !!audienceError || !stats?.totalUsers}>
               {sending ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
               ) : form.timing === 'schedule' ? (

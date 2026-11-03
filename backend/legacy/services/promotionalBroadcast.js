@@ -1,3 +1,4 @@
+import { resolveNotificationAudience } from "./notificationAudience.js";
 import User from "../models/user.js";
 import ScheduledNotification from "../models/ScheduledNotification.js";
 import { broadcastToUsers } from "./notificationService.js";
@@ -15,18 +16,18 @@ export function audienceFilter(audience) {
   return { role: "user" };
 }
 
-export async function broadcastPromotionalNotification({ title, body = "", data, audience = "all", imageUrl = "" }) {
+export async function broadcastPromotionalNotification({ title, body = "", data, audience = "all", imageUrl = "", segment = "all", days = 30 }) {
   const hasNavigation =
     data.linkTarget && data.linkTarget !== "none" && data.linkTarget !== "general";
   const type = hasNavigation || data.offerId ? "offer" : "promotional";
 
-  const users = await User.find(audienceFilter(audience)).select("_id fcmToken fcmTokens").lean();
+  const users = await User.find(await resolveNotificationAudience(audienceFilter(audience), { segment, days })).select("_id fcmToken fcmTokens").lean();
   return broadcastToUsers(users, {
     title,
     body,
     type,
     imageUrl,
-    data: { ...data, audience },
+    data: { ...data, audience, segment, days },
   });
 }
 
@@ -56,6 +57,8 @@ async function runDueJobs() {
           body: job.body,
           data: job.data || {},
           audience: job.audience,
+          segment: job.data?.segment || "all",
+          days: job.data?.days ?? 30,
           imageUrl: job.imageUrl,
         });
         job.status = "sent";

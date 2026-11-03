@@ -1193,6 +1193,7 @@ export async function prepareCheckoutAttemptData(userId, options = {}) {
 export async function upsertCheckoutAttemptOrder(userId, prepared, paymentMethod = "cod") {
   const normalizedPaymentMethod = paymentMethod === "online" ? "online" : "cod";
   const payload = {
+    checkoutMode: prepared.checkoutMode === "buyNow" ? "buyNow" : "cart",
     items: prepared.orderItems,
     deliveryAddress: prepared.deliveryAddress,
     subtotal: prepared.subtotal,
