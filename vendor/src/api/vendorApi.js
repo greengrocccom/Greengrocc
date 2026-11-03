@@ -248,6 +248,22 @@ export const vendorApi = {
   importProductsJson: (products) => api.post("/api/admin-ops/bulk/products", { products }).then((res) => res.data),
   exportProductsCsv: () => api.get("/api/admin-ops/csv/products").then((res) => res.data),
   importProductsCsv: (csv) => api.post("/api/admin-ops/csv/products", { csv }).then((res) => res.data),
+  // ── Vendor Finance & Profit Management ────────────────────────
+  getFinanceDashboard: (params) => api.get("/api/vendor/finance/dashboard", { params }).then((res) => res.data),
+  getFinanceSalesReports: (params) => api.get("/api/vendor/finance/sales-reports", { params }).then((res) => res.data),
+  getFarmerPayments: (params) => api.get("/api/vendor/finance/farmer-payments", { params }).then((res) => res.data),
+  getFarmerPaymentDetail: (farmerId) => api.get(`/api/vendor/finance/farmer-payments/${encodeURIComponent(farmerId)}`).then((res) => res.data),
+  getDarkStoreReports: (params) => api.get("/api/vendor/finance/delivery-manager-reports", { params }).then((res) => res.data),
+  getDarkStoreDetail: (storeId) => api.get(`/api/vendor/finance/delivery-manager-reports/${encodeURIComponent(storeId)}`).then((res) => res.data),
+  getExpenses: (params) => api.get("/api/vendor/finance/expenses", { params }).then((res) => res.data),
+  createExpense: (data) => api.post("/api/vendor/finance/expenses", data).then((res) => res.data),
+  updateExpense: (id, data) => api.put(`/api/vendor/finance/expenses/${encodeURIComponent(id)}`, data).then((res) => res.data),
+  deleteExpense: (id) => api.delete(`/api/vendor/finance/expenses/${encodeURIComponent(id)}`).then((res) => res.data),
+  getProfitLoss: (params) => api.get("/api/vendor/finance/profit-loss", { params }).then((res) => res.data),
+  getSettlements: (params) => api.get("/api/vendor/finance/settlements", { params }).then((res) => res.data),
+  createSettlement: (data) => api.post("/api/vendor/finance/settlements", data).then((res) => res.data),
+  recordSettlementPayment: (id, data) => api.post(`/api/vendor/finance/settlements/${encodeURIComponent(id)}/pay`, data).then((res) => res.data),
+
 };
 
 export { VENDOR_STORAGE_KEY };

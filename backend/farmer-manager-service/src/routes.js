@@ -1,3 +1,19 @@
+import {
+  getVendorFinanceDashboard,
+  getVendorSalesReports,
+  getVendorFarmerPayments,
+  getVendorFarmerDetail,
+  getVendorDarkStoreReports,
+  getVendorDarkStoreDetail,
+  getVendorExpenses,
+  createVendorExpense,
+  updateVendorExpense,
+  deleteVendorExpense,
+  getVendorProfitLoss,
+  getVendorSettlements,
+  createVendorSettlement,
+  recordSettlementPayment,
+} from "./controllers/vendorFinanceController.js";
 import { getVendorOrderManagement } from "./vendorOrderControllers.js";
 import { getVendorSales } from "./vendorSalesControllers.js";
 import express from "express";
@@ -527,6 +543,23 @@ vendorRouter.post("/driver-desk/notifications/read-all", requireDriver, readAllD
 // VENDOR PANEL ROUTES (protected)
 // ------------------------------------
 vendorRouter.get("/live-search", attachAuth, handleVendorLiveSearch);
+
+// ── Vendor Finance & Profit Management Endpoints ───────────────
+vendorRouter.get("/finance/dashboard", requireVendor, getVendorFinanceDashboard);
+vendorRouter.get("/finance/sales-reports", requireVendor, getVendorSalesReports);
+vendorRouter.get("/finance/farmer-payments", requireVendor, getVendorFarmerPayments);
+vendorRouter.get("/finance/farmer-payments/:farmerId", requireVendor, getVendorFarmerDetail);
+vendorRouter.get("/finance/delivery-manager-reports", requireVendor, getVendorDarkStoreReports);
+vendorRouter.get("/finance/delivery-manager-reports/:storeId", requireVendor, getVendorDarkStoreDetail);
+vendorRouter.get("/finance/expenses", requireVendor, getVendorExpenses);
+vendorRouter.post("/finance/expenses", requireVendor, createVendorExpense);
+vendorRouter.put("/finance/expenses/:id", requireVendor, updateVendorExpense);
+vendorRouter.delete("/finance/expenses/:id", requireVendor, deleteVendorExpense);
+vendorRouter.get("/finance/profit-loss", requireVendor, getVendorProfitLoss);
+vendorRouter.get("/finance/settlements", requireVendor, getVendorSettlements);
+vendorRouter.post("/finance/settlements", requireVendor, createVendorSettlement);
+vendorRouter.post("/finance/settlements/:id/pay", requireVendor, recordSettlementPayment);
+
 vendorRouter.get("/dashboard", requireVendor, getVendorDashboard);
 vendorRouter.get("/sales-summary", requireVendor, getVendorSales);
 vendorRouter.get("/orders-management", requireVendor, getVendorOrderManagement);

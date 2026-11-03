@@ -88,6 +88,13 @@ import HrMeetingsPage from './pages/hr/HrMeetingsPage'
 import VendorProfilePage from './pages/profile/VendorProfilePage'
 import VendorVacationPage from './pages/vacation/VendorVacationPage'
 import VendorReviewsPage from './pages/reviews/VendorReviewsPage'
+import VendorFinanceDashboardPage from './pages/finance/VendorFinanceDashboardPage'
+import VendorSalesReportsPage from './pages/finance/VendorSalesReportsPage'
+import VendorFarmerPaymentsPage from './pages/finance/VendorFarmerPaymentsPage'
+import VendorDeliveryManagerReportsPage from './pages/finance/VendorDeliveryManagerReportsPage'
+import VendorExpensesPage from './pages/finance/VendorExpensesPage'
+import VendorProfitLossPage from './pages/finance/VendorProfitLossPage'
+import VendorSettlementsPage from './pages/finance/VendorSettlementsPage'
 import { VendorSettingsProvider } from './context/VendorSettingsContext'
 
 import Coupons from './pages/Coupons'
@@ -273,7 +280,16 @@ function App() {
                 <Route path="/inventory" element={<Navigate to="/vendor/inventory" replace />} />
                 <Route path="/vendor/orders/create" element={<ManagerCreateOrderPage />} />
                 <Route path="/vendor/orders/detail/:orderId" element={<ManagerOrderDetailPage />} />
-                <Route path="/vendor/earnings" element={<ManagerEarningsPage />} />
+                                {/* Vendor Finance and Profit Management */}
+                <Route path="/vendor/finance/dashboard" element={<VendorFinanceDashboardPage />} />
+                <Route path="/vendor/finance/sales-reports" element={<VendorSalesReportsPage />} />
+                <Route path="/vendor/finance/farmer-payments" element={<VendorFarmerPaymentsPage />} />
+                <Route path="/vendor/finance/delivery-manager-reports" element={<VendorDeliveryManagerReportsPage />} />
+                <Route path="/vendor/finance/expenses" element={<VendorExpensesPage />} />
+                <Route path="/vendor/finance/profit-loss" element={<VendorProfitLossPage />} />
+                <Route path="/vendor/finance/settlements" element={<VendorSettlementsPage />} />
+                <Route path="/vendor/finance" element={<Navigate to="/vendor/finance/dashboard" replace />} />
+<Route path="/vendor/earnings" element={<ManagerEarningsPage />} />
                 <Route path="/vendor/earnings/payments" element={<ManagerEarningsPage defaultTab="payments" />} />
                 <Route path="/vendor/earnings/:orderId" element={<ManagerEarningReportPage />} />
                 <Route path="/vendor/earnings/farmer/:farmerId" element={<ManagerEarningsPage />} />

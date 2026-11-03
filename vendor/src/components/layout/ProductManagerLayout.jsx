@@ -232,6 +232,20 @@ const navSections = [
     title: 'Finance & Store',
     items: [
       {
+        id: 'finance',
+        label: 'Vendor Finance',
+        icon: IndianRupee,
+        children: [
+          { to: '/vendor/finance/dashboard', label: 'Finance Dashboard' },
+          { to: '/vendor/finance/sales-reports', label: 'Sales Reports' },
+          { to: '/vendor/finance/farmer-payments', label: 'Farmer Vendor Payments' },
+          { to: '/vendor/finance/delivery-manager-reports', label: 'Delivery Manager Reports' },
+          { to: '/vendor/finance/expenses', label: 'Expenses' },
+          { to: '/vendor/finance/profit-loss', label: 'Profit & Loss' },
+          { to: '/vendor/finance/settlements', label: 'Settlements' },
+        ],
+      },
+      {
         id: 'earnings',
         label: 'Earnings',
         icon: Wallet,
