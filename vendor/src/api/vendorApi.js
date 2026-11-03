@@ -201,6 +201,12 @@ export const vendorApi = {
 
   // Products from the admin catalog (added only after admin approval)
   getMyProducts: () => api.get("/api/vendor/my-products"),
+  addStockProduct: (data) => api.post("/api/vendor/stock/add", data),
+  deductStockProduct: (data) => api.post("/api/vendor/stock/deduct", data),
+  getStockBatches: (params) => api.get("/api/vendor/stock/batches", { params }),
+  getStockTransactions: (params) => api.get("/api/vendor/stock/transactions", { params }),
+  getNextBatchId: (receivedDate) =>
+    api.get("/api/vendor/stock/next-batch-id", { params: receivedDate ? { receivedDate } : {} }),
   updateMyProduct: (productId, data) => api.patch(`/api/vendor/my-products/${productId}`, data),
   getMyProductFull: (productId) => api.get(`/api/vendor/my-products/${encodeURIComponent(productId)}/full`),
   deleteMyProduct: (productId) => api.delete(`/api/vendor/my-products/${encodeURIComponent(productId)}`),

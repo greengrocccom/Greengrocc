@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshCw, Boxes, History } from "lucide-react";
+import { vendorApi } from "../../api/vendorApi";
+import { useVendorAuth } from "../../context/VendorAuthContext";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { listManagerQuality } from "../../api/managerPortApi";
 import { CopyButton } from "../../components/ui/CopyId";
@@ -57,6 +60,75 @@ function formatTime12h(value) {
   const period = hour >= 12 ? "PM" : "AM";
   hour = hour % 12 || 12;
   return `${hour}:${min} ${period}`;
+}
+
+function formatExpiryDaysText(expiryDate) {
+  if (!expiryDate) return { text: "No Expiry", days: null, status: "none" };
+  const exp = new Date(expiryDate);
+  if (Number.isNaN(exp.getTime())) return { text: "—", days: null, status: "none" };
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const expDay = new Date(exp);
+  expDay.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((expDay - now) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) {
+    return { text: `Expired (${Math.abs(diffDays)}d ago)`, days: diffDays, status: "expired" };
+  }
+  if (diffDays === 0) {
+    return { text: "Expires Today", days: 0, status: "today" };
+  }
+  if (diffDays === 1) {
+    return { text: "1 day left", days: 1, status: "urgent" };
+  }
+  if (diffDays <= 7) {
+    return { text: `${diffDays} days left`, days: diffDays, status: "warning" };
+  }
+  return { text: `${diffDays} days left`, days: diffDays, status: "good" };
+}
+
+function ExpiryBadge({ expiryDate }) {
+  if (!expiryDate) return <span className="text-slate-400 font-normal">No Expiry</span>;
+  const { text, status } = formatExpiryDaysText(expiryDate);
+  const dateStr = shortDate(expiryDate);
+
+  if (status === "expired") {
+    return (
+      <span className="inline-flex items-center gap-1 flex-wrap">
+        <span className="font-extrabold text-rose-700">{dateStr}</span>
+        <span className="rounded bg-rose-100 px-1.5 py-0.2 text-[8px] font-extrabold text-rose-800 uppercase tracking-tight">
+          {text}
+        </span>
+      </span>
+    );
+  }
+  if (status === "today") {
+    return (
+      <span className="inline-flex items-center gap-1 flex-wrap">
+        <span className="font-bold text-amber-700">{dateStr}</span>
+        <span className="rounded bg-amber-100 px-1.5 py-0.2 text-[8px] font-extrabold text-amber-800 uppercase tracking-tight">
+          {text}
+        </span>
+      </span>
+    );
+  }
+  if (status === "urgent" || status === "warning") {
+    return (
+      <span className="inline-flex items-center gap-1 flex-wrap">
+        <span className="font-bold text-amber-700">{dateStr}</span>
+        <span className="rounded bg-amber-50 px-1.5 py-0.2 text-[8px] font-bold text-amber-700 border border-amber-200">
+          {text}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 flex-wrap">
+      <span className="font-bold text-[#217346]">{dateStr}</span>
+      <span className="rounded bg-emerald-50 px-1.5 py-0.2 text-[8px] font-bold text-[#217346] border border-emerald-200">
+        {text}
+      </span>
+    </span>
+  );
 }
 
 function completedAtOf(row) {
@@ -284,7 +356,7 @@ function matchesProduct(row, { productId, productBizId, name, variety }) {
   return false;
 }
 
-export default function ManagerInventoryHistoryPage() {
+function FarmerInventoryHistoryView() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const productId = searchParams.get("productId") || "";
@@ -629,4 +701,508 @@ export default function ManagerInventoryHistoryPage() {
       )}
     </div>
   );
+}
+
+
+/* =========================================================================
+   SELLER INVENTORY HISTORY VIEW (STOCK TRANSACTIONS & BATCHES)
+   ========================================================================= */
+function SellerInventoryHistoryView() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const productId = searchParams.get("productId") || "";
+  const sku = searchParams.get("sku") || "";
+  const productName = searchParams.get("name") || "";
+
+  const [activeTab, setActiveTab] = useState("transactions");
+  const [transactions, setTransactions] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [reasonFilter, setReasonFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const setDateRange = (from, to) => {
+    setDateFrom(from || "");
+    setDateTo(to || "");
+  };
+  const setTodayFilter = () => {
+    const today = todayISODate();
+    setDateRange(today, today);
+  };
+  const setYesterdayFilter = () => {
+    const yesterday = yesterdayISODate();
+    setDateRange(yesterday, yesterday);
+  };
+  const clearDateFilter = () => setDateRange("", "");
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const params = {};
+      if (productId) params.productId = productId;
+      const [txRes, batRes] = await Promise.all([
+        vendorApi.getStockTransactions({ ...params, limit: 100 }),
+        vendorApi.getStockBatches({ ...params, limit: 100 }),
+      ]);
+      setTransactions(Array.isArray(txRes.data?.transactions) ? txRes.data.transactions : []);
+      setBatches(Array.isArray(batRes.data?.batches) ? batRes.data.batches : []);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to load stock history");
+    } finally {
+      setLoading(false);
+    }
+  }, [productId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const filteredTransactions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return transactions.filter((tx) => {
+      if (typeFilter !== "all" && tx.transactionType !== typeFilter) return false;
+      if (reasonFilter !== "all" && tx.reason !== reasonFilter) return false;
+      if (dateFrom || dateTo) {
+        const txDate = tx.createdAt ? tx.createdAt.slice(0, 10) : "";
+        if (dateFrom && txDate < dateFrom) return false;
+        if (dateTo && txDate > dateTo) return false;
+      }
+      if (!q) return true;
+      return [
+        tx.transactionId,
+        tx.batchId,
+        tx.productName,
+        tx.sku,
+        tx.reason,
+        tx.remarks,
+        tx.createdBy,
+      ].some((v) => String(v || "").toLowerCase().includes(q));
+    });
+  }, [transactions, typeFilter, reasonFilter, dateFrom, dateTo, query]);
+
+  const filteredBatches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return batches.filter((b) => {
+      if (dateFrom || dateTo) {
+        const bDate = b.receivedDate ? String(b.receivedDate).slice(0, 10) : "";
+        if (dateFrom && bDate < dateFrom) return false;
+        if (dateTo && bDate > dateTo) return false;
+      }
+      if (!q) return true;
+      return [
+        b.batchId,
+        b.productName,
+        b.sku,
+        b.qualityGrade,
+        b.stockSource,
+        b.storageLocation,
+        b.status,
+      ].some((v) => String(v || "").toLowerCase().includes(q));
+    });
+  }, [batches, dateFrom, dateTo, query]);
+
+  const todayKey = todayISODate();
+  const yesterdayKey = yesterdayISODate();
+  const isTodayActive = dateFrom === todayKey && dateTo === todayKey;
+  const isYesterdayActive = dateFrom === yesterdayKey && dateTo === yesterdayKey;
+
+  return (
+    <div className="space-y-4 p-4 sm:p-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <Link to="/vendor/inventory" className="mb-1 inline-block text-[12px] font-semibold text-[#217346] hover:underline">
+            ← All Inventory / परत जा
+          </Link>
+          <div className="flex items-center gap-2">
+            <h1 className={EXCEL_PAGE_TITLE}>Inventory History / स्टॉक इतिहास</h1>
+            <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-xs font-bold text-[#217346] ring-1 ring-[#A7F3D0]">
+              Seller Stock
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={loadData}
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
+
+      {productId || productName ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-emerald-800">Filtered Product:</span>
+            <span className="text-xs font-bold text-slate-900">{productName || "Product"}</span>
+            {sku ? (
+              <span className="rounded bg-white px-2 py-0.5 font-mono text-[11px] font-bold text-emerald-800 ring-1 ring-emerald-200">
+                {sku}
+              </span>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/vendor/inventory/history")}
+            className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-300 hover:bg-emerald-100 transition"
+          >
+            Show All Products History / सर्व उत्पादने दाखवा
+          </button>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{error}</div>
+      ) : null}
+
+      <div className="rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-sm">
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-1.5 sm:flex sm:flex-wrap sm:items-end sm:gap-2">
+            <label className="min-w-0 sm:w-[9rem]">
+              <span className={FILTER_LABEL}>From</span>
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => setDateRange(e.target.value, dateTo)}
+                className={FILTER_CTRL}
+              />
+            </label>
+            <label className="min-w-0 sm:w-[9rem]">
+              <span className={FILTER_LABEL}>To</span>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => setDateRange(dateFrom, e.target.value)}
+                className={FILTER_CTRL}
+              />
+            </label>
+            <div className="min-w-0 shrink-0">
+              <span className={`${FILTER_LABEL} max-sm:sr-only`}>Quick</span>
+              <div className="flex h-9 gap-1">
+                <button
+                  type="button"
+                  onClick={setTodayFilter}
+                  className={isTodayActive ? FILTER_CHIP_ACTIVE : FILTER_CHIP_IDLE}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={setYesterdayFilter}
+                  className={isYesterdayActive ? FILTER_CHIP_ACTIVE : FILTER_CHIP_IDLE}
+                >
+                  Yesterday
+                </button>
+                {dateFrom || dateTo ? (
+                  <button type="button" onClick={clearDateFilter} className={FILTER_CHIP_IDLE}>
+                    Clear
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-2">
+            <label className="min-w-0">
+              <span className={FILTER_LABEL}>Type</span>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className={FILTER_CTRL}
+              >
+                <option value="all">All Types (ADD & DEDUCT)</option>
+                <option value="ADD">ADD (Stock In)</option>
+                <option value="DEDUCT">DEDUCT (Stock Out)</option>
+              </select>
+            </label>
+            <label className="min-w-0">
+              <span className={FILTER_LABEL}>Reason</span>
+              <select
+                value={reasonFilter}
+                onChange={(e) => setReasonFilter(e.target.value)}
+                className={FILTER_CTRL}
+              >
+                <option value="all">All Reasons</option>
+                <option value="Initial Stock">Initial Stock</option>
+                <option value="Supplier Purchase">Supplier Purchase</option>
+                <option value="Restock Batch">Restock Batch</option>
+                <option value="Order Fulfillment">Order Fulfillment</option>
+                <option value="Damaged Stock">Damaged Stock</option>
+                <option value="Expired Stock">Expired Stock</option>
+                <option value="Quality Rejection">Quality Rejection</option>
+                <option value="Internal Usage">Internal Usage</option>
+                <option value="Stock Correction">Stock Correction</option>
+                <option value="Return to Supplier">Return to Supplier</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label className="min-w-0">
+              <span className={FILTER_LABEL}>Search</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search Batch ID, Product, Remarks..."
+                className={FILTER_CTRL}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab("transactions")}
+          className={`flex items-center gap-1.5 border-b-2 px-3 pb-2 text-xs font-bold transition ${
+            activeTab === "transactions"
+              ? "border-[#217346] text-[#217346]"
+              : "border-transparent text-[#6B7280] hover:text-[#1F2937]"
+          }`}
+        >
+          <History className="h-3.5 w-3.5" />
+          Stock Transactions ({filteredTransactions.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("batches")}
+          className={`flex items-center gap-1.5 border-b-2 px-3 pb-2 text-xs font-bold transition ${
+            activeTab === "batches"
+              ? "border-[#217346] text-[#217346]"
+              : "border-transparent text-[#6B7280] hover:text-[#1F2937]"
+          }`}
+        >
+          <Boxes className="h-3.5 w-3.5" />
+          Product Batches ({filteredBatches.length})
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="py-8 text-center text-sm text-[#6B7280]">Loading history…</p>
+      ) : activeTab === "transactions" ? (
+        filteredTransactions.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center text-xs text-slate-500">
+            No stock transactions found matching criteria.
+          </div>
+        ) : (
+          <div className="w-full overflow-x-auto border border-slate-200/80 bg-white shadow-sm">
+            <table className="w-full min-w-[920px] table-fixed border-collapse">
+              <colgroup>
+                <col className="w-[3.5%]" />
+                <col className="w-[14%]" />
+                <col className="w-[18%]" />
+                <col className="w-[16%]" />
+                <col className="w-[7%]" />
+                <col className="w-[8%]" />
+                <col className="w-[11%]" />
+                <col className="w-[10.5%]" />
+                <col className="w-[12%]" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className={`${TH} text-center`}>#</th>
+                  <th className={TH}>Batch ID</th>
+                  <th className={TH}>Product & SKU</th>
+                  <th className={TH}>Dates & Expiry</th>
+                  <th className={`${TH} text-center`}>Type</th>
+                  <th className={`${TH} text-center`}>Quantity</th>
+                  <th className={`${TH} text-center`}>Stock Balance</th>
+                  <th className={TH}>Reason</th>
+                  <th className={TH}>Details & Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTransactions.map((tx, idx) => (
+                  <tr key={tx.transactionId || idx} className="hover:bg-[#F9FBF9]">
+                    <td className={`${TD} text-center align-middle text-[#9CA3AF]`}>{idx + 1}</td>
+                    <td className={`${TD} align-middle font-mono text-[10px] font-bold text-[#217346]`}>
+                      <div className="flex items-center gap-1">
+                        <span className="truncate">{tx.batchId}</span>
+                        <CopyButton value={tx.batchId} />
+                      </div>
+                      <span className="block text-[8px] text-slate-400 font-sans mt-0.5">
+                        {shortDate(tx.createdAt)} · {formatTime12h(tx.createdAt)}
+                      </span>
+                    </td>
+                    <td className={`${TD} align-middle`}>
+                      <span className="block font-bold leading-snug text-[#111827] text-[11px] sm:text-[12px]">
+                        {tx.productName || "Product"}
+                      </span>
+                      {tx.sku ? (
+                        <span className="font-mono text-[9px] text-[#217346] font-semibold block mt-0.5">
+                          {tx.sku}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className={`${TD} align-middle text-[11px]`}>
+                      <div className="space-y-0.5">
+                        <p className="text-[#1F2937]">
+                          <span className="text-[10px] text-slate-500 font-medium">Recv: </span>
+                          <span className="font-semibold text-slate-800">{shortDate(tx.receivedDate || tx.createdAt)}</span>
+                        </p>
+                        {tx.mfgDate ? (
+                          <p className="text-[#4B5563] text-[10px]">
+                            <span className="text-slate-400">Mfg: </span>
+                            <span>{shortDate(tx.mfgDate)}</span>
+                          </p>
+                        ) : null}
+                        <p className="text-[11px] flex items-center gap-1 flex-wrap">
+                          <span className="text-[10px] text-slate-500 font-medium">Exp: </span>
+                          <ExpiryBadge expiryDate={tx.expiryDate} />
+                        </p>
+                      </div>
+                    </td>
+                    <td className={`${TD} align-middle text-center`}>
+                      <span
+                        className={`rounded px-2 py-0.5 text-[9px] font-extrabold uppercase ${
+                          tx.transactionType === "ADD"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-rose-100 text-rose-800"
+                        }`}
+                      >
+                        {tx.transactionType}
+                      </span>
+                    </td>
+                    <td className={`${TD} align-middle text-center font-bold text-[#111827] tabular-nums`}>
+                      {tx.transactionType === "ADD" ? "+" : "-"}
+                      {tx.quantity} {tx.unit}
+                    </td>
+                    <td className={`${TD} align-middle text-center font-mono text-[10px] tabular-nums`}>
+                      <div className="inline-flex items-center justify-center gap-1">
+                        <span className="text-slate-500">{tx.previousStock}</span>
+                        <span className="text-slate-400">→</span>
+                        <span className="font-extrabold text-[#111827]">{tx.updatedStock}</span>
+                      </div>
+                    </td>
+                    <td className={`${TD} align-middle text-[11px]`}>
+                      <span className="block font-semibold text-[#1F2937]">{tx.reason || "—"}</span>
+                    </td>
+                    <td className={`${TD} align-middle text-[10px] text-[#374151]`}>
+                      <span className="block font-medium text-slate-800">{tx.remarks || "—"}</span>
+                      {tx.packagingType || tx.storageLocation ? (
+                        <span className="block text-[9px] text-slate-500 mt-0.5 font-medium">
+                          {[tx.packagingType, tx.storageLocation].filter(Boolean).join(" · ")}
+                        </span>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : (
+        /* Batches Tab */
+        filteredBatches.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center text-xs text-slate-500">
+            No batches found for this product.
+          </div>
+        ) : (
+          <div className="w-full overflow-x-auto border border-slate-200/80 bg-white shadow-sm">
+            <table className="w-full min-w-[900px] table-fixed border-collapse">
+              <colgroup>
+                <col className="w-[4%]" />
+                <col className="w-[15%]" />
+                <col className="w-[18%]" />
+                <col className="w-[10%]" />
+                <col className="w-[8%]" />
+                <col className="w-[6%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[9%]" />
+                <col className="w-[10%]" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className={`${TH} text-center`}>#</th>
+                  <th className={TH}>Batch ID</th>
+                  <th className={TH}>Product</th>
+                  <th className={`${TH} text-center`}>Available Stock</th>
+                  <th className={`${TH} text-center`}>Total Added</th>
+                  <th className={`${TH} text-center`}>Unit</th>
+                  <th className={`${TH} text-center`}>Received Date</th>
+                  <th className={`${TH} text-center`}>Expiry Date</th>
+                  <th className={`${TH} text-center`}>Status</th>
+                  <th className={TH}>Storage / Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBatches.map((b, idx) => (
+                  <tr key={b.batchId || idx} className="hover:bg-[#F9FBF9]">
+                    <td className={`${TD} text-center align-middle text-[#9CA3AF]`}>{idx + 1}</td>
+                    <td className={`${TD} align-middle font-mono text-[10px] font-bold text-[#217346]`}>
+                      <div className="flex items-center gap-1">
+                        <span className="truncate">{b.batchId}</span>
+                        <CopyButton value={b.batchId} />
+                      </div>
+                    </td>
+                    <td className={`${TD} align-middle`}>
+                      <span className="block font-bold leading-snug text-[#111827]">{b.productName || "Product"}</span>
+                      {b.sku ? <span className="font-mono text-[9px] text-[#6B7280]">{b.sku}</span> : null}
+                    </td>
+                    <td className={`${TD} align-middle text-center font-bold text-[12px] text-[#111827] tabular-nums`}>
+                      {b.availableQuantity}
+                    </td>
+                    <td className={`${TD} align-middle text-center tabular-nums text-[#6B7280]`}>
+                      {b.quantity}
+                    </td>
+                    <td className={`${TD} align-middle text-center font-semibold text-[#374151]`}>{b.unit}</td>
+                    <td className={`${TD} align-middle text-center tabular-nums text-[#374151]`}>
+                      {shortDate(b.receivedDate)}
+                    </td>
+                    <td className={`${TD} align-middle text-center tabular-nums`}>
+                      <ExpiryBadge expiryDate={b.expiryDate} />
+                    </td>
+                    <td className={`${TD} align-middle text-center`}>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                          b.status === "Active"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : b.status === "Low Stock"
+                            ? "bg-amber-100 text-amber-800"
+                            : b.status === "Expired"
+                            ? "bg-rose-100 text-rose-800"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {b.status}
+                      </span>
+                    </td>
+                    <td className={`${TD} align-middle text-[10px] text-[#374151]`}>
+                      <span className="block font-medium">{b.storageLocation || "—"}</span>
+                      <span className="block text-[9px] text-[#6B7280]">{b.stockSource}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+/* =========================================================================
+   MAIN EXPORT (ROUTER BETWEEN SELLER & FARMER INVENTORY HISTORY)
+   ========================================================================= */
+export default function ManagerInventoryHistoryPage() {
+  const { vendor } = useVendorAuth();
+  const isSeller = vendor?.vendorType === "seller";
+
+  if (isSeller) {
+    return <SellerInventoryHistoryView />;
+  }
+
+  return <FarmerInventoryHistoryView />;
 }

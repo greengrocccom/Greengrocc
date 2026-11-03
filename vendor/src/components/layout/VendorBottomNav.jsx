@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import QrScanModal from "../pickup/QrScanModal";
 import { vendorApi } from "../../api/vendorApi";
+import { useVendorAuth } from "../../context/VendorAuthContext";
 import { isBatchQrPayload, parseBatchQrPayload } from "../../utils/batchQr";
 import { parseOrderQrPayload } from "../../utils/orderQr";
 
@@ -135,8 +136,19 @@ function isAtCentre(pickup) {
 
 export default function VendorBottomNav() {
   const navigate = useNavigate();
+  const { vendor } = useVendorAuth();
+  const isSeller = vendor?.vendorType === "seller";
   const [scanOpen, setScanOpen] = useState(false);
   const [scanError, setScanError] = useState("");
+
+  const activeTabs = isSeller
+    ? [
+        TABS[0],
+        TABS[1],
+        TABS[2],
+        { to: "/vendor/inventory/history", label: "History", icon: HistoryIcon },
+      ]
+    : TABS;
 
   const openScanned = async (value) => {
     if (isBatchQr(value)) {
@@ -186,11 +198,11 @@ export default function VendorBottomNav() {
         <div className="border-t border-black/[0.05] bg-white/95 shadow-[0_-12px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
           <div className="relative h-[4.15rem]">
             <div className="grid h-full grid-cols-5">
-              <TabLink {...TABS[0]} />
-              <TabLink {...TABS[1]} />
+              <TabLink {...activeTabs[0]} />
+              <TabLink {...activeTabs[1]} />
               <div aria-hidden />
-              <TabLink {...TABS[2]} />
-              <TabLink {...TABS[3]} />
+              <TabLink {...activeTabs[2]} />
+              <TabLink {...activeTabs[3]} />
             </div>
             <button
               type="button"

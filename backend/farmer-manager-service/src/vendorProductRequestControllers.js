@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import mongoose from "mongoose";
 import Product from "../../legacy/models/Product.js";
-import { Farmer, FarmerProduct, VendorProduct, VendorProductRequest } from "./models.js";
+import { Farmer, FarmerProduct, Vendor, VendorProduct, VendorProductRequest } from "./models.js";
 import { generateId } from "../../erp-service/src/services/idGenerator.js";
 import { categoryFromName, cropCodeFromName, varietyCodeFromName } from "../../erp-service/src/config/idRegistry.js";
 import { pushFarmerProductReview } from "./farmerPush.js";
@@ -229,6 +229,77 @@ export async function updateVendorMyProduct(req, res) {
   }
 }
 
+/** Direct stock addition for Seller Vendors (Seller can add catalog products directly with stock) */
+export async function addVendorStockProduct(req, res) {
+  try {
+    const vendorId = vendorIdOf(req);
+    const vendor = await Vendor.findOne({ id: vendorId }).lean();
+    if (!vendor) return res.status(404).json({ message: "Vendor not found" });
+
+    // Allow seller vendors direct stock creation (farmer vendors remain unchanged)
+    const isSeller = vendor.vendorType === "seller";
+    if (!isSeller) {
+      return res.status(403).json({ message: "Direct stock addition is only enabled for seller vendors" });
+    }
+
+    const { productId, stock, price, discountedPrice, unit, inStock, section } = req.body || {};
+    if (!productId) {
+      return res.status(400).json({ message: "Product selection is required" });
+    }
+
+    const catalogProd = await Product.findById(productId).lean();
+    if (!catalogProd) {
+      return res.status(404).json({ message: "Catalog product not found" });
+    }
+
+    if (section && (!catalogProd.section || catalogProd.section === "general")) {
+      await Product.findByIdAndUpdate(catalogProd._id, { section }).catch(() => {});
+    }
+
+    const qty = Number(stock ?? 0);
+    if (!Number.isFinite(qty) || qty < 0) {
+      return res.status(400).json({ message: "Stock quantity must be a non-negative number" });
+    }
+
+    let row = await VendorProduct.findOne({ vendorId, productId: String(catalogProd._id) });
+    if (row) {
+      row.stock = Math.floor(qty);
+      if (price !== undefined && price !== null && price !== "") row.price = Number(price);
+      if (discountedPrice !== undefined && discountedPrice !== null && discountedPrice !== "") row.discountedPrice = Number(discountedPrice);
+      if (unit) row.customUnit = unit;
+      row.customInStock = inStock !== undefined ? Boolean(inStock) : qty > 0;
+      await row.save();
+    } else {
+      row = await VendorProduct.create({
+        id: `vp-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
+        vendorId,
+        productId: String(catalogProd._id),
+        productName: catalogProd.name,
+        productImage: catalogProd.productImages?.[0] || "",
+        category: catalogProd.categories?.[0] || "",
+        unit: unit || catalogProd.unit || "Piece",
+        price: price !== undefined && price !== null && price !== "" ? Number(price) : (catalogProd.price ?? 0),
+        discountedPrice: discountedPrice !== undefined && discountedPrice !== null && discountedPrice !== "" ? Number(discountedPrice) : (catalogProd.discountedPrice ?? catalogProd.price ?? 0),
+        stock: Math.floor(qty),
+        customInStock: inStock !== undefined ? Boolean(inStock) : qty > 0,
+        addedBy: "seller-stock-add",
+      });
+    }
+
+    // Auto-approve any pending product request for this vendor & product
+    await VendorProductRequest.updateMany(
+      { vendorId, productId: String(catalogProd._id), status: "Pending" },
+      { $set: { status: "Approved", reviewedAt: new Date(), notes: "Added directly via Seller Stock" } }
+    );
+
+    const products = await vendorProductsWithCatalog(vendorId);
+    const item = products.find((p) => p.productId === String(catalogProd._id));
+    return res.json({ success: true, product: item, products });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to add product to stock" });
+  }
+}
+
 /** Full catalog product with this vendor's edits applied, for the product editor. */
 export async function getVendorMyProductFull(req, res) {
   try {
@@ -274,7 +345,7 @@ export async function listVendorCatalogProducts(req, res) {
   try {
     const vendorId = vendorIdOf(req);
     const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(60, Math.max(1, Number(req.query.limit) || 24));
+    const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
     const section = String(req.query.section || "").trim().toLowerCase();
     const sectionFilter = section ? { ...ADMIN_CATALOG_FILTER, section } : ADMIN_CATALOG_FILTER;
     const filter = { ...sectionFilter };

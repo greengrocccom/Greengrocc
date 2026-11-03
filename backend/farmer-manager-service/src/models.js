@@ -36,6 +36,7 @@ const vendorSchema = new mongoose.Schema(
     },
     password: { type: String, default: "" },
     role: { type: String, default: "VENDOR" },
+    vendorType: { type: String, enum: ["farmer", "seller"], default: "farmer" },
     zones: { type: [String], default: [] },
     settings: { type: mongoose.Schema.Types.Mixed, default: {} },
     vacation: {
@@ -1099,6 +1100,103 @@ export const VendorCatalogRequest =
   mongoose.models.VendorCatalogRequest ||
   mongoose.model("VendorCatalogRequest", vendorCatalogRequestSchema);
 
+/* =========================================================================
+   SELLER VENDOR BATCH & STOCK TRANSACTION MODELS
+   ========================================================================= */
+
+const vendorStockBatchSchema = new mongoose.Schema(
+  {
+    batchId: { type: String, required: true, unique: true, uppercase: true, trim: true, index: true },
+    vendorId: { type: String, required: true, index: true },
+    productId: { type: String, required: true, index: true },
+    sku: { type: String, default: "", trim: true, index: true },
+    productName: { type: String, required: true, trim: true },
+    category: { type: String, default: "", trim: true },
+    unit: { type: String, required: true, default: "Kg", trim: true },
+    quantity: { type: Number, required: true, min: 0 }, // Initial added quantity
+    availableQuantity: { type: Number, required: true, min: 0 }, // Current remaining quantity
+    receivedDate: { type: Date, default: () => new Date() },
+    mfgDate: { type: Date, default: null }, // Manufacturing / Harvest date
+    expiryDate: { type: Date, default: null, index: true }, // Expiry / Best Before date
+    packagingType: { type: String, default: "Box", trim: true }, // Bag, Box, Pouch, Crate, Sack, Loose, Pack
+    numberOfPackages: { type: Number, default: 1, min: 0 },
+    packageSize: { type: String, default: "", trim: true }, // e.g. "25 kg sack", "500g pouch"
+    qualityGrade: { type: String, default: "Grade A", trim: true }, // Grade A, Grade B, Grade C, Premium, Standard
+    stockSource: {
+      type: String,
+      enum: ["Farmer", "Vendor", "Supplier", "Purchase", "Return", "Other"],
+      default: "Supplier",
+    },
+    purchaseCost: { type: Number, default: 0, min: 0 },
+    storageLocation: { type: String, default: "Main Darkstore", trim: true },
+    remarks: { type: String, default: "", trim: true },
+    status: {
+      type: String,
+      enum: ["Active", "Low Stock", "Expired", "Depleted"],
+      default: "Active",
+      index: true,
+    },
+    createdBy: { type: String, default: "Seller Vendor", trim: true },
+  },
+  { timestamps: true }
+);
+
+vendorStockBatchSchema.index({ vendorId: 1, productId: 1, status: 1 });
+vendorStockBatchSchema.index({ vendorId: 1, expiryDate: 1 });
+
+export const VendorStockBatch =
+  mongoose.models.VendorStockBatch || mongoose.model("VendorStockBatch", vendorStockBatchSchema);
+
+const vendorStockTransactionSchema = new mongoose.Schema(
+  {
+    transactionId: { type: String, required: true, unique: true, uppercase: true, trim: true, index: true },
+    vendorId: { type: String, required: true, index: true },
+    productId: { type: String, required: true, index: true },
+    sku: { type: String, default: "", trim: true },
+    productName: { type: String, default: "", trim: true },
+    batchId: { type: String, required: true, uppercase: true, trim: true, index: true },
+    transactionType: { type: String, enum: ["ADD", "DEDUCT"], required: true, index: true },
+    quantity: { type: Number, required: true, min: 0.0001 },
+    unit: { type: String, default: "Kg", trim: true },
+    previousStock: { type: Number, required: true, min: 0 },
+    updatedStock: { type: Number, required: true, min: 0 },
+    batchPreviousStock: { type: Number, default: 0, min: 0 },
+    batchUpdatedStock: { type: Number, default: 0, min: 0 },
+    receivedDate: { type: Date, default: null },
+    mfgDate: { type: Date, default: null },
+    expiryDate: { type: Date, default: null },
+    packagingType: { type: String, default: "", trim: true },
+    storageLocation: { type: String, default: "", trim: true },
+    reason: {
+      type: String,
+      enum: [
+        "Initial Stock",
+        "New Purchase / Stock Addition",
+        "Order Fulfillment",
+        "Damaged Stock",
+        "Expired Stock",
+        "Quality Rejection",
+        "Internal Usage",
+        "Stock Correction",
+        "Return to Supplier",
+        "Other",
+      ],
+      default: "New Purchase / Stock Addition",
+    },
+    remarks: { type: String, default: "", trim: true },
+    userId: { type: String, default: "" },
+    createdBy: { type: String, default: "Seller Vendor", trim: true },
+  },
+  { timestamps: true }
+);
+
+vendorStockTransactionSchema.index({ vendorId: 1, productId: 1, createdAt: -1 });
+vendorStockTransactionSchema.index({ vendorId: 1, batchId: 1, createdAt: -1 });
+
+export const VendorStockTransaction =
+  mongoose.models.VendorStockTransaction ||
+  mongoose.model("VendorStockTransaction", vendorStockTransactionSchema);
+
 // cropId refers to an admin crop master record (ErpCrop); name/variety/category are snapshots for history.
 const catalogCropSnapshot = {
   cropId: { type: String, required: true },
@@ -1427,6 +1525,8 @@ export async function ensureFarmerIndexes() {
       DarkStoreRequest,
       VendorProductRequest,
       VendorProduct,
+      VendorStockBatch,
+      VendorStockTransaction,
       VendorCropRequest,
       VendorCrop,
       VendorReview,

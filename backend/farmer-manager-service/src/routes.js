@@ -191,6 +191,7 @@ import {
   listVendorCatalogProducts,
   listVendorMyProducts,
   updateVendorMyProduct,
+  addVendorStockProduct,
   getVendorMyProductFull,
   deleteVendorMyProduct,
   createVendorProductRequest,
@@ -199,6 +200,13 @@ import {
   listManagerVendorProductsCatalog,
   requestFarmerProduct,
 } from "./vendorProductRequestControllers.js";
+import {
+  addVendorStockBatch,
+  deductVendorStockBatch,
+  listVendorStockBatches,
+  listVendorStockTransactions,
+  getNextBatchId,
+} from "./vendorStockBatchControllers.js";
 import {
   listVendorCatalogCrops,
   listFarmerVendorCrops,
@@ -613,6 +621,11 @@ vendorRouter.get("/my-products", requireVendor, listVendorMyProducts);
 vendorRouter.get("/my-products/:productId/full", requireVendor, getVendorMyProductFull);
 vendorRouter.patch("/my-products/:productId", requireVendor, updateVendorMyProduct);
 vendorRouter.delete("/my-products/:productId", requireVendor, deleteVendorMyProduct);
+vendorRouter.post("/stock/add", requireVendor, addVendorStockBatch);
+vendorRouter.post("/stock/deduct", requireVendor, deductVendorStockBatch);
+vendorRouter.get("/stock/batches", requireVendor, listVendorStockBatches);
+vendorRouter.get("/stock/transactions", requireVendor, listVendorStockTransactions);
+vendorRouter.get("/stock/next-batch-id", requireVendor, getNextBatchId);
 vendorRouter.post("/product-requests", requireVendor, createVendorProductRequest);
 vendorRouter.get("/catalog/products", requireVendor, listVendorOwnedCatalogProducts);
 vendorRouter.get("/catalog/categories", requireVendor, listVendorCatalogCategories);

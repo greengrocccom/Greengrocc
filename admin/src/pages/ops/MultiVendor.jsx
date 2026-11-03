@@ -43,6 +43,7 @@ function readAsDataUrl(file) {
 }
 
 const DEFAULTS = {
+  vendorType: 'farmer',
   vendorName: '',
   ownerName: '',
   mobile: '',
@@ -216,8 +217,8 @@ export default function MultiVendor() {
 
   const setField = (name) => (e) => setForm((prev) => ({ ...prev, [name]: e.target.value }));
 
-  const openCreate = () => {
-    setForm(DEFAULTS);
+  const openCreate = (type = 'farmer') => {
+    setForm({ ...DEFAULTS, vendorType: type });
     setDocFiles({});
     setDocError('');
     setMobileVerified(false);
@@ -320,10 +321,14 @@ export default function MultiVendor() {
   };
 
   const openEdit = useCallback((row, returnTo = null) => {
-    const next = { ...DEFAULTS, password: '', zones: row.zones || [] };
+    const next = { ...DEFAULTS, vendorType: row.vendorType || 'farmer', password: '', zones: row.zones || [] };
     Object.keys(next).forEach((key) => {
       if (row[key] !== undefined && key !== 'password') next[key] = row[key];
     });
+    const cc = row.collectionCentre || {};
+    if (!next.village && cc.villageCode) next.village = cc.villageCode;
+    if (!next.taluka && cc.talukaCode) next.taluka = cc.talukaCode;
+    if (!next.district && cc.districtCode) next.district = cc.districtCode;
     setForm(next);
     setZoneInput('');
     setDocFiles({});
@@ -536,11 +541,26 @@ export default function MultiVendor() {
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-start gap-2">
-                        <Warehouse className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                        {row.vendorType === 'seller' ? (
+                          <Store className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" />
+                        ) : (
+                          <Warehouse className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                        )}
                         <div>
-                          <p className="font-semibold text-slate-900">
-                            {row.vendorName || row.businessName || row.ownerName}
-                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-slate-900">
+                              {row.vendorName || row.businessName || row.ownerName}
+                            </p>
+                            <span
+                              className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                                row.vendorType === 'seller'
+                                  ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200'
+                                  : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                              }`}
+                            >
+                              {row.vendorType === 'seller' ? 'Seller Vendor' : 'Farmer Vendor'}
+                            </span>
+                          </div>
                           <p className="text-[11px] font-mono text-slate-500">{row.collectionCentre?.id || row.id}</p>
                         </div>
                       </div>
@@ -894,21 +914,73 @@ export default function MultiVendor() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  {isCreate ? 'Multi Vendor Registration / Collection Centre' : 'Edit Collection Centre'}
+                  {isCreate
+                    ? form.vendorType === 'seller'
+                      ? 'Register Seller Vendor'
+                      : 'Multi Vendor Registration / Collection Centre'
+                    : form.vendorType === 'seller'
+                    ? 'Edit Seller Vendor'
+                    : 'Edit Collection Centre'}
                 </h2>
                 {isCreate ? (
                   <p className="text-xs text-slate-500">
-                    Register a new multi vendor. Mobile number OTP verification is required via GreenGrocc Common OTP (GREGRC_Common_OTP).
+                    {form.vendorType === 'seller'
+                      ? 'Register a new commercial seller vendor. Mobile number OTP verification is required via GreenGrocc Common OTP (GREGRC_Common_OTP).'
+                      : 'Register a new multi vendor collection centre. Mobile number OTP verification is required via GreenGrocc Common OTP (GREGRC_Common_OTP).'}
                   </p>
                 ) : null}
               </div>
-              <button type="button" onClick={closeModal} className="text-slate-400">
+              <button type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
+
+            {/* Vendor Type Selection: 2 options (Farmer Vendor vs Seller Vendor) */}
+            <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Vendor Type / प्रकार निवडा
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, vendorType: 'farmer' }))}
+                  className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition ${
+                    form.vendorType === 'farmer'
+                      ? 'bg-emerald-700 text-white shadow-xs ring-1 ring-emerald-700'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <span>🌾</span>
+                  <span>Farmer Vendor (Collection Centre)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, vendorType: 'seller' }))}
+                  className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition ${
+                    form.vendorType === 'seller'
+                      ? 'bg-emerald-700 text-white shadow-xs ring-1 ring-emerald-700'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <span>🏪</span>
+                  <span>Seller Vendor (Commercial Seller)</span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Collection centre / Vendor name" required className="sm:col-span-2">
-                <input value={form.vendorName} onChange={setField('vendorName')} className={INPUT} required />
+              <Field
+                label={form.vendorType === 'seller' ? 'Seller / Vendor name' : 'Collection centre / Vendor name'}
+                required
+                className="sm:col-span-2"
+              >
+                <input
+                  value={form.vendorName}
+                  onChange={setField('vendorName')}
+                  className={INPUT}
+                  placeholder={form.vendorType === 'seller' ? 'e.g. Fresh Mart Organics' : 'e.g. Nashik Agri Collection Centre'}
+                  required
+                />
               </Field>
               <Field label="Owner name" required>
                 <input value={form.ownerName} onChange={setField('ownerName')} className={INPUT} required />
@@ -1016,7 +1088,7 @@ export default function MultiVendor() {
               <Field label="Address" className="sm:col-span-2">
                 <textarea value={form.businessAddress} onChange={setField('businessAddress')} className={INPUT} rows={2} />
               </Field>
-              {isCreate ? (
+              {form.vendorType !== 'seller' ? (
                 <>
                   <Field label="Village">
                     <input value={form.village} onChange={setField('village')} className={INPUT} />
@@ -1060,7 +1132,7 @@ export default function MultiVendor() {
                       Assigned Zones
                     </label>
                     <p className="text-[11px] text-slate-500">
-                      Add zones manually using the text box below. You can assign multiple zones to this collection centre / multivendor.
+                      Add zones manually using the text box below. You can assign multiple zones to this {form.vendorType === 'seller' ? 'seller vendor' : 'collection centre / multivendor'}.
                     </p>
                   </div>
                   <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full ring-1 ring-emerald-300">

@@ -1006,6 +1006,7 @@ export async function createVendorAdmin(req, res, next) {
       panNumber: String(req.body.panNumber || "").trim(),
       commissionRate: Number(req.body.commissionRate || 10),
       status: req.body.status || "Active",
+      vendorType: req.body.vendorType === "seller" ? "seller" : "farmer",
       zones,
       password: hashedPassword,
       role: "VENDOR",
@@ -1093,6 +1094,7 @@ export async function updateVendorAdmin(req, res, next) {
       "gstNumber",
       "panNumber",
       "status",
+      "vendorType",
       "mobile",
     ];
     if (req.body.zones !== undefined) {

@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   Building2,
   Calendar,
+  CalendarClock,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
@@ -41,6 +42,7 @@ import CopyId from "../../components/ui/CopyId";
 import { EXCEL_PANEL, EXCEL_HEAD, EXCEL_CELL } from "../../utils/excelStyles";
 import AjaxLiveSearchWidget from "../../components/search/AjaxLiveSearchWidget";
 import QualityGradeRejectionChart from "../../components/dashboard/QualityGradeRejectionChart";
+import { useVendorAuth } from "../../context/VendorAuthContext";
 
 function formatWhen(value) {
   if (!value) return "—";
@@ -107,6 +109,8 @@ function MultiMetricCard({ title, mainValue, subItems = [], icon: Icon, iconBg, 
 }
 
 export default function DashboardPage() {
+  const auth = useVendorAuth();
+  const isSeller = auth?.vendor?.vendorType === 'seller';
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [requests, setRequests] = useState([]);
@@ -265,22 +269,25 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <Link to="/sales" className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Sales Summary</Link>
-            <Link
-              to="/vendor/all-farmers/add"
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
-            >
-              <Plus className="h-3.5 w-3.5 text-emerald-700" />
-              <span>Add Farmer</span>
-            </Link>
-
-            <Link
-              to="/vendor/farmer-managers/add"
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
-            >
-              <Plus className="h-3.5 w-3.5 text-emerald-700" />
-              <span>Add Manager</span>
-            </Link>
+<Link to="/sales" className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white">Sales Summary</Link>
+            {!isSeller ? (
+              <>
+                <Link
+                  to="/vendor/all-farmers/add"
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                >
+                  <Plus className="h-3.5 w-3.5 text-emerald-700" />
+                  <span>Add Farmer</span>
+                </Link>
+                <Link
+                  to="/vendor/farmer-managers/add"
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                >
+                  <Plus className="h-3.5 w-3.5 text-emerald-700" />
+                  <span>Add Manager</span>
+                </Link>
+              </>
+            ) : null}
 
             <Link
               to="/vendor/orders/create"
@@ -290,13 +297,15 @@ export default function DashboardPage() {
               <span>Create Order</span>
             </Link>
 
-            <Link
-              to="/vendor/crops"
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
-            >
-              <Sprout className="h-3.5 w-3.5 text-emerald-700" />
-              <span>Add Crop</span>
-            </Link>
+            {!isSeller ? (
+              <Link
+                to="/vendor/crops"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+              >
+                <Sprout className="h-3.5 w-3.5 text-emerald-700" />
+                <span>Add Crop</span>
+              </Link>
+            ) : null}
 
             <Link
               to="/vendor/products"
@@ -306,13 +315,34 @@ export default function DashboardPage() {
               <span>Add Product</span>
             </Link>
 
-            <Link
-              to="/vendor/pickups/ready"
-              className="hidden items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 md:inline-flex"
-            >
-              <Truck className="h-3.5 w-3.5 text-sky-700" />
-              <span>Pickups</span>
-            </Link>
+            {isSeller ? (
+              <>
+                <Link
+                  to="/vendor/dark-stores"
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                >
+                  <Store className="h-3.5 w-3.5 text-blue-700" />
+                  <span>My Dark Stores</span>
+                </Link>
+                <Link
+                  to="/vendor/my-products"
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                >
+                  <Package className="h-3.5 w-3.5 text-emerald-700" />
+                  <span>My Supply Products</span>
+                </Link>
+              </>
+            ) : null}
+
+            {!isSeller ? (
+              <Link
+                to="/vendor/pickups/ready"
+                className="hidden items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 md:inline-flex"
+              >
+                <Truck className="h-3.5 w-3.5 text-sky-700" />
+                <span>Pickups</span>
+              </Link>
+            ) : null}
 
             <button
               type="button"
@@ -427,54 +457,58 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 10 Detailed Summary Cards Grid */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {/* Card 1 – Total Farmer Managers */}
-        <MultiMetricCard
-          title="Total Farmer Managers"
-          mainValue={loading ? "…" : d.totalManagers ?? 0}
-          icon={Users}
-          iconBg="bg-teal-50 text-teal-700"
-          to="/vendor/farmer-managers"
-          subItems={[
-            { label: "Active Managers", value: d.activeManagers ?? 0, color: "text-emerald-700" },
-            { label: "Inactive / Pending", value: d.inactiveManagers ?? 0, color: "text-slate-500" },
-          ]}
-        />
+      {/* Summary Cards Grid */}
+      <div className={`grid grid-cols-2 gap-2.5 sm:grid-cols-3 ${isSeller ? 'lg:grid-cols-5' : 'md:grid-cols-4 lg:grid-cols-5'}`}>
+        {!isSeller ? (
+          <>
+            {/* Card 1 – Total Farmer Managers */}
+            <MultiMetricCard
+              title="Total Farmer Managers"
+              mainValue={loading ? "…" : d.totalManagers ?? 0}
+              icon={Users}
+              iconBg="bg-teal-50 text-teal-700"
+              to="/vendor/farmer-managers"
+              subItems={[
+                { label: "Active Managers", value: d.activeManagers ?? 0, color: "text-emerald-700" },
+                { label: "Inactive / Pending", value: d.inactiveManagers ?? 0, color: "text-slate-500" },
+              ]}
+            />
 
-        {/* Card 2 – Total Farmers */}
-        <MultiMetricCard
-          title="Total Farmers"
-          mainValue={loading ? "…" : d.totalFarmers ?? 0}
-          icon={Tractor}
-          iconBg="bg-emerald-50 text-emerald-700"
-          to="/vendor/all-farmers"
-          subItems={[
-            { label: "Farmer Approval Pending", value: d.farmerApprovalPending ?? 0, color: "text-amber-600" },
-            { label: "Manager Assign Pending", value: d.farmerManagerAssignPending ?? 0, color: "text-sky-700" },
-          ]}
-        />
+            {/* Card 2 – Total Farmers */}
+            <MultiMetricCard
+              title="Total Farmers"
+              mainValue={loading ? "…" : d.totalFarmers ?? 0}
+              icon={Tractor}
+              iconBg="bg-emerald-50 text-emerald-700"
+              to="/vendor/all-farmers"
+              subItems={[
+                { label: "Farmer Approval Pending", value: d.farmerApprovalPending ?? 0, color: "text-amber-600" },
+                { label: "Manager Assign Pending", value: d.farmerManagerAssignPending ?? 0, color: "text-sky-700" },
+              ]}
+            />
 
-        {/* Card 3 – Total Crops */}
-        <MultiMetricCard
-          title="Farmer Crops"
-          mainValue={loading ? "…" : d.totalCrops ?? 0}
-          icon={Sprout}
-          iconBg="bg-emerald-50 text-emerald-700"
-          to="/vendor/farmer-crops"
-          subItems={[
-            { label: "Growing / Sowing", value: d.growingCrops ?? 0, color: "text-sky-700" },
-            { label: "Ready for Harvest", value: d.harvestReadyCrops ?? 0, color: "text-emerald-700" },
-          ]}
-        />
+            {/* Card 3 – Total Crops */}
+            <MultiMetricCard
+              title="Farmer Crops"
+              mainValue={loading ? "…" : d.totalCrops ?? 0}
+              icon={Sprout}
+              iconBg="bg-emerald-50 text-emerald-700"
+              to="/vendor/farmer-crops"
+              subItems={[
+                { label: "Growing / Sowing", value: d.growingCrops ?? 0, color: "text-sky-700" },
+                { label: "Ready for Harvest", value: d.harvestReadyCrops ?? 0, color: "text-emerald-700" },
+              ]}
+            />
+          </>
+        ) : null}
 
         {/* Card 4 – Total Products */}
         <MultiMetricCard
-          title="Farmer Products"
+          title={isSeller ? "Supply Products" : "Farmer Products"}
           mainValue={loading ? "…" : d.totalProducts ?? 0}
           icon={Package}
           iconBg="bg-amber-50 text-amber-700"
-          to="/vendor/farmer-products"
+          to={isSeller ? "/vendor/my-products" : "/vendor/farmer-products"}
           subItems={[
             { label: "Products Approval Pending", value: d.productsApprovalPending ?? 0, color: "text-amber-600" },
             { label: "Active / In Stock", value: d.activeProducts ?? 0, color: "text-emerald-700" },
@@ -500,7 +534,7 @@ export default function DashboardPage() {
           mainValue={loading ? "…" : d.totalOrders ?? 0}
           icon={ShoppingCart}
           iconBg="bg-indigo-50 text-indigo-700"
-          to="/vendor/orders"
+          to={isSeller ? "/vendor/orders/products" : "/vendor/orders"}
           subItems={[
             { label: "Pending Orders", value: d.pendingOrders ?? 0, color: "text-amber-600" },
             { label: "Rejected Orders", value: d.rejectedOrders ?? 0, color: "text-red-600" },
@@ -508,61 +542,93 @@ export default function DashboardPage() {
           ]}
         />
 
-        {/* Card 7 – Total Driver */}
-        <MultiMetricCard
-          title="Total Driver"
-          mainValue={loading ? "…" : d.totalDrivers ?? 0}
-          icon={IdCard}
-          iconBg="bg-cyan-50 text-cyan-700"
-          to="/vendor/drivers"
-          subItems={[
-            { label: "Driver Approval Pending", value: d.driverApprovalPending ?? 0, color: "text-amber-600" },
-            { label: "Active Drivers", value: d.activeDrivers ?? 0, color: "text-emerald-700" },
-          ]}
-        />
+        {isSeller ? (
+          <>
+            {/* Seller Card – Pre-orders */}
+            <MultiMetricCard
+              title="Customer Pre-orders"
+              mainValue={loading ? "…" : d.preOrdersCount ?? 0}
+              icon={CalendarClock}
+              iconBg="bg-purple-50 text-purple-700"
+              to="/vendor/preorders"
+              subItems={[
+                { label: "Active Pre-orders", value: d.preOrdersActive ?? 0, color: "text-emerald-700" },
+                { label: "Delivery Slots", value: "Configured", color: "text-slate-500" },
+              ]}
+            />
 
-        {/* Card 8 – Ready for Pickup */}
-        <MultiMetricCard
-          title="Ready for Pickup"
-          mainValue={loading ? "…" : d.readyPickups ?? 0}
-          icon={Truck}
-          iconBg="bg-amber-50 text-amber-700"
-          to="/vendor/pickups/ready"
-          subItems={[
-            { label: "Assigned Pickups", value: d.assignedPickups ?? 0, color: "text-sky-700" },
-          ]}
-        />
+            {/* Seller Card – Dark Store Restock */}
+            <MultiMetricCard
+              title="Dark Store Restock"
+              mainValue={loading ? "…" : pendingRequests.length}
+              icon={Store}
+              iconBg="bg-sky-50 text-sky-700"
+              to="/vendor/inventory-requests"
+              subItems={[
+                { label: "Pending Requests", value: pendingRequests.length, color: "text-amber-600" },
+                { label: "Dark Stores", value: "Connected", color: "text-emerald-700" },
+              ]}
+            />
+          </>
+        ) : (
+          <>
+            {/* Card 7 – Total Driver */}
+            <MultiMetricCard
+              title="Total Driver"
+              mainValue={loading ? "…" : d.totalDrivers ?? 0}
+              icon={IdCard}
+              iconBg="bg-cyan-50 text-cyan-700"
+              to="/vendor/drivers"
+              subItems={[
+                { label: "Driver Approval Pending", value: d.driverApprovalPending ?? 0, color: "text-amber-600" },
+                { label: "Active Drivers", value: d.activeDrivers ?? 0, color: "text-emerald-700" },
+              ]}
+            />
 
-        {/* Card 9 – All Pickups */}
-        <MultiMetricCard
-          title="All Pickups"
-          mainValue={loading ? "…" : d.totalPickups ?? 0}
-          icon={RotateCcw}
-          iconBg="bg-sky-50 text-sky-700"
-          to="/vendor/pickups/all"
-          subItems={[
-            { label: "Incoming Pickups", value: d.incomingPickups ?? 0, color: "text-indigo-600" },
-            { label: "Pickups at Center", value: d.centrePickups ?? 0, color: "text-emerald-700" },
-          ]}
-        />
+            {/* Card 8 – Ready for Pickup */}
+            <MultiMetricCard
+              title="Ready for Pickup"
+              mainValue={loading ? "…" : d.readyPickups ?? 0}
+              icon={Truck}
+              iconBg="bg-amber-50 text-amber-700"
+              to="/vendor/pickups/ready"
+              subItems={[
+                { label: "Assigned Pickups", value: d.assignedPickups ?? 0, color: "text-sky-700" },
+              ]}
+            />
 
-        {/* Card 10 – Quality & Grading */}
-        <MultiMetricCard
-          title="Quality & Grading"
-          mainValue={loading ? "…" : d.totalInspections ?? ((d.qualityPending ?? 0) + (d.qualityInProcess ?? 0) + (d.qualityCompleted ?? 0))}
-          icon={BadgeCheck}
-          iconBg="bg-purple-50 text-purple-700"
-          to="/vendor/quality/pending"
-          subItems={[
-            { label: "Pending Inspection", value: d.qualityPending ?? 0, color: "text-amber-600" },
-            { label: "Completed QC", value: d.qualityCompleted ?? 0, color: "text-emerald-700" },
-            {
-              label: "Rejection Rate",
-              value: `${rejectionRate}%`,
-              color: rejectionRate > 5 ? "text-red-600" : "text-emerald-700",
-            },
-          ]}
-        />
+            {/* Card 9 – All Pickups */}
+            <MultiMetricCard
+              title="All Pickups"
+              mainValue={loading ? "…" : d.totalPickups ?? 0}
+              icon={RotateCcw}
+              iconBg="bg-sky-50 text-sky-700"
+              to="/vendor/pickups/all"
+              subItems={[
+                { label: "Incoming Pickups", value: d.incomingPickups ?? 0, color: "text-indigo-600" },
+                { label: "Pickups at Center", value: d.centrePickups ?? 0, color: "text-emerald-700" },
+              ]}
+            />
+
+            {/* Card 10 – Quality & Grading */}
+            <MultiMetricCard
+              title="Quality & Grading"
+              mainValue={loading ? "…" : d.totalInspections ?? ((d.qualityPending ?? 0) + (d.qualityInProcess ?? 0) + (d.qualityCompleted ?? 0))}
+              icon={BadgeCheck}
+              iconBg="bg-purple-50 text-purple-700"
+              to="/vendor/quality/pending"
+              subItems={[
+                { label: "Pending Inspection", value: d.qualityPending ?? 0, color: "text-amber-600" },
+                { label: "Completed QC", value: d.qualityCompleted ?? 0, color: "text-emerald-700" },
+                {
+                  label: "Rejection Rate",
+                  value: `${rejectionRate}%`,
+                  color: rejectionRate > 5 ? "text-red-600" : "text-emerald-700",
+                },
+              ]}
+            />
+          </>
+        )}
       </div>
 
       {/* Drag & Drop Ajax Live Search Widget – Bottom Zone */}
@@ -617,8 +683,14 @@ export default function DashboardPage() {
       <div className={`${EXCEL_PANEL} overflow-hidden p-4 sm:p-5`}>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
-            <h3 className="text-sm font-bold text-slate-900 sm:text-base">Agricultural Supply Chain Pipeline</h3>
-            <p className="text-xs text-slate-500">Live tracker of orders moving from harvest to dark store dispatch</p>
+            <h3 className="text-sm font-bold text-slate-900 sm:text-base">
+              {isSeller ? "Seller Fulfilment Pipeline" : "Agricultural Supply Chain Pipeline"}
+            </h3>
+            <p className="text-xs text-slate-500">
+              {isSeller
+                ? "Live tracker of seller orders, inventory and dark store dispatch"
+                : "Live tracker of orders moving from harvest to dark store dispatch"}
+            </p>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
@@ -626,61 +698,69 @@ export default function DashboardPage() {
           </span>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className={`mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 ${isSeller ? 'lg:grid-cols-3' : 'lg:grid-cols-6'}`}>
           <Link
-            to="/vendor/orders"
+            to={isSeller ? "/vendor/orders/products" : "/vendor/orders"}
             className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50"
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">1. Harvest Orders</span>
+              <span className="text-[11px] font-bold text-slate-500">
+                {isSeller ? "1. Orders" : "1. Harvest Orders"}
+              </span>
               <ShoppingCart className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
             </div>
             <p className="mt-2 text-xl font-bold text-slate-900">{d.pendingOrders ?? 0}</p>
             <p className="text-[10px] text-slate-500">Pending / Confirmed</p>
           </Link>
 
-          <Link
-            to="/vendor/pickups/ready"
-            className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">2. Ready Pickups</span>
-              <Truck className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
-            </div>
-            <p className="mt-2 text-xl font-bold text-slate-900">{d.readyPickups ?? 0}</p>
-            <p className="text-[10px] text-slate-500">Awaiting Driver</p>
-          </Link>
+          {!isSeller ? (
+            <>
+              <Link
+                to="/vendor/pickups/ready"
+                className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500">2. Ready Pickups</span>
+                  <Truck className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
+                </div>
+                <p className="mt-2 text-xl font-bold text-slate-900">{d.readyPickups ?? 0}</p>
+                <p className="text-[10px] text-slate-500">Awaiting Driver</p>
+              </Link>
 
-          <Link
-            to="/vendor/pickups/incoming"
-            className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">3. In-Transit / Centre</span>
-              <RotateCcw className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
-            </div>
-            <p className="mt-2 text-xl font-bold text-slate-900">{(d.transitPickups ?? 0) + (d.centrePickups ?? 0)}</p>
-            <p className="text-[10px] text-slate-500">En route / At Hub</p>
-          </Link>
+              <Link
+                to="/vendor/pickups/incoming"
+                className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500">3. In-Transit / Centre</span>
+                  <RotateCcw className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
+                </div>
+                <p className="mt-2 text-xl font-bold text-slate-900">{(d.transitPickups ?? 0) + (d.centrePickups ?? 0)}</p>
+                <p className="text-[10px] text-slate-500">En route / At Hub</p>
+              </Link>
 
-          <Link
-            to="/vendor/quality/pending"
-            className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">4. Quality & Grading</span>
-              <BadgeCheck className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
-            </div>
-            <p className="mt-2 text-xl font-bold text-slate-900">{(d.qualityPending ?? 0) + (d.qualityInProcess ?? 0)}</p>
-            <p className="text-[10px] text-slate-500">Inspection & Grading</p>
-          </Link>
+              <Link
+                to="/vendor/quality/pending"
+                className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500">4. Quality & Grading</span>
+                  <BadgeCheck className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
+                </div>
+                <p className="mt-2 text-xl font-bold text-slate-900">{(d.qualityPending ?? 0) + (d.qualityInProcess ?? 0)}</p>
+                <p className="text-[10px] text-slate-500">Inspection & Grading</p>
+              </Link>
+            </>
+          ) : null}
 
           <Link
             to="/vendor/inventory"
             className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50"
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">5. Warehouse Stock</span>
+              <span className="text-[11px] font-bold text-slate-500">
+                {isSeller ? "2. Warehouse Stock" : "5. Warehouse Stock"}
+              </span>
               <ClipboardList className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
             </div>
             <p className="mt-2 text-xl font-bold text-slate-900">{(d.totalInventory ?? 0).toLocaleString("en-IN")}</p>
@@ -692,7 +772,9 @@ export default function DashboardPage() {
             className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50"
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500">6. Dark Store Restock</span>
+              <span className="text-[11px] font-bold text-slate-500">
+                {isSeller ? "3. Dark Store Restock" : "6. Dark Store Restock"}
+              </span>
               <Store className="h-4 w-4 text-slate-400 group-hover:text-emerald-600" />
             </div>
             <p className="mt-2 text-xl font-bold text-amber-700">{pendingRequests.length}</p>
@@ -701,100 +783,102 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Two Columns: Grade Analytics & Fleet/Logistics */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Quality, Grade & Rejection Rate Analytics with Interactive Pie Chart */}
-        <QualityGradeRejectionChart
-          grades={d.grades || {}}
-          byProduct={d.byProduct || []}
-          byFarmer={d.byFarmer || []}
-          rejectionByProduct={d.rejectionByProduct || []}
-          rejectionByFarmer={d.rejectionByFarmer || []}
-          rejectionReasonsOverall={d.rejectionReasonsOverall || []}
-          qualityPending={d.qualityPending ?? 0}
-          qualityInProcess={d.qualityInProcess ?? 0}
-          qualityCompleted={d.qualityCompleted ?? 0}
-        />
+      {/* Two Columns: Grade Analytics & Fleet/Logistics (Farmer Vendors only) */}
+      {!isSeller ? (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Quality, Grade & Rejection Rate Analytics with Interactive Pie Chart */}
+          <QualityGradeRejectionChart
+            grades={d.grades || {}}
+            byProduct={d.byProduct || []}
+            byFarmer={d.byFarmer || []}
+            rejectionByProduct={d.rejectionByProduct || []}
+            rejectionByFarmer={d.rejectionByFarmer || []}
+            rejectionReasonsOverall={d.rejectionReasonsOverall || []}
+            qualityPending={d.qualityPending ?? 0}
+            qualityInProcess={d.qualityInProcess ?? 0}
+            qualityCompleted={d.qualityCompleted ?? 0}
+          />
 
-        {/* Fleet & Logistics Overview */}
-        <div className={`${EXCEL_PANEL} p-4 sm:p-5`}>
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-                <Truck className="h-4 w-4" />
-              </span>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">Fleet & Pickup Logistics</h3>
-                <p className="text-xs text-slate-500">Real-time driver dispatch and collection centre status</p>
+          {/* Fleet & Logistics Overview */}
+          <div className={`${EXCEL_PANEL} p-4 sm:p-5`}>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+                  <Truck className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Fleet & Pickup Logistics</h3>
+                  <p className="text-xs text-slate-500">Real-time driver dispatch and collection centre status</p>
+                </div>
               </div>
-            </div>
-            <Link to="/vendor/pickups/all" className="text-xs font-semibold text-emerald-700 hover:underline">
-              View All Pickups &rarr;
-            </Link>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Link
-              to="/vendor/pickups/ready"
-              className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-center transition hover:bg-amber-100/60"
-            >
-              <p className="text-[11px] font-semibold text-amber-800">Ready</p>
-              <p className="mt-1 text-2xl font-bold text-amber-900">{d.readyPickups ?? 0}</p>
-              <p className="text-[10px] text-amber-700">To Assign</p>
-            </Link>
-
-            <Link
-              to="/vendor/pickups/assigned"
-              className="rounded-xl border border-sky-200 bg-sky-50/60 p-3 text-center transition hover:bg-sky-100/60"
-            >
-              <p className="text-[11px] font-semibold text-sky-800">Assigned</p>
-              <p className="mt-1 text-2xl font-bold text-sky-900">{d.assignedPickups ?? 0}</p>
-              <p className="text-[10px] text-sky-700">To Drivers</p>
-            </Link>
-
-            <Link
-              to="/vendor/pickups/incoming"
-              className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 text-center transition hover:bg-indigo-100/60"
-            >
-              <p className="text-[11px] font-semibold text-indigo-800">In Transit</p>
-              <p className="mt-1 text-2xl font-bold text-indigo-900">{d.incomingPickups ?? 0}</p>
-              <p className="text-[10px] text-indigo-700">On The Road</p>
-            </Link>
-
-            <Link
-              to="/vendor/pickups/centre"
-              className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 text-center transition hover:bg-emerald-100/60"
-            >
-              <p className="text-[11px] font-semibold text-emerald-800">At Centre</p>
-              <p className="mt-1 text-2xl font-bold text-emerald-900">{d.centrePickups ?? 0}</p>
-              <p className="text-[10px] text-emerald-700">Receiving</p>
-            </Link>
-          </div>
-
-          <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/50 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-700">Driver Fleet Status</span>
-              <Link to="/vendor/drivers" className="text-[11px] font-semibold text-emerald-700 hover:underline">
-                Manage Drivers &rarr;
+              <Link to="/vendor/pickups/all" className="text-xs font-semibold text-emerald-700 hover:underline">
+                View All Pickups &rarr;
               </Link>
             </div>
-            <div className="mt-2 flex items-center gap-4 text-xs text-slate-600">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>Available: {d.activeDrivers ?? 0}</span>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Link
+                to="/vendor/pickups/ready"
+                className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-center transition hover:bg-amber-100/60"
+              >
+                <p className="text-[11px] font-semibold text-amber-800">Ready</p>
+                <p className="mt-1 text-2xl font-bold text-amber-900">{d.readyPickups ?? 0}</p>
+                <p className="text-[10px] text-amber-700">To Assign</p>
+              </Link>
+
+              <Link
+                to="/vendor/pickups/assigned"
+                className="rounded-xl border border-sky-200 bg-sky-50/60 p-3 text-center transition hover:bg-sky-100/60"
+              >
+                <p className="text-[11px] font-semibold text-sky-800">Assigned</p>
+                <p className="mt-1 text-2xl font-bold text-sky-900">{d.assignedPickups ?? 0}</p>
+                <p className="text-[10px] text-sky-700">To Drivers</p>
+              </Link>
+
+              <Link
+                to="/vendor/pickups/incoming"
+                className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 text-center transition hover:bg-indigo-100/60"
+              >
+                <p className="text-[11px] font-semibold text-indigo-800">In Transit</p>
+                <p className="mt-1 text-2xl font-bold text-indigo-900">{d.incomingPickups ?? 0}</p>
+                <p className="text-[10px] text-indigo-700">On The Road</p>
+              </Link>
+
+              <Link
+                to="/vendor/pickups/centre"
+                className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 text-center transition hover:bg-emerald-100/60"
+              >
+                <p className="text-[11px] font-semibold text-emerald-800">At Centre</p>
+                <p className="mt-1 text-2xl font-bold text-emerald-900">{d.centrePickups ?? 0}</p>
+                <p className="text-[10px] text-emerald-700">Receiving</p>
+              </Link>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/50 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700">Driver Fleet Status</span>
+                <Link to="/vendor/drivers" className="text-[11px] font-semibold text-emerald-700 hover:underline">
+                  Manage Drivers &rarr;
+                </Link>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />
-                <span>Pending Approval: {d.driverApprovalPending ?? 0}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-slate-400" />
-                <span>Total Drivers: {d.totalDrivers ?? 0}</span>
+              <div className="mt-2 flex items-center gap-4 text-xs text-slate-600">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span>Available: {d.activeDrivers ?? 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-amber-500" />
+                  <span>Pending Approval: {d.driverApprovalPending ?? 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-slate-400" />
+                  <span>Total Drivers: {d.totalDrivers ?? 0}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       {/* Two Column Section: Dark Store Restock Requests & Low Stock Alerts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

@@ -232,6 +232,12 @@ export default function MultiVendorDetailPage() {
     };
   }, [vendorId, loadStores]);
 
+  useEffect(() => {
+    if (row?.vendorType === 'seller' && (activeTab === 'collection-centre' || activeTab === 'crops')) {
+      setActiveTab('overview');
+    }
+  }, [row?.vendorType, activeTab]);
+
   const vendorNameOf = (id) => vendorNames[id] || 'another centre';
   const assignableStores = allStores.filter((store) => store.vendorId !== vendorId);
 
@@ -343,6 +349,15 @@ export default function MultiVendorDetailPage() {
                   {vendorDisplayName}
                 </h1>
                 <StatusPill status={row.status} />
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                    row.vendorType === 'seller'
+                      ? 'bg-blue-50 text-blue-800 ring-1 ring-blue-200'
+                      : 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
+                  }`}
+                >
+                  {row.vendorType === 'seller' ? '🏪 Seller Vendor' : '🌾 Farmer Vendor'}
+                </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Verified Vendor
                 </span>
@@ -354,7 +369,11 @@ export default function MultiVendorDetailPage() {
 
               {/* Identification Badges */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <CopyBadge label="CC Code" value={ccCode} icon={Warehouse} />
+                <CopyBadge
+                  label={row.vendorType === 'seller' ? 'Vendor Code' : 'CC Code'}
+                  value={row.vendorType === 'seller' ? (row.vendorCode || row.id) : ccCode}
+                  icon={row.vendorType === 'seller' ? Store : Warehouse}
+                />
                 <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1 text-xs font-medium text-slate-700 shadow-2xs">
                   <Percent className="h-3.5 w-3.5 text-slate-400" />
                   Commission: <strong className="text-slate-900">{row.commissionRate ?? 10}%</strong>
@@ -461,7 +480,7 @@ export default function MultiVendorDetailPage() {
       </div>
 
       {/* KPI Stats Overview Cards */}
-      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5">
+      <div className={`grid grid-cols-2 gap-3.5 sm:grid-cols-3 ${row.vendorType === 'seller' ? 'lg:grid-cols-3' : 'lg:grid-cols-5'}`}>
         {/* Approved Products Stat Card */}
         <button
           type="button"
@@ -502,47 +521,51 @@ export default function MultiVendorDetailPage() {
           </div>
         </button>
 
-        {/* Collection Centre Stat Card */}
-        <button
-          type="button"
-          onClick={() => setActiveTab('collection-centre')}
-          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition shadow-2xs hover:border-purple-500 hover:shadow-sm ${
-            activeTab === 'collection-centre' ? 'border-purple-600 bg-purple-50/40 ring-2 ring-purple-500/20' : 'border-slate-200 bg-white'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Collection Centre</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 text-purple-800">
-              <Warehouse className="h-4 w-4" />
-            </span>
-          </div>
-          <div className="mt-3">
-            <span className="text-sm font-bold text-slate-900 truncate block">
-              {centre?.name || 'Main Centre'}
-            </span>
-            <p className="text-[11px] font-medium text-purple-700 mt-0.5 font-mono truncate">{ccCode}</p>
-          </div>
-        </button>
+        {row.vendorType !== 'seller' && (
+          <>
+            {/* Collection Centre Stat Card */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('collection-centre')}
+              className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition shadow-2xs hover:border-purple-500 hover:shadow-sm ${
+                activeTab === 'collection-centre' ? 'border-purple-600 bg-purple-50/40 ring-2 ring-purple-500/20' : 'border-slate-200 bg-white'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">Collection Centre</span>
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 text-purple-800">
+                  <Warehouse className="h-4 w-4" />
+                </span>
+              </div>
+              <div className="mt-3">
+                <span className="text-sm font-bold text-slate-900 truncate block">
+                  {centre?.name || 'Main Centre'}
+                </span>
+                <p className="text-[11px] font-medium text-purple-700 mt-0.5 font-mono truncate">{ccCode}</p>
+              </div>
+            </button>
 
-        {/* Crops Stat Card */}
-        <button
-          type="button"
-          onClick={() => setActiveTab('crops')}
-          className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition shadow-2xs hover:border-amber-500 hover:shadow-sm ${
-            activeTab === 'crops' ? 'border-amber-600 bg-amber-50/40 ring-2 ring-amber-500/20' : 'border-slate-200 bg-white'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Assigned Crops</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
-              <Sprout className="h-4 w-4" />
-            </span>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl font-extrabold text-slate-900">{crops.length}</span>
-            <p className="text-[11px] font-medium text-amber-700 mt-0.5">Crop procurement varieties</p>
-          </div>
-        </button>
+            {/* Crops Stat Card */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('crops')}
+              className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition shadow-2xs hover:border-amber-500 hover:shadow-sm ${
+                activeTab === 'crops' ? 'border-amber-600 bg-amber-50/40 ring-2 ring-amber-500/20' : 'border-slate-200 bg-white'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">Assigned Crops</span>
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
+                  <Sprout className="h-4 w-4" />
+                </span>
+              </div>
+              <div className="mt-3">
+                <span className="text-2xl font-extrabold text-slate-900">{crops.length}</span>
+                <p className="text-[11px] font-medium text-amber-700 mt-0.5">Crop procurement varieties</p>
+              </div>
+            </button>
+          </>
+        )}
 
         {/* Documents & KYC Stat Card */}
         <button
@@ -612,8 +635,12 @@ export default function MultiVendorDetailPage() {
             { id: 'overview', label: 'Overview & Profile', icon: Building2 },
             { id: 'products', label: `Products (${products.length})`, icon: Package },
             { id: 'dark-stores', label: `Dark Stores (${darkStores.length})`, icon: Store },
-            { id: 'collection-centre', label: 'Collection Centre', icon: Warehouse },
-            { id: 'crops', label: `Crops (${crops.length})`, icon: Sprout },
+            ...(row.vendorType !== 'seller'
+              ? [
+                  { id: 'collection-centre', label: 'Collection Centre', icon: Warehouse },
+                  { id: 'crops', label: `Crops (${crops.length})`, icon: Sprout },
+                ]
+              : []),
             { id: 'documents', label: `KYC Documents (${documents.length}/${DOCUMENT_TYPES.length})`, icon: FileText },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -655,9 +682,18 @@ export default function MultiVendorDetailPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <DetailItem label="Collection Centre / Vendor Name" value={row.vendorName} icon={Warehouse} />
+              <DetailItem
+                label={row.vendorType === 'seller' ? 'Seller / Vendor Name' : 'Collection Centre / Vendor Name'}
+                value={row.vendorName}
+                icon={row.vendorType === 'seller' ? Store : Warehouse}
+              />
               <DetailItem label="Legal Business Name" value={row.businessName} icon={Building2} />
-              <DetailItem label="Collection Centre Code (CC Code)" value={ccCode} icon={Warehouse} copyable />
+              <DetailItem
+                label={row.vendorType === 'seller' ? 'Seller / Vendor Code' : 'Collection Centre Code (CC Code)'}
+                value={row.vendorType === 'seller' ? (row.vendorCode || row.id) : ccCode}
+                icon={row.vendorType === 'seller' ? Store : Warehouse}
+                copyable
+              />
               <DetailItem label="System ID" value={row.id} icon={Copy} copyable />
               <DetailItem label="Platform Commission" value={`${row.commissionRate ?? 10}%`} icon={Percent} />
               <DetailItem label="Operational Status" icon={ShieldCheck}>
@@ -689,24 +725,26 @@ export default function MultiVendorDetailPage() {
               <DetailItem label="Email Address" value={row.email} icon={Mail} copyable isLink href={`mailto:${row.email}`} />
             </div>
 
-            {/* Quick Access to Network */}
-            <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3.5 space-y-2">
-              <span className="text-xs font-bold text-blue-900 block">Farmer Management Shortcuts</span>
-              <div className="flex flex-wrap gap-2.5">
-                <Link
-                  to={`/collection-farmers?vendorId=${encodeURIComponent(row.id)}`}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 border border-emerald-200 hover:bg-emerald-50 transition shadow-2xs"
-                >
-                  <Users className="h-3.5 w-3.5 text-emerald-600" /> View Associated Farmers →
-                </Link>
-                <Link
-                  to={`/collection-farmer-managers?vendorId=${encodeURIComponent(row.id)}`}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-800 border border-blue-200 hover:bg-blue-50 transition shadow-2xs"
-                >
-                  <UserCheck className="h-3.5 w-3.5 text-blue-600" /> View Farmer Managers →
-                </Link>
+            {/* Quick Access to Network (Farmer Vendors only) */}
+            {row.vendorType !== 'seller' ? (
+              <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3.5 space-y-2">
+                <span className="text-xs font-bold text-blue-900 block">Farmer Management Shortcuts</span>
+                <div className="flex flex-wrap gap-2.5">
+                  <Link
+                    to={`/collection-farmers?vendorId=${encodeURIComponent(row.id)}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 border border-emerald-200 hover:bg-emerald-50 transition shadow-2xs"
+                  >
+                    <Users className="h-3.5 w-3.5 text-emerald-600" /> View Associated Farmers →
+                  </Link>
+                  <Link
+                    to={`/collection-farmer-managers?vendorId=${encodeURIComponent(row.id)}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-800 border border-blue-200 hover:bg-blue-50 transition shadow-2xs"
+                  >
+                    <UserCheck className="h-3.5 w-3.5 text-blue-600" /> View Farmer Managers →
+                  </Link>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
           {/* Card: Registered Address */}
@@ -1040,8 +1078,8 @@ export default function MultiVendorDetailPage() {
         </div>
       )}
 
-      {/* TAB 4: COLLECTION CENTRE */}
-      {activeTab === 'collection-centre' && (
+      {/* TAB 4: COLLECTION CENTRE (Farmer Vendors only) */}
+      {activeTab === 'collection-centre' && row.vendorType !== 'seller' && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Centre Infrastructure */}
           <div className={`${PANEL} p-5 space-y-4`}>
@@ -1150,8 +1188,8 @@ export default function MultiVendorDetailPage() {
         </div>
       )}
 
-      {/* TAB 5: CROPS */}
-      {activeTab === 'crops' && (
+      {/* TAB 5: CROPS (Farmer Vendors only) */}
+      {activeTab === 'crops' && row.vendorType !== 'seller' && (
         <div className={`${PANEL} p-5 space-y-4`}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-3">
             <div>

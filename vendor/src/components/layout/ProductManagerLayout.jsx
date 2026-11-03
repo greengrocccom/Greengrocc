@@ -466,18 +466,59 @@ export default function ProductManagerLayout() {
     }
   }, [location.pathname])
 
+  const isSeller = vendor?.vendor?.vendorType === 'seller'
+
   const sectionsToRender = useMemo(() => {
     const storeChildren = (vendorDarkStores || []).map((store) => ({
       to: `/vendor/inventory-requests?storeId=${store.id || store._id}`,
       label: store.storeName || `${store.area} Store`,
     }))
-    return navSections.map((section) => ({
+    let list = navSections.map((section) => ({
       ...section,
       items: section.items.map((item) =>
         item.id === 'req-stock' ? { ...item, children: [...item.children, ...storeChildren] } : item,
       ),
     }))
-  }, [vendorDarkStores])
+
+    // If vendor is a Seller Vendor, completely remove all farmer-specific sections and links
+    if (isSeller) {
+      list = list
+        .filter((section) => section.id !== 'sourcing')
+        .map((section) => {
+          if (section.id === 'orders') {
+            return {
+              ...section,
+              items: section.items.filter((item) => item.id !== 'farmer-orders'),
+            }
+          }
+          if (section.id === 'inventory') {
+            return {
+              ...section,
+              items: section.items.map((item) => {
+                if (item.id === 'inventory' && item.children) {
+                  return {
+                    ...item,
+                    children: item.children.filter((c) => c.to !== '/vendor/inventory/farmers'),
+                  }
+                }
+                return item
+              }),
+            }
+          }
+          if (section.id === 'logistics') {
+            return {
+              ...section,
+              items: section.items.filter(
+                (item) => item.id !== 'pickups' && item.to !== '/vendor/drivers',
+              ),
+            }
+          }
+          return section
+        })
+    }
+
+    return list
+  }, [vendorDarkStores, isSeller])
 
   useEffect(() => {
     setMobileOpen(false)
@@ -515,7 +556,9 @@ export default function ProductManagerLayout() {
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold leading-tight text-slate-900">GreenGroo</p>
-                  <p className="truncate text-[10px] leading-tight text-slate-400">Vendor Panel</p>
+                  <p className="truncate text-[10px] leading-tight text-slate-400">
+                    {isSeller ? 'Seller Panel' : 'Vendor Panel'}
+                  </p>
                 </div>
               </div>
             </div>

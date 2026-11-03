@@ -1,8 +1,8 @@
 import OrdersManagementPage from './pages/dashboard/OrdersManagementPage'
 import VendorSalesPage from './pages/dashboard/VendorSalesPage'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
-import { VendorAuthProvider } from './context/VendorAuthContext'
+import { VendorAuthProvider, useVendorAuth } from './context/VendorAuthContext'
 import { DriverAuthProvider } from './context/DriverAuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import DriverProtectedRoute from './components/DriverProtectedRoute'
@@ -131,6 +131,14 @@ import HrB2bUsersPage from './pages/hr/HrB2bUsersPage'
 import HrPerformancePage from './pages/hr/HrPerformancePage'
 import HrMyLeavePage from './pages/hr/HrMyLeavePage'
 
+function FarmerOnlyLayout() {
+  const { vendor } = useVendorAuth()
+  if (vendor?.vendorType === 'seller') {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <Outlet />
+}
+
 function App() {
   return (
     <VendorAuthProvider>
@@ -170,38 +178,64 @@ function App() {
                 <Route path="/sales" element={<VendorSalesPage />} />
                 <Route path="/vendor/orders-management" element={<OrdersManagementPage />} />
                 <Route path="/vendor/search" element={<VendorSearchPage />} />
-                <Route path="/vendor/farmer-managers" element={<FarmerManagersPage />} />
-                <Route path="/vendor/farmer-managers/add" element={<AddManagerPage />} />
-                <Route path="/vendor/farmer-managers/:managerId" element={<ManagerDetailPage />} />
-                <Route path="/vendor/all-farmers" element={<AllFarmersPage />} />
-                <Route path="/vendor/crops" element={<VendorAllCropsPage />} />
-                <Route path="/vendor/crops/add" element={<Navigate to="/vendor/farmer-crops/add" replace />} />
-                <Route path="/vendor/my-crops" element={<VendorMyCropsPage />} />
-                <Route path="/vendor/farmer-crops" element={<VendorCropsPage />} />
-                <Route path="/vendor/farmer-crop-requests" element={<VendorFarmerCropRequestsPage />} />
-                <Route path="/vendor/farmer-crops/add" element={<FarmerCropFormPage />} />
-                <Route path="/vendor/products/add" element={<Navigate to="/vendor/products" replace />} />
-                <Route path="/vendor/products/:productKey/farmers" element={<VendorProductFarmersPage />} />
-                <Route path="/vendor/products" element={<VendorProductRequestPage />} />
-                <Route path="/vendor/my-products" element={<VendorMyProductsPage />} />
-                <Route path="/vendor/my-products/:editMineProductId/edit" element={<VendorCatalogPage />} />
-                <Route path="/vendor/catalog-requests" element={<VendorCatalogRequestsPage />} />
-                <Route path="/vendor/catalog/:catalogView?/:sectionSlug?" element={<VendorCatalogPage />} />
-                <Route path="/vendor/farmer-products" element={<VendorProductsPage />} />
-                <Route path="/vendor/farmer-products/add" element={<VendorProductAddPage />} />
-                <Route path="/vendor/all-farmers/add" element={<AddFarmerPage />} />
-                <Route path="/vendor/all-farmers/:farmerId/crops/add" element={<FarmerCropFormPage />} />
-                <Route path="/vendor/all-farmers/:farmerId/crops/:cropId/edit" element={<FarmerCropFormPage />} />
-                <Route path="/vendor/all-farmers/:farmerId/crops/:cropId" element={<FarmerCropViewPage />} />
-                <Route path="/vendor/all-farmers/:farmerId/products/add" element={<VendorProductAddPage />} />
-                <Route path="/vendor/all-farmers/:farmerId" element={<FarmerDetailPage />} />
-                <Route path="/vendor/drivers" element={<ManagerDriversPage />} />
-                <Route path="/vendor/drivers/pickup-orders" element={<DriverPickupOrdersPage />} />
-                <Route path="/vendor/drivers/pickups" element={<Navigate to="/vendor/drivers/pickup-orders" replace />} />
-                <Route path="/vendor/driver-pickups" element={<Navigate to="/vendor/drivers/pickup-orders" replace />} />
-                <Route path="/vendor/drivers/add" element={<DriverFormPage />} />
-                <Route path="/vendor/drivers/:driverId/edit" element={<DriverFormPage />} />
-                <Route path="/vendor/drivers/:driverId" element={<DriverDetailPage />} />
+
+                {/* Farmer Vendor Only Routes (Hidden & Blocked for Commercial Sellers) */}
+                <Route element={<FarmerOnlyLayout />}>
+                  <Route path="/vendor/farmer-managers" element={<FarmerManagersPage />} />
+                  <Route path="/vendor/farmer-managers/add" element={<AddManagerPage />} />
+                  <Route path="/vendor/farmer-managers/:managerId" element={<ManagerDetailPage />} />
+                  <Route path="/vendor/all-farmers" element={<AllFarmersPage />} />
+                  <Route path="/vendor/crops" element={<VendorAllCropsPage />} />
+                  <Route path="/vendor/crops/add" element={<Navigate to="/vendor/farmer-crops/add" replace />} />
+                  <Route path="/vendor/my-crops" element={<VendorMyCropsPage />} />
+                  <Route path="/vendor/farmer-crops" element={<VendorCropsPage />} />
+                  <Route path="/vendor/farmer-crop-requests" element={<VendorFarmerCropRequestsPage />} />
+                  <Route path="/vendor/farmer-crops/add" element={<FarmerCropFormPage />} />
+                  <Route path="/vendor/products/:productKey/farmers" element={<VendorProductFarmersPage />} />
+                  <Route path="/vendor/farmer-products" element={<VendorProductsPage />} />
+                  <Route path="/vendor/farmer-products/add" element={<VendorProductAddPage />} />
+                  <Route path="/vendor/all-farmers/add" element={<AddFarmerPage />} />
+                  <Route path="/vendor/all-farmers/:farmerId/crops/add" element={<FarmerCropFormPage />} />
+                  <Route path="/vendor/all-farmers/:farmerId/crops/:cropId/edit" element={<FarmerCropFormPage />} />
+                  <Route path="/vendor/all-farmers/:farmerId/crops/:cropId" element={<FarmerCropViewPage />} />
+                  <Route path="/vendor/all-farmers/:farmerId/products/add" element={<VendorProductAddPage />} />
+                  <Route path="/vendor/all-farmers/:farmerId" element={<FarmerDetailPage />} />
+                  <Route path="/vendor/drivers" element={<ManagerDriversPage />} />
+                  <Route path="/vendor/drivers/pickup-orders" element={<DriverPickupOrdersPage />} />
+                  <Route path="/vendor/drivers/pickups" element={<Navigate to="/vendor/drivers/pickup-orders" replace />} />
+                  <Route path="/vendor/driver-pickups" element={<Navigate to="/vendor/drivers/pickup-orders" replace />} />
+                  <Route path="/vendor/drivers/add" element={<DriverFormPage />} />
+                  <Route path="/vendor/drivers/:driverId/edit" element={<DriverFormPage />} />
+                  <Route path="/vendor/drivers/:driverId" element={<DriverDetailPage />} />
+                  <Route path="/vendor/pickups" element={<Navigate to="/vendor/pickups/ready" replace />} />
+                  <Route path="/vendor/pickups/requests" element={<Navigate to="/vendor/pickups/ready" replace />} />
+                  <Route path="/vendor/pickups/ready" element={<ManagerPickupsPage mode="ready" />} />
+                  <Route path="/vendor/pickups/assigned" element={<ManagerPickupsPage mode="assigned" />} />
+                  <Route path="/vendor/pickups/assignments" element={<Navigate to="/vendor/pickups/ready" replace />} />
+                  <Route path="/vendor/pickups/today" element={<ManagerPickupsPage mode="today" />} />
+                  <Route path="/vendor/pickups/incoming" element={<ManagerPickupsPage mode="incoming" />} />
+                  <Route path="/vendor/pickups/centre" element={<ManagerPickupsPage mode="centre" />} />
+                  <Route path="/vendor/pickups/all" element={<ManagerPickupsPage mode="all" />} />
+                  <Route path="/vendor/pickups/active" element={<Navigate to="/vendor/pickups/all" replace />} />
+                  <Route path="/vendor/pickups/completed" element={<ManagerPickupsPage mode="history" />} />
+                  <Route path="/vendor/pickups/history" element={<ManagerPickupsPage mode="history" />} />
+                  <Route path="/vendor/pickups/batches/:batchId" element={<ManagerBatchPage />} />
+                  <Route path="/vendor/pickups/:pickupId/receive" element={<ManagerReceivePage />} />
+                  <Route path="/vendor/pickups/:pickupId" element={<ManagerPickupDetailPage />} />
+                  <Route path="/vendor/collection-centre" element={<Navigate to="/vendor/pickups/centre" replace />} />
+                  <Route path="/vendor/collection-centre/:pickupId" element={<ManagerReceivePage />} />
+                  <Route path="/vendor/batches/:batchId" element={<ManagerBatchPage />} />
+                  <Route path="/vendor/quality" element={<Navigate to="/vendor/quality/all" replace />} />
+                  <Route path="/vendor/quality/all" element={<ManagerQualityListPage mode="all" />} />
+                  <Route path="/vendor/quality/pending" element={<ManagerQualityListPage mode="pending" />} />
+                  <Route path="/vendor/quality/inspection" element={<ManagerQualityListPage mode="inspection" />} />
+                  <Route path="/vendor/quality/grading" element={<Navigate to="/vendor/quality/inspection" replace />} />
+                  <Route path="/vendor/quality/completed" element={<ManagerQualityListPage mode="completed" />} />
+                  <Route path="/vendor/quality/:orderId" element={<ManagerQualityInspectionPage />} />
+                  <Route path="/vendor/inventory/farmers" element={<AllFarmerInventoryPage />} />
+                  <Route path="/vendor/orders/farmer" element={<ManagerOrdersPage mode="farmer" />} />
+                </Route>
+
                 <Route path="/vendor/zones" element={<VendorZonesPage />} />
                 <Route path="/vendor/notifications" element={<VendorNotificationsPage />} />
                 <Route path="/vendor/dark-stores" element={<VendorDarkStoresPage />} />
@@ -209,36 +243,16 @@ function App() {
                 <Route path="/vendor/delivery-boys" element={<VendorDeliveryBoysPage />} />
                 <Route path="/vendor/dark-stores/delivery-boys" element={<Navigate to="/vendor/delivery-boys" replace />} />
                 <Route path="/vendor/shipping-methods" element={<ShippingMethodsPage />} />
-                <Route path="/vendor/pickups" element={<Navigate to="/vendor/pickups/ready" replace />} />
-                <Route path="/vendor/pickups/requests" element={<Navigate to="/vendor/pickups/ready" replace />} />
-                <Route path="/vendor/pickups/ready" element={<ManagerPickupsPage mode="ready" />} />
-                <Route path="/vendor/pickups/assigned" element={<ManagerPickupsPage mode="assigned" />} />
-                <Route path="/vendor/pickups/assignments" element={<Navigate to="/vendor/pickups/ready" replace />} />
-                <Route path="/vendor/pickups/today" element={<ManagerPickupsPage mode="today" />} />
-                <Route path="/vendor/pickups/incoming" element={<ManagerPickupsPage mode="incoming" />} />
-                <Route path="/vendor/pickups/centre" element={<ManagerPickupsPage mode="centre" />} />
-                <Route path="/vendor/pickups/all" element={<ManagerPickupsPage mode="all" />} />
-                <Route path="/vendor/pickups/active" element={<Navigate to="/vendor/pickups/all" replace />} />
-                <Route path="/vendor/pickups/completed" element={<ManagerPickupsPage mode="history" />} />
-                <Route path="/vendor/pickups/history" element={<ManagerPickupsPage mode="history" />} />
-                <Route path="/vendor/pickups/batches/:batchId" element={<ManagerBatchPage />} />
-                <Route path="/vendor/pickups/:pickupId/receive" element={<ManagerReceivePage />} />
-                <Route path="/vendor/pickups/:pickupId" element={<ManagerPickupDetailPage />} />
-                <Route path="/vendor/collection-centre" element={<Navigate to="/vendor/pickups/centre" replace />} />
-                <Route path="/vendor/collection-centre/:pickupId" element={<ManagerReceivePage />} />
-                <Route path="/vendor/batches/:batchId" element={<ManagerBatchPage />} />
-                <Route path="/vendor/quality" element={<Navigate to="/vendor/quality/all" replace />} />
-                <Route path="/vendor/quality/all" element={<ManagerQualityListPage mode="all" />} />
-                <Route path="/vendor/quality/pending" element={<ManagerQualityListPage mode="pending" />} />
-                <Route path="/vendor/quality/inspection" element={<ManagerQualityListPage mode="inspection" />} />
-                <Route path="/vendor/quality/grading" element={<Navigate to="/vendor/quality/inspection" replace />} />
-                <Route path="/vendor/quality/completed" element={<ManagerQualityListPage mode="completed" />} />
-                <Route path="/vendor/quality/:orderId" element={<ManagerQualityInspectionPage />} />
                 <Route path="/vendor/inventory" element={<ManagerInventoryPage />} />
                 <Route path="/vendor/inventory/history" element={<ManagerInventoryHistoryPage />} />
-                <Route path="/vendor/inventory/farmers" element={<AllFarmerInventoryPage />} />
                 <Route path="/vendor/orders" element={<ManagerOrdersPage mode="farmer" />} />
-                <Route path="/vendor/orders/farmer" element={<ManagerOrdersPage mode="farmer" />} />
+                <Route path="/vendor/my-products" element={<VendorMyProductsPage />} />
+                <Route path="/vendor/my-products/:editMineProductId/edit" element={<VendorCatalogPage />} />
+                <Route path="/vendor/catalog-requests" element={<VendorCatalogRequestsPage />} />
+                <Route path="/vendor/catalog/:catalogView?/:sectionSlug?" element={<VendorCatalogPage />} />
+
+                <Route path="/vendor/products/add" element={<Navigate to="/vendor/products" replace />} />
+                <Route path="/vendor/products" element={<VendorProductRequestPage />} />
                 <Route path="/vendor/orders/products" element={<ManagerOrdersPage mode="products" />} />
                 <Route path="/vendor/orders/by-product" element={<ManagerOrdersPage mode="products" />} />
                 <Route path="/vendor/orders/products/:productKey/inventory" element={<OrderProductInventoryPage />} />

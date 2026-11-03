@@ -11,6 +11,7 @@ import VendorNotificationBell from "./VendorNotificationBell";
 
 export default function VendorTopNavbar({ onOpenMobileMenu }) {
   const { vendor } = useVendorAuth();
+  const isSeller = vendor?.vendorType === 'seller';
   const { requests } = useInventoryRequests();
   const pendingRequestsCount = requests.filter((r) => r.status === "pending").length;
 
@@ -36,7 +37,9 @@ export default function VendorTopNavbar({ onOpenMobileMenu }) {
           </span>
           <div className="min-w-0">
             <p className="text-xs font-bold leading-tight text-slate-900">GreenGroo</p>
-            <p className="text-[10px] leading-tight text-emerald-700 font-semibold">Vendor Executive</p>
+            <p className="text-[10px] leading-tight text-emerald-700 font-semibold">
+              {isSeller ? 'Seller Executive' : 'Vendor Executive'}
+            </p>
           </div>
         </div>
       </div>
@@ -45,7 +48,11 @@ export default function VendorTopNavbar({ onOpenMobileMenu }) {
       <div className="relative min-w-0 flex-1 max-w-xl">
         <AjaxLiveSearchWidget
           mode="navbar"
-          placeholder="Search farmers, crops, products, varieties (e.g. tamatar, aloo)..."
+          placeholder={
+            isSeller
+              ? "Search products, varieties, categories (e.g. Alphonso Mango, Tomato)..."
+              : "Search farmers, crops, products, varieties (e.g. tamatar, aloo)..."
+          }
         />
       </div>
 
@@ -90,7 +97,9 @@ export default function VendorTopNavbar({ onOpenMobileMenu }) {
             <p className="max-w-[100px] truncate text-xs font-bold leading-tight text-slate-800">
               {vendorName}
             </p>
-            <p className="text-[10px] leading-tight text-slate-400">Vendor</p>
+            <p className="text-[10px] leading-tight text-slate-400">
+              {isSeller ? 'Seller' : 'Vendor'}
+            </p>
           </div>
         </Link>
       </div>
