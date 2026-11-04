@@ -377,8 +377,8 @@ export default function Farmer360Page() {
       </div>
 
       <div className={`${PANEL} overflow-hidden`}>
-        <div className="relative bg-gradient-to-br from-emerald-700 via-emerald-800 to-slate-900 px-5 py-6 text-white sm:px-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-100/80">
+        <div className="bg-[var(--admin-secondary)] px-5 py-6 text-slate-900 sm:px-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
             Farmer 360
           </p>
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -386,17 +386,17 @@ export default function Farmer360Page() {
               <img
                 src={farmer.profileImage || farmer.profilePhoto}
                 alt=""
-                className="h-24 w-24 rounded-2xl object-cover ring-2 ring-white/30"
+                className="h-24 w-24 object-cover ring-1 ring-slate-200"
               />
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white/15 text-3xl font-bold ring-2 ring-white/30">
+              <div className="flex h-24 w-24 items-center justify-center bg-[var(--admin-primary-soft)] text-3xl font-bold ring-1 ring-slate-200">
                 {String(displayName).trim().charAt(0).toUpperCase() || 'F'}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="font-mono text-xs text-emerald-100/90">{farmer.farmerId}</p>
+              <p className="font-mono text-xs text-slate-600">{farmer.farmerId}</p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{displayName}</h1>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-emerald-50/90">
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
                 {place ? (
                   <span className="inline-flex items-center gap-1.5">
                     <MapPin className="h-3.5 w-3.5" />

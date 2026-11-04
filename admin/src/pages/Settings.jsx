@@ -12,8 +12,10 @@ import {
 } from 'lucide-react';
 import apiClient from '../api/client';
 import { BTN, BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL } from '../utils/ui';
+import { getAdminTheme, setAdminTheme } from '../utils/adminTheme';
 
 export default function Settings() {
+  const [theme, setTheme] = useState(getAdminTheme);
   // OTP flow state
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -193,7 +195,25 @@ export default function Settings() {
       {/* Header */}
       <div>
         <p className={PAGE_KICKER}>Admin Settings</p>
-        <h1 className={PAGE_TITLE}>पासवर्ड बदला / Change Password</h1>
+        <h1 className={PAGE_TITLE}>Settings</h1>
+      </div>
+
+      <section className={`${PANEL} flex flex-wrap items-center justify-between gap-3 p-4`} aria-labelledby="appearance-title">
+        <div>
+          <h2 id="appearance-title" className="text-sm font-semibold text-slate-900">Appearance</h2>
+          <p className={PAGE_SUB}>Choose how the admin panel looks on this device.</p>
+        </div>
+        <div>
+          <label htmlFor="admin-theme" className="sr-only">Color theme</label>
+          <select id="admin-theme" className={INPUT} value={theme} onChange={(event) => setTheme(setAdminTheme(event.target.value))}>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+      </section>
+
+      <div>
+        <h2 className="text-sm font-semibold text-slate-900">पासवर्ड बदला / Change Password</h2>
         <p className={PAGE_SUB}>
           Common OTP वापरून सुरक्षितपणे ॲडमिन पासवर्ड अपडेट करा.
         </p>

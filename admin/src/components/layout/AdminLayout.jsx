@@ -23,7 +23,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="admin-panel flex h-screen h-[100dvh] h-full w-full overflow-hidden bg-[#f3f6f4] text-slate-900">
+    <div className="admin-panel flex h-[100dvh] w-full overflow-hidden">
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -35,13 +35,15 @@ export default function AdminLayout() {
           onOpenSidebar={() => setMobileOpen(true)}
           searchValue={search}
           onSearchChange={setSearch}
-          exportControl={<AdminDataExport key={`${location.pathname}${location.search}`} contentRef={contentRef} />}
         />
         <main
           className={`admin-scrollbar min-h-0 flex-1 overflow-y-auto ${
-            location.pathname.startsWith('/billing') ? 'p-3 sm:p-4 lg:p-5 lg:pb-2 pb-2' : 'p-3 sm:p-5 lg:p-6'
+            location.pathname.startsWith('/billing') ? 'p-3 sm:px-4 lg:px-5 pb-2' : 'p-3 sm:p-4 lg:px-5'
           }`}
         >
+          <div className="mb-2 flex justify-end">
+            <AdminDataExport key={`${location.pathname}${location.search}`} contentRef={contentRef} />
+          </div>
           <div ref={contentRef}><Outlet context={{ search, setSearch }} /></div>
         </main>
       </div>

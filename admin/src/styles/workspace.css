@@ -1,0 +1,361 @@
+:is(.admin-panel, .admin-auth-shell) {
+  --admin-bg: #ffffff;
+  --admin-surface: #ffffff;
+  --admin-secondary: #f7f8fa;
+  --admin-hover: #f4f5f7;
+  --admin-active: #ebecf0;
+  --admin-border: #dfe1e6;
+  --admin-divider: #ebecf0;
+  --admin-text: #172b4d;
+  --admin-muted: #44546f;
+  --admin-accent: #0c66e4;
+  --admin-primary: #0c66e4;
+  --admin-primary-soft: #e9f2ff;
+  --color-slate-50: #f7f8fa;
+  --color-slate-100: #ebecf0;
+  --color-slate-200: #dfe1e6;
+  --color-slate-400: #6b778c;
+  --color-slate-500: #6b778c;
+  --color-slate-600: #44546f;
+  --color-slate-700: #344563;
+  --color-slate-800: #253858;
+  --color-slate-900: #172b4d;
+  --color-slate-950: #172b4d;
+  --color-blue-50: #e9f2ff;
+  --color-blue-600: #0c66e4;
+  --color-blue-700: #0055cc;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  color-scheme: light;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+}
+
+
+
+/* Scoped palette for admin routes and the sign-in screen. */
+[data-admin-theme="dark"] :is(.admin-panel, .admin-auth-shell) {
+  --admin-bg: #171923;
+  --admin-surface: #191c27;
+  --admin-header: #191c27;
+  --admin-secondary: #222633;
+  --admin-hover: #292d3a;
+  --admin-active: #303545;
+  --admin-border: #303442;
+  --admin-divider: #282c37;
+  --admin-text: #f1f2f5;
+  --admin-muted: #a0a4b2;
+  --admin-accent: #7c83f6;
+  --admin-primary: #5158b5;
+  --admin-primary-soft: #30365d;
+  --admin-shadow: none;
+  --admin-slate-50: #191c27;
+  --admin-slate-100: #222633;
+  --admin-slate-200: #303442;
+  --admin-slate-300: #454b5c;
+  --admin-slate-400: #777d8d;
+  --admin-slate-500: #a0a4b2;
+  --admin-slate-600: #b8bcc8;
+  --admin-slate-700: #d3d5df;
+  --admin-slate-800: #e4e6ee;
+  --admin-slate-900: #f1f2f5;
+  --admin-slate-950: #f1f2f5;
+  --admin-emerald-50: #202e2b;
+  --admin-emerald-100: #263c34;
+  --admin-emerald-200: #305144;
+  --admin-emerald-300: #3d6956;
+  --admin-emerald-400: #67c995;
+  --admin-emerald-500: #55ac7c;
+  --admin-emerald-600: #337652;
+  --admin-emerald-700: #67c995;
+  --admin-emerald-800: #91ddb2;
+  --admin-emerald-900: #a6e5c1;
+  --admin-emerald-950: #b5ebcd;
+  --admin-indigo-50: #242741;
+  --admin-indigo-100: #30365d;
+  --admin-indigo-200: #3e457a;
+  --admin-indigo-300: #505aa0;
+  --admin-indigo-400: #7c83f6;
+  --admin-indigo-500: #7c83f6;
+  --admin-indigo-600: #5158b5;
+  --admin-indigo-700: #a6abff;
+  --admin-indigo-800: #b7bcff;
+  --admin-indigo-900: #d0d2ff;
+  --admin-indigo-950: #d0d2ff;
+  --admin-amber-50: #302b22;
+  --admin-amber-100: #3b3325;
+  --admin-amber-200: #52452c;
+  --admin-amber-300: #6b572f;
+  --admin-amber-400: #e9c65a;
+  --admin-amber-500: #c99738;
+  --admin-amber-600: #a77e30;
+  --admin-amber-700: #e9c65a;
+  --admin-amber-800: #f1d482;
+  --admin-amber-900: #f1d482;
+  --admin-amber-950: #f1d482;
+  --admin-rose-50: #33262d;
+  --admin-rose-100: #442d36;
+  --admin-rose-200: #603945;
+  --admin-rose-300: #7c4752;
+  --admin-rose-400: #e87979;
+  --admin-rose-500: #c85964;
+  --admin-rose-600: #ad4553;
+  --admin-rose-700: #f099a1;
+  --admin-rose-800: #f5adb3;
+  --admin-rose-900: #fac0c5;
+  --admin-rose-950: #fac0c5;
+  --admin-blue-50: #222d41;
+  --admin-blue-100: #273955;
+  --admin-blue-200: #334a70;
+  --admin-blue-300: #425e8d;
+  --admin-blue-400: #70a5f7;
+  --admin-blue-500: #6094e8;
+  --admin-blue-600: #3f73c0;
+  --admin-blue-700: #98bfff;
+  --admin-blue-800: #b0ccfa;
+  --admin-blue-900: #c9dcfb;
+  --admin-blue-950: #c9dcfb;
+  --color-slate-50: var(--admin-slate-50);
+  --color-slate-100: var(--admin-slate-100);
+  --color-slate-200: var(--admin-slate-200);
+  --color-slate-300: var(--admin-slate-300);
+  --color-slate-400: var(--admin-slate-400);
+  --color-slate-500: var(--admin-slate-500);
+  --color-slate-600: var(--admin-slate-600);
+  --color-slate-700: var(--admin-slate-700);
+  --color-slate-800: var(--admin-slate-800);
+  --color-slate-900: var(--admin-slate-900);
+  --color-slate-950: var(--admin-slate-950);
+  --color-gray-50: var(--admin-slate-50);
+  --color-gray-100: var(--admin-slate-100);
+  --color-gray-200: var(--admin-slate-200);
+  --color-gray-300: var(--admin-slate-300);
+  --color-gray-400: var(--admin-slate-400);
+  --color-gray-500: var(--admin-slate-500);
+  --color-gray-600: var(--admin-slate-600);
+  --color-gray-700: var(--admin-slate-700);
+  --color-gray-800: var(--admin-slate-800);
+  --color-gray-900: var(--admin-slate-900);
+  --color-gray-950: var(--admin-slate-950);
+  --color-emerald-50: var(--admin-emerald-50);
+  --color-emerald-100: var(--admin-emerald-100);
+  --color-emerald-200: var(--admin-emerald-200);
+  --color-emerald-300: var(--admin-emerald-300);
+  --color-emerald-400: var(--admin-emerald-400);
+  --color-emerald-500: var(--admin-emerald-500);
+  --color-emerald-600: var(--admin-emerald-600);
+  --color-emerald-700: var(--admin-emerald-700);
+  --color-emerald-800: var(--admin-emerald-800);
+  --color-emerald-900: var(--admin-emerald-900);
+  --color-emerald-950: var(--admin-emerald-950);
+  --color-green-50: var(--admin-emerald-50);
+  --color-green-100: var(--admin-emerald-100);
+  --color-green-200: var(--admin-emerald-200);
+  --color-green-300: var(--admin-emerald-300);
+  --color-green-400: var(--admin-emerald-400);
+  --color-green-500: var(--admin-emerald-500);
+  --color-green-600: var(--admin-emerald-600);
+  --color-green-700: var(--admin-emerald-700);
+  --color-green-800: var(--admin-emerald-800);
+  --color-green-900: var(--admin-emerald-900);
+  --color-green-950: var(--admin-emerald-950);
+  --color-indigo-50: var(--admin-indigo-50);
+  --color-indigo-100: var(--admin-indigo-100);
+  --color-indigo-200: var(--admin-indigo-200);
+  --color-indigo-300: var(--admin-indigo-300);
+  --color-indigo-400: var(--admin-indigo-400);
+  --color-indigo-500: var(--admin-indigo-500);
+  --color-indigo-600: var(--admin-indigo-600);
+  --color-indigo-700: var(--admin-indigo-700);
+  --color-indigo-800: var(--admin-indigo-800);
+  --color-indigo-900: var(--admin-indigo-900);
+  --color-indigo-950: var(--admin-indigo-950);
+  --color-violet-50: var(--admin-indigo-50);
+  --color-violet-100: var(--admin-indigo-100);
+  --color-violet-200: var(--admin-indigo-200);
+  --color-violet-300: var(--admin-indigo-300);
+  --color-violet-400: var(--admin-indigo-400);
+  --color-violet-500: var(--admin-indigo-500);
+  --color-violet-600: var(--admin-indigo-600);
+  --color-violet-700: var(--admin-indigo-700);
+  --color-violet-800: var(--admin-indigo-800);
+  --color-violet-900: var(--admin-indigo-900);
+  --color-violet-950: var(--admin-indigo-950);
+  --color-amber-50: var(--admin-amber-50);
+  --color-amber-100: var(--admin-amber-100);
+  --color-amber-200: var(--admin-amber-200);
+  --color-amber-300: var(--admin-amber-300);
+  --color-amber-400: var(--admin-amber-400);
+  --color-amber-500: var(--admin-amber-500);
+  --color-amber-600: var(--admin-amber-600);
+  --color-amber-700: var(--admin-amber-700);
+  --color-amber-800: var(--admin-amber-800);
+  --color-amber-900: var(--admin-amber-900);
+  --color-amber-950: var(--admin-amber-950);
+  --color-yellow-50: var(--admin-amber-50);
+  --color-yellow-100: var(--admin-amber-100);
+  --color-yellow-200: var(--admin-amber-200);
+  --color-yellow-300: var(--admin-amber-300);
+  --color-yellow-400: var(--admin-amber-400);
+  --color-yellow-500: var(--admin-amber-500);
+  --color-yellow-600: var(--admin-amber-600);
+  --color-yellow-700: var(--admin-amber-700);
+  --color-yellow-800: var(--admin-amber-800);
+  --color-yellow-900: var(--admin-amber-900);
+  --color-yellow-950: var(--admin-amber-950);
+  --color-orange-50: var(--admin-amber-50);
+  --color-orange-100: var(--admin-amber-100);
+  --color-orange-200: var(--admin-amber-200);
+  --color-orange-300: var(--admin-amber-300);
+  --color-orange-400: var(--admin-amber-400);
+  --color-orange-500: var(--admin-amber-500);
+  --color-orange-600: var(--admin-amber-600);
+  --color-orange-700: var(--admin-amber-700);
+  --color-orange-800: var(--admin-amber-800);
+  --color-orange-900: var(--admin-amber-900);
+  --color-orange-950: var(--admin-amber-950);
+  --color-rose-50: var(--admin-rose-50);
+  --color-rose-100: var(--admin-rose-100);
+  --color-rose-200: var(--admin-rose-200);
+  --color-rose-300: var(--admin-rose-300);
+  --color-rose-400: var(--admin-rose-400);
+  --color-rose-500: var(--admin-rose-500);
+  --color-rose-600: var(--admin-rose-600);
+  --color-rose-700: var(--admin-rose-700);
+  --color-rose-800: var(--admin-rose-800);
+  --color-rose-900: var(--admin-rose-900);
+  --color-rose-950: var(--admin-rose-950);
+  --color-red-50: var(--admin-rose-50);
+  --color-red-100: var(--admin-rose-100);
+  --color-red-200: var(--admin-rose-200);
+  --color-red-300: var(--admin-rose-300);
+  --color-red-400: var(--admin-rose-400);
+  --color-red-500: var(--admin-rose-500);
+  --color-red-600: var(--admin-rose-600);
+  --color-red-700: var(--admin-rose-700);
+  --color-red-800: var(--admin-rose-800);
+  --color-red-900: var(--admin-rose-900);
+  --color-red-950: var(--admin-rose-950);
+  --color-blue-50: var(--admin-blue-50);
+  --color-blue-100: var(--admin-blue-100);
+  --color-blue-200: var(--admin-blue-200);
+  --color-blue-300: var(--admin-blue-300);
+  --color-blue-400: var(--admin-blue-400);
+  --color-blue-500: var(--admin-blue-500);
+  --color-blue-600: var(--admin-blue-600);
+  --color-blue-700: var(--admin-blue-700);
+  --color-blue-800: var(--admin-blue-800);
+  --color-blue-900: var(--admin-blue-900);
+  --color-blue-950: var(--admin-blue-950);
+  --color-sky-50: var(--admin-blue-50);
+  --color-sky-100: var(--admin-blue-100);
+  --color-sky-200: var(--admin-blue-200);
+  --color-sky-300: var(--admin-blue-300);
+  --color-sky-400: var(--admin-blue-400);
+  --color-sky-500: var(--admin-blue-500);
+  --color-sky-600: var(--admin-blue-600);
+  --color-sky-700: var(--admin-blue-700);
+  --color-sky-800: var(--admin-blue-800);
+  --color-sky-900: var(--admin-blue-900);
+  --color-sky-950: var(--admin-blue-950);
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  color-scheme: dark;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+}
+
+:is(.admin-panel, .admin-auth-shell) :is(.bg-white, .bg-white\/95, .bg-white\/90, .bg-white\/80) {
+  background-color: var(--admin-surface);
+}
+
+[data-admin-theme="dark"] :is(.admin-panel, .admin-auth-shell) :is(.bg-slate-900, .bg-slate-950, .bg-gray-900) {
+  background-color: var(--admin-active);
+}
+
+:is(.admin-panel, .admin-auth-shell) :is(.hover\:bg-white:hover, .hover\:bg-slate-50:hover, .hover\:bg-gray-50:hover, .hover\:bg-slate-100:hover) {
+  background-color: var(--admin-hover);
+}
+
+.admin-panel :is(.bg-linear-to-r, .bg-linear-to-br, .bg-gradient-to-r, .bg-gradient-to-br, .bg-gradient-to-b) {
+  background-image: none;
+}
+
+.admin-panel :is(.shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl) {
+  box-shadow: none;
+}
+
+:is(.admin-panel, .admin-auth-shell) :is(input, select, textarea) {
+  accent-color: var(--admin-accent);
+}
+
+:is(.admin-panel, .admin-auth-shell) :focus-visible {
+  outline: 2px solid var(--admin-accent);
+  outline-offset: 2px;
+}
+
+.admin-panel :is(thead, tfoot) {
+  background-color: var(--admin-secondary);
+}
+
+.admin-panel tbody tr {
+  border-bottom: 1px solid var(--admin-divider);
+}
+
+.admin-panel tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.admin-panel :is(th, td) {
+  font-size: 12px;
+}
+
+.admin-panel :is(dialog, [role="dialog"]) {
+  border: 1px solid var(--admin-border);
+}
+
+.admin-panel .recharts-cartesian-grid line {
+  stroke: var(--admin-border);
+}
+
+.admin-panel .recharts-cartesian-axis-tick text {
+  fill: var(--admin-muted);
+}
+
+.admin-panel .recharts-default-tooltip {
+  background-color: var(--admin-secondary) !important;
+  border-color: var(--admin-border) !important;
+  color: var(--admin-text);
+}
+
+[data-admin-theme="light"] :is(.admin-topbar, .admin-sidebar-header) {
+  min-height: 40px;
+  height: 40px;
+}
+
+[data-admin-theme="light"] .admin-nav-item {
+  min-height: 32px;
+  padding-block: 6px;
+  font-size: 12px;
+}
+
+[data-admin-theme="light"] .admin-brand {
+  width: 26px;
+  height: 26px;
+  background-color: var(--admin-primary);
+}
+
+@media (min-width: 1024px) {
+  .admin-sidebar[data-expanded="true"] {
+    width: var(--admin-sidebar-width, 248px);
+  }
+
+  [data-admin-theme="light"] .admin-sidebar[data-expanded="true"] {
+    width: var(--admin-sidebar-width, 188px);
+  }
+
+  [data-admin-theme="light"] .admin-panel > div > main {
+    padding-inline: 32px;
+  }
+}
+

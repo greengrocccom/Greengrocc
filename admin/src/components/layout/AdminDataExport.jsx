@@ -24,12 +24,13 @@ export default function AdminDataExport({ contentRef }) {
   }, [dialog]);
 
   const close = () => { controller.current?.abort(); setDialog(null); setBusy(false); setReady(null); };
-  const open = () => {
+  const open = (selectedFormat) => {
     const root = contentRef.current;
     const title = root?.querySelector('h1')?.textContent.trim() || readableLabel(window.location.pathname.split('/').filter(Boolean).join(' ')) || 'Dashboard';
     const tables = captureVisibleTables(root);
     const options = getExportSources(currentExportScope()).flatMap(source => source.datasets.map((dataset, index) => ({ id: `${source.key}|${index}`, source, dataset })));
     setDialog({ title, tables, options });
+    setFormat(selectedFormat);
     setChoice(tables.length ? 'view' : options[0]?.id || 'view');
     setReady(null); setError(''); setNotice(''); setProgress('');
   };
@@ -95,10 +96,14 @@ export default function AdminDataExport({ contentRef }) {
   };
 
   return <>
-    <button type="button" onClick={open} aria-label="Export this page" title="Export this page as CSV or PDF" className={`${BTN} shrink-0 gap-1.5 text-xs`}>
-      <Download aria-hidden="true" className="size-4" />
-      <span className="hidden sm:inline">Export</span>
-    </button>
+    <div role="group" aria-label="Export and share this page" className="flex shrink-0">
+      <button type="button" onClick={() => open('csv')} className="inline-flex h-7 items-center gap-1 border border-r-0 border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:z-10" title="Download or share CSV">
+        <FileSpreadsheet aria-hidden="true" className="hidden size-3.5 sm:block" /> CSV
+      </button>
+      <button type="button" onClick={() => open('pdf')} className="inline-flex h-7 items-center gap-1 border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:z-10" title="Download or share PDF">
+        <FileText aria-hidden="true" className="hidden size-3.5 sm:block" /> PDF
+      </button>
+    </div>
     {dialog ? <dialog ref={modal} onCancel={close} style={{ width: 'calc(100vw - 2rem)', maxWidth: '32rem' }} className="fixed inset-0 m-auto max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-5 text-slate-800 shadow-2xl backdrop:bg-slate-900/40">
       <div className="mb-4 flex items-start justify-between gap-3"><div><h2 className="text-lg font-bold">Export &amp; share</h2><p className="mt-1 text-sm text-slate-500">{dialog.title}</p></div><button type="button" onClick={close} className="rounded-lg p-2 hover:bg-slate-100" aria-label="Close export"><X className="h-5 w-5" /></button></div>
       <label className="mb-1 block text-sm font-semibold" htmlFor="admin-export-data">Data to export</label>
@@ -113,7 +118,7 @@ export default function AdminDataExport({ contentRef }) {
       {busy ? <p role="status" className="my-3 flex items-center gap-2 text-sm text-emerald-700"><Loader2 className="h-4 w-4 animate-spin" />{progress || 'Preparing export…'}</p> : null}
       {error ? <p role="alert" className="my-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
       {notice ? <p role="status" className="my-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p> : null}
-      {ready ? <div className="my-3 rounded-xl border border-slate-200 p-3"><p className="break-all text-sm font-semibold">{ready.name}</p><p className="mt-1 text-xs text-slate-500">{ready.count} records · {(ready.blob.size / 1024).toFixed(1)} KB</p><div className="mt-3 flex gap-2"><button type="button" className={BTN_PRIMARY} onClick={share}><Share2 className="mr-1.5 h-4 w-4" />Share file</button><button type="button" className={BTN} onClick={() => downloadExport(ready.blob, ready.name)}><Download className="mr-1.5 h-4 w-4" />Download</button></div></div> : <div className="mt-4 flex flex-wrap justify-end gap-2"><button type="button" disabled={busy || (!dialog.tables.length && !dialog.options.length)} className={`${BTN} disabled:opacity-40`} onClick={() => prepare(false)}><Share2 className="mr-1.5 h-4 w-4" />Prepare to share</button><button type="button" disabled={busy || (!dialog.tables.length && !dialog.options.length)} className={`${BTN_PRIMARY} disabled:opacity-40`} onClick={() => prepare(true)}><Download className="mr-1.5 h-4 w-4" />Download {format.toUpperCase()}</button></div>}
+      {ready ? <div className="my-3 rounded-xl border border-slate-200 p-3"><p className="break-all text-sm font-semibold">{ready.name}</p><p className="mt-1 text-xs text-slate-500">{ready.count} records · {(ready.blob.size / 1024).toFixed(1)} KB</p><div className="mt-3 flex gap-2"><button type="button" className={BTN_PRIMARY} onClick={share}><Share2 className="mr-1.5 h-4 w-4" />Share {format.toUpperCase()}</button><button type="button" className={BTN} onClick={() => downloadExport(ready.blob, ready.name)}><Download className="mr-1.5 h-4 w-4" />Download</button></div></div> : <div className="mt-4 flex flex-wrap justify-end gap-2"><button type="button" disabled={busy || (!dialog.tables.length && !dialog.options.length)} className={`${BTN} disabled:opacity-40`} onClick={() => prepare(false)}><Share2 className="mr-1.5 h-4 w-4" />Prepare {format.toUpperCase()} to share</button><button type="button" disabled={busy || (!dialog.tables.length && !dialog.options.length)} className={`${BTN_PRIMARY} disabled:opacity-40`} onClick={() => prepare(true)}><Download className="mr-1.5 h-4 w-4" />Download {format.toUpperCase()}</button></div>}
     </dialog> : null}
   </>;
 }

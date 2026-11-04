@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useMatch, useParams, useNavigate } from 'react-router-dom';
 import {
   Boxes,
   Clock3,
@@ -50,7 +50,7 @@ import inventoryToolsApi from '../../api/inventoryToolsApi';
 
 export default function InventoryToolsPage(props) {
   const params = useParams();
-  const tab = params.tab;
+  const tab = useMatch('/inventory-tools/:tab/*')?.params.tab;
   const zoneKey = params.zoneKey || props?.zoneKey || '';
   const storeId = params.storeId || props?.storeId || '';
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ export default function InventoryToolsPage(props) {
 
   const setTab = (key) => {
     const scopeSuffix =
-      zoneKey && storeId ? `/zones/${encodeURIComponent(zoneKey)}/stores/${storeId}` : '';
+      zoneKey && storeId ? `/zones/${encodeURIComponent(zoneKey)}/stores/${encodeURIComponent(storeId)}` : '';
     if (key === 'realtime') navigate(`/inventory-tools${scopeSuffix}`);
     else navigate(`/inventory-tools/${key}${scopeSuffix}`);
   };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 
 function withHrRole(href, search) {
@@ -10,6 +10,28 @@ import { ChevronDown, ChevronLeft, ChevronRight, LogOut, Settings, X } from 'luc
 import { NAV_GROUPS } from '../../config/adminNav';
 import { useAuth } from '../../context/AuthContext';
 
+const SIDEBAR_WIDTH_KEY = 'greengroo_admin_sidebar_width';
+const MIN_SIDEBAR_WIDTH = 180;
+const MAX_SIDEBAR_WIDTH = 360;
+const clampWidth = (width) => Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, Math.round(width)));
+
+function readSidebarWidth() {
+  try {
+    const width = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+    return width > 0 && Number.isFinite(width) ? clampWidth(width) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSidebarWidth(width) {
+  try {
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width));
+  } catch {
+    // Resizing still works when browser storage is unavailable.
+  }
+}
+
 function pathMatches(item, pathname) {
   if (item.children?.length) {
     return item.children.some((child) => pathMatches(child, pathname)) || pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -20,18 +42,22 @@ function pathMatches(item, pathname) {
 function NavItem({ item, compact, onNavigate, nested }) {
   const location = useLocation();
   const Icon = item.icon;
+  const isInventoryLink = item.href === '/inventory-tools' || item.href.startsWith('/inventory-tools/');
+  const inventoryScope = isInventoryLink
+    ? location.pathname.match(/^\/inventory-tools(?:\/[^/]+)?(\/zones\/[^/]+(?:\/stores\/[^/]+)?)\/?$/)?.[1]
+    : '';
           return (
             <NavLink
-      to={withHrRole(item.href, location.search)}
+      to={inventoryScope ? `${item.href}${inventoryScope}` : withHrRole(item.href, location.search)}
       end={item.end}
       title={compact ? item.name : undefined}
       onClick={onNavigate}
               className={({ isActive }) =>
-        `group relative mb-0.5 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+        `admin-nav-item group relative mb-0.5 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
           compact ? 'justify-center px-2.5 py-2.5' : nested ? 'py-1.5 pl-9 text-[13px]' : ''
         } ${
                   isActive
-            ? 'bg-emerald-50 text-emerald-800 shadow-sm ring-1 ring-emerald-100'
+            ? 'bg-[var(--admin-active)] text-slate-900'
             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`
               }
@@ -39,7 +65,7 @@ function NavItem({ item, compact, onNavigate, nested }) {
               {({ isActive }) => (
                 <>
           {isActive && !compact ? (
-            <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-emerald-700" />
+            <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 bg-[var(--admin-accent)]" />
           ) : null}
           {Icon ? (
                   <Icon
@@ -73,8 +99,8 @@ function NavBranch({ item, compact, onNavigate }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`group mb-0.5 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
-          childActive ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+        className={`admin-nav-item group mb-0.5 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+          childActive ? 'bg-[var(--admin-active)] text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
         }`}
       >
         {Icon ? <Icon className={`h-[18px] w-[18px] shrink-0 ${childActive ? 'text-emerald-700' : 'text-slate-400'}`} strokeWidth={childActive ? 2.25 : 1.75} /> : null}
@@ -130,6 +156,8 @@ function NavGroup({ group, compact, onNavigate }) {
 
 export default function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, onCloseMobile }) {
   const { user, logout } = useAuth();
+  const [width, setWidth] = useState(readSidebarWidth);
+  const drag = useRef(null);
   const compact = isCollapsed && !mobileOpen;
   const initial = (user?.name || 'A').charAt(0).toUpperCase();
 
@@ -152,17 +180,19 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, onClo
       ) : null}
 
       <aside
-        className={`sticky top-0 z-50 flex h-full h-screen h-[100dvh] shrink-0 flex-col border-r border-slate-200/80 bg-white shadow-[4px_0_24px_rgba(15,23,42,0.04)] transition-[width,transform] duration-200 ${
-          compact ? 'w-[80px]' : 'w-[272px]'
-        } max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:w-[min(272px,86vw)] ${
+        data-expanded={!compact}
+        style={width ? { '--admin-sidebar-width': `${width}px` } : undefined}
+        className={`admin-sidebar sticky top-0 z-50 flex h-[100dvh] shrink-0 flex-col border-r border-slate-200 bg-white transition-transform duration-150 ${
+          compact ? 'w-[64px]' : 'w-[248px]'
+        } max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:w-[min(248px,86vw)] ${
           mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full'
         }`}
       >
-        <div className="flex h-[68px] shrink-0 items-center gap-2 border-b border-slate-100 px-3">
+        <div className="admin-sidebar-header flex h-[58px] shrink-0 items-center gap-2 border-b border-slate-200 px-3">
           {!compact ? (
             <div className="min-w-0 flex-1 px-1">
               <div className="flex items-center gap-2.5">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-700 text-xs font-bold text-white shadow-sm shadow-emerald-700/20">
+                <span className="admin-brand flex h-10 w-10 items-center justify-center bg-emerald-700 text-xs font-bold text-white">
                   GG
                 </span>
                 <div className="min-w-0">
@@ -173,7 +203,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, onClo
             </div>
           ) : (
             <div className="flex flex-1 items-center justify-center">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-700 text-xs font-bold text-white">
+              <span className="admin-brand flex h-10 w-10 items-center justify-center bg-emerald-700 text-xs font-bold text-white">
                 GG
               </span>
             </div>
@@ -234,6 +264,45 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, onClo
             </button>
         </div>
       </div>
+        {!compact && (
+          <div
+            role="separator"
+            aria-label="Resize sidebar"
+            aria-orientation="vertical"
+            aria-valuemin={MIN_SIDEBAR_WIDTH}
+            aria-valuemax={MAX_SIDEBAR_WIDTH}
+            aria-valuenow={width ?? (document.documentElement.dataset.adminTheme === 'dark' ? 248 : 188)}
+            tabIndex={0}
+            className="absolute inset-y-0 -right-1 z-10 hidden w-2 cursor-col-resize touch-none select-none hover:bg-[var(--admin-accent)]/30 focus-visible:bg-[var(--admin-accent)]/30 lg:block"
+            onPointerDown={(event) => {
+              if (!event.isPrimary || event.button !== 0) return;
+              const currentWidth = event.currentTarget.parentElement.getBoundingClientRect().width;
+              drag.current = { pointerId: event.pointerId, startX: event.clientX, startWidth: currentWidth, width: null };
+              event.currentTarget.setPointerCapture(event.pointerId);
+              event.preventDefault();
+            }}
+            onPointerMove={(event) => {
+              const resize = drag.current;
+              if (!resize || resize.pointerId !== event.pointerId) return;
+              resize.width = clampWidth(resize.startWidth + event.clientX - resize.startX);
+              setWidth(resize.width);
+            }}
+            onLostPointerCapture={(event) => {
+              const resize = drag.current;
+              if (!resize || resize.pointerId !== event.pointerId) return;
+              if (resize.width !== null) saveSidebarWidth(resize.width);
+              drag.current = null;
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+              event.preventDefault();
+              const currentWidth = event.currentTarget.parentElement.getBoundingClientRect().width;
+              const nextWidth = clampWidth(currentWidth + (event.key === 'ArrowLeft' ? -12 : 12));
+              setWidth(nextWidth);
+              saveSidebarWidth(nextWidth);
+            }}
+          />
+        )}
     </aside>
     </>
   );

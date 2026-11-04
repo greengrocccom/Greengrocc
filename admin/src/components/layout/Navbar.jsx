@@ -7,7 +7,7 @@ import apiClient from '../../api/client';
 import { useLive } from '../../realtime/useLive';
 import { getSoundSettings, playNotificationSound } from '../../utils/notificationSound';
 
-export default function Navbar({ onOpenSidebar, searchValue, onSearchChange, exportControl }) {
+export default function Navbar({ onOpenSidebar, searchValue, onSearchChange }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -34,8 +34,8 @@ export default function Navbar({ onOpenSidebar, searchValue, onSearchChange, exp
   };
 
   return (
-    <header className="z-20 shrink-0 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
-      <div className="flex items-center gap-2 px-3 py-3 sm:gap-3 sm:px-5">
+    <header className="z-20 shrink-0 border-b border-slate-200 bg-white">
+      <div className="admin-topbar flex min-h-[58px] items-center gap-2 px-3 sm:gap-3 sm:px-5">
         <button type="button" onClick={onOpenSidebar} className={`${BTN} px-2.5 lg:hidden`} aria-label="Open menu">
           <Menu className="h-4 w-4" />
         </button>
@@ -51,8 +51,6 @@ export default function Navbar({ onOpenSidebar, searchValue, onSearchChange, exp
           />
         </form>
 
-        {exportControl}
-
         {/* Notification Bell Button */}
         <Link
           to="/notifications"
@@ -66,10 +64,6 @@ export default function Navbar({ onOpenSidebar, searchValue, onSearchChange, exp
             </span>
           )}
         </Link>
-
-        <span className="hidden rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 sm:inline-flex">
-          Admin
-        </span>
 
         <div className={`${BTN} hidden items-center gap-2 pr-3 sm:inline-flex`}>
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">
