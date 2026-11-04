@@ -21,8 +21,11 @@ export function resolveMongoConfig(env = process.env) {
     }
   }
 
+  const uri = env.MONGODB_URI?.trim();
+  if (!uri) throw new Error("Set MONGODB_URI to connect to MongoDB.");
+
   return {
-    uri: env.MONGODB_URI || "mongodb://127.0.0.1:27017/greengroccdb",
+    uri,
     dbName: env.MONGODB_DB_NAME,
   };
 }

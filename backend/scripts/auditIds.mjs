@@ -7,7 +7,9 @@ import { writeFile } from 'node:fs/promises';
 dotenv.config({ path: fileURLToPath(new URL('../.env', import.meta.url)), quiet: true });
 const report = { generatedAt: new Date().toISOString(), readOnly: true, collections: [], errors: [] };
 try {
-  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/greengroccdb', {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('Set MONGODB_URI before running the audit.');
+  await mongoose.connect(uri, {
     autoIndex: false, autoCreate: false, serverSelectionTimeoutMS: 10000,
     ...(process.env.MONGODB_DB_NAME ? { dbName: process.env.MONGODB_DB_NAME } : {}),
   });

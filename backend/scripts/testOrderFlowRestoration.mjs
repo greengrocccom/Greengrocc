@@ -13,9 +13,10 @@ import { tryAutoAttachOnPack } from "../delivery-service/src/services/sameRouteA
 
 async function runTests() {
   console.log("=== STARTING ORDER ASSIGNMENT FLOW RESTORATION TESTS ===");
-  const mongoUri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/greengrocc";
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) throw new Error("Set MONGODB_URI before running the tests.");
   await mongoose.connect(mongoUri);
-  console.log("Connected to MongoDB:", mongoUri);
+  console.log("Connected to MongoDB");
 
   const cleanupIds = {
     managers: [],

@@ -50,7 +50,9 @@ async function renameExtras(model, field, groups, nextValue) {
 
 async function main() {
   mongoose.set("autoIndex", false);
-  await mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/greengrocc");
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error("Set MONGODB_URI before running the ID repair.");
+  await mongoose.connect(uri);
   console.log(APPLY ? "Mode: APPLY (changes will be written)" : "Mode: DRY RUN (pass --apply to fix)");
 
   const batchDupes = await findDuplicates(InventoryBatch, "batchNumber");

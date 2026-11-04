@@ -1,9 +1,13 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+import { fileURLToPath } from "node:url";
 
-const uri = "mongodb+srv://greengrocc14_db_user:ZGgeauiLkTcmYCP1@cluster0.fwwh9al.mongodb.net/test?retryWrites=true&w=majority";
+dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)), quiet: true });
+const uri = process.env.MONGODB_URI;
 
 async function run() {
-  await mongoose.connect(uri);
+  if (!uri) throw new Error("Set MONGODB_URI before running the reset script.");
+  await mongoose.connect(uri, { dbName: process.env.MONGODB_DB_NAME });
   const col = mongoose.connection.collection("farmerdocuments");
   await col.deleteMany({});
   console.log("Deleted all old farmer documents from MongoDB");

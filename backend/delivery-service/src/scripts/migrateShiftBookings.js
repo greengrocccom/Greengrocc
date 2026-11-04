@@ -4,12 +4,13 @@ import DeliveryBoy from "../models/DeliveryBoy.js";
 import Shift from "../models/Shift.js";
 import { formatDateStringIST, timeToMinutes } from "../controllers/shiftController.js";
 
-const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/greengrocc-backend";
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 async function runMigration() {
   console.log("==================================================");
   console.log("[Migration] Starting shiftBooking -> currentBooking migration...");
-  console.log(`[Migration] Connecting to MongoDB: ${MONGO_URI}`);
+  if (!MONGO_URI) throw new Error("Set MONGO_URI or MONGODB_URI before running the migration.");
+  console.log("[Migration] Connecting to MongoDB.");
   console.log("==================================================");
 
   try {

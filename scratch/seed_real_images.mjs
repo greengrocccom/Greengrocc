@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/greengrocc-backend';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Define Category Schema
 const categorySchema = new mongoose.Schema(
@@ -158,6 +158,7 @@ const REAL_IMAGES_MAP = {
 };
 
 async function run() {
+  if (!MONGODB_URI) throw new Error('Set MONGODB_URI before running the seed script.');
   await mongoose.connect(MONGODB_URI);
   console.log('Connected to MongoDB');
 
