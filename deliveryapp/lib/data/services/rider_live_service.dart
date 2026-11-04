@@ -158,24 +158,39 @@ class RiderLiveService {
     }
   }
 
-  Future<void> refreshLoginHours() async {
-    if (!AuthService.instance.isLoggedIn) return;
+  Future<int?> refreshLoginHours() async {
+    if (!AuthService.instance.isLoggedIn) return null;
     final id = AuthService.instance.deliveryBoy?.id;
-    if (id == null) return;
+    if (id == null) return null;
     try {
       final res = await apiGet(
         '${ApiConfig.loginHours}?riderId=$id',
         headers: AuthService.instance.authHeaders,
       );
-      if (res.statusCode != 200) return;
+      if (res.statusCode != 200) return null;
       final body = jsonDecode(res.body) as Map<String, dynamic>;
-      _todayOnlineMinutes = body['totalMinutes'] as int? ?? 0;
+      final minutes = (body['totalMinutes'] as num?)?.toInt();
+      if (minutes != null) _todayOnlineMinutes = minutes;
+      return minutes;
     } catch (_) {}
+    return null;
   }
 
   void applyStatusResponse(Map<String, dynamic> body) {
     _todayOnlineMinutes = body['todayOnlineMinutes'] as int? ?? _todayOnlineMinutes;
     _isPeak = body['isPeak'] as bool? ?? _isPeak;
+  }
+
+  Future<double?> fetchPendingCash() async {
+    if (!AuthService.instance.isLoggedIn) return null;
+    try {
+      final response = await apiGet(ApiConfig.riderCashPending, headers: AuthService.instance.authHeaders);
+      if (response.statusCode != 200) return null;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return (body['pendingCashAmount'] as num?)?.toDouble();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> refreshPeakHours(String storeId) async {
@@ -208,32 +223,20 @@ class RiderLiveService {
 
 class TodayProgressData {
   const TodayProgressData({
-    this.todayEarnings = 0,
     this.completedTrips = 0,
     this.onlineMinutes = 0,
-    this.onlineTime = '0h 0m',
+    this.totalDistanceKm,
     this.bookedShifts = 0,
     this.completedShifts = 0,
   });
 
-  final int todayEarnings;
   final int completedTrips;
   final int onlineMinutes;
-  final String onlineTime;
+  final double? totalDistanceKm;
   final int bookedShifts;
   final int completedShifts;
 
   factory TodayProgressData.fromJson(Map<String, dynamic> json) {
-    final mins = (json['onlineMinutes'] as num?)?.toInt() ?? 0;
-    final h = mins ~/ 60;
-    final m = mins % 60;
-    final String fallbackTimeStr = h == 0
-        ? '$m minute'
-        : m == 0
-            ? '$h hr'
-            : '$h hr $m minute';
-    final timeStr = json['onlineTime']?.toString() ?? fallbackTimeStr;
-
     final booked = (json['bookedShifts'] as num?)?.toInt() ??
         (json['shiftsBooked'] as num?)?.toInt() ??
         (json['bookedShiftsCount'] as num?)?.toInt() ??
@@ -243,10 +246,9 @@ class TodayProgressData {
         0;
 
     return TodayProgressData(
-      todayEarnings: (json['todayEarnings'] as num?)?.toInt() ?? 0,
       completedTrips: (json['completedTrips'] as num?)?.toInt() ?? 0,
-      onlineMinutes: mins,
-      onlineTime: timeStr,
+      onlineMinutes: (json['onlineMinutes'] as num?)?.toInt() ?? 0,
+      totalDistanceKm: (json['totalDistanceKm'] as num?)?.toDouble(),
       bookedShifts: booked,
       completedShifts: completed,
     );

@@ -25,10 +25,14 @@ class MyShiftsScreen extends StatefulWidget {
 
 class _MyShiftsScreenState extends State<MyShiftsScreen> {
   bool _loading = true;
+  bool? _isOnline;
+  bool _checkingIn = false;
+  int _statusRevision = 0;
   List<ShiftBookingInfo> _todayBookings = const [];
   List<ShiftBookingInfo> _upcomingBookings = const [];
   StreamSubscription<Map<String, dynamic>>? _deliverySub;
   StreamSubscription<Map<String, dynamic>>? _notificationSub;
+  StreamSubscription<Map<String, dynamic>>? _offlineSub;
   Timer? _phaseTimer;
 
   @override
@@ -45,6 +49,9 @@ class _MyShiftsScreenState extends State<MyShiftsScreen> {
     _notificationSub = SocketService.instance.onRiderNotification.listen((event) {
       if (event['type']?.toString() == 'SHIFT_ASSIGNED') _load(silent: true);
     });
+    _offlineSub = SocketService.instance.onForcedOffline.listen((_) {
+      _setOnlineStatus(false);
+    });
   }
 
   @override
@@ -52,11 +59,26 @@ class _MyShiftsScreenState extends State<MyShiftsScreen> {
     _phaseTimer?.cancel();
     _deliverySub?.cancel();
     _notificationSub?.cancel();
+    _offlineSub?.cancel();
     super.dispose();
   }
 
-  Future<void> _load({bool silent = false}) async {
+  void _setOnlineStatus(bool isOnline) {
+    if (!mounted) return;
+    _statusRevision++;
+    setState(() => _isOnline = isOnline);
+  }
+
+  Future<void> _refreshOnlineStatus() async {
+    final revision = ++_statusRevision;
+    final rider = await AuthService.instance.fetchMe();
+    if (rider == null || revision != _statusRevision) return;
+    _setOnlineStatus(rider.isOnline);
+  }
+
+  Future<void> _load({bool silent = false, bool refreshStatus = true}) async {
     if (!silent) setState(() => _loading = true);
+    if (refreshStatus) unawaited(_refreshOnlineStatus());
     final res = await ShiftService.instance.fetchMyBookings();
     if (!mounted) return;
     setState(() {
@@ -76,6 +98,16 @@ class _MyShiftsScreenState extends State<MyShiftsScreen> {
   }
 
   Future<void> _goOnlineWithLocation() async {
+    if (_checkingIn || _isOnline != false) return;
+    setState(() => _checkingIn = true);
+    try {
+      await _checkIn();
+    } finally {
+      if (mounted) setState(() => _checkingIn = false);
+    }
+  }
+
+  Future<void> _checkIn() async {
     final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.detectingLocation), duration: const Duration(seconds: 2)),
@@ -92,6 +124,7 @@ class _MyShiftsScreenState extends State<MyShiftsScreen> {
 
     final result = await ShiftService.instance.goOnlineWithLocation(position.latitude, position.longitude);
     if (!mounted) return;
+    if (result.success) _setOnlineStatus(true);
     await showStatusDialog(
       context,
       success: result.success,
@@ -99,7 +132,7 @@ class _MyShiftsScreenState extends State<MyShiftsScreen> {
       message: result.message,
       buttonLabel: l10n.ok,
     );
-    if (result.success) _load(silent: true);
+    if (mounted && result.success) _load(silent: true, refreshStatus: false);
   }
 
   String _num(double v) => v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
@@ -285,13 +318,13 @@ class _MyShiftsScreenState extends State<MyShiftsScreen> {
                 _slotCard(l10n, b, today: true),
                 const SizedBox(height: 8),
               ],
-              if (_todayBookings.any((b) => !b.isCompleted)) ...[
+              if (_isOnline == false && _todayBookings.any((b) => !b.isCompleted)) ...[
                 const SizedBox(height: 4),
                 SizedBox(
                   width: double.infinity,
                   height: 44,
                   child: ElevatedButton(
-                    onPressed: _goOnlineWithLocation,
+                    onPressed: _checkingIn ? null : _goOnlineWithLocation,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,

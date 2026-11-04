@@ -1,4 +1,5 @@
 import DeliveryBoy from "../models/DeliveryBoy.js";
+import FullTimeRule from "../models/FullTimeRule.js";
 import Shift from "../models/Shift.js";
 import { getIO } from "../../../socket.js";
 import {
@@ -6,6 +7,7 @@ import {
   emitRiderStatusUpdated,
 } from "./riderSocketService.js";
 import { istDateString } from "../utils/onlineHoursHelper.js";
+import { getDriverFullTimeShift, istDayOfWeek } from "./fullTimeService.js";
 import {
   getCurrentMinutesIST,
   isSlotEnded,
@@ -378,6 +380,53 @@ async function processGigOnlyOnlineRiders() {
   }
 }
 
+async function processFullTimeRuleEndRiders() {
+  const riders = await DeliveryBoy.find({ status: "online", employmentType: "FULL_TIME", isActive: true }).limit(300);
+  if (!riders.length) return;
+  const today = istDateString();
+  const yesterdayDate = new Date(`${today}T12:00:00+05:30`);
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+  const yesterday = istDateString(yesterdayDate);
+  const day = istDayOfWeek(today);
+  const previousDay = (day + 6) % 7;
+  const current = getCurrentMinutesIST();
+
+  for (const rider of riders) {
+    try {
+      const manager = await getRiderManager(rider);
+      if (!manager) continue;
+      const shift = await getDriverFullTimeShift(manager._id, rider._id);
+      // Full-Time Rules have no shared end time. Only an individual assigned
+      // shift can automatically end this rider's online session.
+      if (!shift) continue;
+      if (shift.scheduleStartDate && today < shift.scheduleStartDate) continue;
+      if (shift.scheduleEndDate && today > shift.scheduleEndDate) continue;
+      if ((shift.excludedDates || []).includes(today)) continue;
+      const days = shift.workingDays?.length ? shift.workingDays : [0, 1, 2, 3, 4, 5, 6];
+      const scheduledToday = days.includes(day);
+      const scheduledYesterday = days.includes(previousDay);
+      const overnight = timeToMinutes(shift.endTime) <= timeToMinutes(shift.startTime);
+      const ended = (scheduledToday && shouldForceOfflineAfterEnd(shift.startTime, shift.endTime, current, today, today)) ||
+        (overnight && scheduledYesterday && shouldForceOfflineAfterEnd(shift.startTime, shift.endTime, current, yesterday, today));
+      if (!ended) continue;
+
+      await applyGigStatusChange(rider, "offline");
+      await rider.save();
+      await emitRiderStatusUpdated(rider, { todayOnlineMinutes: rider.todayOnlineMinutes || 0 });
+      try {
+        getIO().to(`rider_${rider._id}`).emit("forced_offline", {
+          reason: "full_time_shift_ended",
+          message: "Your assigned Full-Time shift has ended. You are now offline.",
+          status: "offline",
+          graceMinutes: END_GRACE_MINUTES,
+        });
+      } catch (_) {}
+    } catch (err) {
+      console.warn(`[FullTimeShiftEnd] Failed for rider ${rider._id}:`, err.message);
+    }
+  }
+}
+
 export async function forceOfflineEndedShiftRiders() {
   if (_running) return;
   _running = true;
@@ -408,6 +457,12 @@ export async function forceOfflineEndedShiftRiders() {
       await processGigOnlyOnlineRiders();
     } catch (err) {
       console.warn("[ShiftEndOffline] Gig-only scan failed:", err.message);
+    }
+
+    try {
+      await processFullTimeRuleEndRiders();
+    } catch (err) {
+      console.warn("[FullTimeRuleEnd] Sweep failed:", err.message);
     }
   } catch (err) {
     console.error("[ShiftEndOffline] Tick error:", err.message);

@@ -1409,7 +1409,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onlineTime => 'Online Time';
 
   @override
-  String get shiftsBookedLabel => 'Shifts Booked';
+  String get shiftsBookedLabel => 'Shifts Assigned';
 
   @override
   String get completedShiftsLabel => 'Completed Shifts';
@@ -1870,13 +1870,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kindUpcoming => 'Upcoming';
 
   @override
-  String get cashDepositDue => 'Cash Deposit Due';
+  String get cashDepositDue => 'COD cash to hand over';
 
   @override
   String get detailsAction => 'Details';
 
   @override
-  String get handOverToStoreToday => 'Hand over to darkstore manager today';
+  String get handOverToStoreToday =>
+      'Return this amount to your dark store manager by the end of the day.';
 
   @override
   String get couldNotLoadPreOrders => 'Could not load your pre-orders.';

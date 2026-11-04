@@ -20,7 +20,7 @@ import { OFFER_TIMEOUT_SECONDS } from "../config/orderAssignmentConfig.js";
 import { getIO } from "../../../socket.js";
 import { checkAndTrackIncentive } from "./incentiveController.js";
 import { calculateRiderEarning, applyEarningSnapshot, estimateOfferEarning } from "../services/ShiftEarningService.js";
-import { createCashLiability } from "../services/CashSettlementService.js";
+import { recordRiderCashCollection } from "../services/CashSettlementService.js";
 import { getPaymentSummary } from "../services/PaymentCollectionService.js";
 import { isS3Configured, uploadDataUrlToS3, uploadBufferToS3 } from "../services/s3Service.js";
 import { resolveStoreOrderType, isStoreOrderTrackable } from "../services/orderTrackingService.js";
@@ -532,6 +532,9 @@ export const getActiveDelivery = async (req, res, next) => {
         deliveryComment: order.deliveryComment || "",
         failureReason: order.failureReason || "",
         deliveryDelay: deliveryDelayJSON(order.deliveryDelay),
+        dispatchEta: order.dispatchEta?.expectedAt
+          ? { expectedAt: order.dispatchEta.expectedAt, seconds: order.dispatchEta.seconds }
+          : null,
         paymentMethod: order.paymentMethod || "",
         paymentStatus: order.paymentStatus || "pending",
         amountToCollect,
@@ -890,37 +893,14 @@ export const confirmCashCollection = async (req, res, next) => {
       }
     }
 
-    const order = await StoreOrder.findOneAndUpdate(
-      {
-        _id: orderId,
-        assignedRiderId: riderId,
-        status: { $in: OTP_STATUSES },
-        customerOtpVerified: true,
-        paymentStatus: { $nin: ["collected", "paid_online"] },
-      },
-      {
-        $set: {
-          paymentMethod: "COD",
-          paymentStatus: "collected",
-          amountToCollect: amount,
-          amountCollected: amount,
-        },
-      },
-      { returnDocument: 'after' }
-    );
+    const order = await recordRiderCashCollection({ orderId, riderId, amount, allowedStatuses: OTP_STATUSES });
     if (!order) {
-      return res.json({ success: true, alreadyCollected: true, message: "Cash already marked as collected" });
+      const fresh = await StoreOrder.findOne({ _id: orderId, assignedRiderId: riderId }).select("paymentStatus");
+      if (fresh?.paymentStatus === "collected") {
+        return res.json({ success: true, alreadyCollected: true, message: "Cash already marked as collected" });
+      }
+      return res.status(409).json({ success: false, message: "Order payment changed. Refresh the order and try again." });
     }
-
-    // Create cash liability record and increment rider's pending cash
-    const darkStoreId = order.darkStoreId || order.managerId;
-    await createCashLiability({
-      orderId: order._id,
-      riderId,
-      darkStoreId,
-      amount: order.amountToCollect,
-      orderNumber: order.orderNumber,
-    });
 
     return res.json({
       success: true,
@@ -1194,6 +1174,8 @@ export const failDelivery = async (req, res, next) => {
   try {
     const { orderId } = req.params;
     const riderId = req.user.id;
+    const emergency = req.body.emergency === true;
+    const allowedStatuses = emergency ? RIDER_ACTIVE_STATUSES : OTP_STATUSES;
     const reason = String(req.body.failureReason || req.body.reason || req.body.comment || "")
       .trim()
       .slice(0, 800);
@@ -1218,7 +1200,7 @@ export const failDelivery = async (req, res, next) => {
         message: `Order already ${order.status}`,
       });
     }
-    if (!OTP_STATUSES.includes(order.status)) {
+    if (!allowedStatuses.includes(order.status)) {
       return res.status(400).json({
         success: false,
         message: "You haven't picked this order up yet — ask your Delivery Manager to reassign it",
@@ -1227,12 +1209,13 @@ export const failDelivery = async (req, res, next) => {
 
     const now = new Date();
     const failed = await StoreOrder.findOneAndUpdate(
-      { _id: order._id, assignedRiderId: riderId, status: { $in: OTP_STATUSES } },
+      { _id: order._id, assignedRiderId: riderId, status: { $in: allowedStatuses } },
       {
         $set: {
           status: "delivery_failed",
           assignmentStatus: "FAILED",
           failureReason: reason,
+          failureKind: emergency ? "rider_emergency" : "",
           failedAt: now,
           failedByRiderId: riderId,
           failureResolution: { status: "pending", byName: "", note: "", at: null },
@@ -1266,10 +1249,23 @@ export const failDelivery = async (req, res, next) => {
         rider.status = "on_delivery";
       } else {
         rider.activeOrderId = null;
-        rider.status = "online";
+        if (emergency) {
+          const { applyGigStatusChange } = await import("../services/riderSocketService.js");
+          if (rider.status === "on_delivery") rider.status = "online";
+          await applyGigStatusChange(rider, "offline");
+        } else {
+          rider.status = "online";
+        }
       }
       rider.lastStatusAt = now;
       await rider.save();
+      if (emergency && !otherActive) {
+        try {
+          getIO().to(`rider_${riderId}`).emit("forced_offline", {
+            status: "offline", reason: "rider_emergency", message: "Emergency reported. You are now offline.",
+          });
+        } catch (_) {}
+      }
     }
 
     retryWaitingAssignmentsForStore(order.managerId).catch(() => {});
@@ -1280,6 +1276,7 @@ export const failDelivery = async (req, res, next) => {
         orderNumber: order.orderNumber,
         status: "delivery_failed",
         failureReason: reason,
+        failureKind: failed.failureKind,
         failedAt: now,
         riderId: String(riderId),
       });
@@ -1287,12 +1284,15 @@ export const failDelivery = async (req, res, next) => {
         orderId: order._id.toString(),
         status: "delivery_failed",
         failureReason: reason,
+        failureKind: failed.failureKind,
       });
     } catch (_) {}
 
     return res.json({
       success: true,
-      message: "Delivery marked as failed — bring the order back to the store",
+      message: emergency
+        ? "Emergency sent to your Delivery Manager. Contact the store to arrange handover if you have the order."
+        : "Delivery marked as failed — bring the order back to the store",
       order: failed.toRiderJSON(),
     });
   } catch (error) {

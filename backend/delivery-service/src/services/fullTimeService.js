@@ -9,6 +9,7 @@ import { resolveStoreIdForRider } from "../utils/storeResolver.js";
 
 /** Attendance can be marked this many minutes before the required start time. */
 export const ATTENDANCE_EARLY_MINUTES = 30;
+export const FULL_TIME_ATTENDANCE_RADIUS_METERS = 200;
 
 export const FULL_TIME_ACTIVE_ORDER_STATUSES = ["assigned", "pickup_verified", "out_for_delivery"];
 
@@ -40,9 +41,9 @@ export function shiftPayPolicy(rule) {
     leavePolicyEnabled: Boolean(rule?.leavePolicyEnabled),
     paidLeavesPerMonth: Number(rule?.paidLeavesPerMonth) || 0,
     unpaidLeaveDeductionPerDay: rule?.unpaidLeaveDeductionPerDay ?? null,
-    latePenaltyEnabled: Boolean(rule?.latePenaltyEnabled),
-    lateAfterMinutes: Number(rule?.lateAfterMinutes) || 120,
-    latePenaltyAmount: Number(rule?.latePenaltyAmount) || 0,
+    latePenaltyEnabled: false,
+    lateAfterMinutes: 120,
+    latePenaltyAmount: 0,
   };
 }
 
@@ -81,22 +82,22 @@ export async function getDriverFullTimeShift(managerId, riderId) {
 
 /**
  * The attendance requirement a Full-Time driver must follow today.
- * An assigned Full-Time shift takes priority over the store-wide rule.
- * Returns null when the manager has configured neither.
+ * Returns the store-wide attendance rule, or null when none is configured.
  */
 export function resolveAttendanceRequirement({ rule, shift }) {
   if (!rule) return null;
   return {
-    source: "rule",
-    startTime: shift?.startTime || rule.attendanceStartTime,
-    endTime: shift?.endTime || rule.attendanceEndTime,
-    workingDays: shift?.workingDays?.length ? shift.workingDays : rule.workingDays || [],
+    source: shift ? "shift" : "rule",
+    startTime: shift?.startTime || null,
+    endTime: shift?.endTime || null,
+    hasAssignedSchedule: Boolean(shift),
+    workingDays: shift?.workingDays || [],
     scheduleStartDate: shift?.scheduleStartDate || "",
     scheduleEndDate: shift?.scheduleEndDate || "",
     excludedDates: shift?.excludedDates || [],
     requireAttendance: rule.requireAttendance !== false,
     requireLocationValidation: rule.requireLocationValidation !== false,
-    attendanceRadiusMeters: rule.attendanceRadiusMeters ?? 200,
+    attendanceRadiusMeters: FULL_TIME_ATTENDANCE_RADIUS_METERS,
     shiftName: shift?.name || "",
   };
 }
@@ -146,6 +147,7 @@ export function attendanceStatusFor({ record, requirement, dateString, now = new
   }
   if (dateString < today) return { status: "absent", canMark: false, phase: "after" };
   if (dateString > today) return { status: "pending", canMark: false, phase: "before" };
+  if (!requirement.hasAssignedSchedule) return { status: "pending", canMark: true, phase: "open" };
   const phase = windowPhase(requirement, now);
   if (phase === "after") return { status: "absent", canMark: false, phase };
   return { status: "pending", canMark: phase === "open", phase };
@@ -178,10 +180,10 @@ export function buildMonthPayroll({ rider, manager, shift, rule, month, records 
 
   const workingDays = requirement?.workingDays?.length ? requirement.workingDays : [0, 1, 2, 3, 4, 5, 6];
   const scheduled = dates.filter((d) => {
-    if (!workingDays.includes(istDayOfWeek(d))) return false;
-    if (shift?.scheduleStartDate && d < shift.scheduleStartDate) return false;
-    if (shift?.scheduleEndDate && d > shift.scheduleEndDate) return false;
-    return !(shift?.excludedDates || []).includes(d);
+    if (requirement?.hasAssignedSchedule && !workingDays.includes(istDayOfWeek(d))) return false;
+    if (requirement?.scheduleStartDate && d < requirement.scheduleStartDate) return false;
+    if (requirement?.scheduleEndDate && d > requirement.scheduleEndDate) return false;
+    return !(requirement?.excludedDates || []).includes(d);
   });
   const trackFrom = [
     dates[0],

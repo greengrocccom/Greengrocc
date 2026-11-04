@@ -2803,7 +2803,7 @@ abstract class AppLocalizations {
   /// No description provided for @shiftsBookedLabel.
   ///
   /// In en, this message translates to:
-  /// **'Shifts Booked'**
+  /// **'Shifts Assigned'**
   String get shiftsBookedLabel;
 
   /// No description provided for @completedShiftsLabel.
@@ -3571,7 +3571,7 @@ abstract class AppLocalizations {
   /// No description provided for @cashDepositDue.
   ///
   /// In en, this message translates to:
-  /// **'Cash Deposit Due'**
+  /// **'COD cash to hand over'**
   String get cashDepositDue;
 
   /// No description provided for @detailsAction.
@@ -3583,7 +3583,7 @@ abstract class AppLocalizations {
   /// No description provided for @handOverToStoreToday.
   ///
   /// In en, this message translates to:
-  /// **'Hand over to darkstore manager today'**
+  /// **'Return this amount to your dark store manager by the end of the day.'**
   String get handOverToStoreToday;
 
   /// No description provided for @couldNotLoadPreOrders.

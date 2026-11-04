@@ -2,9 +2,7 @@ import DeliveryBoy from "../models/DeliveryBoy.js";
 import DeliveryManager from "../models/DeliveryManager.js";
 import StoreOrder from "../models/StoreOrder.js";
 import DriverOfferHistory from "../models/DriverOfferHistory.js";
-import FullTimeShift from "../models/FullTimeShift.js";
 import { haversineKm } from "./darkStoreResolver.js";
-import { timeToMinutes } from "../utils/shiftTimeHelper.js";
 import { getIO } from "../../../socket.js";
 import {
   LOCATION_FRESHNESS_MS,
@@ -14,6 +12,7 @@ import {
 } from "../config/orderAssignmentConfig.js";
 import { estimateOfferEarning } from "./ShiftEarningService.js";
 import { syncCustomerOrderFromStore } from "./syncCustomerOrderFromStore.js";
+import { BATCHING_WAIT_MS } from "./routeBatchingService.js";
 
 const activeOfferTimers = new Map();
 const currentlyAssigningOrders = new Set();
@@ -36,27 +35,6 @@ function metersBetween(lat1, lng1, lat2, lng2) {
   return haversineKm(lat1, lng1, lat2, lng2) * 1000;
 }
 
-const istParts = (date = new Date()) => {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Kolkata", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).formatToParts(date);
-  const get = (type) => parts.find((p) => p.type === type)?.value;
-  const days = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  return { day: days[get("weekday")], minutes: Number(get("hour")) * 60 + Number(get("minute")) };
-};
-
-function shiftIsActiveNow(shift, now) {
-  if (!shift.isActive) return false;
-  const { day, minutes } = istParts(now);
-  const start = timeToMinutes(shift.startTime);
-  const end = timeToMinutes(shift.endTime);
-  if ((shift.workingDays || []).includes(day) &&
-      (end > start ? minutes >= start && minutes < end : minutes >= start || minutes < end)) return true;
-  // Overnight shifts remain active after midnight on the following day.
-  const previousDay = (day + 6) % 7;
-  return end <= start && minutes < end && (shift.workingDays || []).includes(previousDay);
-}
-
 async function assignDirectToFullTime(order, darkStore, excludedIds = []) {
   if (darkStore.latitude == null || darkStore.longitude == null) return false;
   const now = new Date();
@@ -66,12 +44,8 @@ async function assignDirectToFullTime(order, darkStore, excludedIds = []) {
     { storeId: String(darkStore._id) },
     ...(storeAreaRegex ? [{ managerId: { $in: [null, undefined] }, area: { $regex: storeAreaRegex } }] : []),
   ];
-  const shifts = await FullTimeShift.find({ managerId: darkStore._id, isActive: true, driverIds: { $exists: true, $ne: [] } })
-    .select("driverIds startTime endTime workingDays isActive").lean();
-  const shiftDriverIds = new Set(shifts.filter((s) => shiftIsActiveNow(s, now)).flatMap((s) => s.driverIds.map(String)));
-  if (!shiftDriverIds.size) return false;
   const candidates = await DeliveryBoy.find({
-    _id: { $in: [...shiftDriverIds], $nin: excludedIds },
+    _id: { $nin: excludedIds },
     isActive: true, status: "online", activeOrderId: null, employmentType: "FULL_TIME",
     $and: [
       { $or: localMatch },
@@ -104,7 +78,8 @@ async function assignDirectToFullTime(order, darkStore, excludedIds = []) {
         status: "assigned", assignmentStatus: "DRIVER_ASSIGNED", assignedRiderId: driver._id,
         assignedAt: now, currentOfferDriverId: null, offeredRiderId: null, offerStartedAt: null,
         offerExpiresAt: null, pickupVerified: false, customerAddressUnlocked: false,
-        pickupQrUnlocked: true, fullTimeDelivery: true, fullTimeAssignedAt: now,
+        pickupQrUnlocked: false, routeBatchWindowEndsAt: new Date(now.getTime() + BATCHING_WAIT_MS),
+        fullTimeDelivery: true, fullTimeAssignedAt: now,
         fullTimeAssignedBy: null,
       } }, { new: true }
     );
@@ -112,11 +87,18 @@ async function assignDirectToFullTime(order, darkStore, excludedIds = []) {
       await DeliveryBoy.updateOne({ _id: driver._id, activeOrderId: order._id }, { $set: { activeOrderId: null, status: "online" } });
       continue;
     }
+    const { openSameRouteWindowAfterAccept } = await import("./sameRouteAttachService.js");
+    const wait = await openSameRouteWindowAfterAccept(assigned, darkStore).catch((err) => {
+      console.warn("[assignment] Full-Time route matching failed:", err.message);
+      return null;
+    });
+    const pickupQrUnlocked = wait?.pickupQrUnlocked ?? assigned.pickupQrUnlocked;
+    const routeBatchWindowEndsAt = wait ? wait.routeBatchWindowEndsAt : assigned.routeBatchWindowEndsAt;
     try {
       const io = getIO();
-      io.to(`rider_${driver._id}`).emit("new_order_assigned", { orderId: assigned._id, orderNumber: assigned.orderNumber, status: "assigned", fullTimeDelivery: true, pickupQrUnlocked: true });
+      io.to(`rider_${driver._id}`).emit("new_order_assigned", { orderId: assigned._id, orderNumber: assigned.orderNumber, status: "assigned", fullTimeDelivery: true, pickupQrUnlocked, routeBatchWindowEndsAt });
       io.to(`rider_${driver._id}`).emit("active_delivery_updated", { reason: "fulltime_auto_assigned", orderIds: [assigned._id.toString()] });
-      io.to(`store_${darkStore._id}`).emit("order_status_updated", { orderId: assigned._id.toString(), orderNumber: assigned.orderNumber, status: "assigned", assignmentStatus: "DRIVER_ASSIGNED", assignedRiderId: driver._id.toString(), fullTimeDelivery: true });
+      io.to(`store_${darkStore._id}`).emit("order_status_updated", { orderId: assigned._id.toString(), orderNumber: assigned.orderNumber, status: "assigned", assignmentStatus: "DRIVER_ASSIGNED", assignedRiderId: driver._id.toString(), fullTimeDelivery: true, pickupQrUnlocked, routeBatchWindowEndsAt });
     } catch (err) { console.warn("[assignment] Full-Time dispatch socket failed:", err.message); }
     try {
       const { notifyOrdersAssigned } = await import("./RiderNotificationService.js");
@@ -421,12 +403,15 @@ export async function assignNextDriver(orderId, opts = {}) {
     if (order.status === "offered" && order.currentOfferDriverId) {
       await releaseRider(order.currentOfferDriverId, order._id).catch(() => {});
     }
-    const fullTimeAssigned = await assignDirectToFullTime(order, darkStore);
+    const emergencyRiderId = order.failureKind === "rider_emergency" && order.failedByRiderId
+      ? String(order.failedByRiderId) : null;
+    const declinedIds = (order.declinedDriverIds || []).map(String);
+    if (emergencyRiderId) declinedIds.push(emergencyRiderId);
+    const fullTimeAssigned = await assignDirectToFullTime(order, darkStore, declinedIds);
     if (fullTimeAssigned) {
       return { success: true, assigned: true, fullTime: true, message: "Order directly assigned to an available Full-Time rider" };
     }
 
-    const declinedIds = (order.declinedDriverIds || []).map(String);
     const softExcluded = [
       ...(order.excludedDriverIds || order.roundRobinRidersAttempted || []),
     ].map(String);
@@ -802,6 +787,8 @@ export async function acceptDriverOffer(orderId, driverId) {
         offerExpiresAt: null,
         pickupVerified: false,
         customerAddressUnlocked: false,
+        pickupQrUnlocked: false,
+        routeBatchWindowEndsAt: new Date(now.getTime() + BATCHING_WAIT_MS),
         // Store rider's active shift so earning slabs can be resolved on delivery
         ...(riderShiftId ? { shiftId: riderShiftId } : {}),
       },
@@ -845,6 +832,7 @@ export async function acceptDriverOffer(orderId, driverId) {
     order.assignmentStatus = "SEARCHING_FOR_DRIVER";
     order.assignedRiderId = null;
     order.assignedAt = null;
+    order.routeBatchWindowEndsAt = undefined;
     await order.save();
     if (order.isPreOrder) {
       await returnPreOrderToManualQueue(order, "Rider became unavailable — assign another rider");
@@ -865,9 +853,7 @@ export async function acceptDriverOffer(orderId, driverId) {
       "./sameRouteAttachService.js"
     );
     sameRoute = await openSameRouteWindowAfterAccept(order, darkStore);
-    if (sameRoute?.routeBatchWindowEndsAt) {
-      order.routeBatchWindowEndsAt = sameRoute.routeBatchWindowEndsAt;
-    }
+    if (sameRoute) order.routeBatchWindowEndsAt = sameRoute.routeBatchWindowEndsAt;
     if (typeof sameRoute?.pickupQrUnlocked === "boolean") {
       order.pickupQrUnlocked = sameRoute.pickupQrUnlocked;
     }

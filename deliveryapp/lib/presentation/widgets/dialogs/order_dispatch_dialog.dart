@@ -5,11 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../data/services/order_service.dart';
 
-/// Compact new-order popup matching requested UI:
-/// - "New Order" top middle
-/// - Timer pill below it (countdown)
-/// - Accept & Decline buttons below it
-/// - Customer name and address omitted
+/// Time-limited offer without customer details.
 class OrderDispatchDialog extends StatefulWidget {
   const OrderDispatchDialog({
     super.key,
@@ -107,15 +103,17 @@ class _OrderDispatchDialogState extends State<OrderDispatchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Material(
         color: Colors.transparent,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 36),
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+          constraints: const BoxConstraints(maxWidth: 400),
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.18),
@@ -128,34 +126,25 @@ class _OrderDispatchDialogState extends State<OrderDispatchDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 1. TOP MIDDLE: "New Order" pill badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(18),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.inventory_2_outlined,
-                      size: 18,
-                      color: Color(0xFF047857),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'New Order',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF047857),
-                      ),
-                    ),
-                  ],
-                ),
+                child: const Icon(Icons.inventory_2_outlined, size: 26, color: Color(0xFF047857)),
               ),
               const SizedBox(height: 14),
+              Text('New delivery offer', textAlign: TextAlign.center, style: GoogleFonts.inter(
+                fontSize: 23, fontWeight: FontWeight.w800, color: colors.onSurface,
+              )),
+              if (widget.offer.orderNumber.isNotEmpty) ...[
+                const SizedBox(height: 5),
+                Text('Order #${widget.offer.orderNumber}', style: GoogleFonts.inter(
+                  fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurfaceVariant,
+                )),
+              ],
+              const SizedBox(height: 16),
 
               // 2. BELOW IT: Timer pill (e.g. 20s countdown)
               Container(
@@ -178,7 +167,7 @@ class _OrderDispatchDialogState extends State<OrderDispatchDialog> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '${_remainingSeconds}s',
+                      '${_remainingSeconds}s to respond',
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,

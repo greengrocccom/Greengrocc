@@ -27,6 +27,7 @@ class DeliveryBoy {
     this.cityId = '',
     this.area = '',
     this.vehicleType = '',
+    this.vehicleNumber = '',
     this.status = 'offline',
     this.verificationStatus = 'pending',
     this.rating = 5.0,
@@ -53,6 +54,7 @@ class DeliveryBoy {
   final String cityId;
   final String area;
   final String vehicleType;
+  final String vehicleNumber;
   final String status;
   final bool onboardingComplete;
   final String onboardingStep;
@@ -121,6 +123,12 @@ class DeliveryBoy {
       cityId: json['cityId']?.toString() ?? '',
       area: json['area']?.toString() ?? '',
       vehicleType: json['vehicleType']?.toString() ?? '',
+      vehicleNumber: json['vehicleNumber']?.toString() ??
+          json['vehicleNo']?.toString() ??
+          (json['documents'] is Map && json['documents']['rc'] is Map
+              ? json['documents']['rc']['number']?.toString()
+              : null) ??
+          '',
       status: json['status']?.toString() ?? 'offline',
       onboardingComplete: json['onboardingComplete'] == true,
       onboardingStep: json['onboardingStep']?.toString() ?? 'vehicle',
@@ -153,6 +161,7 @@ class DeliveryBoy {
         'cityId': cityId,
         'area': area,
         'vehicleType': vehicleType,
+        'vehicleNumber': vehicleNumber,
         'status': status,
         'onboardingComplete': onboardingComplete,
         'onboardingStep': onboardingStep,
@@ -240,6 +249,7 @@ class AuthService {
   String? _token;
   DeliveryBoy? _deliveryBoy;
   final ValueNotifier<DeliveryBoy?> boyNotifier = ValueNotifier<DeliveryBoy?>(null);
+  final ValueNotifier<int> sessionInvalidations = ValueNotifier<int>(0);
 
   String? get token => _token;
   DeliveryBoy? get deliveryBoy => _deliveryBoy;
@@ -287,8 +297,11 @@ class AuthService {
     _deliveryBoy = boy;
     boyNotifier.value = boy;
     final prefs = await SharedPreferences.getInstance();
+    if (_token != token) return;
     await prefs.setString(_tokenKey, token);
+    if (_token != token) return;
     await prefs.setString(_boyKey, jsonEncode(boy.toJson()));
+    if (_token != token) return;
     if (boy.id.isNotEmpty) {
       SocketService.instance.connect(boy.id);
     }
@@ -309,17 +322,20 @@ class AuthService {
   }
 
   Future<void> clearSession() async {
-    await LiveTrackingService.instance.stop();
-    SocketService.instance.disconnect();
-    NotificationInboxService.instance.clear();
     _token = null;
     _deliveryBoy = null;
     boyNotifier.value = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_boyKey);
-    await prefs.remove(_lastRouteKey);
-    await LiveStorage.clear();
+    SocketService.instance.disconnect();
+    NotificationInboxService.instance.clear();
+    try {
+      await LiveTrackingService.instance.stop();
+    } finally {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+      await prefs.remove(_boyKey);
+      await prefs.remove(_lastRouteKey);
+      await LiveStorage.clear();
+    }
   }
 
   Future<AuthResult> register({
@@ -424,26 +440,54 @@ class AuthService {
   Future<DeliveryBoy?>? _fetchMeInFlight;
 
   Future<DeliveryBoy?> fetchMe() async {
-    if (!isLoggedIn) return null;
+    final sessionToken = _token;
+    if (sessionToken == null || sessionToken.isEmpty) return null;
     if (_fetchMeInFlight != null) return _fetchMeInFlight;
-    _fetchMeInFlight = _fetchMeInternal().whenComplete(() {
+    _fetchMeInFlight = _fetchMeInternal(sessionToken).whenComplete(() {
       _fetchMeInFlight = null;
     });
     return _fetchMeInFlight;
   }
 
-  Future<DeliveryBoy?> _fetchMeInternal() async {
+  Future<void> _checkSessionRejection(http.Response response, String sessionToken) async {
+    if (_token != sessionToken) return;
+    if (response.statusCode == 404) {
+      final body = jsonDecode(response.body);
+      if (body is! Map || (body['code'] != 'RIDER_NOT_FOUND' && body['message'] != 'Delivery boy not found')) return;
+    } else if (response.statusCode != 401) {
+      return;
+    }
+    try {
+      await clearSession();
+    } finally {
+      sessionInvalidations.value++;
+    }
+  }
+
+  Future<void> validateSession() async {
+    final sessionToken = _token;
+    if (sessionToken == null || sessionToken.isEmpty || _fetchMeInFlight != null) return;
+    try {
+      final response = await apiGet(ApiConfig.me, headers: _authHeaders);
+      await _checkSessionRejection(response, sessionToken);
+    } catch (_) {
+      // Retry on the next check if the server is unreachable.
+    }
+  }
+
+  Future<DeliveryBoy?> _fetchMeInternal(String sessionToken) async {
     try {
       final res = await apiGet(ApiConfig.me, headers: _authHeaders);
+      if (_token != sessionToken) return null;
       if (res.statusCode != 200) {
-        if (res.statusCode == 401) await clearSession();
+        await _checkSessionRejection(res, sessionToken);
         return null;
       }
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final boy = DeliveryBoy.fromJson(
         body['deliveryBoy'] as Map<String, dynamic>,
       );
-      await _persist(_token!, boy);
+      await _persist(sessionToken, boy);
       return boy;
     } catch (_) {
       return null;
@@ -646,9 +690,11 @@ class AuthService {
 
   /// Keep online status live while the partner is working.
   Future<void> sendHeartbeat() async {
-    if (!isLoggedIn) return;
+    final sessionToken = _token;
+    if (sessionToken == null || sessionToken.isEmpty) return;
     try {
       final pos = await LocationService.instance.getCurrentLocation();
+      if (_token != sessionToken) return;
       final payload = <String, dynamic>{};
       if (pos != null) {
         payload['lat'] = pos.latitude;
@@ -659,12 +705,15 @@ class AuthService {
         headers: _authHeaders,
         body: jsonEncode(payload),
       );
+      if (_token != sessionToken) return;
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body) as Map<String, dynamic>;
         final boy = DeliveryBoy.fromJson(
           body['deliveryBoy'] as Map<String, dynamic>,
         );
-        await _persist(_token!, boy);
+        await _persist(sessionToken, boy);
+      } else {
+        await _checkSessionRejection(res, sessionToken);
       }
     } catch (_) {
       // Offline / reverse tunnel dropped — ignore.

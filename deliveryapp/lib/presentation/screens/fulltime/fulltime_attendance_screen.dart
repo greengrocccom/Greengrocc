@@ -72,45 +72,30 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
   Widget _content() {
     final attendance = (_data['attendance'] as Map?) ?? const {};
     final requirement = _data['requirement'] as Map?;
-    final shift = _data['shift'] as Map?;
     final darkStore = _data['darkStore'] as Map?;
     final month = _data['month'] as Map?;
     final status = _data['todayStatus']?.toString() ?? attendance['status']?.toString() ?? 'pending';
-    final phase = _data['windowPhase']?.toString() ?? '';
     final markedAt = DateTime.tryParse(attendance['markedAt']?.toString() ?? '')?.toLocal();
     final distance = attendance['distanceFromStoreMeters'] as num?;
     final lateMinutes = (attendance['lateMinutes'] as num?) ?? 0;
     final payroll = _data['payroll'] as Map?;
-    final policy = _data['payPolicy'] as Map?;
-    final lateOn = policy?['latePenaltyEnabled'] == true;
-    final lateAfter = (policy?['lateAfterMinutes'] as num?) ?? 120;
-    final latePenalised = lateOn && lateMinutes >= lateAfter;
 
     String hint = '';
     if (status == 'present' && markedAt != null) {
       hint = 'Marked at ${_clock(markedAt)}'
           '${distance != null ? ' · ${distance.round()}m from store' : ''}'
-          '${lateMinutes > 0 ? ' · ${formatMinutes(lateMinutes)} late' : ''}'
-          '${latePenalised ? ' (${formatRupees(policy?['latePenaltyAmount'] as num?)} late cut)' : ''}';
+          '${lateMinutes > 0 ? ' · ${formatMinutes(lateMinutes)} after check-in time' : ''}';
     } else if (status == 'off_day') {
       hint = 'Today is not a working day.';
     } else if (status == 'not_required') {
       hint = 'Attendance is not required for your shift.';
     } else if (status == 'absent') {
-      hint = 'Attendance window has closed for today.';
-    } else if (phase == 'before' && requirement != null) {
-      hint = 'Attendance opens 30 minutes before ${requirement['startTime']}.';
+      hint = 'No attendance was recorded for this day.';
     } else if (status == 'pending' && requirement?['requireLocationValidation'] == true) {
-      hint = 'Attendance is recorded automatically when you go online within ${requirement?['attendanceRadiusMeters'] ?? 200}m of the dark store during your shift.';
+      hint = 'Attendance is recorded automatically when you go online within ${requirement?['attendanceRadiusMeters'] ?? 200}m of the dark store.';
     } else if (status == 'pending') {
-      hint = 'Attendance is recorded automatically when you go online during your scheduled shift.';
+      hint = 'Attendance is recorded automatically when you go online.';
     }
-    if (status == 'pending' && lateOn && requirement != null) {
-      hint = '${hint.isEmpty ? '' : '$hint\n'}'
-          'Going online ${formatMinutes(lateAfter)} or more after ${requirement['startTime']} '
-          'cuts ${formatRupees(policy?['latePenaltyAmount'] as num?)}.';
-    }
-
     final style = attendanceStyle(status);
     final statusIcon = switch (status) {
       'present' => Icons.verified_rounded,
@@ -177,11 +162,11 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _CheckTile(
-                      icon: Icons.schedule_rounded,
-                      label: 'Required',
+                      icon: Icons.location_on_outlined,
+                      label: 'Store radius',
                       value: requirement == null
                           ? '—'
-                          : '${requirement['startTime']} – ${requirement['endTime']}',
+                          : '${requirement['attendanceRadiusMeters'] ?? 200} m',
                       accent: AppColors.info,
                     ),
                   ),
@@ -205,7 +190,7 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                         icon: Icons.timer_outlined,
                         label: 'Late by',
                         value: lateMinutes > 0 ? formatMinutes(lateMinutes) : 'On time',
-                        accent: latePenalised ? AppColors.error : AppColors.warning,
+                        accent: AppColors.warning,
                       ),
                     ),
                   ],
@@ -248,7 +233,7 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
             todayStatus: status,
           ),
         AppPanel(
-          title: 'Shift details',
+          title: 'Work rules',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -256,24 +241,6 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                 icon: Icons.storefront_outlined,
                 label: 'Dark Store',
                 value: darkStore?['name']?.toString() ?? '—',
-              ),
-              FtInfoRow(
-                icon: Icons.schedule_outlined,
-                label: 'Required Time',
-                value: requirement == null
-                    ? 'Not configured yet'
-                    : '${requirement['startTime']} – ${requirement['endTime']}',
-              ),
-              if (shift != null)
-                FtInfoRow(
-                  icon: Icons.badge_outlined,
-                  label: 'Shift',
-                  value: shift['name']?.toString() ?? '—',
-                ),
-              FtInfoRow(
-                icon: Icons.today_outlined,
-                label: 'Working Days',
-                value: formatWorkingDays(requirement?['workingDays'] as List?),
               ),
               if (requirement?['requireLocationValidation'] == true)
                 FtInfoRow(
@@ -285,8 +252,7 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                 FtInfoRow(
                   icon: Icons.calendar_month_outlined,
                   label: 'This Month',
-                  value: '${month['presentDays'] ?? 0} days present'
-                      '${month['minimumAttendanceDays'] != null ? ' (minimum ${month['minimumAttendanceDays']})' : ''}',
+                  value: '${month['presentDays'] ?? 0} days present',
                 ),
             ],
           ),
@@ -387,10 +353,8 @@ class _MonthSummary extends StatelessWidget {
     final scheduled = (p?['scheduledWorkingDays'] as num?)?.toInt() ??
         (month?['daysInMonth'] as num?)?.toInt() ??
         0;
-    final late = (p?['late'] as Map?) ?? const {};
-    final lateOn = late['enabled'] == true;
-    final lateCount = (late['count'] as num?)?.toInt() ?? 0;
-    final minDays = (month?['minimumAttendanceDays'] as num?)?.toInt();
+    final leave = (p?['leave'] as Map?) ?? const {};
+    final leaveCount = (leave['taken'] as num?)?.toInt() ?? 0;
     final percent = scheduled > 0 ? present / scheduled * 100 : null;
 
     final monthKey = (p?['month'] ?? month?['month'])?.toString() ?? '';
@@ -412,7 +376,7 @@ class _MonthSummary extends StatelessWidget {
                 label: 'Present',
                 centerText: '$present/$scheduled',
                 size: 96,
-                caption: minDays != null ? 'Minimum $minDays' : null,
+                caption: null,
               ),
               const SizedBox(width: 18),
               Expanded(
@@ -429,8 +393,8 @@ class _MonthSummary extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _MiniStat(
-                            label: 'Late',
-                            value: lateOn ? lateCount : null,
+                            label: 'Leave',
+                            value: leaveCount,
                             color: AppColors.warning,
                           ),
                         ),

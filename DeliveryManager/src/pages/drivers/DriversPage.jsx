@@ -41,7 +41,6 @@ export default function DriversPage({ employmentType = null }) {
 
   // Slots tracking
   const [assignedSlotRiderIds, setAssignedSlotRiderIds] = useState(() => new Set());
-  const [assignedSlotsToday, setAssignedSlotsToday] = useState(null);
 
   // Interactive Payment Popover state
   const [openPaymentPopoverId, setOpenPaymentPopoverId] = useState(null);
@@ -101,48 +100,24 @@ export default function DriversPage({ employmentType = null }) {
   }, [employmentType]);
 
   useEffect(() => {
-    if (!employmentType) return undefined;
-    let active = true;
-    const now = new Date();
-    if (employmentType === "FULL_TIME") {
-      managerApi
-        .getFullTimeShifts()
-        .then((res) => {
-          const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(now);
-          const weekday = new Date(`${today}T00:00:00Z`).getUTCDay();
-          const todayShifts = (res.data?.shifts || []).filter((s) =>
-            (s.workingDays || []).includes(weekday)
-          );
-          const count = todayShifts.reduce((n, s) => n + (s.driverIds || []).length, 0);
-          if (active)
-            setAssignedSlotRiderIds(new Set(todayShifts.flatMap((s) => s.driverIds || []).map(String)));
-          if (active) setAssignedSlotsToday(count);
-        })
-        .catch(() => {
-          if (active) setAssignedSlotsToday(null);
-        });
-    } else {
-      managerApi
-        .getShifts()
-        .then((res) => {
-          const count = (res.data?.slots || []).reduce(
-            (n, slot) => n + (slot.bookings || []).filter((b) => b.status !== "CANCELLED").length,
-            0
-          );
-          const ids = (res.data?.slots || [])
-            .flatMap((slot) =>
-              (slot.bookings || [])
-                .filter((b) => b.status !== "CANCELLED")
-                .map((b) => String(b.deliveryPartnerId || ""))
-            )
-            .filter(Boolean);
-          if (active) setAssignedSlotRiderIds(new Set(ids));
-          if (active) setAssignedSlotsToday(count);
-        })
-        .catch(() => {
-          if (active) setAssignedSlotsToday(null);
-        });
+    if (!employmentType || employmentType === "FULL_TIME") {
+      setAssignedSlotRiderIds(new Set());
+      return undefined;
     }
+    let active = true;
+    managerApi
+      .getShifts()
+      .then((res) => {
+        const ids = (res.data?.slots || [])
+          .flatMap((slot) =>
+            (slot.bookings || [])
+              .filter((b) => b.status !== "CANCELLED")
+              .map((b) => String(b.deliveryPartnerId || ""))
+          )
+          .filter(Boolean);
+        if (active) setAssignedSlotRiderIds(new Set(ids));
+      })
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -355,11 +330,11 @@ export default function DriversPage({ employmentType = null }) {
         return currentMode === paymentFilter;
       })
       .filter((r) => {
-        if (slotFilter === "ALL") return true;
+        if (employmentType === "FULL_TIME" || slotFilter === "ALL") return true;
         const isAssigned = assignedSlotRiderIds.has(String(r.id || r._id));
         return slotFilter === "ASSIGNED" ? isAssigned : !isAssigned;
       });
-  }, [categoryRiders, searchQuery, statusFilter, paymentFilter, slotFilter, assignedSlotRiderIds]);
+  }, [categoryRiders, employmentType, searchQuery, statusFilter, paymentFilter, slotFilter, assignedSlotRiderIds]);
 
   // Stat calculations
   const totalRidersCount = categoryRiders.length;
@@ -483,96 +458,40 @@ export default function DriversPage({ employmentType = null }) {
         </div>
       )}
 
-      {/* BREADCRUMB */}
-      <nav className="flex items-center gap-1.5 text-xs text-slate-500">
-        <button
-          type="button"
-          onClick={() => navigate("/dashboard")}
-          className="hover:text-emerald-700 transition"
-        >
-          <Icon name="home" size="sm" className="text-slate-400 hover:text-emerald-700" />
-        </button>
-        <span className="text-slate-400">›</span>
-        <span className="hover:text-emerald-700 cursor-pointer" onClick={() => navigate("/drivers")}>
-          Riders
-        </span>
-        <span className="text-slate-400">›</span>
-        <span className="font-semibold text-slate-800">{pageTitle}</span>
-      </nav>
 
-      {/* PAGE HEADER: ICON + TITLE + CONTROLS */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-[#064e3b] shadow-2xs">
-            <Icon name="bike" size="lg" className="text-[#064e3b]" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900">{pageTitle}</h1>
-            <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{pageSubtitle}</p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2.5">
-          {/* Period selector dropdown */}
-          <div className="relative">
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="appearance-none flex items-center gap-2 rounded-xl border border-slate-200 bg-white pl-8 pr-8 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer"
-            >
-              <option value="This Month">This Month</option>
-              <option value="Today">Today</option>
-              <option value="This Week">This Week</option>
-              <option value="All Time">All Time</option>
-            </select>
-            <span className="pointer-events-none absolute left-2.5 top-2.5 text-xs text-slate-500">📅</span>
-            <span className="pointer-events-none absolute right-2.5 top-2.5 text-[10px] text-slate-400">⌵</span>
-          </div>
-
-          {/* Add Rider CTA button */}
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-[#064e3b] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#053d2e] transition active:scale-98 cursor-pointer"
-          >
-            <span className="text-sm font-bold">+</span>
-            <span>Add Rider</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 4 TOP METRIC CARDS (PIXEL-PERFECT MATCH TO SCREENSHOT) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 4 TOP METRIC CARDS (COMPACT SLEEK HEIGHT) */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* CARD 1: TOTAL RIDERS */}
-        <div className="relative overflow-hidden rounded-2xl border border-emerald-100/90 bg-gradient-to-br from-emerald-50/90 via-emerald-50/40 to-white p-4 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 shadow-2xs">
-              <Icon name="user" size="md" className="text-emerald-800" />
+        <div className="relative overflow-hidden rounded-xl border border-emerald-100/90 bg-gradient-to-br from-emerald-50/80 via-emerald-50/30 to-white px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+              <Icon name="user" size="sm" className="text-emerald-800" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600">Total Riders</p>
-              <p className="text-2xl font-black text-slate-900 mt-0.5">
+              <p className="text-[11px] font-medium text-slate-500">Total Riders</p>
+              <p className="text-lg font-black text-slate-900 leading-tight">
                 {loading ? "…" : totalRidersCount}
               </p>
-              <p className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 mt-0.5">
-                Total registered riders
+              <p className="text-[10px] font-semibold text-emerald-700 leading-tight mt-0.5">
+                Registered riders
               </p>
             </div>
           </div>
         </div>
 
         {/* CARD 2: ACTIVE RIDERS */}
-        <div className="relative overflow-hidden rounded-2xl border border-emerald-100/90 bg-gradient-to-br from-emerald-50/80 via-teal-50/30 to-white p-4 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 shadow-2xs">
-              <Icon name="check" size="md" className="text-emerald-800" />
+        <div className="relative overflow-hidden rounded-xl border border-emerald-100/90 bg-gradient-to-br from-emerald-50/70 via-teal-50/20 to-white px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+              <Icon name="check" size="sm" className="text-emerald-800" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600">Active Riders</p>
-              <p className="text-2xl font-black text-slate-900 mt-0.5">
+              <p className="text-[11px] font-medium text-slate-500">Active Riders</p>
+              <p className="text-lg font-black text-slate-900 leading-tight">
                 {loading ? "…" : activeRidersCount}
               </p>
-              <p className="text-[11px] font-semibold text-emerald-600 mt-0.5">
+              <p className="text-[10px] font-semibold text-emerald-700 leading-tight mt-0.5">
                 {activePercent}% of total
               </p>
             </div>
@@ -580,37 +499,37 @@ export default function DriversPage({ employmentType = null }) {
         </div>
 
         {/* CARD 3: TOTAL DELIVERIES */}
-        <div className="relative overflow-hidden rounded-2xl border border-blue-100/90 bg-gradient-to-br from-blue-50/80 via-sky-50/30 to-white p-4 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 shadow-2xs">
-              <Icon name="bike" size="md" className="text-blue-700" />
+        <div className="relative overflow-hidden rounded-xl border border-blue-100/90 bg-gradient-to-br from-blue-50/70 via-sky-50/20 to-white px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+              <Icon name="bike" size="sm" className="text-blue-700" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600">Total Deliveries</p>
-              <p className="text-2xl font-black text-slate-900 mt-0.5">
+              <p className="text-[11px] font-medium text-slate-500">Total Deliveries</p>
+              <p className="text-lg font-black text-slate-900 leading-tight">
                 {loading ? "…" : totalDeliveriesCount.toLocaleString()}
               </p>
-              <p className="text-[11px] font-semibold text-blue-600 flex items-center gap-1 mt-0.5">
-                Completed deliveries
+              <p className="text-[10px] font-semibold text-blue-600 leading-tight mt-0.5">
+                Completed orders
               </p>
             </div>
           </div>
         </div>
 
         {/* CARD 4: TOTAL SALARY / COMMISSION PAYABLE */}
-        <div className="relative overflow-hidden rounded-2xl border border-amber-100/90 bg-gradient-to-br from-amber-50/80 via-orange-50/30 to-white p-4 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 shadow-2xs">
-              <Icon name="wallet" size="md" className="text-amber-700" />
+        <div className="relative overflow-hidden rounded-xl border border-amber-100/90 bg-gradient-to-br from-amber-50/70 via-orange-50/20 to-white px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+              <Icon name="wallet" size="sm" className="text-amber-700" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600">
+              <p className="text-[11px] font-medium text-slate-500">
                 {payableTitle}
               </p>
-              <p className="text-2xl font-black text-slate-900 mt-0.5">
+              <p className="text-lg font-black text-slate-900 leading-tight">
                 ₹{loading ? "…" : totalPayableAmount.toLocaleString()}
               </p>
-              <p className="text-[11px] font-semibold text-amber-600 flex items-center gap-1 mt-0.5">
+              <p className="text-[10px] font-semibold text-amber-600 leading-tight mt-0.5">
                 Across {categoryRiders.length} {employmentType === "FULL_TIME" ? "full-time" : "part-time"} rider{categoryRiders.length === 1 ? "" : "s"}
               </p>
             </div>
@@ -619,50 +538,74 @@ export default function DriversPage({ employmentType = null }) {
       </div>
 
       {employmentType && (
-        <form onSubmit={handleApplyPaymentToAll} className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-2xs">
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Apply payment settings to all {isFullTime ? "full-time" : "part-time"} riders</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
-                This updates all {categoryRiders.length} riders in this group. For individual settings, use each rider’s row below.
-              </p>
+        <form onSubmit={handleApplyPaymentToAll} className="rounded-xl border border-emerald-100/90 bg-white px-3.5 py-2.5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-900">
+                Apply payment settings to all {isFullTime ? "full-time" : "part-time"} riders
+              </span>
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-100">
+                {categoryRiders.length} riders
+              </span>
             </div>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
-              {categoryRiders.length} riders
-            </span>
+            <p className="text-[10px] text-slate-400 hidden sm:block">
+              Updates all riders in this group. Use row settings for individual overrides.
+            </p>
           </div>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="min-w-[190px] flex-1 text-[10px] font-bold text-slate-600">
-              Payment method
-              <select value={bulkPaymentMode} onChange={(e) => { setBulkPaymentMode(e.target.value); setBulkPaymentAmount(""); }}
-                className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 focus:border-emerald-500 focus:outline-none">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="min-w-[150px] flex-1 sm:flex-initial">
+              <select
+                value={bulkPaymentMode}
+                onChange={(e) => { setBulkPaymentMode(e.target.value); setBulkPaymentAmount(""); }}
+                className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-800 focus:border-emerald-500 focus:outline-none cursor-pointer"
+              >
                 <option value="monthly_salary">Monthly Salary</option>
                 <option value="per_km_commission">KM-wise Commission</option>
               </select>
+            </div>
+            <div className="min-w-[140px] flex-1 sm:flex-initial">
+              <div className="flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2 focus-within:border-emerald-500">
+                <span className="text-xs font-bold text-slate-400 mr-1">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  step={bulkPaymentMode === "monthly_salary" ? "100" : "0.5"}
+                  required
+                  placeholder={bulkPaymentMode === "monthly_salary" ? "Salary / mo" : "Rate / km"}
+                  value={bulkPaymentAmount}
+                  onChange={(e) => setBulkPaymentAmount(e.target.value)}
+                  className="w-full bg-transparent text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none"
+                />
+                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-1">
+                  {bulkPaymentMode === "monthly_salary" ? "/mo" : "/km"}
+                </span>
+              </div>
+            </div>
+            <label className="flex h-8 items-center gap-1.5 px-1 text-xs font-medium text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={bulkPaymentActive}
+                onChange={(e) => setBulkPaymentActive(e.target.checked)}
+                className="h-3.5 w-3.5 accent-emerald-600 cursor-pointer"
+              />
+              <span>Active</span>
             </label>
-            <label className="min-w-[180px] flex-1 text-[10px] font-bold text-slate-600">
-              {bulkPaymentMode === "monthly_salary" ? "Monthly salary (₹)" : "Rate per KM (₹)"}
-              <input type="number" min="0" step={bulkPaymentMode === "monthly_salary" ? "100" : "0.5"}
-                required value={bulkPaymentAmount} onChange={(e) => setBulkPaymentAmount(e.target.value)}
-                className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 focus:border-emerald-500 focus:outline-none" />
-            </label>
-            <label className="flex h-10 items-center gap-2 px-1 text-xs font-semibold text-slate-700">
-              <input type="checkbox" checked={bulkPaymentActive} onChange={(e) => setBulkPaymentActive(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
-              Payment Active
-            </label>
-            <button type="submit" disabled={savingBulkPayment || !categoryRiders.length || bulkPaymentAmount === ""}
-              className="h-10 rounded-lg bg-emerald-700 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={savingBulkPayment || !categoryRiders.length || bulkPaymentAmount === ""}
+              className="h-8 rounded-lg bg-[#064e3b] px-3.5 text-xs font-bold text-white shadow-2xs hover:bg-[#053d2e] transition disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            >
               {savingBulkPayment ? "Applying…" : "Apply to All"}
             </button>
           </div>
         </form>
       )}
 
-      {/* FILTER BAR: SEARCH + STATUS + PAYMENT TYPE + SLOTS + RESET */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xs">
+      {/* FILTER BAR: SEARCH + STATUS + PAYMENT TYPE + SLOTS + PERIOD + RESET + ADD RIDER */}
+      <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xs">
         {/* Search input */}
-        <div className="relative min-w-[240px] flex-1">
-          <span className="absolute left-3.5 top-3 text-slate-400">
+        <div className="relative min-w-[220px] flex-1">
+          <span className="absolute left-3 top-3 text-slate-400">
             <Icon name="search" size="sm" />
           </span>
           <input
@@ -670,7 +613,7 @@ export default function DriversPage({ employmentType = null }) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, phone or ID..."
-            className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none transition"
+            className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none transition"
           />
           {searchQuery && (
             <button
@@ -687,7 +630,7 @@ export default function DriversPage({ employmentType = null }) {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer min-w-[130px]"
+          className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer min-w-[115px]"
         >
           <option value="ALL">All Status</option>
           <option value="active">Active</option>
@@ -701,29 +644,43 @@ export default function DriversPage({ employmentType = null }) {
         <select
           value={paymentFilter}
           onChange={(e) => setPaymentFilter(e.target.value)}
-          className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer min-w-[160px]"
+          className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer min-w-[145px]"
         >
           <option value="ALL">All Payment Type</option>
           <option value="monthly_salary">Monthly Salary</option>
           <option value="per_km_commission">KM Commission</option>
         </select>
 
-        {/* Slots dropdown */}
+        {/* Part-Time slot filter */}
+        {employmentType !== "FULL_TIME" && (
+          <select
+            value={slotFilter}
+            onChange={(e) => setSlotFilter(e.target.value)}
+            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer min-w-[110px]"
+          >
+            <option value="ALL">All Slots</option>
+            <option value="ASSIGNED">Assigned Today</option>
+            <option value="UNASSIGNED">No Slot Today</option>
+          </select>
+        )}
+
+        {/* Period selector dropdown */}
         <select
-          value={slotFilter}
-          onChange={(e) => setSlotFilter(e.target.value)}
-          className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer min-w-[120px]"
+          value={selectedPeriod}
+          onChange={(e) => setSelectedPeriod(e.target.value)}
+          className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer min-w-[115px]"
         >
-          <option value="ALL">All Slots</option>
-          <option value="ASSIGNED">Assigned Today</option>
-          <option value="UNASSIGNED">No Slot Today</option>
+          <option value="This Month">This Month</option>
+          <option value="Today">Today</option>
+          <option value="This Week">This Week</option>
+          <option value="All Time">All Time</option>
         </select>
 
         {/* Reset button */}
         <button
           type="button"
           onClick={handleResetFilters}
-          className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
+          className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
         >
           <svg className="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -734,6 +691,16 @@ export default function DriversPage({ employmentType = null }) {
             />
           </svg>
           <span>Reset</span>
+        </button>
+
+        {/* Add Rider CTA button */}
+        <button
+          type="button"
+          onClick={() => setIsCreateOpen(true)}
+          className="flex h-9 items-center gap-1.5 rounded-xl bg-[#064e3b] px-3.5 text-xs font-bold text-white shadow-2xs hover:bg-[#053d2e] transition active:scale-98 cursor-pointer sm:ml-auto"
+        >
+          <span className="text-sm font-bold">+</span>
+          <span>Add Rider</span>
         </button>
       </div>
 
@@ -793,21 +760,21 @@ export default function DriversPage({ employmentType = null }) {
                           {index + 1}
                         </td>
 
-                        {/* 2. Rider Details */}
-                        <td className="px-4 py-3.5">
+                        {/* 2. Rider Details (Compact icon, vertically centered name & phone, no phone icon) */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
                           <div className="flex items-center gap-3">
-                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-800 text-xs overflow-hidden">
+                            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-emerald-50 text-emerald-800 text-xs overflow-hidden">
                               {r.selfie ? (
                                 <img
-                                  src={r.selfie}
-                                  alt={r.name}
+                                  src={typeof r.selfie === "string" ? r.selfie : (r.selfie.url || r.selfie.imageBase64 || "")}
+                                  alt={r.name || "Rider"}
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
-                                <span>{(r.name || "R").charAt(0).toUpperCase()}</span>
+                                <span className="text-[11px] font-bold">{(r.name || "R").charAt(0).toUpperCase()}</span>
                               )}
                               <span
-                                className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white ${
+                                className={`absolute bottom-0 right-0 h-2 w-2 rounded-full border border-white ${
                                   isRiderActive
                                     ? r.status === "online"
                                       ? "bg-emerald-500"
@@ -818,14 +785,13 @@ export default function DriversPage({ employmentType = null }) {
                                 }`}
                               />
                             </div>
-                            <div>
-                              <p className="font-bold text-slate-900 text-sm hover:text-emerald-700 transition">
+                            <div className="min-w-0 flex flex-col justify-center">
+                              <span className="font-bold text-slate-900 text-xs hover:text-emerald-700 transition leading-tight">
                                 {r.name || "Rider"}
-                              </p>
-                              <p className="font-mono text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
-                                <span>📞</span>
-                                <span>{r.phone || "—"}</span>
-                              </p>
+                              </span>
+                              <span className="font-medium text-[11px] text-slate-500 mt-0.5 leading-tight">
+                                {r.phone || "—"}
+                              </span>
                             </div>
                           </div>
                         </td>

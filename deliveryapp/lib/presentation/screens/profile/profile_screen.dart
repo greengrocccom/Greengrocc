@@ -119,151 +119,266 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final avatar = _avatarImage;
 
     final hasRating = (boy?.totalRatingsCount ?? 0) > 0;
-    final employment = (boy?.employmentType ?? '').trim();
-    final location = [boy?.area ?? '', boy?.city ?? '']
-        .where((s) => s.trim().isNotEmpty)
-        .join(', ');
+    final empLower = (boy?.employmentType ?? '').toLowerCase().trim();
+    final isFullTime = empLower == 'full_time' || (boy?.isFullTime ?? false);
+    final employmentTag = isFullTime ? 'Full Time' : 'Part Time';
 
     final body = ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
+        if (widget.embedded) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: Text(
+              l10n.profile,
+              style: GoogleFonts.inter(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+
+        // --- Green Profile Box (WhatsApp Style) ---
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
           decoration: brandHeroDecoration(),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: _busy ? null : _changeAvatar,
-                    child: Stack(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(2.5),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withValues(alpha: 0.35),
-                          ),
-                          child: CircleAvatar(
-                            radius: 30,
-                            backgroundColor: AppColors.primaryLight,
-                            backgroundImage: avatar,
-                            child: avatar == null
-                                ? Icon(Icons.person, size: 30, color: AppColors.primary)
-                                : null,
-                          ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.primary, width: 1.5),
-                            ),
-                            child: Icon(Icons.camera_alt, size: 10, color: AppColors.primary),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          boy?.name.isNotEmpty == true ? boy!.name : l10n.deliveryPartner,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 1),
-                        Text(
-                          boy?.phone ?? '',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.88),
-                          ),
-                        ),
-                        if (employment.isNotEmpty || location.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 4,
-                            children: [
-                              if (employment.isNotEmpty)
-                                _HeroChip(
-                                  icon: Icons.badge_outlined,
-                                  label: employment
-                                      .toLowerCase()
-                                      .split('_')
-                                      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-                                      .join('-'),
-                                ),
-                              if (location.isNotEmpty)
-                                _HeroChip(icon: Icons.location_on_outlined, label: location),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Material(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    shape: const CircleBorder(),
-                    child: IconButton(
-                      onPressed: _busy ? null : _editName,
-                      icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 18),
-                      tooltip: l10n.editName,
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
+              // 1. Big Profile Picture in Middle with Tag & Camera Button
+              Center(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
                   children: [
-                    Expanded(
-                      child: HeroStat(
-                        label: hasRating ? l10n.ratingsCount(boy!.totalRatingsCount) : l10n.ratingLabel,
-                        value: hasRating ? '★ ${boy!.rating.toStringAsFixed(1)}' : '—',
+                    // Big Circular Profile Image
+                    GestureDetector(
+                      onTap: _busy ? null : _changeAvatar,
+                      child: Container(
+                        padding: const EdgeInsets.all(3.5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.25),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            width: 2,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 52,
+                          backgroundColor: AppColors.primaryLight,
+                          backgroundImage: avatar,
+                          child: avatar == null
+                              ? Icon(Icons.person, size: 52, color: AppColors.primary)
+                              : null,
+                        ),
                       ),
                     ),
-                    Expanded(
-                      child: HeroStat(
-                        label: l10n.vehicle,
-                        value: boy?.vehicleType.isNotEmpty == true ? boy!.vehicleType : '—',
+
+                    // Top-Right Tag: Full Time or Part Time
+                    Positioned(
+                      top: 0,
+                      right: -10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isFullTime ? const Color(0xFF10B981) : const Color(0xFF3B82F6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.25),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isFullTime ? Icons.verified_rounded : Icons.schedule_rounded,
+                              size: 11,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              employmentTag,
+                              style: GoogleFonts.inter(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Bottom-Right Camera Icon Button (WhatsApp style photo update)
+                    Positioned(
+                      right: 0,
+                      bottom: 2,
+                      child: GestureDetector(
+                        onTap: _busy ? null : _changeAvatar,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.primary, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.camera_alt_rounded,
+                            size: 15,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 6),
+
+              const SizedBox(height: 14),
+
+              // 2. Rider Name with Edit Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      boy?.name.isNotEmpty == true ? boy!.name : l10n.deliveryPartner,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: _busy ? null : _editName,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.edit_outlined,
+                        color: Colors.white,
+                        size: 15,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // 3. Phone Number
+              if (boy?.phone.isNotEmpty == true) ...[
+                const SizedBox(height: 4),
+                Text(
+                  boy!.phone,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 10),
+
+              // 4. Vehicle Type Pill
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.vehicle),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.two_wheeler_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        boy?.vehicleType.isNotEmpty == true ? boy!.vehicleType : l10n.vehicle,
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (hasRating) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 3,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFBBF24)),
+                        const SizedBox(width: 3),
+                        Text(
+                          boy!.rating.toStringAsFixed(1),
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 8),
               Text(
                 l10n.tapPhotoToUpdate,
+                textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
-                  fontSize: 10.5,
-                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 11,
+                  color: Colors.white.withValues(alpha: 0.72),
                 ),
               ),
             ],
           ),
         ),
+
+        // --- After Green Box: Exactly whatever was already there (no extra) ---
         const SizedBox(height: AppSpacing.xl),
         SectionLabel(l10n.accountDetails),
         DashboardCard(
@@ -272,8 +387,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               ProfileTile(
                 title: l10n.vehicleInformation,
-                subtitle: boy?.vehicleType.isNotEmpty == true
-                    ? boy!.vehicleType
+                subtitle: [
+                  if (boy?.vehicleType.isNotEmpty == true) boy!.vehicleType,
+                  if (boy?.vehicleNumber.isNotEmpty == true) boy!.vehicleNumber,
+                ].isNotEmpty
+                    ? [
+                        if (boy?.vehicleType.isNotEmpty == true) boy!.vehicleType,
+                        if (boy?.vehicleNumber.isNotEmpty == true) boy!.vehicleNumber,
+                      ].join(' · ')
                     : l10n.bikeDetails,
                 leadingIcon: Icons.two_wheeler_outlined,
                 onTap: () => Navigator.pushNamed(context, AppRoutes.vehicle),
@@ -319,43 +440,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Center(child: CircularProgressIndicator()),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroChip extends StatelessWidget {
-  const _HeroChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: Colors.white),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
         ],
       ),
     );

@@ -93,6 +93,10 @@ export async function resolveFailedDelivery({ orderId, managerId, action, note =
   order.assignmentStatus = order.isPreOrder ? "NONE" : "SEARCHING_FOR_DRIVER";
   order.assignedRiderId = null;
   order.assignedAt = null;
+  order.shiftId = null;
+  order.fullTimeDelivery = false;
+  order.fullTimeAssignedAt = null;
+  order.fullTimeAssignedBy = null;
   order.currentOfferDriverId = null;
   order.offeredRiderId = null;
   order.offerStartedAt = null;
@@ -137,9 +141,9 @@ export async function resolveFailedDelivery({ orderId, managerId, action, note =
 }
 
 function cashOwed(order) {
-  if (order.paymentStatus === "paid_online") return 0;
+  if (order.paymentStatus !== "collected") return 0;
   if (String(order.paymentMethod || "").toUpperCase() === "ONLINE") return 0;
-  return Math.round(Number(order.amountCollected || order.amountToCollect || order.partTotal || 0));
+  return Number(order.amountCollected || 0);
 }
 
 /**

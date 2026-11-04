@@ -97,6 +97,7 @@ class ActiveDeliveryData {
     this.delayCustomerNotifiedAt,
     this.preOrderSlot = '',
     this.preOrderDate = '',
+    this.expectedDeliveryAt,
   });
 
   final String id;
@@ -151,6 +152,7 @@ class ActiveDeliveryData {
   /// Customer's chosen pre-order slot, e.g. "09:00 - 11:00", and date (YYYY-MM-DD).
   final String preOrderSlot;
   final String preOrderDate;
+  final DateTime? expectedDeliveryAt;
 
   bool get isPreOrder => orderType == 'preorder';
 
@@ -234,6 +236,7 @@ class ActiveDeliveryData {
             DateTime.tryParse('${(json['deliveryDelay'] as Map?)?['customerNotifiedAt'] ?? ''}'),
         preOrderSlot: json['preOrderSlot']?.toString() ?? '',
         preOrderDate: json['preOrderDate']?.toString() ?? '',
+        expectedDeliveryAt: DateTime.tryParse('${(json['dispatchEta'] as Map?)?['expectedAt'] ?? ''}'),
       );
 }
 
@@ -548,12 +551,13 @@ class OrderService extends ChangeNotifier {
   Future<({bool success, String? error})> failDelivery(
     String orderId, {
     required String failureReason,
+    bool emergency = false,
   }) async {
     try {
       final res = await apiPost(
         ApiConfig.failDelivery(orderId),
         headers: AuthService.instance.authHeaders,
-        body: jsonEncode({'failureReason': failureReason.trim()}),
+        body: jsonEncode({'failureReason': failureReason.trim(), if (emergency) 'emergency': true}),
       );
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       if (res.statusCode == 200) {

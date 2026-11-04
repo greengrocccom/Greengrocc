@@ -10,6 +10,7 @@ import {
   normalizeIndianPhone,
 } from "@greengrocc/shared";
 import { dispatchNextRider } from "../services/dispatchService.js";
+import { calculateDeliveryDistanceKm } from "../services/ShiftEarningService.js";
 import { getIO } from "../../../socket.js";
 import {
   applyGigStatusChange,
@@ -21,12 +22,14 @@ import { isS3Configured, uploadDataUrlToS3 } from "../services/s3Service.js";
 import { areaMatches, placesEqual } from "../utils/matchPlace.js";
 import { findLiveGigForManager } from "./gigManagementController.js";
 import {
+  ensureTodayOnlineTracking,
   formatOnlineMinutes,
   istDateString,
   istDayRange,
   listIstDatesInMonth,
   listRecentIstDates,
   liveOnlineMinutes,
+  onlineSessionStart,
   snapshotDailyActivity,
 } from "../utils/onlineHoursHelper.js";
 import {
@@ -521,6 +524,7 @@ export const me = async (req, res, next) => {
     if (!deliveryBoy) {
       return res.status(404).json({
         success: false,
+        code: "RIDER_NOT_FOUND",
         message: "Delivery boy not found",
       });
     }
@@ -582,6 +586,10 @@ export const updateOnboarding = async (req, res, next) => {
           message: "Vehicle details can only be updated by your Delivery Manager.",
         });
       }
+    }
+
+    if (body.vehicleNumber !== undefined) {
+      deliveryBoy.vehicleNumber = String(body.vehicleNumber).trim();
     }
 
     if (step) deliveryBoy.onboardingStep = step;
@@ -1009,15 +1017,17 @@ export const heartbeat = async (req, res, next) => {
     if (!existing) {
       return res.status(404).json({
         success: false,
+        code: "RIDER_NOT_FOUND",
         message: "Delivery boy not found",
       });
     }
 
     const updates = {
       lastSeenAt: now,
-      // Keep on_delivery while an order is active — don't downgrade on heartbeat.
-      status: existing.activeOrderId ? "on_delivery" : "online",
     };
+    if (existing.status !== "offline" && !onlineSessionStart(existing)) {
+      updates.lastOnlineAt = now;
+    }
 
     if (req.body.fcmToken !== undefined) {
       updates.fcmToken = String(req.body.fcmToken).trim();
@@ -1029,15 +1039,16 @@ export const heartbeat = async (req, res, next) => {
       updates.currentLocation = { lat, lng, updatedAt: now };
     }
 
-    const deliveryBoy = await DeliveryBoy.findByIdAndUpdate(
-      req.user.id,
+    const deliveryBoy = await DeliveryBoy.findOneAndUpdate(
+      { _id: req.user.id, status: existing.status },
       { $set: updates },
       { returnDocument: 'after' }
-    );
+    ) || await DeliveryBoy.findById(req.user.id);
 
     if (!deliveryBoy) {
       return res.status(404).json({
         success: false,
+        code: "RIDER_NOT_FOUND",
         message: "Delivery boy not found",
       });
     }
@@ -1216,17 +1227,10 @@ export const getTodayProgress = async (req, res, next) => {
 
     // Reset daily counters if IST day changed (and snapshot previous day)
     if (rider.todayOnlineDate && rider.todayOnlineDate !== todayISTDateString) {
-      snapshotDailyActivity(rider, {
-        date: rider.todayOnlineDate,
-        onlineMinutes: rider.todayOnlineMinutes || 0,
-        earnings: rider.todayEarnings || 0,
-        trips: rider.todayCompletedOrders || rider.todayOrderCount || 0,
-      });
+      ensureTodayOnlineTracking(rider);
       rider.todayEarnings = 0;
       rider.todayCompletedOrders = 0;
       rider.todayOrderCount = 0;
-      rider.todayOnlineMinutes = 0;
-      rider.todayOnlineDate = todayISTDateString;
       await rider.save();
     } else if (!rider.todayOnlineDate) {
       rider.todayOnlineDate = todayISTDateString;
@@ -1287,6 +1291,7 @@ export const getTodayProgress = async (req, res, next) => {
     // Source of truth for today: delivered orders in IST midnight → 23:59:59.999
     let computedEarnings = 0;
     let computedTrips = 0;
+    let totalDistanceKm = null;
     try {
       const dayStart = new Date(`${todayISTDateString}T00:00:00+05:30`);
       const dayEnd = new Date(`${todayISTDateString}T23:59:59.999+05:30`);
@@ -1294,8 +1299,9 @@ export const getTodayProgress = async (req, res, next) => {
         assignedRiderId: rider._id,
         status: "delivered",
         deliveredAt: { $gte: dayStart, $lte: dayEnd },
-      }).select("riderDeliveryEarning");
+      }).select("riderDeliveryEarning paymentSnapshot.distanceKm deliveryDistanceKm earningSnapshot");
       computedTrips = todaysDeliveries.length;
+      totalDistanceKm = todaysDeliveries.reduce((sum, order) => sum + tripDistanceKm(order), 0);
       computedEarnings = todaysDeliveries.reduce(
         (sum, o) => sum + Number(o.riderDeliveryEarning || 0),
         0
@@ -1337,6 +1343,7 @@ export const getTodayProgress = async (req, res, next) => {
       data: {
         todayEarnings: computedEarnings,
         completedTrips: computedTrips,
+        totalDistanceKm,
         onlineMinutes,
         onlineTime,
         bookedShifts: bookedShiftsCount,
@@ -1351,8 +1358,15 @@ export const getTodayProgress = async (req, res, next) => {
   }
 };
 
+function tripDistanceKm(order) {
+  const { sourceLat, sourceLng, customerLat, customerLng } = order.earningSnapshot ?? {};
+  return Number(order.paymentSnapshot?.distanceKm) ||
+    Number(order.deliveryDistanceKm) ||
+    calculateDeliveryDistanceKm(sourceLat, sourceLng, customerLat, customerLng) || 0;
+}
+
 /**
- * GET /activity-history?range=week|month|year
+ * GET /activity-history?range=day|week|month|year
  * Day (or month for year) boxes: date, earn, online time, shifts booked/completed, trips, total.
  */
 export const getActivityHistory = async (req, res, next) => {
@@ -1391,6 +1405,7 @@ export const getActivityHistory = async (req, res, next) => {
             shiftsBooked: 0,
             shiftsCompleted: 0,
             trips: 0,
+            totalDistanceKm: 0,
             total: 0,
           },
         };
@@ -1449,23 +1464,25 @@ export const getActivityHistory = async (req, res, next) => {
         assignedRiderId: rider._id,
         status: "delivered",
         deliveredAt: { $gte: rangeStart, $lte: rangeEnd },
-      }).select("riderDeliveryEarning deliveredAt");
+      }).select("riderDeliveryEarning deliveredAt paymentSnapshot.distanceKm deliveryDistanceKm earningSnapshot");
 
       const orderStatsByDate = {};
       for (const date of dateList) {
-        orderStatsByDate[date] = { earnings: 0, trips: 0 };
+        orderStatsByDate[date] = { earnings: 0, trips: 0, totalDistanceKm: 0 };
       }
       for (const order of allOrders) {
         const d = istDateString(order.deliveredAt);
         if (!orderStatsByDate[d]) continue;
         orderStatsByDate[d].trips += 1;
         orderStatsByDate[d].earnings += Number(order.riderDeliveryEarning || 0);
+        orderStatsByDate[d].totalDistanceKm += tripDistanceKm(order);
       }
 
       const rows = [];
       let totalEarnings = 0;
       let totalTrips = 0;
       let totalOnline = 0;
+      let totalDistanceKm = 0;
       let totalShiftsBooked = 0;
       let totalShiftsCompleted = 0;
 
@@ -1473,6 +1490,7 @@ export const getActivityHistory = async (req, res, next) => {
         const snap = activityMap.get(date);
         let earnings = orderStatsByDate[date].earnings;
         let trips = orderStatsByDate[date].trips;
+        const distanceKm = orderStatsByDate[date].totalDistanceKm;
         let onlineMinutes = Number(snap?.onlineMinutes || 0);
         let shiftsBooked = shiftStatsByDate[date].booked;
         let shiftsCompleted = shiftStatsByDate[date].completed;
@@ -1494,6 +1512,7 @@ export const getActivityHistory = async (req, res, next) => {
         const total = earnings;
         totalEarnings += earnings;
         totalTrips += trips;
+        totalDistanceKm += distanceKm;
         totalOnline += onlineMinutes;
         totalShiftsBooked += shiftsBooked;
         totalShiftsCompleted += shiftsCompleted;
@@ -1508,6 +1527,7 @@ export const getActivityHistory = async (req, res, next) => {
           shiftsBooked,
           shiftsCompleted,
           trips,
+          totalDistanceKm: distanceKm,
           total,
         });
       }
@@ -1521,6 +1541,7 @@ export const getActivityHistory = async (req, res, next) => {
           shiftsBooked: totalShiftsBooked,
           shiftsCompleted: totalShiftsCompleted,
           trips: totalTrips,
+          totalDistanceKm,
           total: totalEarnings,
         },
       };
@@ -1595,7 +1616,9 @@ export const getActivityHistory = async (req, res, next) => {
     }
 
     let dateList;
-    if (range === "month") {
+    if (range === "day") {
+      dateList = [todayStr];
+    } else if (range === "month") {
       const [y, m] = todayStr.split("-").map(Number);
       dateList = listIstDatesInMonth(y, m).filter((d) => d <= todayStr);
     } else {
@@ -1607,7 +1630,7 @@ export const getActivityHistory = async (req, res, next) => {
     return res.json({
       success: true,
       data: {
-        range: range === "month" ? "month" : "week",
+        range: range === "day" || range === "month" ? range : "week",
         granularity: "day",
         days,
         totals,

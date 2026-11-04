@@ -52,12 +52,6 @@ class AppBottomNavigation extends StatelessWidget {
             ),
             _tab(
               3,
-              Icons.account_balance_wallet_outlined,
-              Icons.account_balance_wallet_rounded,
-              l10n.wallet,
-            ),
-            _tab(
-              4,
               Icons.history_rounded,
               Icons.history_rounded,
               'History',

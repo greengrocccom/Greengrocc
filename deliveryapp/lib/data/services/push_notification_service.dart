@@ -256,7 +256,6 @@ class PushNotificationService {
         type == 'ORDER_COMPLETED' ||
         type == 'WALLET_CREDITED') {
       goTab(3);
-      nav?.pushNamed(AppRoutes.wallet);
       return;
     }
     if (screen == 'shifts' ||

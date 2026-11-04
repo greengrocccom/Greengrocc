@@ -19,23 +19,6 @@ const getTodayString = () =>
     day: "2-digit",
   }).format(new Date());
 
-const getNextDayString = (baseDateStr) => {
-  try {
-    const base = baseDateStr ? new Date(baseDateStr + "T12:00:00") : new Date();
-    base.setDate(base.getDate() + 1);
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(base);
-  } catch (e) {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
-  }
-};
-
 const lifecycleBadge = (lifecycle) => {
   if (lifecycle === "current" || lifecycle === "Live") {
     return "bg-emerald-100 text-emerald-800 border-emerald-200";
@@ -76,15 +59,6 @@ const parseTimeToMinutes = (timeStr) => {
   return hours * 60 + minutes;
 };
 
-const isAfterMidnightTime = (type, slots = []) => {
-  if (type === "late_night") return true;
-  if (!slots || slots.length === 0) return false;
-  const firstSlotStart = slots[0]?.startTime;
-  if (!firstSlotStart) return false;
-  const mins = parseTimeToMinutes(firstSlotStart);
-  return mins >= 0 && mins < 300;
-};
-
 const getDurationText = (startTime, endTime) => {
   if (!startTime || !endTime) return "";
   const startMin = parseTimeToMinutes(startTime);
@@ -96,16 +70,6 @@ const getDurationText = (startTime, endTime) => {
   }
   return `${diffHours.toFixed(1)} hrs`;
 };
-
-const SHIFT_TYPES = [
-  { id: "early_morning", label: "Early Morning Shift", defaultStart: "06:00 AM", defaultEnd: "09:00 AM" },
-  { id: "morning", label: "Morning Shift", defaultStart: "09:00 AM", defaultEnd: "01:00 PM" },
-  { id: "afternoon", label: "Afternoon Shift", defaultStart: "01:00 PM", defaultEnd: "05:00 PM" },
-  { id: "evening", label: "Evening Shift", defaultStart: "05:00 PM", defaultEnd: "09:00 PM" },
-  { id: "night", label: "Night Shift", defaultStart: "09:00 PM", defaultEnd: "12:00 AM" },
-  { id: "late_night", label: "Late Night Shift", defaultStart: "12:00 AM", defaultEnd: "04:00 AM" },
-  { id: "custom", label: "Custom Shift (Manager Defined)", defaultStart: "09:00 AM", defaultEnd: "05:00 PM" },
-];
 
 export const SHIFT_PALETTE = {
   early_morning: {
@@ -232,8 +196,6 @@ export default function ShiftManagementPage() {
   const [actionMenu, setActionMenu] = useState(null);
 
   // Modals state
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [showFixedPayConfirm, setShowFixedPayConfirm] = useState(false);
   const [selectedSlotForRiders, setSelectedSlotForRiders] = useState(null);
   const [riderDetailsModalData, setRiderDetailsModalData] = useState(null);
   const [editingSlot, setEditingSlot] = useState(null);
@@ -242,6 +204,7 @@ export default function ShiftManagementPage() {
   const [gigs, setGigs] = useState([]);
   const [loadingGigs, setLoadingGigs] = useState(false);
   const [isGigModalOpen, setIsGigModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // New Gig form state
   const [gigTitle, setGigTitle] = useState("");
@@ -281,20 +244,6 @@ export default function ShiftManagementPage() {
     updated[index][field] = Number(value) || 0;
     setGigTiers(updated);
   };
-
-  // New Shift form state
-  const [newShiftType, setNewShiftType] = useState("morning");
-  const [newShiftName, setNewShiftName] = useState("Morning Shift");
-  const [newCapacity, setNewCapacity] = useState(10);
-  const [recurrenceMode, setRecurrenceMode] = useState("single_day");
-  const [targetDate, setTargetDate] = useState(getTodayString());
-  const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState([1, 2, 3, 4, 5]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Slots array under shift
-  const [slotsList, setSlotsList] = useState([
-    { startTime: "09:00 AM", endTime: "01:00 PM", capacity: 10 },
-  ]);
 
   // Edit slot form state
   const [editCapacity, setEditCapacity] = useState(10);
@@ -358,100 +307,6 @@ export default function ShiftManagementPage() {
       window.removeEventListener("resize", handleDismiss);
     };
   }, [actionMenu]);
-
-  const handleShiftTypeChange = (typeId) => {
-    setNewShiftType(typeId);
-    const found = SHIFT_TYPES.find((t) => t.id === typeId);
-    if (found) {
-      setNewShiftName(found.label);
-      const newSlots = [
-        { startTime: found.defaultStart, endTime: found.defaultEnd, capacity: parseInt(newCapacity, 10) || 10 }
-      ];
-      setSlotsList(newSlots);
-
-      // If shift is after 12 AM (e.g. Late Night Shift 12:00 AM - 04:00 AM), advance date to next day
-      if (typeId === "late_night" || isAfterMidnightTime(typeId, newSlots)) {
-        setTargetDate(getNextDayString(selectedDate || getTodayString()));
-      } else {
-        if (targetDate === getNextDayString(selectedDate || getTodayString())) {
-          setTargetDate(selectedDate || getTodayString());
-        }
-      }
-    }
-  };
-
-  const addSlotRow = () => {
-    if (slotsList.length >= 4) {
-      showToast("Maximum 4 slots allowed per shift");
-      return;
-    }
-    setSlotsList([
-      ...slotsList,
-      { startTime: "01:00 PM", endTime: "05:00 PM", capacity: parseInt(newCapacity, 10) || 10 },
-    ]);
-  };
-
-  const removeSlotRow = (index) => {
-    if (slotsList.length <= 1) return;
-    setSlotsList(slotsList.filter((_, i) => i !== index));
-  };
-
-  const updateSlotRow = (index, field, value) => {
-    const updated = [...slotsList];
-    updated[index][field] = value;
-    setSlotsList(updated);
-
-    if (field === "startTime" && index === 0) {
-      const mins = parseTimeToMinutes(value);
-      if (mins >= 0 && mins < 300) {
-        const baseDate = selectedDate || getTodayString();
-        if (targetDate === baseDate) {
-          setTargetDate(getNextDayString(baseDate));
-        }
-      }
-    }
-  };
-
-  const handleCreateShift = async (e) => {
-    e.preventDefault();
-    setShowFixedPayConfirm(true);
-  };
-
-  const confirmCreateShift = async () => {
-    setShowFixedPayConfirm(false);
-    let finalTargetDate = targetDate;
-    const isAfterMidnight = isAfterMidnightTime(newShiftType, slotsList);
-    const baseDate = selectedDate || getTodayString();
-    if (isAfterMidnight && recurrenceMode === "single_day" && targetDate === baseDate) {
-      finalTargetDate = getNextDayString(baseDate);
-    }
-
-    setIsSubmitting(true);
-    try {
-      const res = await managerApi.createShift({
-        name: newShiftName,
-        type: newShiftType,
-        capacity: parseInt(newCapacity, 10) || 10,
-        maxCapacityPerSlot: parseInt(newCapacity, 10) || 10,
-        customSlots: slotsList.map((s) => ({
-          startTime: s.startTime,
-          endTime: s.endTime,
-          capacity: parseInt(s.capacity || newCapacity, 10) || 10,
-        })),
-        recurrenceMode,
-        targetDate: finalTargetDate,
-        daysOfWeek: selectedDaysOfWeek,
-      });
-
-      showToast(res.data.message || "Shift created successfully!");
-      setIsCreateModalOpen(false);
-      await loadShifts();
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to create shift");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleCreateGig = async (e) => {
     e.preventDefault();
@@ -555,12 +410,6 @@ export default function ShiftManagementPage() {
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to delete shift");
     }
-  };
-
-  const toggleDayOfWeek = (dayNum) => {
-    setSelectedDaysOfWeek((prev) =>
-      prev.includes(dayNum) ? prev.filter((d) => d !== dayNum) : [...prev, dayNum]
-    );
   };
 
   const currentDateObj = formatDateWithDay(getTodayString());
@@ -1195,241 +1044,6 @@ export default function ShiftManagementPage() {
             </button>
           </div>
         </>
-      )}
-
-      {/* CREATE SHIFT MODAL */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Create Shift & Custom Time Slots</h3>
-                <p className="text-xs text-slate-500">Select shift preset and customize exact start & end hours</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateShift} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  Select Shift Type
-                </label>
-                <select
-                  value={newShiftType}
-                  onChange={(e) => handleShiftTypeChange(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:border-emerald-500 focus:outline-none"
-                >
-                  {SHIFT_TYPES.map((st) => (
-                    <option key={st.id} value={st.id}>
-                      {st.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                    Shift Display Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newShiftName}
-                    onChange={(e) => setNewShiftName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                    Capacity Per Slot
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={newCapacity}
-                    onChange={(e) => setNewCapacity(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium text-slate-900"
-                  />
-                </div>
-              </div>
-
-              {/* MANAGER CUSTOM TIME SLOTS CONFIGURATION */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                      Manager Time Slots (Start & End Time)
-                    </label>
-                    <p className="text-[11px] text-slate-500">Edit start and end time for this shift</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addSlotRow}
-                    className="rounded-lg bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-200 transition"
-                  >
-                    + Add Time Slot
-                  </button>
-                </div>
-
-                {slotsList.map((cs, idx) => (
-                  <div key={idx} className="flex items-center gap-2 rounded-xl bg-white p-2.5 border border-slate-200">
-                    <span className="text-[11px] font-bold text-slate-400 w-5">#{idx + 1}</span>
-                    <div className="flex-1 grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Start Time</span>
-                        <input
-                          type="text"
-                          value={cs.startTime}
-                          onChange={(e) => updateSlotRow(idx, "startTime", e.target.value)}
-                          placeholder="e.g. 06:00 AM"
-                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-900"
-                        />
-                      </div>
-                      <div>
-                        <span className="block text-[9px] font-bold text-slate-400 uppercase">End Time</span>
-                        <input
-                          type="text"
-                          value={cs.endTime}
-                          onChange={(e) => updateSlotRow(idx, "endTime", e.target.value)}
-                          placeholder="e.g. 02:00 PM"
-                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-900"
-                        />
-                      </div>
-                    </div>
-                    {slotsList.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeSlotRow(idx)}
-                        className="text-xs text-rose-600 font-bold p-1 hover:bg-rose-50 rounded"
-                        title="Remove Slot"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
-                Rider salary or KM commission is fixed in Rider Payment Settings. Creating this shift will not change the rider&apos;s payment amount.
-              </div>
-
-              {/* RECURRENCE SCHEDULE */}
-              <div className="rounded-xl bg-slate-50 p-4 border border-slate-200 space-y-3">
-                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide">Recurrence Schedule</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: "single_day", label: "Single Day" },
-                    { id: "full_week", label: "Full Week" },
-                    { id: "full_month", label: "Full Month" },
-                  ].map((rec) => (
-                    <button
-                      key={rec.id}
-                      type="button"
-                      onClick={() => setRecurrenceMode(rec.id)}
-                      className={`rounded-lg py-2 text-xs font-bold border transition-all ${
-                        recurrenceMode === rec.id
-                          ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                          : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      {rec.label}
-                    </button>
-                  ))}
-                </div>
-
-                {recurrenceMode === "single_day" && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Target Date</label>
-                    <input
-                      type="date"
-                      value={targetDate}
-                      onChange={(e) => setTargetDate(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold"
-                    />
-                    {isAfterMidnightTime(newShiftType, slotsList) && (
-                      <p className="mt-1.5 text-[11px] font-semibold text-purple-700 flex items-center gap-1">
-                        <span>🌙 Shift after 12:00 AM — Scheduled for Next Day: {formatDateWithDay(targetDate).formatted || targetDate}</span>
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {(recurrenceMode === "full_week" || recurrenceMode === "full_month") && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Active Days of Week</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { num: 1, label: "Mon" },
-                        { num: 2, label: "Tue" },
-                        { num: 3, label: "Wed" },
-                        { num: 4, label: "Thu" },
-                        { num: 5, label: "Fri" },
-                        { num: 6, label: "Sat" },
-                        { num: 0, label: "Sun" },
-                      ].map((day) => {
-                        const active = selectedDaysOfWeek.includes(day.num);
-                        return (
-                          <button
-                            key={day.num}
-                            type="button"
-                            onClick={() => toggleDayOfWeek(day.num)}
-                            className={`h-8 w-10 rounded-lg text-xs font-bold transition-all ${
-                              active ? "bg-emerald-600 text-white" : "bg-white text-slate-600 border border-slate-200"
-                            }`}
-                          >
-                            {day.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow hover:bg-emerald-700 transition"
-                >
-                  {isSubmitting ? "Creating Shift..." : "Create Shift"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showFixedPayConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="fixed-shift-pay-title">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
-            <h2 id="fixed-shift-pay-title" className="text-base font-bold text-slate-900">Rider payment amount is fixed</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Salary or KM commission is already set in Rider Payment Settings. This shift will not change those amounts.
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={() => setShowFixedPayConfirm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Review shift</button>
-              <button type="button" disabled={isSubmitting} onClick={confirmCreateShift} className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-60">{isSubmitting ? "Creating…" : "Confirm & Create Shift"}</button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* EDIT SLOT MODAL */}

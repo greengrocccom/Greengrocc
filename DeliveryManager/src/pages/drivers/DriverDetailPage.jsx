@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
@@ -50,13 +50,17 @@ export default function DriverDetailPage() {
     }
   }, []);
 
+  const [period, setPeriod] = useState("day"); // "day" | "week" | "month"
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
   const loadDriverDetails = useCallback(
-    async ({ silent = false, dateToFetch = selectedDate } = {}) => {
+    async ({ silent = false, dateToFetch = selectedDate, periodToFetch = period } = {}) => {
       try {
         if (!silent && !initialLoadDone.current) setLoading(true);
-        const res = await managerApi.getDriverDetails(driverId, { date: dateToFetch });
+        const res = await managerApi.getDriverDetails(driverId, {
+          date: dateToFetch,
+          period: periodToFetch,
+        });
         if (res.data?.success) {
           setData(res.data.data);
           setError("");
@@ -72,22 +76,76 @@ export default function DriverDetailPage() {
         if (!silent) setLoading(false);
       }
     },
-    [driverId, selectedDate]
+    [driverId, selectedDate, period]
   );
 
-  useLive(loadDriverDetails, [driverId, selectedDate]);
+  useLive(loadDriverDetails, [driverId, selectedDate, period]);
 
-  const handleDateChange = async (newDate) => {
-    if (!newDate || newDate === selectedDate) return;
+  useEffect(() => {
+    if (activeTab !== "performance" || (period === "day" && selectedDate !== todayStr)) return;
+    let cancelled = false;
+    let refreshing = false;
+    const refresh = async () => {
+      if (refreshing || document.visibilityState !== "visible") return;
+      refreshing = true;
+      try {
+        const res = await managerApi.getDriverDetails(driverId, { date: selectedDate, period }, { live: false });
+        if (!cancelled && res.data?.success) setData(res.data.data);
+      } catch {
+        // Keep the last successful stats during a temporary network failure.
+      } finally {
+        refreshing = false;
+      }
+    };
+    const timer = window.setInterval(refresh, 60_000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [activeTab, driverId, period, selectedDate, todayStr]);
+
+  const handleDateChange = async (newDate, overridePeriod = period) => {
+    if (!newDate) return;
     setSelectedDate(newDate);
     try {
       setDateLoading(true);
-      const res = await managerApi.getDriverDetails(driverId, { date: newDate });
+      const res = await managerApi.getDriverDetails(driverId, {
+        date: newDate,
+        period: overridePeriod,
+      });
       if (res.data?.success) {
         setData(res.data.data);
       }
     } catch (err) {
       console.error("Error updating date stats:", err);
+    } finally {
+      setDateLoading(false);
+    }
+  };
+
+  const handlePeriodChange = async (newPeriod) => {
+    if (newPeriod === period) return;
+    setPeriod(newPeriod);
+    let targetDate = selectedDate;
+    if (newPeriod === "month") {
+      targetDate = selectedDate.slice(0, 7);
+    } else if (selectedDate.length === 7) {
+      targetDate = todayStr;
+    }
+    setSelectedDate(targetDate);
+    try {
+      setDateLoading(true);
+      const res = await managerApi.getDriverDetails(driverId, {
+        date: targetDate,
+        period: newPeriod,
+      });
+      if (res.data?.success) {
+        setData(res.data.data);
+      }
+    } catch (err) {
+      console.error("Error changing period:", err);
     } finally {
       setDateLoading(false);
     }
@@ -160,7 +218,7 @@ export default function DriverDetailPage() {
 
   const getYesterdayStr = (dateStr) => {
     try {
-      const d = new Date(`${dateStr}T12:00:00+05:30`);
+      const d = new Date(`${dateStr.slice(0, 10)}T12:00:00+05:30`);
       d.setDate(d.getDate() - 1);
       return new Intl.DateTimeFormat("en-CA", {
         timeZone: "Asia/Kolkata",
@@ -172,6 +230,57 @@ export default function DriverDetailPage() {
       return "";
     }
   };
+
+  const getLastWeekDateStr = (dateStr) => {
+    try {
+      const d = new Date(`${dateStr.slice(0, 10)}T12:00:00+05:30`);
+      d.setDate(d.getDate() - 7);
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(d);
+    } catch (_) {
+      return "";
+    }
+  };
+
+  const currentMonthStr = useMemo(() => {
+    return todayStr.slice(0, 7);
+  }, [todayStr]);
+
+  const getLastMonthStr = () => {
+    try {
+      const [y, m] = todayStr.split("-").map(Number);
+      const prevYear = m === 1 ? y - 1 : y;
+      const prevMonth = m === 1 ? 12 : m - 1;
+      return `${prevYear}-${String(prevMonth).padStart(2, "0")}`;
+    } catch (_) {
+      return "";
+    }
+  };
+
+  const isCurrentWeek = useMemo(() => {
+    if (period !== "week") return false;
+    try {
+      const now = new Date(`${todayStr}T12:00:00+05:30`);
+      const sel = new Date(`${selectedDate.slice(0, 10)}T12:00:00+05:30`);
+      const nowDayOfWeek = (now.getDay() + 6) % 7;
+      const monday = new Date(now);
+      monday.setDate(monday.getDate() - nowDayOfWeek);
+      const sunday = new Date(monday);
+      sunday.setDate(sunday.getDate() + 6);
+      return sel >= monday && sel <= sunday;
+    } catch (_) {
+      return false;
+    }
+  }, [period, todayStr, selectedDate]);
+
+  const isCurrentMonth = useMemo(() => {
+    if (period !== "month") return false;
+    return selectedDate.slice(0, 7) === currentMonthStr;
+  }, [period, currentMonthStr, selectedDate]);
 
   const maskAccountNumber = (accNo) => {
     if (!accNo || typeof accNo !== "string" || accNo.trim().length === 0) {
@@ -239,6 +348,8 @@ export default function DriverDetailPage() {
   const isPending = driver.verificationStatus === "pending";
   const isRejected = driver.verificationStatus === "rejected";
   const isSelectedToday = selectedDate === todayStr;
+
+  const isLivePeriod = period === "day" ? isSelectedToday : period === "week" ? isCurrentWeek : isCurrentMonth;
 
   const docList = [
     { key: "aadhaar", label: "Aadhaar Card", meta: documents.aadhaar },
@@ -457,45 +568,162 @@ export default function DriverDetailPage() {
       {/* TAB 1: DATE-WISE PERFORMANCE OVERVIEW */}
       {activeTab === "performance" && (
         <div className="space-y-4">
-          {/* Top Date Filter Bar */}
-          <div className="rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-2xs">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Top Date / Period Filter Bar */}
+          <div className="rounded-lg border border-slate-200/90 bg-white px-3.5 py-2 shadow-2xs">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Date:
-                </span>
+                {/* Period Mode Selector: Day / Week / Month */}
+                <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handlePeriodChange("day")}
+                    className={`rounded-md px-2.5 py-0.5 text-xs font-semibold transition ${
+                      period === "day"
+                        ? "bg-white text-emerald-700 shadow-2xs font-bold"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    Day
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePeriodChange("week")}
+                    className={`rounded-md px-2.5 py-0.5 text-xs font-semibold transition ${
+                      period === "week"
+                        ? "bg-white text-emerald-700 shadow-2xs font-bold"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    Week
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePeriodChange("month")}
+                    className={`rounded-md px-2.5 py-0.5 text-xs font-semibold transition ${
+                      period === "month"
+                        ? "bg-white text-emerald-700 shadow-2xs font-bold"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    Month
+                  </button>
+                </div>
 
-                <input
-                  type="date"
-                  max={todayStr}
-                  value={selectedDate}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500 focus:bg-white transition"
-                />
+                <div className="h-4 w-px bg-slate-200 mx-0.5" />
 
-                <button
-                  type="button"
-                  onClick={() => handleDateChange(todayStr)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold border transition ${
-                    isSelectedToday
-                      ? "bg-emerald-600 text-white border-emerald-600"
-                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  Today
-                </button>
+                {/* Day View Controls */}
+                {period === "day" && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Date:
+                    </span>
+                    <input
+                      type="date"
+                      max={todayStr}
+                      value={selectedDate.slice(0, 10)}
+                      onChange={(e) => handleDateChange(e.target.value)}
+                      className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500 focus:bg-white transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDateChange(todayStr)}
+                      className={`rounded-lg px-2 py-0.5 text-xs font-semibold border transition ${
+                        isSelectedToday
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      Today
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDateChange(getYesterdayStr(todayStr))}
+                      className={`rounded-lg px-2 py-0.5 text-xs font-semibold border transition ${
+                        selectedDate === getYesterdayStr(todayStr)
+                          ? "bg-slate-900 text-white border-slate-900"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      Yesterday
+                    </button>
+                  </div>
+                )}
 
-                <button
-                  type="button"
-                  onClick={() => handleDateChange(getYesterdayStr(todayStr))}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold border transition ${
-                    selectedDate === getYesterdayStr(todayStr)
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  Yesterday
-                </button>
+                {/* Week View Controls */}
+                {period === "week" && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Week Of:
+                    </span>
+                    <input
+                      type="date"
+                      max={todayStr}
+                      value={selectedDate.slice(0, 10)}
+                      onChange={(e) => handleDateChange(e.target.value)}
+                      className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500 focus:bg-white transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDateChange(todayStr)}
+                      className={`rounded-lg px-2 py-0.5 text-xs font-semibold border transition ${
+                        isCurrentWeek
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      This Week
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDateChange(getLastWeekDateStr(todayStr))}
+                      className={`rounded-lg px-2 py-0.5 text-xs font-semibold border transition ${
+                        !isCurrentWeek && selectedDate === getLastWeekDateStr(todayStr)
+                          ? "bg-slate-900 text-white border-slate-900"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      Last Week
+                    </button>
+                  </div>
+                )}
+
+                {/* Month View Controls */}
+                {period === "month" && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Month:
+                    </span>
+                    <input
+                      type="month"
+                      max={currentMonthStr}
+                      value={selectedDate.slice(0, 7)}
+                      onChange={(e) => handleDateChange(e.target.value)}
+                      className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500 focus:bg-white transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDateChange(currentMonthStr)}
+                      className={`rounded-lg px-2 py-0.5 text-xs font-semibold border transition ${
+                        isCurrentMonth
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      This Month
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDateChange(getLastMonthStr())}
+                      className={`rounded-lg px-2 py-0.5 text-xs font-semibold border transition ${
+                        !isCurrentMonth && selectedDate.slice(0, 7) === getLastMonthStr()
+                          ? "bg-slate-900 text-white border-slate-900"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      Last Month
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -506,11 +734,13 @@ export default function DriverDetailPage() {
                 )}
                 <div className="text-right">
                   <span className="text-xs font-bold text-slate-800">
-                    {formatDayTitle(selectedDate)}
+                    {period === "day"
+                      ? formatDayTitle(selectedDate)
+                      : perf.periodLabel || (period === "week" ? "Selected Week" : "Selected Month")}
                   </span>
-                  {isSelectedToday ? (
+                  {isLivePeriod ? (
                     <span className="ml-2 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">
-                      LIVE
+                      {period === "day" ? "LIVE" : period === "week" ? "THIS WEEK" : "THIS MONTH"}
                     </span>
                   ) : (
                     <span className="ml-2 rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-medium">
@@ -523,15 +753,15 @@ export default function DriverDetailPage() {
           </div>
 
           {/* Row 1: Attendance, Online/Offline Time & Rating */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {/* Attendance Status */}
-            <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+            <div className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Attendance
                 </span>
                 <span
-                  className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
                     perf.attendance === "Present"
                       ? "bg-emerald-100 text-emerald-800"
                       : "bg-slate-100 text-slate-600"
@@ -540,219 +770,192 @@ export default function DriverDetailPage() {
                   {perf.attendance || "Absent"}
                 </span>
               </div>
-              <div className="mt-1.5">
-                <p className="text-lg font-bold text-slate-900">
-                  {perf.attendance === "Present" ? "On Duty" : "Off Duty"}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {perf.shiftsBooked || 0} shift booked • {perf.shiftsCompleted || 0} completed
+              <div className="mt-1">
+                <p className="text-sm font-bold text-slate-900">
+                  {period === "day"
+                    ? (perf.attendance === "Present" ? "On Duty" : "Off Duty")
+                    : `${perf.daysPresent || 0} / ${perf.totalDays || (period === "week" ? 7 : 30)} Days`}
                 </p>
               </div>
             </div>
 
             {/* Online Time */}
-            <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+            <div className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Online Time
                 </span>
-                <span className="text-[10px] text-emerald-600 font-medium">Active</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
               </div>
-              <div className="mt-1.5">
-                <p className="text-lg font-bold text-emerald-700">
-                  {perf.onlineTime || "0m"}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Logged on duty ({perf.onlineMinutes || 0} mins)
+              <div className="mt-1">
+                <p className="text-sm font-bold text-emerald-700">
+                  {perf.onlineTime || "0 minute"}
                 </p>
               </div>
             </div>
 
             {/* Offline Time */}
-            <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+            <div className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Offline Time
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">Rest</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300 inline-block" />
               </div>
-              <div className="mt-1.5">
-                <p className="text-lg font-bold text-slate-700">
-                  {perf.offlineTime || "24h 0m"}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Non-working hours
+              <div className="mt-1">
+                <p className="text-sm font-bold text-slate-700">
+                  {perf.offlineTime || "24 hr"}
                 </p>
               </div>
             </div>
 
             {/* Driver Rating */}
-            <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+            <div className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Driver Rating
                 </span>
-                <span className="text-[10px] font-bold text-amber-700">
-                  {ratingVal.toFixed(1)} / 5.0
-                </span>
+                <span className="text-[10px] text-amber-500 font-bold">★</span>
               </div>
-              <div className="mt-1.5">
-                <p className="text-lg font-bold text-amber-700">
-                  {ratingVal.toFixed(1)} <span className="text-xs font-normal text-slate-500">out of 5.0</span>
+              <div className="mt-1 flex items-baseline gap-1">
+                <p className="text-sm font-bold text-amber-700">
+                  {ratingVal.toFixed(1)}
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {ratingsCount} verified reviews
-                </p>
+                <span className="text-[10px] text-slate-400">/ 5.0</span>
               </div>
             </div>
           </div>
 
           {/* Row 2: Orders Performance Breakdown (6 Cards) */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Order Fulfillment
               </h2>
-              <span className="text-xs text-slate-500">
-                Total Assigned: <strong className="text-slate-800">{perf.totalAssigned || 0}</strong>
+              <span className="text-[11px] text-slate-500">
+                Total Assigned: <strong className="text-slate-800 font-semibold">{perf.totalAssigned || 0}</strong>
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+              <div className="rounded-lg border border-slate-200/90 bg-white p-2 shadow-2xs">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Assigned
                 </p>
-                <p className="text-lg font-bold text-slate-800 mt-0.5">
+                <p className="text-sm font-bold text-slate-800 mt-0.5">
                   {perf.totalAssigned || 0}
                 </p>
-                <span className="text-[11px] text-slate-500">Total routed</span>
               </div>
 
-              <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs">
+              <div className="rounded-lg border border-slate-200/90 bg-white p-2 shadow-2xs">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
                   Delivered
                 </p>
-                <p className="text-lg font-bold text-emerald-700 mt-0.5">
+                <p className="text-sm font-bold text-emerald-700 mt-0.5">
                   {perf.deliveredCount || 0}
                 </p>
-                <span className="text-[11px] text-emerald-700/80">Completed</span>
               </div>
 
-              <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs">
+              <div className="rounded-lg border border-slate-200/90 bg-white p-2 shadow-2xs">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-700">
                   Cancelled / Failed
                 </p>
-                <p className="text-lg font-bold text-rose-700 mt-0.5">
+                <p className="text-sm font-bold text-rose-700 mt-0.5">
                   {perf.cancelledCount || 0}
                 </p>
-                <span className="text-[11px] text-rose-700/80">Not delivered</span>
               </div>
 
-              <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs">
+              <div className="rounded-lg border border-slate-200/90 bg-white p-2 shadow-2xs">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-700">
                   Accepted
                 </p>
-                <p className="text-lg font-bold text-sky-800 mt-0.5">
+                <p className="text-sm font-bold text-sky-800 mt-0.5">
                   {perf.acceptedCount || 0}
                 </p>
-                <span className="text-[11px] text-sky-700/80">Accepted</span>
               </div>
 
-              <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs">
+              <div className="rounded-lg border border-slate-200/90 bg-white p-2 shadow-2xs">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Rejected / Skipped
                 </p>
-                <p className="text-lg font-bold text-slate-700 mt-0.5">
+                <p className="text-sm font-bold text-slate-700 mt-0.5">
                   {perf.rejectedCount || 0}
                 </p>
-                <span className="text-[11px] text-slate-500">Declined</span>
               </div>
 
-              <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs">
+              <div className="rounded-lg border border-slate-200/90 bg-white p-2 shadow-2xs">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
                   On-Time Rate
                 </p>
-                <p className="text-lg font-bold text-amber-800 mt-0.5">
+                <p className="text-sm font-bold text-amber-800 mt-0.5">
                   {perf.onTimeRate ?? 100}%
                 </p>
-                <span className="text-[11px] text-amber-700/80">
-                  {perf.delayedCount || 0} delays
-                </span>
               </div>
             </div>
           </div>
 
           {/* Row 3: Financial & Commission Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <div className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                 Total Commission
               </span>
-              <p className="text-lg font-bold text-emerald-700 mt-1">
+              <p className="text-sm font-bold text-emerald-700 mt-1">
                 ₹{perf.totalEarnings || 0}
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Earnings for {formatDayTitle(selectedDate)}
               </p>
             </div>
 
-            <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+            <div className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                 Distance Traveled
               </span>
-              <p className="text-lg font-bold text-slate-800 mt-1">
-                {perf.totalKm || 0} <span className="text-xs font-normal text-slate-500">km</span>
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Calculated as Distance × Rate
+              <p className="text-sm font-bold text-slate-800 mt-1">
+                {perf.totalKm || 0} <span className="text-[10px] font-normal text-slate-500">km</span>
               </p>
             </div>
 
-            <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+            <div className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                 Cash Collected (COD)
               </span>
-              <p className="text-lg font-bold text-slate-800 mt-1">
+              <p className="text-sm font-bold text-slate-800 mt-1">
                 ₹{perf.cashCollectedToday || 0}
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Collected from customers on {selectedDate}
               </p>
             </div>
 
-            <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+            <div className="rounded-lg border border-slate-200/90 bg-white p-2.5 shadow-2xs">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                 Cash Pending Settlement
               </span>
-              <p className="text-lg font-bold text-amber-800 mt-1">
+              <p className="text-sm font-bold text-amber-800 mt-1">
                 ₹{perf.pendingCashToCollect || 0}
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Due to be handed to store manager
               </p>
             </div>
           </div>
 
           {/* Row 4: Day-over-Day Comparison */}
-          <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div className="rounded-lg border border-slate-200/90 bg-white p-3 shadow-2xs">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2">
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Performance vs Previous Day
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  {period === "day"
+                    ? "Performance vs Previous Day"
+                    : period === "week"
+                    ? "Performance vs Previous Week"
+                    : "Performance vs Previous Month"}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Comparing {selectedDate} with {comp.prevDate || "yesterday"}
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Comparing {perf.periodLabel || selectedDate} with {comp.prevDate || ("previous " + period)}
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
-              <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-600">Delivered Orders</span>
+                  <span className="text-[11px] font-medium text-slate-600">Delivered Orders</span>
                   <span
-                    className={`text-[11px] font-bold px-1.5 py-0.2 rounded ${
+                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
                       deliveredDelta.isPositive
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-rose-100 text-rose-800"
@@ -761,11 +964,11 @@ export default function DriverDetailPage() {
                     {deliveredDelta.text}
                   </span>
                 </div>
-                <div className="mt-2 flex items-baseline justify-between text-xs">
+                <div className="mt-1 flex items-baseline justify-between text-[11px]">
                   <span>Current: <strong className="text-slate-900 font-bold">{comp.current?.delivered || 0}</strong></span>
-                  <span className="text-slate-500">Prev: {comp.previous?.delivered || 0}</span>
+                  <span className="text-slate-400 text-[10px]">Prev: {comp.previous?.delivered || 0}</span>
                 </div>
-                <div className="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                <div className="mt-1.5 w-full bg-slate-200/70 h-1 rounded-full overflow-hidden">
                   <div
                     className="bg-emerald-600 h-full rounded-full"
                     style={{
@@ -783,11 +986,11 @@ export default function DriverDetailPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-600">Earnings</span>
+                  <span className="text-[11px] font-medium text-slate-600">Earnings</span>
                   <span
-                    className={`text-[11px] font-bold px-1.5 py-0.2 rounded ${
+                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
                       earningsDelta.isPositive
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-rose-100 text-rose-800"
@@ -796,11 +999,11 @@ export default function DriverDetailPage() {
                     {earningsDelta.text}
                   </span>
                 </div>
-                <div className="mt-2 flex items-baseline justify-between text-xs">
+                <div className="mt-1 flex items-baseline justify-between text-[11px]">
                   <span>Current: <strong className="text-emerald-700 font-bold">₹{comp.current?.earnings || 0}</strong></span>
-                  <span className="text-slate-500">Prev: ₹{comp.previous?.earnings || 0}</span>
+                  <span className="text-slate-400 text-[10px]">Prev: ₹{comp.previous?.earnings || 0}</span>
                 </div>
-                <div className="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                <div className="mt-1.5 w-full bg-slate-200/70 h-1 rounded-full overflow-hidden">
                   <div
                     className="bg-emerald-600 h-full rounded-full"
                     style={{
@@ -818,11 +1021,11 @@ export default function DriverDetailPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-600">Online Hours</span>
+                  <span className="text-[11px] font-medium text-slate-600">Online Hours</span>
                   <span
-                    className={`text-[11px] font-bold px-1.5 py-0.2 rounded ${
+                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
                       onlineMinsDelta.isPositive
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-rose-100 text-rose-800"
@@ -831,11 +1034,11 @@ export default function DriverDetailPage() {
                     {onlineMinsDelta.text}
                   </span>
                 </div>
-                <div className="mt-2 flex items-baseline justify-between text-xs">
+                <div className="mt-1 flex items-baseline justify-between text-[11px]">
                   <span>Current: <strong className="text-slate-900 font-bold">{Math.round((comp.current?.onlineMins || 0) / 60 * 10) / 10}h</strong></span>
-                  <span className="text-slate-500">Prev: {Math.round((comp.previous?.onlineMins || 0) / 60 * 10) / 10}h</span>
+                  <span className="text-slate-400 text-[10px]">Prev: {Math.round((comp.previous?.onlineMins || 0) / 60 * 10) / 10}h</span>
                 </div>
-                <div className="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                <div className="mt-1.5 w-full bg-slate-200/70 h-1 rounded-full overflow-hidden">
                   <div
                     className="bg-slate-700 h-full rounded-full"
                     style={{
@@ -853,16 +1056,16 @@ export default function DriverDetailPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-600">On-Time %</span>
-                  <span className="text-[11px] font-semibold text-slate-500">Target: 95%</span>
+                  <span className="text-[11px] font-medium text-slate-600">On-Time %</span>
+                  <span className="text-[10px] font-semibold text-slate-400">Target: 95%</span>
                 </div>
-                <div className="mt-2 flex items-baseline justify-between text-xs">
+                <div className="mt-1 flex items-baseline justify-between text-[11px]">
                   <span>Current: <strong className="text-amber-800 font-bold">{comp.current?.onTimeRate ?? 100}%</strong></span>
-                  <span className="text-slate-500">Prev: {comp.previous?.onTimeRate ?? 95}%</span>
+                  <span className="text-slate-400 text-[10px]">Prev: {comp.previous?.onTimeRate ?? 95}%</span>
                 </div>
-                <div className="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                <div className="mt-1.5 w-full bg-slate-200/70 h-1 rounded-full overflow-hidden">
                   <div
                     className="bg-amber-600 h-full rounded-full"
                     style={{ width: `${comp.current?.onTimeRate ?? 100}%` }}
@@ -873,23 +1076,25 @@ export default function DriverDetailPage() {
           </div>
 
           {/* Row 5: Orders on Selected Date Table */}
-          <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div className="rounded-lg border border-slate-200/90 bg-white p-3 shadow-2xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Orders Handled on {selectedDate}
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  {period === "day"
+                    ? `Orders Handled on ${selectedDate}`
+                    : `Orders Handled during ${perf.periodLabel || "Selected Period"}`}
                 </h3>
-                <p className="text-xs text-slate-500">
-                  {ordersList.length} total orders recorded for this date
+                <p className="text-[10px] text-slate-400">
+                  {ordersList.length} total orders recorded for this {period}
                 </p>
               </div>
 
               {ordersList.length > 0 && (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="rounded bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 font-medium">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="rounded bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-medium">
                     {ordersList.filter((o) => o.status === "delivered").length} Delivered
                   </span>
-                  <span className="rounded bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 font-medium">
+                  <span className="rounded bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 text-[10px] font-medium">
                     ₹{ordersList.reduce((sum, o) => sum + (Number(o.earning) || 0), 0)} Total Payout
                   </span>
                 </div>
@@ -900,39 +1105,39 @@ export default function DriverDetailPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="py-2.5 px-3">Order #</th>
-                    <th className="py-2.5 px-3">Time</th>
-                    <th className="py-2.5 px-3">Customer & Area</th>
-                    <th className="py-2.5 px-3">Distance</th>
-                    <th className="py-2.5 px-3">Payment</th>
-                    <th className="py-2.5 px-3">Commission</th>
-                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2 px-2.5">Order #</th>
+                    <th className="py-2 px-2.5">Time</th>
+                    <th className="py-2 px-2.5">Customer & Area</th>
+                    <th className="py-2 px-2.5">Distance</th>
+                    <th className="py-2 px-2.5">Payment</th>
+                    <th className="py-2 px-2.5">Commission</th>
+                    <th className="py-2 px-2.5">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {ordersList.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-6 text-center text-slate-400 font-normal">
+                      <td colSpan={7} className="py-4 text-center text-slate-400 font-normal text-xs">
                         No orders recorded for this date.
                       </td>
                     </tr>
                   ) : (
                     ordersList.map((ord, idx) => (
                       <tr key={ord.id || idx} className="hover:bg-slate-50/60 transition">
-                        <td className="py-2.5 px-3 font-semibold text-slate-800">
+                        <td className="py-2 px-2.5 font-semibold text-slate-800">
                           #{ord.orderNumber || (ord.id ? ord.id.slice(-6).toUpperCase() : `ORD-${idx + 1}`)}
                         </td>
-                        <td className="py-2.5 px-3 text-slate-600">
+                        <td className="py-2 px-2.5 text-slate-600">
                           {formatTimeOnly(ord.deliveredAt || ord.assignedAt || ord.createdAt)}
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-2 px-2.5">
                           <p className="font-medium text-slate-800">{ord.customerName || "Customer"}</p>
                           <p className="text-[11px] text-slate-500 truncate max-w-xs">{ord.customerAddress || "Store order"}</p>
                         </td>
-                        <td className="py-2.5 px-3 text-slate-700">
+                        <td className="py-2 px-2.5 text-slate-700">
                           {ord.distanceKm ? `${Number(ord.distanceKm).toFixed(1)} km` : "—"}
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-2 px-2.5">
                           <span
                             className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
                               String(ord.paymentMode).toLowerCase() === "cod" || String(ord.paymentMode).toLowerCase() === "cash"
@@ -943,10 +1148,10 @@ export default function DriverDetailPage() {
                             {ord.paymentMode || "Online"} (₹{ord.amount || 0})
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 font-semibold text-emerald-700">
+                        <td className="py-2 px-2.5 font-semibold text-emerald-700">
                           ₹{ord.earning || 0}
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-2 px-2.5">
                           <span
                             className={`inline-flex rounded px-2 py-0.5 text-[10px] font-semibold border ${
                               ord.status === "delivered"

@@ -9,12 +9,12 @@ export function istDateString(d = new Date()) {
 }
 
 /** Reset daily online minutes when the IST calendar day changes; snapshot previous day. */
-export function ensureTodayOnlineTracking(rider) {
-  const today = istDateString();
+export function ensureTodayOnlineTracking(rider, now = new Date()) {
+  const today = istDateString(now);
   if (rider.todayOnlineDate && rider.todayOnlineDate !== today) {
     snapshotDailyActivity(rider, {
       date: rider.todayOnlineDate,
-      onlineMinutes: rider.todayOnlineMinutes || 0,
+      onlineMinutes: onlineMinutesOnDate(rider, rider.todayOnlineDate, now),
       earnings: rider.todayEarnings || 0,
       trips: rider.todayCompletedOrders || rider.todayOrderCount || 0,
     });
@@ -60,12 +60,6 @@ export function snapshotDailyActivity(rider, partial = {}) {
   }
 }
 
-export function addOnlineMinutesSince(rider, fromDate, toDate = new Date()) {
-  if (!fromDate) return 0;
-  const ms = Math.max(0, toDate.getTime() - new Date(fromDate).getTime());
-  return Math.floor(ms / 60000);
-}
-
 export function formatOnlineMinutes(totalMinutes) {
   const total = Math.max(0, Math.floor(Number(totalMinutes) || 0));
   const h = Math.floor(total / 60);
@@ -77,14 +71,25 @@ export function formatOnlineMinutes(totalMinutes) {
 
 /** Live online minutes including current open session */
 export function liveOnlineMinutes(rider, now = new Date()) {
-  let minutes = Math.max(0, Number(rider.todayOnlineMinutes || 0));
-  if (
-    (rider.status === "online" || rider.status === "on_delivery") &&
-    rider.lastOnlineAt
-  ) {
-    minutes += addOnlineMinutesSince(rider, rider.lastOnlineAt, now);
-  }
-  return minutes;
+  return onlineMinutesOnDate(rider, istDateString(now), now);
+}
+
+function onlineMinutesOnDate(rider, date, now) {
+  const minutes = !rider.todayOnlineDate || rider.todayOnlineDate === date
+    ? Math.max(0, Number(rider.todayOnlineMinutes || 0)) : 0;
+  const sessionStart = onlineSessionStart(rider);
+  if (!sessionStart) return minutes;
+  const { start, end } = istDayRange(date);
+  const from = Math.max(start.getTime(), new Date(sessionStart).getTime());
+  const to = Math.min(now.getTime(), end.getTime() + 1);
+  return minutes + Math.floor(Math.max(0, to - from) / 60000);
+}
+
+export function onlineSessionStart(rider) {
+  if (rider.status !== "online" && rider.status !== "on_delivery") return null;
+  const offlineAt = rider.lastOfflineAt ? new Date(rider.lastOfflineAt).getTime() : 0;
+  return [rider.lastOnlineAt, rider.onlineSince, rider.lastStatusAt]
+    .find((start) => start && new Date(start).getTime() > offlineAt) || null;
 }
 
 export function istDayRange(dateString) {

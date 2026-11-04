@@ -12,7 +12,6 @@ import '../screens/home/home_dashboard_screen.dart';
 import '../screens/history/delivery_history_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/shifts/my_shifts_screen.dart';
-import '../screens/wallet/wallet_screen.dart';
 import 'shell_navigation.dart';
 
 class MainShell extends StatefulWidget {
@@ -72,8 +71,7 @@ class _MainShellState extends State<MainShell> {
       0 => l10n.dashboard,
       1 => l10n.myShifts,
       2 => l10n.notifications,
-      3 => l10n.wallet,
-      4 => l10n.deliveryHistory,
+      3 => l10n.deliveryHistory,
       _ => l10n.dashboard,
     };
   }
@@ -89,11 +87,7 @@ class _MainShellState extends State<MainShell> {
           key: ValueKey('notif_${ThemeController.instance.isDark}'),
           embedded: true,
         ),
-      3 => WalletScreen(
-          key: ValueKey('wallet_${ThemeController.instance.isDark}'),
-          embedded: true,
-        ),
-      4 => DeliveryHistoryScreen(
+      3 => DeliveryHistoryScreen(
           key: ValueKey('history_${ThemeController.instance.isDark}'),
           embedded: true,
         ),

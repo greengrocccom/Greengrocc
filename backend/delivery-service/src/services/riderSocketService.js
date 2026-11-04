@@ -3,7 +3,6 @@ import DeliveryBoy from "../models/DeliveryBoy.js";
 import { resolveStoreIdForRider } from "../utils/storeResolver.js";
 import {
   ensureTodayOnlineTracking,
-  addOnlineMinutesSince,
   liveOnlineMinutes,
 } from "../utils/onlineHoursHelper.js";
 import { isCurrentlyPeak } from "../utils/peakHoursHelper.js";
@@ -51,14 +50,7 @@ export async function applyGigStatusChange(rider, nextStatus) {
   ensureTodayOnlineTracking(rider);
 
   if (nextStatus === "online") {
-    if (
-      (rider.status === "online" || rider.status === "on_delivery") &&
-      rider.lastOnlineAt
-    ) {
-      rider.todayOnlineMinutes =
-        (rider.todayOnlineMinutes || 0) +
-        addOnlineMinutesSince(rider, rider.lastOnlineAt, now);
-    }
+    rider.todayOnlineMinutes = liveOnlineMinutes(rider, now);
     rider.lastOnlineAt = now;
     rider.status = "online";
   } else if (nextStatus === "offline") {
@@ -69,11 +61,7 @@ export async function applyGigStatusChange(rider, nextStatus) {
       err.statusCode = 400;
       throw err;
     }
-    if (rider.status === "online" && rider.lastOnlineAt) {
-      rider.todayOnlineMinutes =
-        (rider.todayOnlineMinutes || 0) +
-        addOnlineMinutesSince(rider, rider.lastOnlineAt, now);
-    }
+    rider.todayOnlineMinutes = liveOnlineMinutes(rider, now);
     rider.lastOfflineAt = now;
     rider.status = "offline";
   }
@@ -100,13 +88,5 @@ export async function buildStatusResponseExtras(rider) {
     }
   }
 
-  let todayMinutes = rider.todayOnlineMinutes || 0;
-  if (
-    (rider.status === "online" || rider.status === "on_delivery") &&
-    rider.lastOnlineAt
-  ) {
-    todayMinutes += addOnlineMinutesSince(rider, rider.lastOnlineAt);
-  }
-
-  return { storeId, isPeak, todayOnlineMinutes: todayMinutes };
+  return { storeId, isPeak, todayOnlineMinutes: liveOnlineMinutes(rider) };
 }

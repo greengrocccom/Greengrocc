@@ -2,37 +2,38 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
-import { DayPicker, apiError, formatDays, formatMoney, inputCls, labelCls, to24h } from "./fullTimeUi";
+import { apiError, inputCls, labelCls } from "./fullTimeUi";
+
+const SYSTEM_ATTENDANCE_RADIUS_METERS = 200;
 
 const EMPTY_RULE = {
   ruleName: "Standard Full-Time Rule",
-  attendanceStartTime: "09:00",
-  attendanceEndTime: "18:00",
-  requireAttendance: true,
-  requireLocationValidation: true,
-  attendanceRadiusMeters: 200,
-  minimumAttendanceDays: 26,
-  compulsoryDailyOnlineHours: 8,
-  requireCompulsoryOnlineHours: true,
   leavePolicyEnabled: false,
   paidLeavesPerMonth: 0,
   unpaidLeaveDeductionPerDay: "",
-  latePenaltyEnabled: false,
-  lateAfterMinutes: 120,
-  latePenaltyAmount: "",
-  workingDays: [1, 2, 3, 4, 5, 6],
   notes: "",
-  customRules: [],
+  customRules: [{
+    title: "Order delivery ETA",
+    description: "Complete each assigned order by the live ETA shown in the delivery app.",
+  }],
 };
 
-/** "18:00" → "06:00 PM" — rules store 12-hour strings like the rest of the shift system. */
-function to12h(value) {
-  const m = String(value || "").match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return value;
-  const h = parseInt(m[1], 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${String(h12).padStart(2, "0")}:${m[2]} ${period}`;
+function withDeliveryRule(rules = []) {
+  const deliveryRule = {
+    title: "Order delivery ETA",
+    description: "Complete each assigned order by the live ETA shown in the delivery app.",
+  };
+  return rules.some((rule) => rule.title?.toLowerCase() === deliveryRule.title.toLowerCase())
+    ? rules
+    : [deliveryRule, ...rules];
+}
+
+function displayRules(rule) {
+  const rules = rule.customRules || [];
+  const hasDeliveryRule = rules.some((item) => item.title?.toLowerCase().includes("delivery"));
+  return hasDeliveryRule
+    ? rules
+    : [{ title: "Order delivery ETA" }, ...rules];
 }
 
 export default function FullTimeRulesPage() {
@@ -73,23 +74,11 @@ export default function FullTimeRulesPage() {
     setEditingId(rule._id);
     setForm({
       ruleName: rule.ruleName,
-      attendanceStartTime: to24h(rule.attendanceStartTime),
-      attendanceEndTime: to24h(rule.attendanceEndTime),
-      requireAttendance: rule.requireAttendance !== false,
-      requireLocationValidation: rule.requireLocationValidation !== false,
-      attendanceRadiusMeters: rule.attendanceRadiusMeters ?? 200,
-      minimumAttendanceDays: rule.minimumAttendanceDays ?? 26,
-      compulsoryDailyOnlineHours: rule.compulsoryDailyOnlineHours ?? 8,
-      requireCompulsoryOnlineHours: rule.requireCompulsoryOnlineHours !== false,
       leavePolicyEnabled: Boolean(rule.leavePolicyEnabled),
       paidLeavesPerMonth: rule.paidLeavesPerMonth ?? 0,
       unpaidLeaveDeductionPerDay: rule.unpaidLeaveDeductionPerDay ?? "",
-      latePenaltyEnabled: Boolean(rule.latePenaltyEnabled),
-      lateAfterMinutes: rule.lateAfterMinutes ?? 120,
-      latePenaltyAmount: rule.latePenaltyAmount ?? "",
-      workingDays: rule.workingDays || [],
       notes: rule.notes || "",
-      customRules: (rule.customRules || []).map((c) => ({ title: c.title, description: c.description || "" })),
+      customRules: withDeliveryRule((rule.customRules || []).map((c) => ({ title: c.title, description: c.description || "" }))),
     });
     setIsFormOpen(true);
   };
@@ -102,29 +91,20 @@ export default function FullTimeRulesPage() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!form.workingDays.length) {
-      setError("Select at least one working day");
-      return;
-    }
     setSubmitting(true);
     setMessage("");
     setError("");
     const payload = {
-      ...form,
-      attendanceStartTime: to12h(form.attendanceStartTime),
-      attendanceEndTime: to12h(form.attendanceEndTime),
-      requireAttendance: Boolean(form.requireAttendance),
-      attendanceRadiusMeters: Number(form.attendanceRadiusMeters),
-      minimumAttendanceDays: Number(form.minimumAttendanceDays),
-      compulsoryDailyOnlineHours: Number(form.compulsoryDailyOnlineHours || 8),
-      requireCompulsoryOnlineHours: Boolean(form.requireCompulsoryOnlineHours),
+      ruleName: form.ruleName,
+      requireAttendance: true,
+      requireLocationValidation: true,
+      attendanceRadiusMeters: SYSTEM_ATTENDANCE_RADIUS_METERS,
+      requireCompulsoryOnlineHours: false,
       leavePolicyEnabled: Boolean(form.leavePolicyEnabled),
       paidLeavesPerMonth: Number(form.paidLeavesPerMonth || 0),
       unpaidLeaveDeductionPerDay: form.unpaidLeaveDeductionPerDay === "" ? null : Number(form.unpaidLeaveDeductionPerDay),
-      latePenaltyEnabled: Boolean(form.latePenaltyEnabled),
-      lateAfterMinutes: Number(form.lateAfterMinutes || 120),
-      latePenaltyAmount: Number(form.latePenaltyAmount || 0),
-      customRules: form.customRules.filter((c) => c.title.trim()),
+      latePenaltyEnabled: false,
+      customRules: withDeliveryRule(form.customRules.filter((c) => c.title.trim())),
     };
     try {
       if (editingId) await managerApi.updateFullTimeRule(editingId, payload);
@@ -196,8 +176,7 @@ export default function FullTimeRulesPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-[11px] text-slate-500">
-          The most recently updated rule is used for attendance. A driver&apos;s Full-Time shift timing, when
-          assigned, takes priority over the rule timing.
+          Full-Time riders can check in on their own schedules within the fixed dark-store radius. Deliveries follow the live ETA; set the leave allowance and any extra rules here.
         </p>
         <button
           type="button"
@@ -213,148 +192,49 @@ export default function FullTimeRulesPage() {
           <h3 className="border-b border-slate-100 pb-2 text-sm font-bold text-slate-900">
             {editingId ? "Edit Rule" : "New Rule"}
           </h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div>
               <label className={labelCls}>Rule Name</label>
               <input required value={form.ruleName} onChange={(e) => set("ruleName", e.target.value)} className={inputCls} />
             </div>
-            <div>
-              <label className={labelCls}>Attendance Start</label>
-              <input
-                type="time"
-                required
-                value={form.attendanceStartTime}
-                onChange={(e) => set("attendanceStartTime", e.target.value)}
-                className={inputCls}
-              />
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+              <div className={labelCls}>Dark-store radius</div>
+              <div className="text-sm font-bold text-slate-900">Within {SYSTEM_ATTENDANCE_RADIUS_METERS} m</div>
+              <div className="text-[11px] text-slate-500">Fixed by the system</div>
             </div>
-            <div>
-              <label className={labelCls}>Attendance End</label>
-              <input
-                type="time"
-                required
-                value={form.attendanceEndTime}
-                onChange={(e) => set("attendanceEndTime", e.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>Dark Store Radius (m)</label>
-              <input
-                type="number"
-                min="10"
-                required
-                value={form.attendanceRadiusMeters}
-                onChange={(e) => set("attendanceRadiusMeters", e.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <label className="flex items-center gap-2 pt-5 text-xs font-bold text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.requireAttendance}
-                onChange={(e) => set("requireAttendance", e.target.checked)}
-                className="h-4 w-4 accent-emerald-600"
-              />
-              Attendance required
-            </label>
-            <div>
-              <label className={labelCls}>Minimum Attendance Days / Month</label>
-              <input
-                type="number"
-                min="0"
-                max="31"
-                required
-                value={form.minimumAttendanceDays}
-                onChange={(e) => set("minimumAttendanceDays", e.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>Daily Compulsory Online Hours</label>
-              <input
-                type="number"
-                min="1"
-                max="24"
-                step="0.5"
-                required
-                value={form.compulsoryDailyOnlineHours}
-                onChange={(e) => set("compulsoryDailyOnlineHours", e.target.value)}
-                className={inputCls}
-              />
-              <p className="mt-1 text-[11px] text-slate-500">
-                Full-Time driver must be online at least this many hours to be marked Present.
-              </p>
-            </div>
-            <label className="flex items-center gap-2 pt-5 text-xs font-bold text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.requireCompulsoryOnlineHours}
-                onChange={(e) => set("requireCompulsoryOnlineHours", e.target.checked)}
-                className="h-4 w-4 accent-emerald-600"
-              />
-              Compulsory online hours required to mark Present
-            </label>
-            <label className="flex items-center gap-2 pt-5 text-xs font-bold text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.requireLocationValidation}
-                onChange={(e) => set("requireLocationValidation", e.target.checked)}
-                className="h-4 w-4 accent-emerald-600"
-              />
-              Must be present near the dark store
-            </label>
+          </div>
+
+          <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3">
+            <h4 className="text-xs font-bold text-slate-800">Delivery time</h4>
+            <p className="mt-1 text-xs text-slate-600">Each order has a live route ETA in the delivery app. Riders must complete the delivery by that ETA; add any extra delivery rules below.</p>
           </div>
 
           <section className="space-y-3 rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-800">Leave &amp; late attendance rules</h4>
-              <p className="mt-0.5 text-[11px] text-slate-500">These rules apply across Full-Time shifts. Salary and KM rates remain configured per rider.</p>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-800">Monthly leave allowance</h4>
+              <p className="mt-0.5 text-[11px] text-slate-500">Set how many leave days are allowed before salary is deducted. Salary and KM rates remain in each rider&apos;s payment settings.</p>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="max-w-xl">
               <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
                 <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
                   <input type="checkbox" checked={form.leavePolicyEnabled} onChange={(e) => set("leavePolicyEnabled", e.target.checked)} className="h-4 w-4 accent-emerald-600" />
-                  Enable monthly leave policy
+                  Enable monthly leave allowance
                 </label>
                 {form.leavePolicyEnabled && (
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <label className="text-[10px] font-bold text-slate-500">
-                      Paid leaves per month
+                      Leave days before deduction / month
                       <input type="number" min="0" max="31" required value={form.paidLeavesPerMonth} onChange={(e) => set("paidLeavesPerMonth", e.target.value)} className={inputCls} />
                     </label>
                     <label className="text-[10px] font-bold text-slate-500">
-                      Deduction per extra leave (₹)
+                      Deduction per extra leave day (₹)
                       <input type="number" min="0" step="1" value={form.unpaidLeaveDeductionPerDay} onChange={(e) => set("unpaidLeaveDeductionPerDay", e.target.value)} placeholder="Use salary-based amount" className={inputCls} />
-                    </label>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <input type="checkbox" checked={form.latePenaltyEnabled} onChange={(e) => set("latePenaltyEnabled", e.target.checked)} className="h-4 w-4 accent-emerald-600" />
-                  Enable late attendance penalty
-                </label>
-                {form.latePenaltyEnabled && (
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <label className="text-[10px] font-bold text-slate-500">
-                      Late threshold (minutes)
-                      <input type="number" min="1" max="1440" required value={form.lateAfterMinutes} onChange={(e) => set("lateAfterMinutes", e.target.value)} className={inputCls} />
-                    </label>
-                    <label className="text-[10px] font-bold text-slate-500">
-                      Penalty per late day (₹)
-                      <input type="number" min="1" required value={form.latePenaltyAmount} onChange={(e) => set("latePenaltyAmount", e.target.value)} className={inputCls} />
                     </label>
                   </div>
                 )}
               </div>
             </div>
           </section>
-
-          <div>
-            <label className={labelCls}>Working Days</label>
-            <DayPicker value={form.workingDays} onChange={(v) => set("workingDays", v)} />
-          </div>
 
           <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-center justify-between">
@@ -368,7 +248,7 @@ export default function FullTimeRulesPage() {
               </button>
             </div>
             {form.customRules.length === 0 && (
-              <p className="text-[11px] text-slate-400">e.g. “Wear company uniform”, “Report to store manager at shift start”.</p>
+              <p className="text-[11px] text-slate-400">Add rules such as uniform, customer handling, or delivery instructions.</p>
             )}
             {form.customRules.map((c, i) => (
               <div key={i} className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-2.5">
@@ -434,14 +314,9 @@ export default function FullTimeRulesPage() {
             <thead className="bg-black text-xs font-bold uppercase tracking-wider text-white">
               <tr>
                 <th className="px-4 py-2">Rule Name</th>
-                <th className="px-4 py-2">Hours</th>
-                <th className="px-4 py-2">Attendance</th>
-                <th className="px-4 py-2">Compulsory Online</th>
-                <th className="px-4 py-2">Days</th>
-                <th className="px-4 py-2">Location Check</th>
-                <th className="px-4 py-2">Min Days</th>
-                <th className="px-4 py-2">Leave &amp; Late Policy</th>
-                <th className="px-4 py-2">Custom Rules</th>
+                <th className="px-4 py-2">Store radius</th>
+                <th className="px-4 py-2">Leave allowance</th>
+                <th className="px-4 py-2">Delivery &amp; extra rules</th>
                 <th className="px-4 py-2 text-right">Actions</th>
               </tr>
             </thead>
@@ -452,47 +327,17 @@ export default function FullTimeRulesPage() {
                     {rule.ruleName}
                     {rule.notes && <div className="max-w-[180px] truncate text-[11px] font-normal text-slate-400">{rule.notes}</div>}
                   </td>
-                  <td className="px-4 py-3 font-medium text-slate-700">
-                    {rule.attendanceStartTime} – {rule.attendanceEndTime}
-                  </td>
-                  <td className="px-4 py-3 text-xs font-semibold">
-                    {rule.requireAttendance !== false ? <span className="text-emerald-700">Required</span> : <span className="text-slate-400">Not required</span>}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {rule.requireCompulsoryOnlineHours !== false ? (
-                      <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                        {rule.compulsoryDailyOnlineHours ?? 8} hrs/day
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">Optional</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-600">{formatDays(rule.workingDays)}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${
-                        rule.requireLocationValidation
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : "border-slate-200 bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {rule.requireLocationValidation ? `Within ${rule.attendanceRadiusMeters}m` : "Optional"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-medium text-slate-700">{rule.minimumAttendanceDays} days</td>
+                  <td className="px-4 py-3 text-xs font-bold text-slate-700">Within {SYSTEM_ATTENDANCE_RADIUS_METERS} m</td>
                   <td className="px-4 py-3 text-xs text-slate-600">
-                    <div>{rule.leavePolicyEnabled ? `${rule.paidLeavesPerMonth ?? 0} paid leaves / month` : "Leave policy off"}</div>
-                    <div className="mt-0.5 text-[10px] text-slate-400">
-                      {rule.latePenaltyEnabled ? `Late after ${rule.lateAfterMinutes ?? 120} min · ${formatMoney(rule.latePenaltyAmount)} penalty` : "Late penalty off"}
-                    </div>
+                    {rule.leavePolicyEnabled ? (
+                      <><div>{rule.paidLeavesPerMonth ?? 0} leave days before deduction</div><div className="mt-0.5 text-[10px] text-slate-400">{rule.unpaidLeaveDeductionPerDay == null ? "Salary-based deduction after allowance" : `${rule.unpaidLeaveDeductionPerDay} per extra day`}</div></>
+                    ) : "No leave deduction policy"}
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-600">
-                    {(rule.customRules || []).length === 0 ? (
-                      "—"
-                    ) : (
+                    {displayRules(rule).length === 0 ? "—" : (
                       <ul className="list-disc space-y-0.5 pl-4">
-                        {rule.customRules.map((c, i) => (
-                          <li key={i}>{c.title}</li>
+                        {displayRules(rule).map((c, i) => (
+                          <li key={`${c.title}-${i}`}>{c.title}</li>
                         ))}
                       </ul>
                     )}

@@ -22,7 +22,6 @@ abstract final class AppRoutes {
   static const liveNavigation = '/live-navigation';
   static const deliveryHistory = '/delivery-history';
   static const earnings = '/earnings';
-  static const wallet = '/wallet';
   static const gigs = '/gigs';
   static const attendance = '/attendance';
   static const leave = '/leave';

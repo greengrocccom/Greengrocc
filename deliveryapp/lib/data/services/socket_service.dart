@@ -36,6 +36,7 @@ class SocketService {
   final StreamController<Map<String, dynamic>> _deliveryUpdatedController =
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<bool> _connectionController = StreamController<bool>.broadcast();
+  final StreamController<void> _cashUpdatedController = StreamController<void>.broadcast();
   final StreamController<Map<String, dynamic>> _walletUpdatedController =
       StreamController<Map<String, dynamic>>.broadcast();
 
@@ -48,6 +49,7 @@ class SocketService {
 
   /// true on every (re)connect — a cue to catch up on anything missed while offline.
   Stream<bool> get onConnectionChanged => _connectionController.stream;
+  Stream<void> get onCashUpdated => _cashUpdatedController.stream;
 
   Stream<Map<String, dynamic>> get onOrderAssigned =>
       _orderAssignedController.stream;
@@ -254,6 +256,7 @@ class SocketService {
 
     _socket!.on('rider_cash_updated', (data) {
       debugPrint('[Socket] Event rider_cash_updated: $data');
+      _cashUpdatedController.add(null);
       AuthService.instance.fetchMe();
     });
 

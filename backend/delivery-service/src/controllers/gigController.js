@@ -1,15 +1,16 @@
 import DeliveryBoy from "../models/DeliveryBoy.js";
 import {
   ensureTodayOnlineTracking,
-  addOnlineMinutesSince,
   formatOnlineMinutes,
+  istDateString,
+  liveOnlineMinutes,
 } from "../utils/onlineHoursHelper.js";
 
 export const getLoginHours = async (req, res, next) => {
   try {
     const riderId = String(req.query.riderId || req.user.id);
-    const dateStr =
-      req.query.date || new Date().toISOString().slice(0, 10);
+    const today = istDateString();
+    const dateStr = req.query.date || today;
 
     if (req.user.role === "delivery_boy" && riderId !== req.user.id) {
       return res.status(403).json({ success: false, message: "Forbidden" });
@@ -22,16 +23,8 @@ export const getLoginHours = async (req, res, next) => {
 
     ensureTodayOnlineTracking(rider);
 
-    let totalMinutes = rider.todayOnlineMinutes || 0;
-    const today = new Date().toISOString().slice(0, 10);
-
-    if (dateStr === today && rider.status === "online" && rider.lastOnlineAt) {
-      totalMinutes += addOnlineMinutesSince(rider, rider.lastOnlineAt);
-    }
-
-    if (rider.todayOnlineDate !== dateStr && dateStr !== today) {
-      totalMinutes = 0;
-    }
+    const totalMinutes = dateStr === today ? liveOnlineMinutes(rider)
+      : rider.dailyActivity?.find((entry) => entry.date === dateStr)?.onlineMinutes || 0;
 
     return res.json({
       success: true,
@@ -61,16 +54,11 @@ export const getLiveRiders = async (req, res, next) => {
     const riders = await DeliveryBoy.find({
       $and: [areaMatchForManager(manager), { isActive: true }],
     }).select(
-      "name phone status todayOnlineMinutes todayOnlineDate lastOnlineAt lastSeenAt currentBooking area"
+      "name phone status todayOnlineMinutes todayOnlineDate lastOnlineAt lastOfflineAt onlineSince lastStatusAt lastSeenAt currentBooking area"
     );
 
-    const today = new Date().toISOString().slice(0, 10);
     const payload = riders.map((r) => {
-      ensureTodayOnlineTracking(r);
-      let minutes = r.todayOnlineMinutes || 0;
-      if (r.status === "online" && r.lastOnlineAt && r.todayOnlineDate === today) {
-        minutes += addOnlineMinutesSince(r, r.lastOnlineAt);
-      }
+      const minutes = liveOnlineMinutes(r);
       return {
         riderId: r._id.toString(),
         name: r.name || r.phone,

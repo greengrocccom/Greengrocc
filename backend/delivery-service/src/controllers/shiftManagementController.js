@@ -1,4 +1,7 @@
+import mongoose from "mongoose";
 import Shift from "../models/Shift.js";
+import FullTimeShift from "../models/FullTimeShift.js";
+import { HrLeaveRequest } from "../../../admin-ops-service/src/models.js";
 import DeliveryManager from "../models/DeliveryManager.js";
 import DeliveryBoy from "../models/DeliveryBoy.js";
 import StoreOrder from "../models/StoreOrder.js";
@@ -12,7 +15,9 @@ import { istDateString, listRecentIstDates } from "../utils/onlineHoursHelper.js
 import { riderQuery } from "./managerDashboardController.js";
 import {
   assignSlotToRiders,
+  publishSlotAssignment,
   refreshRiderCurrentBooking,
+  slotWindow,
   unassignRiderFromSlot,
 } from "../services/slotAssignmentService.js";
 import { notifyRiders } from "../services/RiderNotificationService.js";
@@ -161,7 +166,7 @@ function lifecycleToLabel(lifecycle) {
  * Merge new slot templates into an existing shift WITHOUT wiping rider bookings.
  * History (drivers, times, earnings slabs) is kept until manager explicitly deletes.
  */
-function mergeSlotsPreserveBookings(existingSlots = [], nextTemplates = []) {
+function mergeSlotsPreserveBookings(existingSlots = [], nextTemplates = [], preserveExisting = false) {
   const preserved = [];
   const usedExisting = new Set();
 
@@ -169,14 +174,18 @@ function mergeSlotsPreserveBookings(existingSlots = [], nextTemplates = []) {
     const matchIdx = (existingSlots || []).findIndex(
       (s, idx) =>
         !usedExisting.has(idx) &&
-        s.startTime === template.startTime &&
-        s.endTime === template.endTime &&
+        timeToMinutes(s.startTime) === timeToMinutes(template.startTime) &&
+        timeToMinutes(s.endTime) === timeToMinutes(template.endTime) &&
         s.status !== "CANCELLED"
     );
 
     if (matchIdx >= 0) {
       usedExisting.add(matchIdx);
       const existing = existingSlots[matchIdx];
+      if (preserveExisting) {
+        preserved.push(existing);
+        continue;
+      }
       const bookings = Array.isArray(existing.bookings)
         ? existing.bookings
         : [];
@@ -216,6 +225,10 @@ function mergeSlotsPreserveBookings(existingSlots = [], nextTemplates = []) {
   // Keep any existing slots that still have bookings (even if times changed in template)
   (existingSlots || []).forEach((s, idx) => {
     if (usedExisting.has(idx)) return;
+    if (preserveExisting) {
+      preserved.push(s);
+      return;
+    }
     if (s.status === "CANCELLED") return;
     const activeBookings = (s.bookings || []).filter(
       (b) => b.status !== "CANCELLED"
@@ -235,21 +248,7 @@ const SALARY_PERIODS = {
   month: { unit: "month", perMonth: 1 },
 };
 
-export const generateDateWiseShifts = async ({
-  name,
-  type,
-  capacity,
-  customSlots,
-  deliveryEarningSlabs,
-  manager,
-  recurrenceMode,
-  targetDate,
-  targetMonth,
-  daysOfWeek = [],
-  ratePerKm = 10,
-  salary,
-}) => {
-  const createdShifts = [];
+function shiftDates({ type, customSlots, recurrenceMode, targetDate, targetMonth, daysOfWeek }) {
   const now = new Date();
   const datesToGenerate = [];
 
@@ -263,11 +262,11 @@ export const generateDateWiseShifts = async ({
     }
     datesToGenerate.push(dStr);
   } else if (recurrenceMode === "full_week") {
-    const base = new Date();
+    const base = new Date(`${istDateString(now)}T00:00:00Z`);
     for (let i = 0; i < 7; i++) {
       const d = new Date(base);
-      d.setDate(base.getDate() + i);
-      const dayNum = d.getDay();
+      d.setUTCDate(base.getUTCDate() + i);
+      const dayNum = d.getUTCDay();
       if (daysOfWeek.length === 0 || daysOfWeek.includes(dayNum)) {
         datesToGenerate.push(formatDateString(d));
       }
@@ -275,7 +274,7 @@ export const generateDateWiseShifts = async ({
   } else if (recurrenceMode === "full_month") {
     const [yrStr, moStr] = (targetMonth || formatDateString(now)).split("-");
     const year = parseInt(yrStr, 10) || now.getFullYear();
-    const month = parseInt(moStr, 10) - 1 || now.getMonth();
+    const month = (parseInt(moStr, 10) || now.getMonth() + 1) - 1;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -287,6 +286,28 @@ export const generateDateWiseShifts = async ({
     }
   }
 
+  return datesToGenerate;
+}
+
+export const generateDateWiseShifts = async ({
+  name,
+  type,
+  capacity,
+  customSlots,
+  deliveryEarningSlabs,
+  manager,
+  recurrenceMode,
+  targetDate,
+  targetMonth,
+  daysOfWeek = [],
+  ratePerKm = 10,
+  salary,
+  session = null,
+  preservePay = false,
+  datesToGenerate = shiftDates({ type, customSlots, recurrenceMode, targetDate, targetMonth, daysOfWeek }),
+}) => {
+  const createdShifts = [];
+
   const defaultSlots = getDefaultSlotsForType(type, customSlots, capacity);
 
   for (const dateStr of datesToGenerate) {
@@ -296,10 +317,10 @@ export const generateDateWiseShifts = async ({
       managerId: manager._id,
       dateString: dateStr,
       type,
-    });
+    }).session(session);
 
     if (!existing) {
-      const newShift = await Shift.create({
+      const newShift = new Shift({
         managerId: manager._id,
         storeId: manager._id.toString(),
         name,
@@ -311,18 +332,19 @@ export const generateDateWiseShifts = async ({
         deliveryEarningSlabs: deliveryEarningSlabs || [],
         ...(salary || {}),
       });
+      await newShift.save({ session });
       createdShifts.push(newShift);
     } else {
       // Update metadata / slabs / capacity — NEVER wipe rider booking history
-      existing.name = name || existing.name;
-      existing.ratePerKm = Number(ratePerKm) || existing.ratePerKm || 10;
-      existing.slots = mergeSlotsPreserveBookings(existing.slots, defaultSlots);
-      if (deliveryEarningSlabs !== undefined) {
+      if (!preservePay) existing.name = name || existing.name;
+      if (!preservePay) existing.ratePerKm = Number(ratePerKm) || existing.ratePerKm || 10;
+      existing.slots = mergeSlotsPreserveBookings(existing.slots, defaultSlots, preservePay);
+      if (!preservePay && deliveryEarningSlabs !== undefined) {
         existing.deliveryEarningSlabs = deliveryEarningSlabs;
       }
       if (salary) Object.assign(existing, salary);
       existing.markModified("slots");
-      await existing.save();
+      await existing.save({ session });
       createdShifts.push(existing);
     }
   }
@@ -330,9 +352,196 @@ export const generateDateWiseShifts = async ({
   return createdShifts;
 };
 
+const EMPLOYMENT_TYPES = ["ALL", "FULL_TIME", "PART_TIME"];
+const SHIFT_TYPES = ["early_morning", "morning", "afternoon", "evening", "night", "late_night", "custom"];
+const riderEmployment = (rider) => rider.employmentType || "PART_TIME";
+const slotTimes = (slot) => `${slot.startTime} – ${slot.endTime}`;
+const validTime = (value) => typeof value === "string" &&
+  /^(?:(?:0?[1-9]|1[0-2]):[0-5]\d\s*(?:AM|PM)|(?:[01]?\d|2[0-3]):[0-5]\d)$/i.test(value.trim());
+const validDate = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && formatDateString(value) === value;
+const overlaps = (a, b) => a.start < b.end && b.start < a.end;
+const dayBefore = (date) => istDateString(new Date(new Date(`${date}T00:00:00+05:30`).getTime() - 86400000));
+
+// Make competing manager assignments retry against the latest store and rider bookings.
+function lockAssignmentRows(model, filter, session) {
+  return model.updateMany(filter, { $inc: { __v: 1 } }, { session, timestamps: false });
+}
+
+function assignmentSchedule(body) {
+  const { type = "morning", capacity = 10, customSlots = [], recurrenceMode = "single_day",
+    targetDate, targetMonth, daysOfWeek = [] } = body;
+  if (!Array.isArray(customSlots) || customSlots.length > 4 ||
+      customSlots.some((slot) => !slot || !validTime(slot.startTime) || !validTime(slot.endTime) ||
+        timeToMinutes(slot.startTime) === timeToMinutes(slot.endTime))) {
+    return { error: "Enter valid start and end times for up to four slots." };
+  }
+  if (!SHIFT_TYPES.includes(type) || !["single_day", "full_week", "full_month"].includes(recurrenceMode) ||
+      !Array.isArray(daysOfWeek) || daysOfWeek.some((day) => !Number.isInteger(day) || day < 0 || day > 6) ||
+      (targetDate && !validDate(targetDate)) ||
+      (targetMonth && !/^\d{4}-(0[1-9]|1[0-2])$/.test(targetMonth))) {
+    return { error: "Enter a valid shift schedule." };
+  }
+  const config = { type, capacity, customSlots, recurrenceMode, targetDate, targetMonth, daysOfWeek };
+  const dates = shiftDates(config);
+  const slots = getDefaultSlotsForType(type, customSlots, capacity);
+  const now = new Date();
+  const windows = dates.flatMap((date) => slots.map((slot) => ({
+    ...slotWindow(date, slot.startTime, slot.endTime), date, label: `${date} · ${slotTimes(slot)}`,
+  }))).filter(({ end }) => end > now).sort((a, b) => a.start - b.start);
+  if (!windows.length) return { error: "Choose a schedule with at least one slot that has not ended." };
+  if (windows.some((window, index) => index > 0 && overlaps(windows[index - 1], window))) {
+    return { error: "The proposed slots overlap. Adjust their times before assigning riders." };
+  }
+  return { config, windows };
+}
+
+async function assignmentEligibility(riders, windows, manager, session = null) {
+  if (!riders.length) return [];
+  const ids = riders.map((rider) => rider._id);
+  const firstDate = windows[0].date;
+  const lastDate = istDateString(new Date(windows.at(-1).end.getTime() - 1));
+  const startDate = dayBefore(firstDate);
+  const shifts = await Shift.find({
+    dateString: { $gte: startDate, $lte: lastDate },
+    "slots.bookings.deliveryPartnerId": { $in: ids },
+  }).select("name dateString slots.startTime slots.endTime slots.status slots.bookings.deliveryPartnerId slots.bookings.status").session(session).lean();
+  const templates = await FullTimeShift.find({
+    managerId: manager._id, isActive: true, driverIds: { $in: ids },
+  }).session(session).lean();
+  const leaves = await HrLeaveRequest.find({
+    employeeId: { $in: ids.map(String) }, status: "approved",
+    fromDate: { $lte: lastDate }, toDate: { $gte: firstDate },
+  }).select("employeeId dates fromDate toDate").session(session).lean();
+
+  const byRider = new Map(ids.map((id) => [String(id), []]));
+  for (const shift of shifts) {
+    for (const slot of shift.slots || []) {
+      if (slot.status === "CANCELLED") continue;
+      const window = { ...slotWindow(shift.dateString, slot.startTime, slot.endTime),
+        label: `${shift.name} · ${shift.dateString} · ${slotTimes(slot)}` };
+      for (const booking of slot.bookings || []) {
+        if (booking.status === "CANCELLED") continue;
+        byRider.get(String(booking.deliveryPartnerId))?.push(window);
+      }
+    }
+  }
+  const dates = new Set(windows.flatMap(({ date, end }) => [dayBefore(date), date, istDateString(new Date(end.getTime() - 1))]));
+  for (const template of templates) {
+    for (const date of dates) {
+      if ((template.scheduleStartDate && date < template.scheduleStartDate) ||
+          (template.scheduleEndDate && date > template.scheduleEndDate) ||
+          template.excludedDates?.includes(date) ||
+          (template.workingDays?.length && !template.workingDays.includes(new Date(date).getUTCDay()))) continue;
+      const window = { ...slotWindow(date, template.startTime, template.endTime),
+        label: `${template.name} · ${date} · ${slotTimes(template)}` };
+      for (const id of template.driverIds) byRider.get(String(id))?.push(window);
+    }
+  }
+
+  return riders.map((rider) => {
+    const id = String(rider._id);
+    const bookings = byRider.get(id);
+    const existing = bookings.find((booking) => windows.some((window) => overlaps(booking, window)));
+    const leaveWindow = windows.find((window) => {
+      const endDate = istDateString(new Date(window.end.getTime() - 1));
+      return leaves.some((leave) => leave.employeeId === id && (leave.dates?.length
+        ? leave.dates.some((date) => date >= window.date && date <= endDate)
+        : leave.fromDate <= endDate && leave.toDate >= window.date));
+    });
+    const duplicate = existing && windows.some((window) => +existing.start === +window.start && +existing.end === +window.end);
+    const reason = !["FULL_TIME", "PART_TIME"].includes(riderEmployment(rider)) ? "Invalid employment type"
+      : rider.isActive === false ? "Rider is inactive"
+      : leaveWindow ? `Approved leave during ${leaveWindow.label}`
+      : existing ? (duplicate ? "Already assigned to this time slot" : "Overlaps an existing shift")
+      : rider.status === "on_delivery" && windows.some(({ start }) => start <= new Date()) ? "Currently on a delivery"
+      : "";
+    return {
+      id, name: rider.name || "Delivery Partner", phone: rider.phone || "", status: rider.status,
+      employmentType: riderEmployment(rider), isGoodPerformance: Number(rider.rating ?? 5) >= 4,
+      existingShift: existing?.label || bookings[0]?.label || "", reason,
+    };
+  });
+}
+
+async function createUnifiedShift(req, res, manager) {
+  const { employmentType = "ALL", riderIds, name } = req.body;
+  const schedule = assignmentSchedule(req.body);
+  if (!EMPLOYMENT_TYPES.includes(employmentType) || schedule.error || !Array.isArray(riderIds) ||
+      !riderIds.length || riderIds.some((id) => !mongoose.isObjectIdOrHexString(id))) {
+    return res.status(400).json({ success: false, message: schedule.error || "Select valid riders and an employment type." });
+  }
+  const requested = [...new Set(riderIds.map(String))];
+  const shiftName = name || `${schedule.config.type.replaceAll("_", " ").toUpperCase()} Shift`;
+  const result = await mongoose.connection.transaction(async (session) => {
+    await lockAssignmentRows(DeliveryManager, { _id: manager._id }, session);
+    await lockAssignmentRows(DeliveryBoy, riderQuery(manager, { _id: { $in: requested } }), session);
+    const riders = await DeliveryBoy.find(riderQuery(manager, { _id: { $in: requested } })).session(session).lean();
+    const rows = await assignmentEligibility(riders, schedule.windows, manager, session);
+    const rowById = new Map(rows.map((row) => [row.id, row]));
+    const skipped = [];
+    const eligible = [];
+    for (const id of requested) {
+      const row = rowById.get(id);
+      const reason = !row ? "Rider is no longer eligible for this dark store"
+        : employmentType !== "ALL" && employmentType !== row.employmentType ? "Employment type changed"
+        : row.reason;
+      if (reason) skipped.push({ riderId: id, name: row?.name, reason });
+      else eligible.push(id);
+    }
+    if (!eligible.length) return { skipped, assigned: [], shifts: [], assignments: [] };
+
+    const shifts = await generateDateWiseShifts({
+      ...schedule.config, name: shiftName, manager, session, preservePay: true,
+      datesToGenerate: [...new Set(schedule.windows.map(({ date }) => date))],
+    });
+    const plannedSlots = getDefaultSlotsForType(schedule.config.type, schedule.config.customSlots, schedule.config.capacity);
+    const assigned = new Set();
+    const assignments = [];
+    for (const shift of shifts) {
+      for (const slot of shift.slots) {
+        if (slot.status === "CANCELLED" || !plannedSlots.some((planned) =>
+          timeToMinutes(planned.startTime) === timeToMinutes(slot.startTime) &&
+          timeToMinutes(planned.endTime) === timeToMinutes(slot.endTime))) continue;
+        if (slotWindow(shift.dateString, slot.startTime, slot.endTime).end <= new Date()) continue;
+        const result = await assignSlotToRiders({
+          shift, slotId: slot._id, riderIds: eligible, session, notify: false,
+          assignedBy: req.managerOverride ? "admin" : "manager",
+        });
+        if (result.assigned.length) assignments.push({ shift, slot, riders: result.assigned });
+        for (const row of result.assigned) assigned.add(row.riderId);
+      }
+    }
+    if (!assigned.size) throw Object.assign(new Error("The selected slots have ended. Choose a later time."), { statusCode: 409 });
+    return { skipped, assigned: [...assigned], shifts, assignments };
+  });
+
+  if (!result.assigned.length) {
+    return res.status(409).json({ success: false, message: "No selected riders could be assigned.", skipped: result.skipped });
+  }
+  await Promise.all(result.assigned.map((id) => refreshRiderCurrentBooking(id).catch(() => {})));
+  const assignedBy = req.managerOverride ? "admin" : "manager";
+  for (const { shift, slot, riders } of result.assignments) {
+    await publishSlotAssignment(shift, slot, riders, assignedBy, false);
+  }
+  const first = result.assignments[0];
+  await notifyRiders({
+    riderIds: result.assigned, type: "SHIFT_ASSIGNED", title: "New shift assigned",
+    message: `${shiftName} · ${first.shift.dateString} · ${slotTimes(first.slot)}${result.assignments.length > 1 ? ` + ${result.assignments.length - 1} more slot(s)` : ""}`,
+    priority: "high", dedupeKey: `shift-create:${first.riders[0].bookingId}`,
+    data: { screen: "shifts", event: "shift_assigned", shiftId: String(first.shift._id), slotId: String(first.slot._id) },
+  }).catch(() => {});
+  return res.status(201).json({
+    success: true, message: `Assigned ${result.assigned.length} rider(s) to ${result.assignments.length} slot(s).`,
+    generatedCount: result.shifts.length, assignedDrivers: result.assigned.length,
+    assignedSlots: result.assignments.length, skipped: result.skipped,
+    shifts: result.shifts.map((shift) => shift.toSafeJSON()),
+  });
+}
+
 export const createShift = async (req, res, next) => {
   try {
     const manager = await getManager(req);
+    if (!req.managerOverride || req.body.employmentType !== undefined) return await createUnifiedShift(req, res, manager);
     const {
       name,
       type = "morning",
@@ -1119,6 +1328,14 @@ const findShiftForSlot = (manager, slotId) =>
 export const listAssignableRiders = async (req, res, next) => {
   try {
     const manager = await getManager(req);
+    if (typeof req.query.schedule === "string") {
+      let body;
+      try { body = JSON.parse(req.query.schedule); } catch { body = null; }
+      const schedule = body && typeof body === "object" ? assignmentSchedule(body) : { error: "Invalid shift schedule." };
+      if (schedule.error) return res.status(400).json({ success: false, message: schedule.error });
+      const riders = await DeliveryBoy.find(riderQuery(manager)).select("name phone status isActive employmentType rating").sort({ name: 1 }).lean();
+      return res.json({ success: true, riders: await assignmentEligibility(riders, schedule.windows, manager) });
+    }
     const riders = await DeliveryBoy.find(
       riderQuery(manager, { isActive: true, employmentType: { $ne: "FULL_TIME" } })
     )
@@ -1152,11 +1369,6 @@ export const listAssignableRiders = async (req, res, next) => {
 export const assignSlotRiders = async (req, res, next) => {
   try {
     const manager = await getManager(req);
-    const shift = await findShiftForSlot(manager, req.params.slotId);
-    if (!shift) {
-      return res.status(404).json({ success: false, message: "Slot not found" });
-    }
-
     const all = req.body?.all === true;
     const requested = Array.isArray(req.body?.riderIds)
       ? [...new Set(req.body.riderIds.map(String).filter(Boolean))]
@@ -1168,6 +1380,42 @@ export const assignSlotRiders = async (req, res, next) => {
     const filter = all
       ? { isActive: true, employmentType: { $ne: "FULL_TIME" } }
       : { _id: { $in: requested } };
+    const assignedBy = req.managerOverride ? "admin" : "manager";
+    if (!req.managerOverride) {
+      if (!all && requested.some((id) => !mongoose.isObjectIdOrHexString(id))) {
+        return res.status(400).json({ success: false, message: "Select valid riders" });
+      }
+      const outcome = await mongoose.connection.transaction(async (session) => {
+        await lockAssignmentRows(DeliveryManager, { _id: manager._id }, session);
+        const shift = await findShiftForSlot(manager, req.params.slotId).session(session);
+        if (!shift) throw Object.assign(new Error("Slot not found"), { statusCode: 404 });
+        const slot = shift.slots.id(req.params.slotId);
+        const window = { ...slotWindow(shift.dateString, slot.startTime, slot.endTime),
+          date: shift.dateString, label: `${shift.dateString} · ${slotTimes(slot)}` };
+        if (slot.status === "CANCELLED" || window.end <= new Date()) {
+          throw Object.assign(new Error("Choose a slot that is open for assignment"), { statusCode: 400 });
+        }
+        await lockAssignmentRows(DeliveryBoy, riderQuery(manager, filter), session);
+        const riders = await DeliveryBoy.find(riderQuery(manager, filter)).session(session).lean();
+        const rows = await assignmentEligibility(riders, [window], manager, session);
+        const eligible = rows.filter((row) => !row.reason).map((row) => row.id);
+        const skipped = rows.filter((row) => row.reason).map(({ id, name, reason }) => ({ riderId: id, name, reason }));
+        const known = new Set(rows.map((row) => row.id));
+        for (const id of requested) {
+          if (!known.has(id)) skipped.push({ riderId: id, reason: "Rider is no longer eligible for this dark store" });
+        }
+        if (!eligible.length) return { result: { assigned: [], skipped } };
+        const result = await assignSlotToRiders({ shift, slotId: slot._id, riderIds: eligible, session, notify: false, assignedBy });
+        return { shift, slot, result: { ...result, skipped: [...skipped, ...result.skipped] } };
+      });
+      if (outcome.result.assigned.length) {
+        await publishSlotAssignment(outcome.shift, outcome.slot, outcome.result.assigned, assignedBy);
+      }
+      return res.json({ success: true, message: `${outcome.result.assigned.length} delivery partner(s) assigned`, ...outcome.result });
+    }
+
+    const shift = await findShiftForSlot(manager, req.params.slotId);
+    if (!shift) return res.status(404).json({ success: false, message: "Slot not found" });
     const riders = await DeliveryBoy.find(riderQuery(manager, filter)).select("_id");
     if (!riders.length) {
       return res.status(400).json({
@@ -1180,7 +1428,7 @@ export const assignSlotRiders = async (req, res, next) => {
       shift,
       slotId: req.params.slotId,
       riderIds: riders.map((r) => r._id),
-      assignedBy: req.managerOverride ? "admin" : "manager",
+      assignedBy,
     });
     return res.json({
       success: true,

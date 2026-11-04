@@ -122,6 +122,7 @@ abstract final class ApiConfig {
       '/api/delivery-managers/shifts/$shiftId/earning-slabs';
 
   // Manager cash settlement
+  static const riderCashPending = '/api/delivery-boys/cash/pending';
   static const managerCashOverview = '/api/delivery-managers/cash';
   static const managerConfirmCash = '/api/delivery-managers/cash/confirm';
   static String managerRiderCashHistory(String riderId) =>

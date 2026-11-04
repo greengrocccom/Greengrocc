@@ -271,7 +271,7 @@ export default function OrderDetailPage() {
     const question =
       action === "return"
         ? `Goods for #${order.orderNumber} are back at the store? Stock will be restored and the customer order cancelled.`
-        : `Goods for #${order.orderNumber} are back at the store? The order will be sent to a new rider.`;
+        : `Confirm the parcel for #${order.orderNumber} is at the dark store. The order will be made available to another rider.`;
     if (!window.confirm(question)) return;
     const note = (window.prompt("Note (optional):") || "").trim();
     setBusyKey(`failed-${action}-${currentOid}`);
@@ -615,7 +615,7 @@ export default function OrderDetailPage() {
       {isFailed && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-xs space-y-3">
           <p className="text-[10px] font-bold uppercase tracking-wide text-rose-700">
-            Delivery failed
+            {order.failureKind === "rider_emergency" ? "Rider emergency" : "Delivery failed"}
           </p>
           <h3 className="text-lg font-extrabold text-slate-900">
             Failed{order.failedAt ? ` · ${formatOrderTime(order.failedAt)}` : ""}
@@ -649,7 +649,7 @@ export default function OrderDetailPage() {
               onClick={() => onResolveFailed("reattempt")}
               className={actionBtnPrimary}
             >
-              {busyKey === `failed-reattempt-${oid}` ? "Saving…" : "Reattempt delivery"}
+              {busyKey === `failed-reattempt-${oid}` ? "Saving…" : order.failureKind === "rider_emergency" ? "Reassign order" : "Reattempt delivery"}
             </button>
           </div>
           {order.deliveryProofImageUrl ? (

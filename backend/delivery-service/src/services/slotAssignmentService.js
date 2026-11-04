@@ -90,6 +90,7 @@ export async function assignSlotToRiders({
   riderIds,
   assignedBy = "manager",
   notify = true,
+  session = null,
 }) {
   const slot = shift.slots.id(slotId);
   if (!slot) {
@@ -109,7 +110,7 @@ export async function assignSlotToRiders({
     throw err;
   }
 
-  const riders = await DeliveryBoy.find({ _id: { $in: riderIds } });
+  const riders = await DeliveryBoy.find({ _id: { $in: riderIds } }).session(session);
   const assigned = [];
   const skipped = [];
 
@@ -124,6 +125,7 @@ export async function assignSlotToRiders({
     if (existing) {
       existing.status = "UPCOMING";
       existing.assignedBy = assignedBy;
+      existing.employmentType = rider.employmentType || "PART_TIME";
       existing.bookedAt = new Date();
       existing.notificationEnabled = true;
       assigned.push({ rider, bookingId: existing._id });
@@ -136,6 +138,7 @@ export async function assignSlotToRiders({
       deliveryPartnerId: rider._id,
       deliveryPartnerPhone: rider.phone || "",
       deliveryPartnerName: rider.name || "Delivery Partner",
+      employmentType: rider.employmentType || "PART_TIME",
       deliveryPartnerProfileImage: rider.selfie?.imageBase64 || "",
       bookedAt: new Date(),
       status: "UPCOMING",
@@ -149,21 +152,34 @@ export async function assignSlotToRiders({
   slot.bookedCount = slot.bookings.filter(ACTIVE_BOOKING).length;
   if (slot.capacity < slot.bookedCount) slot.capacity = slot.bookedCount;
   shift.markModified("slots");
-  await shift.save();
+  await shift.save({ session });
 
-  for (const { rider, bookingId } of assigned) {
-    if (notify) await refreshRiderCurrentBooking(rider._id).catch(() => {});
+  const assignedRiders = assigned.map(({ rider, bookingId }) => ({
+    riderId: String(rider._id), name: rider.name, phone: rider.phone, bookingId: String(bookingId),
+  }));
+  if (!session) await publishSlotAssignment(shift, slot, assignedRiders, assignedBy, notify);
+
+  return {
+    assigned: assignedRiders,
+    skipped,
+    slot: { id: String(slot._id), bookedCount: slot.bookedCount, capacity: slot.capacity },
+  };
+}
+
+export async function publishSlotAssignment(shift, slot, assigned, assignedBy, notify = true) {
+  for (const { riderId, name, phone, bookingId } of assigned) {
+    if (notify) await refreshRiderCurrentBooking(riderId).catch(() => {});
     emit([`store_${shift.managerId}`], "rider_shift_booked", {
       shiftId: String(shift._id),
       slotId: String(slot._id),
       bookingId: String(bookingId),
-      riderId: String(rider._id),
-      name: rider.name,
-      phone: rider.phone,
+      riderId: String(riderId),
+      name,
+      phone,
       bookedAt: new Date(),
       assignedBy,
     });
-    emit([`rider_${rider._id}`, `rider:${rider._id}`], "active_delivery_updated", {
+    emit([`rider_${riderId}`, `rider:${riderId}`], "active_delivery_updated", {
       reason: "shift_assigned",
     });
   }
@@ -179,7 +195,7 @@ export async function assignSlotToRiders({
           ? ` · ₹${slot.incentiveRate}/hr incentive`
           : "";
     await notifyRiders({
-      riderIds: assigned.map((a) => a.rider._id),
+      riderIds: assigned.map((a) => a.riderId),
       type: "SHIFT_ASSIGNED",
       title: "New slot assigned",
       message: `${shift.dateString} · ${slot.startTime} – ${slot.endTime}${incentive}`,
@@ -196,12 +212,6 @@ export async function assignSlotToRiders({
       },
     }).catch(() => {});
   }
-
-  return {
-    assigned: assigned.map((a) => ({ riderId: String(a.rider._id), name: a.rider.name, phone: a.rider.phone })),
-    skipped,
-    slot: { id: String(slot._id), bookedCount: slot.bookedCount, capacity: slot.capacity },
-  };
 }
 
 export async function unassignRiderFromSlot({ shift, slotId, riderId }) {
@@ -333,8 +343,10 @@ async function findSlotAt(riderId, at = new Date()) {
   return null;
 }
 
-async function isRiderEligibleForSlotIncentive(slot, riderId) {
+async function isRiderEligibleForSlotIncentive(slot, booking) {
   if (!slot || slot.incentiveMode === "none" || !(slot.incentiveRate > 0)) return false;
+  if (booking.employmentType === "FULL_TIME") return false;
+  const riderId = booking.deliveryPartnerId;
   const audience = slot.incentiveAudience || "all";
   if (audience === "all") return true;
 
@@ -359,7 +371,7 @@ export async function creditKmIncentiveForOrder(order, riderId) {
     if (!match || match.slot.incentiveMode !== "per_km" || !(match.slot.incentiveRate > 0)) {
       return null;
     }
-    const isEligible = await isRiderEligibleForSlotIncentive(match.slot, riderId);
+    const isEligible = await isRiderEligibleForSlotIncentive(match.slot, match.booking);
     if (!isEligible) return null;
     const km = Number(order.distanceKm ?? order.earningSnapshot?.distanceKm ?? 0);
     if (!(km > 0)) return null;
@@ -423,7 +435,7 @@ function hasUnpaidSession(booking) {
 export async function creditHourIncentiveForBooking(shift, slot, booking, endAt = new Date()) {
   try {
     if (slot.incentiveMode !== "per_hour" || !(slot.incentiveRate > 0)) return null;
-    const isEligible = await isRiderEligibleForSlotIncentive(slot, booking.deliveryPartnerId);
+    const isEligible = await isRiderEligibleForSlotIncentive(slot, booking);
     if (!isEligible) return null;
     if (!hasUnpaidSession(booking)) return null;
     const { start, end } = slotWindow(shift.dateString, slot.startTime, slot.endTime);

@@ -198,6 +198,7 @@ const storeOrderSchema = new mongoose.Schema(
     deliveryComment: { type: String, default: "", trim: true },
     /** Required when status is delivery_failed */
     failureReason: { type: String, default: "", trim: true },
+    failureKind: { type: String, enum: ["", "rider_emergency"], default: "" },
     failedAt: { type: Date },
     failedByRiderId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -575,6 +576,7 @@ storeOrderSchema.methods.toSafeJSON = function toSafeJSON(stockMap = null) {
     notes: this.notes,
     deliveryComment: this.deliveryComment || "",
     failureReason: this.failureReason || "",
+    failureKind: this.failureKind || "",
     failedAt: this.failedAt,
     failedByRiderId: this.failedByRiderId
       ? this.failedByRiderId.toString()

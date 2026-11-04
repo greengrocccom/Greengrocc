@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import DeliveryBoy from "../models/DeliveryBoy.js";
 import StoreOrder from "../models/StoreOrder.js";
 import FullTimeShift from "../models/FullTimeShift.js";
+import { BATCHING_WAIT_MS } from "../services/routeBatchingService.js";
 import FullTimeAttendance from "../models/FullTimeAttendance.js";
 import { getIO } from "../../../socket.js";
 import { getManager, riderQuery } from "./managerDashboardController.js";
@@ -371,7 +372,7 @@ async function buildDriverSummaries(manager, riders, dateString = istDateString(
 
     // Compulsory daily online hours: shift override or rule setting (default 8)
     const compulsoryHours = Number(rule?.compulsoryDailyOnlineHours) || 0;
-    const requireCompulsory = Boolean(rule && rule.requireCompulsoryOnlineHours !== false);
+    const requireCompulsory = false;
 
     // Daily online minutes calculation
     ensureTodayOnlineTracking(r);
@@ -759,24 +760,24 @@ export const getMonthlyRiderPayments = async (req, res, next) => {
       ? `${yearNum + 1}-01`
       : `${yearNum}-${String(monthNum + 1).padStart(2, "0")}`;
     const end = new Date(`${nextMonth}-01T00:00:00+05:30`);
+    const monthDates = listIstDatesInMonth(yearNum, monthNum);
     const riders = await DeliveryBoy.find(riderQuery(manager, employmentType ? { employmentType } : {}))
-      .select("name phone employmentType paymentActive paymentMode monthlySalary commissionRatePerKm incentiveCredits")
+      .select("name phone selfie employmentType paymentActive paymentMode monthlySalary salaryAmount commissionRatePerKm incentiveCredits salaryCredits monthlyPayouts")
       .sort({ name: 1 }).lean();
     const ids = riders.map((r) => r._id.toString());
     const orders = ids.length ? await StoreOrder.find({
       managerId: manager._id, assignedRiderId: { $in: ids }, status: "delivered",
       deliveredAt: { $gte: start, $lt: end },
     }).select("assignedRiderId orderNumber deliveredAt deliveryDistanceKm riderDeliveryEarning paymentSnapshot").lean() : [];
+    const attendanceRows = ids.length ? await FullTimeAttendance.find({
+      deliveryBoyId: { $in: ids }, date: { $in: monthDates },
+    }).select("deliveryBoyId date status markedAt distanceFromStoreMeters").lean() : [];
     const rule = employmentType === "PART_TIME" ? null : await getActiveFullTimeRule(manager._id);
     const rows = await Promise.all(riders.map(async (r) => {
       const completed = orders.filter((o) => String(o.assignedRiderId) === String(r._id));
       const km = completed.reduce((n, o) => n + (Number(o.paymentSnapshot?.distanceKm ?? o.deliveryDistanceKm) || 0), 0);
-      const commission = completed.reduce((n, o) => n + (
-        o.paymentSnapshot?.mode
-          ? (Number(o.paymentSnapshot.commissionAmount) || 0)
-          : (Number(o.riderDeliveryEarning) || 0)
-      ), 0);
       const rate = Number(r.commissionRatePerKm) || 0;
+      const commission = km * rate;
       const mode = r.paymentMode || (r.employmentType === "FULL_TIME" ? "monthly_salary" : "per_km_commission");
       const incentives = (r.incentiveCredits || []).filter((credit) => credit.month === month)
         .reduce((n, credit) => n + (Number(credit.amount) || 0), 0);
@@ -784,10 +785,31 @@ export const getMonthlyRiderPayments = async (req, res, next) => {
       const payroll = r.employmentType === "FULL_TIME"
         ? await computeMonthPayroll({ rider: r, manager, shift, rule, month })
         : null;
+      const requirement = payroll ? resolveAttendanceRequirement({ rule, shift }) : null;
+      const attendanceByDate = new Map(attendanceRows.filter((a) => String(a.deliveryBoyId) === String(r._id)).map((a) => [a.date, a]));
+      const attendance = payroll ? monthDates.map((date) => {
+        const record = attendanceByDate.get(date);
+        const { status } = attendanceStatusFor({ record, requirement, dateString: date });
+        return { date, status, markedAt: record?.markedAt || null };
+      }) : [];
+      const dailyKmByDate = new Map();
+      for (const order of completed) {
+        const date = istDateString(order.deliveredAt);
+        const stat = dailyKmByDate.get(date) || { date, km: 0, deliveries: 0 };
+        stat.km += Number(order.paymentSnapshot?.distanceKm ?? order.deliveryDistanceKm) || 0;
+        stat.deliveries += 1;
+        dailyKmByDate.set(date, stat);
+      }
+      const dailyKm = monthDates.map((date) => {
+        const stat = dailyKmByDate.get(date) || { date, km: 0, deliveries: 0 };
+        return { ...stat, km: Math.round(stat.km * 100) / 100 };
+      });
+      const payout = (r.monthlyPayouts || []).find((entry) => entry.month === month) || null;
       return {
-        riderId: String(r._id), name: r.name || "Rider", phone: r.phone,
+        riderId: String(r._id), name: r.name || "Rider", phone: r.phone, selfie: (typeof r.selfie === "string" ? r.selfie : (r.selfie?.url || r.selfie?.imageBase64 || "")) || null,
         employmentType: r.employmentType || "PART_TIME", paymentActive: r.paymentActive === true,
         paymentMode: mode, monthlySalary: r.monthlySalary ?? null,
+        salaryAssigned: r.monthlySalary ?? (mode === "monthly_salary" ? (payroll?.baseSalary ?? (Number(r.salaryAmount) || 0)) : null),
         commissionRatePerKm: rate, completedDeliveries: completed.length,
         totalDeliveryKm: Math.round(km * 100) / 100,
         commission: Math.round(commission * 100) / 100,
@@ -798,6 +820,11 @@ export const getMonthlyRiderPayments = async (req, res, next) => {
           unpaidLeaves: payroll.leave.unpaid, deductions: payroll.totalDeductions,
           baseSalary: payroll.baseSalary, netSalary: payroll.netSalary,
         } : null,
+        attendance,
+        dailyKm,
+        paid: Boolean(payout || (r.salaryCredits || []).some((credit) => credit.month === month)),
+        paidAmount: payout?.amount ?? (r.salaryCredits || []).find((credit) => credit.month === month)?.amount ?? null,
+        paidAt: payout?.paidAt ?? (r.salaryCredits || []).find((credit) => credit.month === month)?.creditedAt ?? null,
         payable: r.paymentActive === false ? 0 : (mode === "monthly_salary"
           ? (payroll?.netSalary ?? Number(r.monthlySalary || 0))
           : Math.round(commission * 100) / 100) + incentives,
@@ -809,6 +836,55 @@ export const getMonthlyRiderPayments = async (req, res, next) => {
       incentives: Math.round(rows.reduce((n, r) => n + r.incentives, 0) * 100) / 100,
       payable: Math.round(rows.reduce((n, r) => n + r.payable, 0) * 100) / 100,
     } });
+  } catch (err) { next(err); }
+};
+
+/** POST /payments/monthly/:driverId/paid { month } */
+export const markRiderMonthPaid = async (req, res, next) => {
+  try {
+    const manager = await getManager(req);
+    const month = String(req.body?.month || "").trim();
+    if (!MONTH_RE.test(month)) return badRequest(res, "month must be in YYYY-MM format");
+    if (!mongoose.isValidObjectId(req.params.driverId)) return badRequest(res, "Invalid rider id");
+    const rider = await DeliveryBoy.findOne(riderQuery(manager, { _id: req.params.driverId }));
+    if (!rider) return res.status(404).json({ success: false, message: "Rider not found" });
+    if (rider.monthlyPayouts?.some((payout) => payout.month === month) || rider.salaryCredits?.some((credit) => credit.month === month)) {
+      return res.status(409).json({ success: false, message: `Payment for ${month} is already marked paid.` });
+    }
+
+    const [year, monthNumber] = month.split("-").map(Number);
+    const start = new Date(`${month}-01T00:00:00+05:30`);
+    const nextMonth = monthNumber === 12 ? `${year + 1}-01` : `${year}-${String(monthNumber + 1).padStart(2, "0")}`;
+    const end = new Date(`${nextMonth}-01T00:00:00+05:30`);
+    const delivered = await StoreOrder.find({
+      managerId: manager._id, assignedRiderId: rider._id, status: "delivered",
+      deliveredAt: { $gte: start, $lt: end },
+    }).select("deliveryDistanceKm paymentSnapshot").lean();
+    const totalKm = delivered.reduce((sum, order) => sum + (Number(order.paymentSnapshot?.distanceKm ?? order.deliveryDistanceKm) || 0), 0);
+    const mode = rider.paymentMode || (rider.employmentType === "FULL_TIME" ? "monthly_salary" : "per_km_commission");
+    const incentives = (rider.incentiveCredits || []).filter((credit) => credit.month === month)
+      .reduce((sum, credit) => sum + (Number(credit.amount) || 0), 0);
+    let payroll = null;
+    if (rider.employmentType === "FULL_TIME") {
+      const [rule, shift] = await Promise.all([
+        getActiveFullTimeRule(manager._id), getDriverFullTimeShift(manager._id, rider._id),
+      ]);
+      payroll = await computeMonthPayroll({ rider, manager, shift, rule, month });
+    }
+    const basePay = mode === "monthly_salary"
+      ? (payroll?.netSalary ?? Number(rider.monthlySalary || rider.salaryAmount || 0))
+      : totalKm * (Number(rider.commissionRatePerKm) || 0);
+    const amount = rider.paymentActive === false ? 0 : Math.round((basePay + incentives) * 100) / 100;
+    const result = await DeliveryBoy.findOneAndUpdate(
+      { _id: rider._id, "monthlyPayouts.month": { $ne: month }, "salaryCredits.month": { $ne: month } },
+      { $push: { monthlyPayouts: {
+        month, amount, employmentType: rider.employmentType || "PART_TIME", paidAt: new Date(), paidBy: manager._id,
+        breakdown: { basePay, incentives, totalKm, deductions: payroll?.totalDeductions || 0 },
+      } } },
+      { returnDocument: "after" },
+    );
+    if (!result) return res.status(409).json({ success: false, message: `Payment for ${month} is already marked paid.` });
+    return res.json({ success: true, month, amount, paidAt: result.monthlyPayouts.find((payout) => payout.month === month)?.paidAt });
   } catch (err) { next(err); }
 };
 
@@ -1142,8 +1218,8 @@ export async function assignOrdersDirectly({
           offerExpiresAt: null,
           pickupVerified: false,
           customerAddressUnlocked: false,
-          pickupQrUnlocked: true,
-          routeBatchWindowEndsAt: null,
+          pickupQrUnlocked: Boolean(order.isPreOrder),
+          routeBatchWindowEndsAt: order.isPreOrder ? null : new Date(now.getTime() + BATCHING_WAIT_MS),
           darkStoreId: order.darkStoreId || manager._id,
           darkStoreQrCode: order.darkStoreQrCode || `DARKSTORE_${manager._id}`,
           ...(fullTime
@@ -1169,6 +1245,18 @@ export async function assignOrdersDirectly({
   }
 
   if (assigned.length) {
+    const { openSameRouteWindowAfterAccept } = await import("../services/sameRouteAttachService.js");
+    for (const order of assigned) {
+      if (order.isPreOrder) continue;
+      const wait = await openSameRouteWindowAfterAccept(order, manager).catch((err) => {
+        console.warn("[fulltime] route matching failed:", err.message);
+        return null;
+      });
+      if (wait) {
+        order.pickupQrUnlocked = wait.pickupQrUnlocked;
+        order.routeBatchWindowEndsAt = wait.routeBatchWindowEndsAt;
+      }
+    }
     const storeRoom = `store_${manager._id}`;
     try {
       const io = getIO();
@@ -1180,12 +1268,15 @@ export async function assignOrdersDirectly({
           assignmentStatus: o.assignmentStatus,
           assignedRiderId: rider._id.toString(),
           fullTimeDelivery: fullTime,
+          pickupQrUnlocked: o.pickupQrUnlocked,
+          routeBatchWindowEndsAt: o.routeBatchWindowEndsAt,
         });
         io.to(`rider_${rider._id}`).emit("new_order_assigned", {
           orderId: o._id.toString(),
           orderNumber: o.orderNumber,
           status: o.status,
-          pickupQrUnlocked: true,
+          pickupQrUnlocked: o.pickupQrUnlocked,
+          routeBatchWindowEndsAt: o.routeBatchWindowEndsAt,
           fullTimeDelivery: fullTime,
         });
       }

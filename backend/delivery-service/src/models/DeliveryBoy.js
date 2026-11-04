@@ -91,6 +91,11 @@ const deliveryBoySchema = new mongoose.Schema(
       enum: ["", "motorcycle", "bicycle", "electric", "van", "no_vehicle"],
       default: "",
     },
+    vehicleNumber: {
+      type: String,
+      trim: true,
+      default: "",
+    },
 
     // Add near "rating" — right after vehicleType, before bankDetails
     rating: { type: Number, default: 5, min: 0, max: 5 },
@@ -336,6 +341,18 @@ const deliveryBoySchema = new mongoose.Schema(
       ],
       default: [],
     },
+    /** Manager-recorded external salary payouts, one record per rider/month. */
+    monthlyPayouts: {
+      type: [{
+        month: { type: String, required: true },
+        amount: { type: Number, required: true, min: 0 },
+        employmentType: { type: String, enum: ["FULL_TIME", "PART_TIME"], required: true },
+        paidAt: { type: Date, default: Date.now },
+        paidBy: { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryManager", default: null },
+        breakdown: { type: mongoose.Schema.Types.Mixed, default: null },
+      }],
+      default: [],
+    },
     /** Slot incentives, credited to the wallet the moment they are earned. */
     incentiveCredits: {
       type: [
@@ -384,6 +401,7 @@ deliveryBoySchema.methods.toSafeJSON = function toSafeJSON() {
     storeId: this.storeId || (this.managerId ? this.managerId.toString() : ""),
     vendorId: this.vendorId || "",
     vehicleType: this.vehicleType,
+    vehicleNumber: this.vehicleNumber || "",
     rating: this.rating !== undefined ? this.rating : 5,
     totalRatingsCount: this.totalRatingsCount || 0,
     bankDetails: this.bankDetails,

@@ -10,6 +10,7 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/online_duration.dart';
 import '../../../data/services/announcement_service.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/location_service.dart';
@@ -20,7 +21,6 @@ import '../../../data/services/shift_service.dart';
 import '../../../data/services/socket_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../shell/shell_navigation.dart';
-import '../fulltime/fulltime_widgets.dart';
 import '../../widgets/charts/weekly_bar_chart.dart';
 import '../../widgets/dialogs/order_dispatch_dialog.dart';
 
@@ -50,6 +50,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
   Timer? _heartbeat;
   Timer? _shiftEndOfflineTimer;
   StreamSubscription<bool>? _connectionSub;
+  StreamSubscription<void>? _cashSub;
   StreamSubscription<Map<String, dynamic>>? _deliveryUpdateSub;
   StreamSubscription<Map<String, dynamic>>? _offerSocketSub;
   StreamSubscription<Map<String, dynamic>>? _verifySocketSub;
@@ -64,7 +65,24 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
   List<GigInfo> _homeGigs = [];
   List<HrAnnouncement> _announcements = [];
   TodayProgressData _todayProgress = TodayProgressData.fallback;
+  int? _onlineMinutes;
+  double? _pendingCash;
+  double? _profileCash;
+  int _cashRequest = 0;
   bool _loadingProgress = false;
+
+  Future<void> _refreshOnlineMinutes() async {
+    final minutes = await RiderLiveService.instance.refreshLoginHours();
+    if (mounted && minutes != null) setState(() => _onlineMinutes = minutes);
+  }
+
+  Future<void> _refreshPendingCash() async {
+    final request = ++_cashRequest;
+    final amount = await RiderLiveService.instance.fetchPendingCash();
+    if (mounted && request == _cashRequest && amount != null) {
+      setState(() => _pendingCash = amount);
+    }
+  }
 
   Future<void> _fetchTodayProgress() async {
     if (_loadingProgress) return;
@@ -186,6 +204,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
 
   void _onBoyChanged() {
     if (!mounted) return;
+    final cash = AuthService.instance.deliveryBoy?.pendingCashAmount;
+    if (cash != _profileCash) {
+      _profileCash = cash;
+      unawaited(_refreshPendingCash());
+    }
     setState(() {});
   }
 
@@ -193,6 +216,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
   /// FCM. We only re-sync on reconnect or when the app comes back to the foreground,
   /// to pick up anything sent while the connection was down.
   void _listenForServerChanges() {
+    _cashSub = SocketService.instance.onCashUpdated.listen((_) => _refreshPendingCash());
     _connectionSub?.cancel();
     _connectionSub = SocketService.instance.onConnectionChanged.listen((connected) {
       if (connected) _catchUpWithServer();
@@ -212,11 +236,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
 
   Future<void> _catchUpWithServer() async {
     if (!mounted) return;
+    unawaited(_refreshPendingCash());
     if (_verificationPending || _lastVerificationStatus != 'approved') {
       await _refreshVerificationInfo();
     }
     await OrderService.instance.fetchActiveDelivery();
     if (!mounted) return;
+    unawaited(_refreshOnlineMinutes());
     setState(() {});
     _checkOrderOffers();
   }
@@ -239,12 +265,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
       OrderService.instance.fetchActiveDelivery().then((_) {
         if (mounted) setState(() {});
       }),
-      RiderLiveService.instance.refreshLoginHours().then((_) async {
+      _refreshOnlineMinutes().then((_) async {
         await RiderLiveService.instance.refreshPeakHours('store_1');
         if (mounted) setState(() {});
       }),
       _loadGigsData(),
       _fetchTodayProgress(),
+      _refreshPendingCash(),
       _loadAnnouncements(),
     ]);
 
@@ -294,6 +321,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
       setState(() => _isOnline = false);
       _stopHeartbeat();
       _shiftEndOfflineTimer?.cancel();
+      unawaited(_refreshOnlineMinutes());
       await AuthService.instance.fetchMe();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -498,6 +526,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
     _heartbeat?.cancel();
     _shiftEndOfflineTimer?.cancel();
     _connectionSub?.cancel();
+    _cashSub?.cancel();
     _deliveryUpdateSub?.cancel();
     _offerSocketSub?.cancel();
     _verifySocketSub?.cancel();
@@ -512,6 +541,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
     _heartbeat?.cancel();
     _heartbeat = Timer.periodic(const Duration(seconds: 30), (_) {
       AuthService.instance.sendHeartbeat();
+      if (_isOnline) unawaited(_refreshOnlineMinutes());
     });
   }
 
@@ -543,6 +573,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
       if (ok) {
         setState(() => _isOnline = false);
         _stopHeartbeat();
+        unawaited(_refreshOnlineMinutes());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AppLocalizations.of(context).shiftEndedGraceOffline),
@@ -612,6 +643,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
             SocketService.instance.connect(boyId);
           }
           _startHeartbeat();
+          unawaited(_refreshOnlineMinutes());
           _checkOrderOffers();
           _scheduleShiftEndAutoOffline(res.endTime);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -646,6 +678,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
             _isOnline = false;
           });
           _stopHeartbeat();
+          unawaited(_refreshOnlineMinutes());
           _shiftEndOfflineTimer?.cancel();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -795,9 +828,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
                 ],
 
                 // CASH ON DELIVERY WARNING BANNER
-                if ((AuthService.instance.deliveryBoy?.pendingCashAmount ?? 0) > 0) ...[
+                if ((_pendingCash ?? AuthService.instance.deliveryBoy?.pendingCashAmount ?? 0) > 0) ...[
                   _CodCashWarningCard(
-                    amount: AuthService.instance.deliveryBoy!.pendingCashAmount,
+                    amount: _pendingCash ?? AuthService.instance.deliveryBoy?.pendingCashAmount ?? 0,
                   ),
                   const SizedBox(height: 14),
                 ],
@@ -820,11 +853,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
                   const SizedBox(height: 14),
                 ],
 
-                if (AuthService.instance.deliveryBoy?.isFullTime ?? false) ...[
-                  const FullTimeHomeCard(),
-                  const SizedBox(height: 2),
-                ],
-
                 // 3. GO ONLINE DIRECT BANNER CARD
                 _GoOnlineBannerCard(
                   isOnline: _isOnline,
@@ -836,8 +864,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
                 // 4. TODAY'S PROGRESS SECTION
                 _TodaysProgressSectionCard(
                   data: _todayProgress,
+                  onlineMinutes: _onlineMinutes ?? _todayProgress.onlineMinutes,
                   isLoading: _loadingProgress,
-                  onViewAll: () => Navigator.pushNamed(context, AppRoutes.deliveryHistory),
                 ),
                 const SizedBox(height: 18),
 
@@ -1411,65 +1439,41 @@ class _GoOnlineBannerCard extends StatelessWidget {
   }
 }
 
-/// 4. Today's Progress Section Card (5 distinct Cards in 2 Rows matching Image 1)
+/// 4. Today's Progress Section Card
 class _TodaysProgressSectionCard extends StatelessWidget {
   const _TodaysProgressSectionCard({
     required this.data,
+    required this.onlineMinutes,
     required this.isLoading,
-    required this.onViewAll,
   });
 
   final TodayProgressData data;
+  final int onlineMinutes;
   final bool isLoading;
-  final VoidCallback onViewAll;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
-    final earningsStr = '₹${data.todayEarnings}';
+    final distance = data.totalDistanceKm;
+    final distanceStr = distance == null
+        ? '—'
+        : l10n.distanceKmValue(distance.toStringAsFixed(1));
     final tripsStr = '${data.completedTrips}';
-    final onlineStr = data.onlineTime;
+    final onlineStr = formatOnlineDuration(onlineMinutes);
     final shiftsStr = '${data.bookedShifts}';
     final completedStr = '${data.completedShifts}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              l10n.todaysProgressTitle,
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
-              ),
-            ),
-            InkWell(
-              onTap: onViewAll,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    AppLocalizations.of(context).viewAll,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF047857),
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    size: 18,
-                    color: Color(0xFF047857),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        Text(
+          l10n.todaysProgressTitle,
+          style: GoogleFonts.inter(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+          ),
         ),
         const SizedBox(height: 12),
 
@@ -1488,52 +1492,6 @@ class _TodaysProgressSectionCard extends StatelessWidget {
             ),
           )
         else ...[
-          // ROW 1: 3 CARDS
-          Row(
-            children: [
-              Expanded(
-                child: _MetricCard(
-                  iconWidget: const Text(
-                    '₹',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF047857),
-                    ),
-                  ),
-                  value: earningsStr,
-                  label: l10n.todaysEarningsLabel,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _MetricCard(
-                  iconWidget: const Icon(
-                    Icons.inventory_2_outlined,
-                    size: 20,
-                    color: Color(0xFF047857),
-                  ),
-                  value: tripsStr,
-                  label: l10n.tripsCompletedLabel,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _MetricCard(
-                  iconWidget: const Icon(
-                    Icons.schedule_rounded,
-                    size: 20,
-                    color: Color(0xFF047857),
-                  ),
-                  value: onlineStr,
-                  label: l10n.onlineTime,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // ROW 2: 2 CARDS
           Row(
             children: [
               Expanded(
@@ -1549,6 +1507,46 @@ class _TodaysProgressSectionCard extends StatelessWidget {
                   icon: Icons.check_circle_outline_rounded,
                   value: completedStr,
                   label: l10n.completedShiftsLabel,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _MetricCard(
+                  iconWidget: const Icon(
+                    Icons.schedule_rounded,
+                    size: 20,
+                    color: Color(0xFF047857),
+                  ),
+                  value: onlineStr,
+                  label: l10n.onlineTime,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MetricCard(
+                  iconWidget: const Icon(
+                    Icons.route_outlined,
+                    size: 20,
+                    color: Color(0xFF047857),
+                  ),
+                  value: distanceStr,
+                  label: l10n.distance,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MetricCard(
+                  iconWidget: const Icon(
+                    Icons.inventory_2_outlined,
+                    size: 20,
+                    color: Color(0xFF047857),
+                  ),
+                  value: tripsStr,
+                  label: l10n.tripsCompletedLabel,
                 ),
               ),
             ],
@@ -2443,146 +2441,115 @@ class _CodCashWarningCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final formattedAmount = amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2);
 
-    return InkWell(
-      onTap: () => Navigator.pushNamed(context, AppRoutes.wallet),
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1F1D14) : const Color(0xFFFFFDF0),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isDark ? const Color(0xFF854D0E) : const Color(0xFFFDE68A),
-            width: 1.2,
-          ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1F1D14) : const Color(0xFFFFFDF0),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? const Color(0xFF854D0E) : const Color(0xFFFDE68A),
+          width: 1.2,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Wallet icon with small exclamation badge
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF59E0B),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Cash icon with small exclamation badge
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF59E0B),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.payments_outlined,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -1,
+                right: -1,
+                child: Container(
+                  width: 13,
+                  height: 13,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD97706),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF1F1D14) : const Color(0xFFFFFDF0),
+                      width: 1.2,
+                    ),
                   ),
                   child: const Center(
-                    child: Icon(
-                      Icons.account_balance_wallet_outlined,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: -1,
-                  right: -1,
-                  child: Container(
-                    width: 13,
-                    height: 13,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD97706),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF1F1D14) : const Color(0xFFFFFDF0),
-                        width: 1.2,
-                      ),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w900,
-                          height: 1,
-                        ),
+                    child: Text(
+                      '!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(width: 10),
-
-            // Title and concise subtitle
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context).cashDepositDue,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF1E293B),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        AppLocalizations.of(context).detailsAction,
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    AppLocalizations.of(context).handOverToStoreToday,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                    ),
-                  ),
-                ],
               ),
-            ),
-            const SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(width: 10),
 
-            // Amount pill + chevron
-            Row(
+          // Title and concise subtitle
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF78350F) : const Color(0xFFFEF08A),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '₹$formattedAmount',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? const Color(0xFFFEF08A) : const Color(0xFF0F172A),
-                    ),
+                Text(
+                  AppLocalizations.of(context).cashDepositDue,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF1E293B),
                   ),
                 ),
-                const SizedBox(width: 2),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
-                  size: 18,
+                const SizedBox(height: 1),
+                Text(
+                  AppLocalizations.of(context).handOverToStoreToday,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+
+          // Amount pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF78350F) : const Color(0xFFFEF08A),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '₹$formattedAmount',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: isDark ? const Color(0xFFFEF08A) : const Color(0xFF0F172A),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

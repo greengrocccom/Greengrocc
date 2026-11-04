@@ -73,7 +73,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (widget.embedded) {
         ShellNavigation.instance.goToTab(3);
       } else {
-        Navigator.pushNamed(context, AppRoutes.wallet);
+        Navigator.pushNamed(context, AppRoutes.deliveryHistory);
       }
       return;
     }

@@ -1407,7 +1407,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get onlineTime => 'ऑनलाइन समय';
 
   @override
-  String get shiftsBookedLabel => 'बुक की गई शिफ़्ट';
+  String get shiftsBookedLabel => 'सौंपी गई शिफ़्ट';
 
   @override
   String get completedShiftsLabel => 'पूर्ण शिफ़्ट';
@@ -1865,13 +1865,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get kindUpcoming => 'आगामी';
 
   @override
-  String get cashDepositDue => 'नकद जमा बाकी';
+  String get cashDepositDue => 'जमा करने के लिए COD नकद';
 
   @override
   String get detailsAction => 'विवरण';
 
   @override
-  String get handOverToStoreToday => 'आज डार्क स्टोर मैनेजर को सौंपें';
+  String get handOverToStoreToday =>
+      'यह रकम दिन खत्म होने से पहले अपने डार्क स्टोर मैनेजर को सौंपें।';
 
   @override
   String get couldNotLoadPreOrders => 'आपके प्री-ऑर्डर लोड नहीं हो सके।';

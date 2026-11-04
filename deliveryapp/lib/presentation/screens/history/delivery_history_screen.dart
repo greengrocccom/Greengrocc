@@ -6,10 +6,9 @@ import '../../../core/config/api_config.dart';
 import '../../../core/config/cached_get.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/online_duration.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../widgets/charts/chart_utils.dart';
-import '../../widgets/charts/weekly_bar_chart.dart';
 import '../../widgets/common/app_panel.dart';
 import '../../widgets/layout/custom_app_bar.dart';
 
@@ -23,11 +22,11 @@ class DeliveryHistoryScreen extends StatefulWidget {
 }
 
 class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
-  String _range = 'week';
+  String _range = 'day';
   bool _loading = true;
   String? _error;
   List<_DayBox> _days = const [];
-  _HistoryTotals _totals = _HistoryTotals.empty;
+  _ActivityMetrics _totals = _ActivityMetrics.empty;
 
   @override
   void initState() {
@@ -57,8 +56,9 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
             _days = daysRaw
                 .whereType<Map>()
                 .map((e) => _DayBox.fromJson(Map<String, dynamic>.from(e)))
+                .where((day) => range != 'day' || day.isToday)
                 .toList();
-            _totals = _HistoryTotals.fromJson(totalsRaw);
+            _totals = _ActivityMetrics.fromJson(totalsRaw);
             _loading = false;
           });
         },
@@ -70,7 +70,7 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
         _loading = false;
         _error = e.toString();
         _days = const [];
-        _totals = _HistoryTotals.empty;
+        _totals = _ActivityMetrics.empty;
       });
     }
   }
@@ -95,9 +95,9 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
           ),
           child: _RangeChips(
             range: _range,
+            dayLabel: l10n.today,
             weekLabel: l10n.week,
             monthLabel: l10n.month,
-            yearLabel: l10n.year,
             onChanged: _setRange,
           ),
         ),
@@ -125,22 +125,6 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
     AppSpacing.lg,
     AppSpacing.xl,
   );
-
-  String _barLabel(_DayBox d) {
-    if (_range == 'month') {
-      final parts = d.date.split('-');
-      return parts.length == 3 ? '${int.tryParse(parts[2]) ?? parts[2]}' : _localDayLabel(context, d);
-    }
-    if (_range == 'year') return _localDayLabel(context, d, monthOnly: true);
-    return _localDayLabel(context, d);
-  }
-
-  String _barTooltip(_DayBox d) {
-    final l10n = AppLocalizations.of(context);
-    final label = _localDayLabel(context, d);
-    final title = _range == 'year' ? label : '$label · ${d.date}';
-    return '$title\n${rupeeAmount(d.earnings)} · ${l10n.tripsCount(d.trips)}\n${l10n.onlineDuration(d.onlineTime)}';
-  }
 
   Widget _buildBody(AppLocalizations l10n) {
     if (_loading) {
@@ -170,7 +154,6 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
       );
     }
 
-    final chronological = _days.reversed.toList();
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
@@ -178,8 +161,13 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: _listPadding,
         children: [
-          _TotalsBar(totals: _totals),
-          const SizedBox(height: AppSpacing.lg),
+          if (_range != 'day' && _days.isNotEmpty) ...[
+            AppPanel(
+              title: _range == 'week' ? l10n.week : l10n.month,
+              child: _ActivityChips(metrics: _totals),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
           if (_days.isEmpty)
             AppPanel(
               child: EmptyPanelMessage(
@@ -188,23 +176,6 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
               ),
             )
           else ...[
-            AppPanel(
-              title: l10n.earnings,
-              subtitle: _range == 'year' ? l10n.monthlyEarnings : l10n.dailyEarnings,
-              child: WeeklyBarChart(
-                bars: [
-                  for (final d in chronological)
-                    ChartBar(
-                      label: _barLabel(d),
-                      value: d.earnings.toDouble(),
-                      highlight: d.isToday,
-                    ),
-                ],
-                labelEvery: _range == 'month' ? 5 : 1,
-                axisLabel: (v) => '₹${compactNumber(v)}',
-                tooltipLabel: (i) => _barTooltip(chronological[i]),
-              ),
-            ),
             for (var i = 0; i < _days.length; i++) ...[
               if (i > 0) const SizedBox(height: AppSpacing.md),
               _DayHistoryCard(day: _days[i]),
@@ -219,25 +190,25 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
 class _RangeChips extends StatelessWidget {
   const _RangeChips({
     required this.range,
+    required this.dayLabel,
     required this.weekLabel,
     required this.monthLabel,
-    required this.yearLabel,
     required this.onChanged,
   });
 
   final String range;
+  final String dayLabel;
   final String weekLabel;
   final String monthLabel;
-  final String yearLabel;
   final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final options = [
+      ('day', dayLabel),
       ('week', weekLabel),
       ('month', monthLabel),
-      ('year', yearLabel),
     ];
     return Container(
       padding: const EdgeInsets.all(4),
@@ -285,62 +256,6 @@ class _RangeChips extends StatelessWidget {
             ),
           );
         }).toList(),
-      ),
-    );
-  }
-}
-
-class _TotalsBar extends StatelessWidget {
-  const _TotalsBar({required this.totals});
-
-  final _HistoryTotals totals;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: brandHeroDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.earnings,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.85),
-            ),
-          ),
-          const SizedBox(height: 1),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              rupeeAmount(totals.earnings),
-              style: GoogleFonts.inter(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Expanded(child: HeroStat(label: l10n.trips, value: '${totals.trips}')),
-                Expanded(child: HeroStat(label: l10n.online, value: totals.onlineTime)),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -418,49 +333,10 @@ class _DayHistoryCard extends StatelessWidget {
                   ),
                 ),
               ],
-              const Spacer(),
-              Text(
-                rupeeAmount(day.total),
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? const Color(0xFF34D399) : AppColors.primary,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _MetricChip(
-                emoji: '💰',
-                label: l10n.earnShort,
-                value: '₹${day.earnings}',
-              ),
-              _MetricChip(
-                emoji: '⏱️',
-                label: l10n.online,
-                value: day.onlineTime,
-              ),
-              _MetricChip(
-                emoji: '📅',
-                label: l10n.shifts,
-                value: l10n.shiftsBookedValue(day.shiftsBooked),
-              ),
-              _MetricChip(
-                emoji: '✅',
-                label: l10n.doneShort,
-                value: l10n.shiftsDoneValue(day.shiftsCompleted),
-              ),
-              _MetricChip(
-                emoji: '🛵',
-                label: l10n.trips,
-                value: '${day.trips}',
-              ),
-            ],
-          ),
+          _ActivityChips(metrics: day.metrics),
         ],
       ),
     );
@@ -513,15 +389,11 @@ class _MetricChip extends StatelessWidget {
   }
 }
 
-String _localDayLabel(BuildContext context, _DayBox d, {bool monthOnly = false}) {
+String _localDayLabel(BuildContext context, _DayBox d) {
   final locale = Localizations.localeOf(context).toLanguageTag();
   final parts = d.date.split('-').map(int.tryParse).toList();
   if (parts.any((p) => p == null)) return d.dayLabel;
   try {
-    if (parts.length == 2) {
-      final date = DateTime(parts[0]!, parts[1]!);
-      return monthOnly ? DateFormat.MMM(locale).format(date) : DateFormat.yMMM(locale).format(date);
-    }
     if (parts.length == 3) {
       return DateFormat.E(locale).format(DateTime(parts[0]!, parts[1]!, parts[2]!));
     }
@@ -534,65 +406,75 @@ class _DayBox {
     required this.date,
     required this.dayLabel,
     required this.isToday,
-    required this.earnings,
-    required this.onlineMinutes,
-    required this.onlineTime,
-    required this.shiftsBooked,
-    required this.shiftsCompleted,
-    required this.trips,
-    required this.total,
+    required this.metrics,
   });
 
   final String date;
   final String dayLabel;
   final bool isToday;
-  final int earnings;
-  final int onlineMinutes;
-  final String onlineTime;
-  final int shiftsBooked;
-  final int shiftsCompleted;
-  final int trips;
-  final int total;
+  final _ActivityMetrics metrics;
 
   factory _DayBox.fromJson(Map<String, dynamic> json) {
-    final mins = (json['onlineMinutes'] as num?)?.toInt() ?? 0;
     return _DayBox(
       date: json['date']?.toString() ?? '',
       dayLabel: json['dayLabel']?.toString() ?? '',
       isToday: json['isToday'] == true,
-      earnings: (json['earnings'] as num?)?.toInt() ?? 0,
-      onlineMinutes: mins,
-      onlineTime: json['onlineTime']?.toString() ?? '${mins ~/ 60}h ${mins % 60}m',
-      shiftsBooked: (json['shiftsBooked'] as num?)?.toInt() ?? 0,
-      shiftsCompleted: (json['shiftsCompleted'] as num?)?.toInt() ?? 0,
-      trips: (json['trips'] as num?)?.toInt() ?? 0,
-      total: (json['total'] as num?)?.toInt() ??
-          (json['earnings'] as num?)?.toInt() ??
-          0,
+      metrics: _ActivityMetrics.fromJson(json),
     );
   }
 }
 
-class _HistoryTotals {
-  const _HistoryTotals({
-    required this.earnings,
-    required this.onlineTime,
-    required this.trips,
+class _ActivityMetrics {
+  const _ActivityMetrics({
+    this.onlineMinutes = 0,
+    this.shiftsBooked = 0,
+    this.shiftsCompleted = 0,
+    this.trips = 0,
+    this.totalDistanceKm,
   });
 
-  final int earnings;
-  final String onlineTime;
+  final int onlineMinutes;
+  final int shiftsBooked;
+  final int shiftsCompleted;
   final int trips;
+  final double? totalDistanceKm;
 
-  static const empty = _HistoryTotals(earnings: 0, onlineTime: '0m', trips: 0);
+  static const empty = _ActivityMetrics();
 
-  factory _HistoryTotals.fromJson(Map<String, dynamic> json) {
-    return _HistoryTotals(
-      earnings: (json['earnings'] as num?)?.toInt() ??
-          (json['total'] as num?)?.toInt() ??
-          0,
-      onlineTime: json['onlineTime']?.toString() ?? '0m',
+  factory _ActivityMetrics.fromJson(Map<String, dynamic> json) {
+    return _ActivityMetrics(
+      onlineMinutes: (json['onlineMinutes'] as num?)?.toInt() ?? 0,
+      shiftsBooked: (json['shiftsBooked'] as num?)?.toInt() ?? 0,
+      shiftsCompleted: (json['shiftsCompleted'] as num?)?.toInt() ?? 0,
       trips: (json['trips'] as num?)?.toInt() ?? 0,
+      totalDistanceKm: (json['totalDistanceKm'] as num?)?.toDouble(),
+    );
+  }
+}
+
+class _ActivityChips extends StatelessWidget {
+  const _ActivityChips({required this.metrics});
+
+  final _ActivityMetrics metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final distance = metrics.totalDistanceKm;
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        _MetricChip(emoji: '📅', label: l10n.shiftsBookedLabel, value: metrics.shiftsBooked.toString()),
+        _MetricChip(emoji: '✅', label: l10n.completedShiftsLabel, value: metrics.shiftsCompleted.toString()),
+        _MetricChip(emoji: '⏱️', label: l10n.onlineTime, value: formatOnlineDuration(metrics.onlineMinutes)),
+        _MetricChip(
+          emoji: '📍',
+          label: l10n.distance,
+          value: distance == null ? '—' : l10n.distanceKmValue(distance.toStringAsFixed(1)),
+        ),
+        _MetricChip(emoji: '🛵', label: l10n.tripsCompletedLabel, value: metrics.trips.toString()),
+      ],
     );
   }
 }

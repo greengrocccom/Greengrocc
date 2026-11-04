@@ -6,13 +6,13 @@ const getPageTitle = (pathname) => {
   if (pathname === "/shifts") return "Part-Time Shifts & Slots";
   if (pathname === "/shifts/create") return "Create Part-Time Shift";
   if (pathname === "/shifts/fulltime") return "Full-Time Shifts";
-  if (pathname.startsWith("/shifts/fulltime/")) return "Full-Time Shift Setup";
+  if (pathname === "/payments/salary" || pathname === "/payments/monthly") return "Rider Salary & Monthly Payouts";
   if (pathname === "/fulltime/rules") return "Full-Time Rules";
   if (pathname === "/fulltime/assign-orders") return "Assign Orders";
-  if (pathname === "/drivers") return "Delivery Partners Roster";
+  if (pathname === "/drivers") return "All Riders Roster";
   if (pathname === "/drivers/fulltime") return "Full-Time Riders";
   if (pathname === "/drivers/parttime") return "Part-Time Riders";
-  if (pathname.startsWith("/drivers/pending")) return "Rider KYC Verification";
+  if (pathname.startsWith("/drivers/pending")) return "Rider Verification";
   if (pathname.startsWith("/drivers/")) return "Delivery Partner Details";
   if (pathname === "/dashboard") return "Operations Dashboard";
   if (pathname === "/orders") return "Orders Management";
@@ -32,8 +32,6 @@ export default function Header({ onMobileMenuToggle }) {
   const location = useLocation();
   const pageTitle = getPageTitle(location.pathname);
   const locationStr = [manager?.area, manager?.city].filter(Boolean).join(", ");
-  const isRiderRosterPage = ["/drivers/fulltime", "/drivers/parttime"].includes(location.pathname);
-
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
       <div className="flex min-w-0 items-center gap-3">
@@ -47,23 +45,10 @@ export default function Header({ onMobileMenuToggle }) {
             <Icon name="menu" size="sm" />
           </button>
         )}
-        {isRiderRosterPage ? (
-          <div className="relative w-64 md:w-80">
-            <span className="absolute left-3 top-2.5 text-slate-400">
-              <Icon name="search" size="sm" />
-            </span>
-            <input
-              type="text"
-              placeholder="Search riders, orders, packages..."
-              className="h-9 w-full rounded-full border border-slate-200 bg-slate-50/80 pl-9 pr-3 text-xs text-slate-700 placeholder-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-none transition"
-            />
-          </div>
-        ) : (
-          <div className="min-w-0 leading-tight">
-            <h1 className="truncate text-sm md:text-base font-bold text-slate-900">{pageTitle}</h1>
-            <p className="truncate text-[11px] text-slate-500 font-medium">{locationStr || "Dark Store Hub"}</p>
-          </div>
-        )}
+        <div className="min-w-0 leading-tight">
+          <h1 className="truncate text-sm md:text-base font-bold text-slate-900">{pageTitle}</h1>
+          <p className="truncate text-[11px] text-slate-500 font-medium">{locationStr || "Dark Store Hub"}</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

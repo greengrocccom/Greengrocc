@@ -11,12 +11,12 @@ import {
   getActiveFullTimeRule,
   getDriverFullTimeShift,
   istDateString,
-  lateMinutesFor,
   monthAttendanceSummary,
   resolveAttendanceRequirement,
   resolveRiderManager,
   salarySource,
   shiftPayPolicy,
+  FULL_TIME_ATTENDANCE_RADIUS_METERS,
 } from "../services/fullTimeService.js";
 
 const darkStoreName = (manager) =>
@@ -97,13 +97,10 @@ export const markFullTimeAttendance = async (req, res, next) => {
       });
     }
     if (!state.canMark) {
-      const closed = state.phase === "after";
       return res.status(400).json({
         success: false,
-        code: closed ? "ATTENDANCE_WINDOW_CLOSED" : "ATTENDANCE_WINDOW_NOT_OPEN",
-        message: closed
-          ? `Attendance window closed at ${requirement?.endTime}`
-          : `Attendance opens shortly before ${requirement?.startTime}`,
+        code: "ATTENDANCE_DATE_UNAVAILABLE",
+        message: "Attendance cannot be marked for this date.",
         requirement,
       });
     }
@@ -139,7 +136,7 @@ export const markFullTimeAttendance = async (req, res, next) => {
     }
 
     const markedAt = new Date();
-    const lateMinutes = requirement ? lateMinutesFor(requirement.startTime, markedAt) : 0;
+    const lateMinutes = 0;
     const attendance = await FullTimeAttendance.findOneAndUpdate(
       { deliveryBoyId: rider._id, date: today },
       {
@@ -218,13 +215,10 @@ export const getFullTimeAttendanceToday = async (req, res, next) => {
       rule: rule
         ? {
             ruleName: rule.ruleName,
-            attendanceStartTime: rule.attendanceStartTime,
-            attendanceEndTime: rule.attendanceEndTime,
-            requireAttendance: rule.requireAttendance !== false,
-            requireLocationValidation: rule.requireLocationValidation,
-            attendanceRadiusMeters: rule.attendanceRadiusMeters,
-            workingDays: rule.workingDays,
-            minimumAttendanceDays: rule.minimumAttendanceDays,
+            requireAttendance: true,
+            requireLocationValidation: true,
+            attendanceRadiusMeters: FULL_TIME_ATTENDANCE_RADIUS_METERS,
+            workingDays: [],
           }
         : null,
       darkStore: manager
@@ -240,7 +234,7 @@ export const getFullTimeAttendanceToday = async (req, res, next) => {
       todayStatus: state.status,
       canMark: state.canMark,
       windowPhase: state.phase,
-      month: { ...month, minimumAttendanceDays: rule?.minimumAttendanceDays ?? null },
+      month,
       payPolicy: shiftPayPolicy(rule),
       payroll,
     });
@@ -265,7 +259,15 @@ export const getFullTimeRulesForRider = async (req, res, next) => {
 
     return res.json({
       success: true,
-      rules,
+      rules: rules.map((item) => ({
+        ...item.toObject(),
+        requireAttendance: true,
+        requireLocationValidation: true,
+        attendanceRadiusMeters: FULL_TIME_ATTENDANCE_RADIUS_METERS,
+        requireCompulsoryOnlineHours: false,
+        minimumAttendanceDays: null,
+        latePenaltyEnabled: false,
+      })),
       monthlySalary: effectiveMonthlySalary(rider, manager),
       salarySource: salarySource(rider),
       darkStoreName: darkStoreName(manager),

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 import { useAuth } from "../../context/AuthContext";
@@ -19,7 +19,35 @@ import {
   isPickupOrder,
 } from "../orders/orderUtils";
 
+const todayIstStr = (() => {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  } catch (_) {
+    return new Date().toISOString().slice(0, 10);
+  }
+})();
+
+const tomorrowIstStr = (() => {
+  try {
+    const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch (_) {
+    return "";
+  }
+})();
+
 const TABS = [
+  { id: "all", label: "All" },
   { id: "awaiting_vendor", label: "Awaiting Vendor" },
   { id: "with_vendor", label: "Vendor Packing" },
   { id: "incoming", label: "Shipped · Incoming" },
@@ -27,7 +55,6 @@ const TABS = [
   { id: "on_the_way", label: "Assigned / On the way" },
   { id: "delivered", label: "Delivered" },
   { id: "closed", label: "Cancelled / Failed" },
-  { id: "all", label: "All" },
 ];
 
 const STAGE_LABELS = {
@@ -104,9 +131,9 @@ export default function PreOrdersPage() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [busyKey, setBusyKey] = useState("");
-  const [activeTab, setActiveTab] = useState("incoming");
+  const [activeTab, setActiveTab] = useState("all");
   const [receiveIds, setReceiveIds] = useState([]);
-  const [dateFilter, setDateFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState(todayIstStr);
   const [slotFilter, setSlotFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRider, setSelectedRider] = useState({});
@@ -219,7 +246,7 @@ export default function PreOrdersPage() {
   );
 
   const counts = useMemo(() => {
-    const c = {};
+    const c = { all: orders.length };
     for (const tab of TABS) c[tab.id] = orders.filter((o) => matchesTab(o, tab.id)).length;
     return c;
   }, [orders]);
@@ -239,16 +266,16 @@ export default function PreOrdersPage() {
     });
   }, [orders, activeTab, slotFilter, searchQuery]);
 
-  const groups = useMemo(() => {
+  const ordersByDate = useMemo(() => {
     const map = new Map();
     for (const o of visibleOrders) {
-      const key = `${o.preOrderDate || ""}__${o.preOrderSlot || ""}`;
-      if (!map.has(key)) {
-        map.set(key, { key, date: o.preOrderDate, slot: o.preOrderSlot, orders: [] });
+      const dateKey = o.preOrderDate || (o.createdAt ? o.createdAt.slice(0, 10) : "No date");
+      if (!map.has(dateKey)) {
+        map.set(dateKey, { dateKey, orders: [] });
       }
-      map.get(key).orders.push(o);
+      map.get(dateKey).orders.push(o);
     }
-    return [...map.values()];
+    return [...map.values()].sort((a, b) => (b.dateKey > a.dateKey ? 1 : b.dateKey < a.dateKey ? -1 : 0));
   }, [visibleOrders]);
 
   const onAssign = async (order) => {
@@ -432,44 +459,46 @@ export default function PreOrdersPage() {
 
   const summaryCards = [
     {
+      id: "all",
+      label: "All Pre-Orders",
+      accent: "border-slate-200 bg-white",
+      countClass: "text-slate-900",
+      ring: "ring-slate-400",
+    },
+    {
       id: "awaiting_vendor",
-      label: "Awaiting vendor",
-      hint: "Vendor has not confirmed yet",
-      accent: "border-orange-200 bg-orange-50",
-      countClass: "text-orange-800",
-      ring: "ring-orange-500",
+      label: "Awaiting Vendor",
+      accent: "border-slate-200 bg-white",
+      countClass: "text-amber-700",
+      ring: "ring-amber-400",
     },
     {
       id: "with_vendor",
-      label: "Vendor packing",
-      hint: "Vendor confirmed — packing & shipping",
-      accent: "border-indigo-200 bg-indigo-50",
-      countClass: "text-indigo-800",
-      ring: "ring-indigo-500",
+      label: "Vendor Packing",
+      accent: "border-slate-200 bg-white",
+      countClass: "text-indigo-700",
+      ring: "ring-indigo-400",
     },
     {
       id: "incoming",
-      label: "Shipped to store",
-      hint: "Vendor shipped — mark received on arrival",
-      accent: "border-violet-200 bg-violet-50",
-      countClass: "text-violet-800",
-      ring: "ring-violet-500",
+      label: "Shipped to Store",
+      accent: "border-slate-200 bg-white",
+      countClass: "text-violet-700",
+      ring: "ring-violet-400",
     },
     {
       id: "to_assign",
-      label: "Ready to assign",
-      hint: "Received at store",
-      accent: "border-emerald-200 bg-emerald-50",
-      countClass: "text-emerald-800",
-      ring: "ring-emerald-500",
+      label: "Ready to Assign",
+      accent: "border-slate-200 bg-white",
+      countClass: "text-emerald-700",
+      ring: "ring-emerald-400",
     },
     {
       id: "on_the_way",
-      label: "Assigned / On the way",
-      hint: "Rider accepted",
-      accent: "border-amber-200 bg-amber-50",
-      countClass: "text-amber-800",
-      ring: "ring-amber-500",
+      label: "On The Way",
+      accent: "border-slate-200 bg-white",
+      countClass: "text-blue-700",
+      ring: "ring-blue-400",
     },
   ];
 
@@ -486,21 +515,28 @@ export default function PreOrdersPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">{error}</div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        {summaryCards.map((card) => (
-          <button
-            key={card.id}
-            type="button"
-            onClick={() => setActiveTab(card.id)}
-            className={`rounded-2xl border p-4 text-left shadow-xs transition ${card.accent} ${
-              activeTab === card.id ? `ring-2 ${card.ring}` : "hover:shadow-sm"
-            }`}
-          >
-            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">{card.label}</p>
-            <p className={`mt-1 text-3xl font-black ${card.countClass}`}>{counts[card.id] || 0}</p>
-            <p className="mt-1 text-[11px] text-slate-500">{card.hint}</p>
-          </button>
-        ))}
+      {/* Summary boxes with decreased compact height matching Orders */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {summaryCards.map((card) => {
+          const selected = activeTab === card.id;
+          return (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => setActiveTab(card.id)}
+              className={`rounded-xl border p-3 text-left transition ${card.accent} ${
+                selected ? `ring-2 ${card.ring}` : "hover:border-slate-300"
+              }`}
+            >
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                {card.label}
+              </div>
+              <div className={`text-2xl font-black mt-0.5 ${card.countClass}`}>
+                {counts[card.id] || 0}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -656,286 +692,424 @@ export default function PreOrdersPage() {
 
       {loading ? (
         <div className="h-64 animate-pulse rounded-2xl bg-slate-200/60" />
-      ) : groups.length === 0 ? (
+      ) : visibleOrders.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
-          <h3 className="text-sm font-bold text-slate-800">No pre-orders here</h3>
+          <h3 className="text-sm font-bold text-slate-800">No Pre-Orders Found</h3>
           <p className="mt-1 text-xs text-slate-400">
-            {activeTab === "incoming"
-              ? "Pre-orders appear here once the vendor ships them."
-              : activeTab === "to_assign"
-                ? "Mark incoming pre-orders as received to assign riders."
+            {searchQuery
+              ? "No pre-orders match your search."
+              : dateFilter === todayIstStr
+                ? "No pre-orders scheduled for today."
                 : "Nothing matches the selected filters."}
           </p>
         </div>
       ) : (
-        <div className="space-y-5">
-          {groups.map((group) => (
-            <section key={group.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
-              <header className="flex flex-wrap items-center justify-between gap-2 bg-black px-4 py-2.5 text-white">
-                <div className="flex items-center gap-2 text-sm font-bold">
-                  <span>{formatDayLabel(group.date, meta.today, meta.tomorrow)}</span>
-                  <span className="text-white/40">·</span>
-                  <span className="text-emerald-300">{group.slot || "No slot"}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  {group.orders.some(canReceive) && (
-                    <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-white/80">
+        <div className="overflow-x-auto rounded-xl border border-slate-200/90 bg-white shadow-2xs">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px]">
+                <th className="py-3 px-3.5 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    {visibleOrders.some(canBulkAssign) && (
                       <input
                         type="checkbox"
-                        className="h-3.5 w-3.5 accent-violet-500"
-                        checked={group.orders.filter(canReceive).every((o) => receiveIds.includes(o.id))}
-                        onChange={() => toggleGroupReceive(group.orders)}
+                        title="Select all ready to assign"
+                        className="h-4 w-4 cursor-pointer accent-emerald-600 rounded"
+                        checked={visibleOrders.filter(canBulkAssign).every((o) => bulkIds.includes(o.id))}
+                        onChange={() => toggleGroupBulk(visibleOrders)}
                       />
-                      Select all incoming
-                    </label>
-                  )}
-                  {group.orders.some(canBulkAssign) && (
-                    <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-white/80">
+                    )}
+                    {visibleOrders.some(canReceive) && (
                       <input
                         type="checkbox"
-                        className="h-3.5 w-3.5 accent-emerald-500"
-                        checked={group.orders
-                          .filter(canBulkAssign)
-                          .every((o) => bulkIds.includes(o.id))}
-                        onChange={() => toggleGroupBulk(group.orders)}
+                        title="Select all incoming to receive"
+                        className="h-4 w-4 cursor-pointer accent-violet-600 rounded"
+                        checked={visibleOrders.filter(canReceive).every((o) => receiveIds.includes(o.id))}
+                        onChange={() => toggleGroupReceive(visibleOrders)}
                       />
-                      Select all ready
-                    </label>
-                  )}
-                  <span className="text-xs font-semibold text-white/70">
-                    {group.orders.length} order{group.orders.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-              </header>
+                    )}
+                    <span>Customer ID</span>
+                  </div>
+                </th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Order Type</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Booking Date & Time</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Delivery Slot & Date</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Customer Details</th>
+                <th className="py-3 px-3.5">Delivery Address</th>
+                <th className="py-3 px-3.5">Items (Name & Qty)</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Total Bill</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Status</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Assigned Driver</th>
+                <th className="py-3 px-3.5 text-right whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {visibleOrders.map((order) => {
+                const oid = order.id;
+                const stage =
+                  order.status === "preorder_hold" && vendorConfirmed(order)
+                    ? STAGE_LABELS[order.preOrderStage] || null
+                    : null;
+                const isClosed = ["delivered", "cancelled", "delivery_failed"].includes(order.status);
+                const isPickup = isPickupOrder(order);
+                const canAssign =
+                  !isPickup && isReceived(order) && (order.status === "packed" || order.status === "offered");
+                const canHandOver = isPickup && order.status === "packed" && isReceived(order);
+                const offerMsLeft =
+                  order.status === "offered" && order.offerExpiresAt
+                    ? Math.max(0, new Date(order.offerExpiresAt).getTime() - nowTick)
+                    : 0;
+                const showQr =
+                  order.status === "assigned" &&
+                  !order.pickupQrScanned &&
+                  !order.pickupVerified &&
+                  (!order.routeBatchWindowEndsAt ||
+                    new Date(order.routeBatchWindowEndsAt).getTime() <= nowTick);
 
-              <div className="divide-y divide-slate-100">
-                {group.orders.map((order) => {
-                  const oid = order.id;
-                  const stage =
-                    order.status === "preorder_hold" && vendorConfirmed(order)
-                      ? STAGE_LABELS[order.preOrderStage] || null
-                      : null;
-                  const isClosed = ["delivered", "cancelled", "delivery_failed"].includes(order.status);
-                  const isPickup = isPickupOrder(order);
-                  const canAssign =
-                    !isPickup && isReceived(order) && (order.status === "packed" || order.status === "offered");
-                  const canHandOver = isPickup && order.status === "packed" && isReceived(order);
-                  const offerMsLeft =
-                    order.status === "offered" && order.offerExpiresAt
-                      ? Math.max(0, new Date(order.offerExpiresAt).getTime() - nowTick)
-                      : 0;
-                  const showQr =
-                    order.status === "assigned" &&
-                    !order.pickupQrScanned &&
-                    !order.pickupVerified &&
-                    (!order.routeBatchWindowEndsAt ||
-                      new Date(order.routeBatchWindowEndsAt).getTime() <= nowTick);
+                const itemsTooltip = (order.items || [])
+                  .map((i) => `${i.name} (Qty: ${i.quantity})`)
+                  .join('\n') + (order.preOrderNote ? `\nNote: ${order.preOrderNote}` : '');
 
-                  return (
-                    <div key={oid} className="grid gap-4 p-4 lg:grid-cols-[1.3fr_1fr_1fr]">
-                      <div className="min-w-0 space-y-1.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {canBulkAssign(order) && (
-                            <input
-                              type="checkbox"
-                              aria-label={`Select pre-order ${order.orderNumber}`}
-                              className="h-4 w-4 cursor-pointer accent-emerald-600"
-                              checked={bulkIds.includes(oid)}
-                              onChange={() => toggleBulk(oid)}
-                            />
-                          )}
-                          {canReceive(order) && (
-                            <input
-                              type="checkbox"
-                              aria-label={`Select pre-order ${order.orderNumber} to mark received`}
-                              className="h-4 w-4 cursor-pointer accent-violet-600"
-                              checked={receiveIds.includes(oid)}
-                              onChange={() => toggleReceive(oid)}
-                            />
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/orders/${oid}`, { state: { order } })}
-                            className="font-mono text-sm font-bold text-slate-900 hover:text-emerald-700 hover:underline"
-                          >
-                            #{order.orderNumber}
-                          </button>
-                          <OrderStatusText status={order.status} order={order} />
-                          {stage && (
+                return (
+                  <tr key={oid} className="hover:bg-slate-50/70 transition">
+                    {/* 1. Customer ID / Order ID */}
+                    <td className="py-3 px-3.5 font-mono text-slate-900 whitespace-nowrap align-top">
+                      <div className="flex items-center gap-2">
+                        {canBulkAssign(order) && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Select pre-order ${order.orderNumber}`}
+                            className="h-4 w-4 cursor-pointer accent-emerald-600 rounded"
+                            checked={bulkIds.includes(oid)}
+                            onChange={() => toggleBulk(oid)}
+                          />
+                        )}
+                        {canReceive(order) && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Select pre-order ${order.orderNumber} to mark received`}
+                            className="h-4 w-4 cursor-pointer accent-violet-600 rounded"
+                            checked={receiveIds.includes(oid)}
+                            onChange={() => toggleReceive(oid)}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/orders/${oid}`, { state: { order } })}
+                          className="text-left font-bold text-slate-900 hover:text-emerald-700 hover:underline block text-xs"
+                        >
+                          #{order.orderNumber}
+                        </button>
+                      </div>
+                    </td>
+
+                    {/* 2. Order Type (Rendered only once) */}
+                    <td className="py-3 px-3.5 align-top whitespace-nowrap">
+                      <div className="flex flex-col gap-1 items-start">
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                            isPickup
+                              ? "bg-amber-100 text-amber-900 border border-amber-200"
+                              : "bg-sky-100 text-sky-900 border border-sky-200"
+                          }`}
+                        >
+                          {isPickup ? "Store pickup" : "Home delivery"}
+                        </span>
+                        <span className="rounded px-1.5 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                          Pre-order
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* 3. Booking Date & Time Column (When order was booked) */}
+                    <td className="py-3 px-3.5 whitespace-nowrap align-top font-sans">
+                      {order.createdAt ? (
+                        <div>
+                          <div className="font-bold text-xs text-slate-800">
+                            {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                            {new Date(order.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-xs">—</span>
+                      )}
+                    </td>
+
+                    {/* 4. Delivery Slot & Date Column (When order should be delivered) */}
+                    <td className="py-3 px-3.5 whitespace-nowrap align-top font-sans">
+                      <div className="font-bold text-xs text-slate-800">
+                        {order.preOrderDate
+                          ? new Date(order.preOrderDate + "T12:00:00+05:30").toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "Scheduled"}
+                      </div>
+                      {order.preOrderSlot && (
+                        <div className="mt-1 inline-flex items-center gap-1 rounded bg-amber-50 border border-amber-200/90 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                          <span>🕒</span>
+                          <span>{order.preOrderSlot}</span>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* 4. Customer Details */}
+                    <td className="py-3 px-3.5 align-top whitespace-nowrap">
+                      <p className="font-bold text-xs text-slate-900">
+                        {order.customerName || "Customer"}
+                      </p>
+                      <div className="text-slate-500 text-[11px] mt-0.5 font-medium">
+                        {order.customerPhone || "N/A"}
+                      </div>
+                    </td>
+
+                    {/* 5. Customer Address (Clamped to 2 lines with ellipsis, hover full address, km below) */}
+                    <td className="py-3 px-3.5 text-slate-700 max-w-[210px] align-top">
+                      {isPickup ? (
+                        <span className="inline-block rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 mb-1">
+                          Store Pickup
+                        </span>
+                      ) : null}
+                      <div
+                        className="line-clamp-2 text-xs text-slate-700 leading-snug cursor-help"
+                        title={order.customerAddress || "Store Pickup"}
+                      >
+                        {order.customerAddress || "Store Pickup"}
+                      </div>
+                      {!isPickup && order.distanceKm != null && (
+                        <div className="mt-1 inline-block rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 whitespace-nowrap">
+                          📍 {Number(order.distanceKm).toFixed(1)} km from dark store
+                        </div>
+                      )}
+                    </td>
+
+                    {/* 6. Items (Name & Quantity) (Clamped to 2 lines with ellipsis, hover full list) */}
+                    <td className="py-3 px-3.5 text-xs max-w-[190px] align-top">
+                      <p className="font-bold text-slate-800 text-[11px] mb-0.5">
+                        {order.items?.length || 0} item{order.items?.length === 1 ? "" : "s"}
+                      </p>
+                      <div
+                        className="line-clamp-2 text-[11px] text-slate-600 leading-snug cursor-help"
+                        title={itemsTooltip}
+                      >
+                        {(order.items || []).map((i) => `${i.name} ×${i.quantity}`).join(", ")}
+                      </div>
+                      {order.preOrderNote && (
+                        <p
+                          className="mt-1 truncate text-[10px] font-medium text-amber-900 bg-amber-50 rounded px-1 cursor-help"
+                          title={order.preOrderNote}
+                        >
+                          Note: {order.preOrderNote}
+                        </p>
+                      )}
+                    </td>
+
+                    {/* 7. Total Bill (Price, Paid / Unpaid) */}
+                    <td className="py-3 px-3.5 whitespace-nowrap align-top">
+                      <div className="font-bold text-xs text-slate-900">
+                        {formatRupee(order.orderTotal || order.amountToCollect || 0)}
+                      </div>
+                      <div className="mt-0.5">
+                        {isCodPayment(order.paymentMethod) ? (
+                          <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            COD (Unpaid)
+                          </span>
+                        ) : (
+                          <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                            Paid Online
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* 8. Status */}
+                    <td className="py-3 px-3.5 whitespace-nowrap align-top">
+                      <div className="space-y-1">
+                        <OrderStatusText status={order.status} order={order} />
+                        {stage && (
+                          <div>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset ${stage.className}`}>
                               {stage.text}
                             </span>
-                          )}
-                        </div>
-                        <OrderDepartmentTags order={order} />
-                        <p className="text-sm font-bold text-slate-900">
-                          {order.customerName || "Customer"}{" "}
-                          <span className="text-xs font-normal text-slate-500">{order.customerPhone}</span>
-                        </p>
-                        {isPickup ? (
-                          <p className="text-[11px] font-bold text-amber-700">Customer collects at this store in the slot</p>
-                        ) : null}
-                        <p className="line-clamp-2 text-xs text-slate-600">{order.customerAddress}</p>
-                        {!isPickup && order.distanceKm != null && (
-                          <p className="text-[10px] font-semibold text-emerald-700">
-                            {Number(order.distanceKm).toFixed(1)} km from store
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 space-y-1.5 text-xs">
-                        <p className="font-semibold text-slate-800">
-                          {order.items?.length || 0} item{order.items?.length === 1 ? "" : "s"} ·{" "}
-                          {isCodPayment(order.paymentMethod)
-                            ? `COD ${formatRupee(order.amountToCollect || order.orderTotal)}`
-                            : "Paid online"}
-                        </p>
-                        <p className="line-clamp-3 text-slate-600">
-                          {(order.items || []).map((i) => `${i.quantity}× ${i.name}`).join(", ")}
-                        </p>
-                        {order.vendorConfirmedAt && (
-                          <p className="text-[11px] text-slate-500">
-                            Vendor confirmed {formatTime(order.vendorConfirmedAt)}
-                            {order.vendorActionByName ? ` by ${order.vendorActionByName}` : ""}
-                          </p>
-                        )}
-                        {order.forwardedAt && (
-                          <p className="text-[11px] text-slate-500">
-                            Shipped {formatTime(order.forwardedAt)}
-                            {order.forwardedByName ? ` by ${order.forwardedByName}` : ""}
-                          </p>
-                        )}
-                        {order.storeReceivedAt && (
-                          <p className="text-[11px] font-semibold text-violet-700">
-                            Received at store {formatTime(order.storeReceivedAt)}
-                          </p>
-                        )}
-                        {order.preOrderNote && (
-                          <p className="rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-900">
-                            Note: {order.preOrderNote}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col items-stretch gap-2 lg:items-end">
-                        {order.status === "preorder_hold" &&
-                          (vendorConfirmed(order) ? (
-                            <p className="rounded-lg bg-indigo-50 px-3 py-2 text-[11px] font-semibold text-indigo-800">
-                              {order.preOrderStage === "ready"
-                                ? "Packed by the vendor — waiting for the vendor to ship it to this store."
-                                : "Confirmed by the vendor — waiting for the vendor to pack & ship."}
-                            </p>
-                          ) : (
-                            <p className="rounded-lg bg-orange-50 px-3 py-2 text-[11px] font-semibold text-orange-800">
-                              Waiting for the vendor to confirm this pre-order.
-                            </p>
-                          ))}
-
-                        {canReceive(order) && (
-                          <button
-                            type="button"
-                            disabled={busyKey === `receive-${oid}`}
-                            onClick={() => onReceive([oid])}
-                            className={actionBtnPrimary}
-                          >
-                            {busyKey === `receive-${oid}` ? "Saving…" : "✓ Mark received at store"}
-                          </button>
-                        )}
-
-                        {canHandOver && (
-                          <button
-                            type="button"
-                            disabled={busyKey === `handover-${oid}`}
-                            onClick={() => onHandOverPickup(order)}
-                            className={actionBtnPrimary}
-                          >
-                            {busyKey === `handover-${oid}` ? "Handing over…" : "Hand over to customer (OTP)"}
-                          </button>
-                        )}
-
-                        {order.status === "offered" && (
-                          <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-800">
-                            Offer sent to {order.offeredRider?.name || "rider"}
-                            {offerMsLeft > 0 ? ` · ${Math.ceil(offerMsLeft / 1000)}s` : " · waiting…"}
-                          </p>
-                        )}
-
-                        {canAssign && (
-                          <div className="flex items-center gap-1.5">
-                            <select
-                              value={selectedRider[oid] || ""}
-                              onChange={(e) => setSelectedRider((prev) => ({ ...prev, [oid]: e.target.value }))}
-                              className="min-w-[160px] rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-800 focus:outline-none"
-                            >
-                              <option value="">{bulkRiderCount ? "Choose rider…" : "No active riders"}</option>
-                              {bulkRiderGroups.map(([label, list]) => (
-                                <optgroup key={label} label={label}>
-                                  {list.map((r) => (
-                                    <option key={r.id} value={r.id}>
-                                      {bulkRiderLabel(r)}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              disabled={!selectedRider[oid] || busyKey === `assign-${oid}`}
-                              onClick={() => onAssign(order)}
-                              className={actionBtnPrimary}
-                            >
-                              {busyKey === `assign-${oid}`
-                                ? "Assigning…"
-                                : order.status === "offered"
-                                  ? "Re-assign"
-                                  : "Assign"}
-                            </button>
                           </div>
                         )}
-
-                        {(canMarkOutForDelivery(order) || canMarkDelivered(order)) && (
-                          <div className="flex flex-wrap items-center justify-end gap-1.5">
-                            {canMarkOutForDelivery(order) && (
-                              <button
-                                type="button"
-                                disabled={busyKey === `ofd-${oid}`}
-                                onClick={() => onOutForDelivery(order)}
-                                className={actionBtnPrimary}
-                              >
-                                {busyKey === `ofd-${oid}` ? "Saving…" : "🚚 Mark out for delivery"}
-                              </button>
-                            )}
-                            {canMarkDelivered(order) && (
-                              <button
-                                type="button"
-                                disabled={busyKey === `deliver-${oid}`}
-                                onClick={() => onDeliver(order)}
-                                className={actionBtnOutline}
-                              >
-                                {busyKey === `deliver-${oid}` ? "Saving…" : "✓ Mark delivered"}
-                              </button>
+                        {order.status === "preorder_hold" && (
+                          <div className="mt-0.5">
+                            {vendorConfirmed(order) ? (
+                              <span className="rounded bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-800">
+                                Vendor confirmed
+                              </span>
+                            ) : (
+                              <span className="rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-semibold text-orange-800">
+                                Awaiting vendor
+                              </span>
                             )}
                           </div>
                         )}
+                      </div>
+                    </td>
 
-                        {order.assignedRider && (
+                    {/* 9. Assigned Driver */}
+                    <td className="py-3 px-3.5 whitespace-nowrap align-top">
+                      {isPickup ? (
+                        <span className="text-[11px] font-semibold text-amber-700">Store Pickup — no rider</span>
+                      ) : order.assignedRider ? (
+                        <div>
                           <button
                             type="button"
                             onClick={() => setTrackingOrderId(oid)}
-                            className="text-left text-[11px] font-bold text-teal-800 underline decoration-dotted underline-offset-2 hover:text-teal-600"
+                            className="text-left text-[11px] font-bold text-teal-800 underline decoration-dotted underline-offset-2 hover:text-teal-600 block"
                             title="Delivery details"
                           >
-                            Rider: {order.assignedRider.name}{" "}
-                            <span className="font-normal text-slate-500">{order.assignedRider.phone}</span> · Details 📍
+                            {order.assignedRider.name} · Track 📍
                           </button>
-                        )}
-                        <DeliveryDelayNotice order={order} />
+                          <div className="text-[10px] text-slate-500 mt-0.5">{order.assignedRider.phone}</div>
+                          <DeliveryDelayNotice order={order} />
+                        </div>
+                      ) : order.status === "offered" ? (
+                        <div className="space-y-1">
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-300 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                            Offering {order.offeredRider?.name || "rider"}
+                          </span>
+                          {offerMsLeft > 0 ? (
+                            <p className="text-[10px] text-amber-700">{Math.ceil(offerMsLeft / 1000)}s left</p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        /* Bold Red Broad Capital UNASSIGNED Badge */
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 border-2 border-rose-500 px-2.5 py-1 text-xs font-black tracking-wider text-rose-700 uppercase shadow-2xs">
+                          <span className="h-2 w-2 rounded-full bg-rose-600 animate-pulse" />
+                          UNASSIGNED
+                        </span>
+                      )}
+                    </td>
+
+                    {/* 10. Actions */}
+                    <td className="py-3 px-3.5 text-right whitespace-nowrap align-top">
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="flex flex-wrap items-center justify-end gap-1.5">
+                          {/* View Detail in Blue Color BG */}
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/orders/${oid}`, { state: { order } })}
+                            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1.5 transition shadow-xs"
+                          >
+                            View Detail
+                          </button>
+
+                          {/* Cancel with Light Orange Color BG */}
+                          {!isClosed && (
+                            <button
+                              type="button"
+                              disabled={busyKey === `cancel-${oid}`}
+                              onClick={() => onCancel(order)}
+                              className="rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-900 border border-orange-300 font-bold text-xs px-3 py-1.5 transition shadow-xs disabled:opacity-50"
+                            >
+                              {busyKey === `cancel-${oid}` ? "Cancelling…" : "Cancel"}
+                            </button>
+                          )}
+
+                          {canReceive(order) && (
+                            <button
+                              type="button"
+                              disabled={busyKey === `receive-${oid}`}
+                              onClick={() => onReceive([oid])}
+                              className={actionBtnPrimary}
+                            >
+                              {busyKey === `receive-${oid}` ? "Saving…" : "✓ Mark received"}
+                            </button>
+                          )}
+
+                          {canHandOver && (
+                            <button
+                              type="button"
+                              disabled={busyKey === `handover-${oid}`}
+                              onClick={() => onHandOverPickup(order)}
+                              className={actionBtnPrimary}
+                            >
+                              {busyKey === `handover-${oid}` ? "Handing over…" : "Hand over (OTP)"}
+                            </button>
+                          )}
+
+                          {canAssign && (
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={selectedRider[oid] || ""}
+                                onChange={(e) => setSelectedRider((prev) => ({ ...prev, [oid]: e.target.value }))}
+                                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-800 focus:outline-none"
+                              >
+                                <option value="">{bulkRiderCount ? "Choose rider…" : "No riders"}</option>
+                                {bulkRiderGroups.map(([label, list]) => (
+                                  <optgroup key={label} label={label}>
+                                    {list.map((r) => (
+                                      <option key={r.id} value={r.id}>
+                                        {bulkRiderLabel(r)}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                disabled={!selectedRider[oid] || busyKey === `assign-${oid}`}
+                                onClick={() => onAssign(order)}
+                                className={actionBtnOutline}
+                              >
+                                {busyKey === `assign-${oid}` ? "Assigning…" : "Assign"}
+                              </button>
+                            </div>
+                          )}
+
+                          {canMarkOutForDelivery(order) && (
+                            <button
+                              type="button"
+                              disabled={busyKey === `ofd-${oid}`}
+                              onClick={() => onOutForDelivery(order)}
+                              className={actionBtnPrimary}
+                            >
+                              {busyKey === `ofd-${oid}` ? "Saving…" : "🚚 Out for delivery"}
+                            </button>
+                          )}
+
+                          {canMarkDelivered(order) && (
+                            <button
+                              type="button"
+                              disabled={busyKey === `deliver-${oid}`}
+                              onClick={() => onDeliver(order)}
+                              className={actionBtnOutline}
+                            >
+                              {busyKey === `deliver-${oid}` ? "Saving…" : "✓ Delivered"}
+                            </button>
+                          )}
+
+                          {showQr && (
+                            <button
+                              type="button"
+                              onClick={() => openPickupQr(oid)}
+                              className="rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100"
+                            >
+                              Pickup QR
+                            </button>
+                          )}
+                        </div>
+
                         {order.pickupProofStatus === "pending" && order.pickupProofImageUrl && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 mt-1">
                             <img
                               src={order.pickupProofImageUrl}
                               alt="Item proof"
-                              className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
+                              className="h-8 w-8 rounded border border-slate-200 object-cover"
                             />
                             <button
                               type="button"
@@ -943,46 +1117,17 @@ export default function PreOrdersPage() {
                               onClick={() => onApproveProof(order)}
                               className={actionBtnPrimary}
                             >
-                              {busyKey === `proof-${oid}` ? "Approving…" : "✓ Approve item proof"}
+                              {busyKey === `proof-${oid}` ? "Approving…" : "Approve proof"}
                             </button>
                           </div>
                         )}
-
-                        <div className="flex flex-wrap items-center justify-end gap-1.5">
-                          {showQr && (
-                            <button
-                              type="button"
-                              onClick={() => openPickupQr(oid)}
-                              className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100"
-                            >
-                              Show Pickup QR
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/orders/${oid}`, { state: { order } })}
-                            className={actionBtnOutline}
-                          >
-                            View Detail
-                          </button>
-                          {!isClosed && (
-                            <button
-                              type="button"
-                              disabled={busyKey === `cancel-${oid}`}
-                              onClick={() => onCancel(order)}
-                              className={actionBtnDanger}
-                            >
-                              {busyKey === `cancel-${oid}` ? "Cancelling…" : "Cancel"}
-                            </button>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

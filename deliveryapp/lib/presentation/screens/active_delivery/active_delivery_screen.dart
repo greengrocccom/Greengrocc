@@ -356,21 +356,23 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     await _finishDelivery(otpAlreadyVerified: true, deliveryComment: note);
   }
 
-  Future<void> _markDeliveryFailed() async {
-    if (_delivery == null) return;
-    final reason = await showDeliveryFailedSheet(context);
+  Future<void> _markDeliveryFailed({bool emergency = false}) async {
+    final order = _delivery;
+    if (order == null) return;
+    final reason = await showDeliveryFailedSheet(context, emergency: emergency, pickupStarted: order.pickupQrScanned);
     if (reason == null || reason.isEmpty || !mounted) return;
 
     final result = await OrderService.instance.failDelivery(
-      _delivery!.id,
+      order.id,
       failureReason: reason,
+      emergency: emergency,
     );
     if (!mounted) return;
     if (result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Delivery marked as failed. Manager has been notified.'),
-          backgroundColor: Color(0xFFB45309),
+        SnackBar(
+          content: Text(emergency ? 'Emergency sent to your Delivery Manager.' : 'Delivery marked as failed. Manager has been notified.'),
+          backgroundColor: const Color(0xFFB45309),
         ),
       );
       final remaining = OrderService.instance.activeDeliveries;
@@ -686,6 +688,25 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
                       onCall: () => _callStore(d.darkStorePhone),
                     ),
                     const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _markDeliveryFailed(emergency: true),
+                        icon: const Icon(Icons.report_problem_outlined, size: 19),
+                        label: const Text('Report emergency'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF9A3412),
+                          backgroundColor: const Color(0xFFFFF7ED),
+                          side: const BorderSide(color: Color(0xFFFED7AA)),
+                          minimumSize: const Size.fromHeight(44),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (d.expectedDeliveryAt != null) ...[
+                      _DeliveryEtaCard(expectedAt: d.expectedDeliveryAt!),
+                      const SizedBox(height: 12),
+                    ],
                     _OrderQrCard(
                       searching: searching,
                       countdown: countdown,
@@ -769,6 +790,38 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
         ],
       ),
     ));
+  }
+}
+
+class _DeliveryEtaCard extends StatelessWidget {
+  const _DeliveryEtaCard({required this.expectedAt});
+
+  final DateTime expectedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final time = TimeOfDay.fromDateTime(expectedAt.toLocal()).format(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF8F1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFC8E8D0)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.schedule, color: Color(0xFF087A45)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Deliver this order by $time',
+              style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF14532D)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1038,7 +1091,7 @@ class _OrderQrCard extends StatelessWidget {
                             const Icon(Icons.search_rounded, size: 12, color: Color(0xFF7C3AED)),
                             const SizedBox(width: 3),
                             Text(
-                              'Same-route ($countdown min)',
+                              'Same-route search · $countdown',
                               style: GoogleFonts.inter(
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w700,

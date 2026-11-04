@@ -81,6 +81,7 @@ import {
 } from "../controllers/gigManagementController.js";
 import {
   getManagerCashOverview,
+  getCashCollection,
   confirmRiderCash,
   confirmOrderCash,
   getRiderCashHistory,
@@ -106,6 +107,7 @@ import {
   setDriverPaymentConfig,
   setBulkDriverPaymentConfig,
   getMonthlyRiderPayments,
+  markRiderMonthPaid,
   getRiderDistanceReport,
   listFullTimeAttendance,
   markFullTimeAttendanceManual,
@@ -235,6 +237,7 @@ router.post("/order/assign", manualAssignOrder);
 
 // Cash Settlement (Dark Store view)
 router.get("/cash", getManagerCashOverview);
+router.get("/cash/collection", getCashCollection);
 router.post("/cash/confirm", confirmRiderCash);
 router.get("/cash/rider/:riderId", getRiderCashHistory);
 
@@ -261,6 +264,7 @@ router.put("/drivers/:driverId/employment-type", setDriverEmploymentType);
 router.put("/drivers/:driverId/payment-config", setDriverPaymentConfig);
 router.put("/drivers/payment-config/bulk", setBulkDriverPaymentConfig);
 router.get("/payments/monthly", getMonthlyRiderPayments);
+router.post("/payments/monthly/:driverId/paid", markRiderMonthPaid);
 router.get("/payments/distance", getRiderDistanceReport);
 router.get("/fulltime/attendance", listFullTimeAttendance);
 router.post("/fulltime/attendance/mark-manual", markFullTimeAttendanceManual);

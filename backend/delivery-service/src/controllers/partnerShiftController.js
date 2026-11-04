@@ -18,7 +18,7 @@ import {
   getActiveFullTimeRule,
   getDriverFullTimeShift,
   istDateString,
-  lateMinutesFor,
+  istDayOfWeek,
   resolveAttendanceRequirement,
 } from "../services/fullTimeService.js";
 
@@ -38,13 +38,23 @@ const calculateHaversineDistanceMeters = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
-async function autoMarkFullTimeAttendance(rider, manager, latitude, longitude, now = new Date()) {
+function isWithinFullTimeRuleWindow(requirement, now = new Date()) {
+  if (!requirement.hasAssignedSchedule) return true;
+  const date = istDateString(now);
+  const day = istDayOfWeek(date);
+  const previousDay = (day + 6) % 7;
+  const workingDays = requirement.workingDays?.length ? requirement.workingDays : [0, 1, 2, 3, 4, 5, 6];
+  if (!workingDays.includes(day)) return false;
+  const current = getCurrentMinutesIST(now);
+  const start = timeToMinutes(requirement.startTime);
+  const end = timeToMinutes(requirement.endTime);
+  const opens = Math.max(0, start - 30);
+  if (end > start) return current >= opens && current < end;
+  return (workingDays.includes(day) && current >= opens) || (workingDays.includes(previousDay) && current < end);
+}
+
+async function autoMarkFullTimeAttendance(rider, manager, requirement, latitude, longitude, storeLat, storeLng, now = new Date()) {
   if (rider.employmentType !== "FULL_TIME") return { marked: false, reason: "not_full_time" };
-  const [rule, shift] = await Promise.all([
-    getActiveFullTimeRule(manager._id),
-    getDriverFullTimeShift(manager._id, rider._id),
-  ]);
-  const requirement = resolveAttendanceRequirement({ rule, shift });
   if (!requirement?.requireAttendance) return { marked: false, reason: "attendance_not_required" };
 
   const today = istDateString(now);
@@ -60,19 +70,19 @@ async function autoMarkFullTimeAttendance(rider, manager, latitude, longitude, n
   const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
   let distanceFromStoreMeters = null;
   if (requirement.requireLocationValidation) {
-    if (!hasCoordinates || manager.latitude == null || manager.longitude == null) {
+    if (!hasCoordinates || storeLat == null || storeLng == null) {
       return { marked: false, reason: "store_location_unavailable" };
     }
-    distanceFromStoreMeters = calculateHaversineDistanceMeters(lat, lng, manager.latitude, manager.longitude);
+    distanceFromStoreMeters = calculateHaversineDistanceMeters(lat, lng, storeLat, storeLng);
     if (distanceFromStoreMeters > (requirement.attendanceRadiusMeters || 200)) {
       return { marked: false, reason: "outside_attendance_radius", distanceFromStoreMeters };
     }
-  } else if (hasCoordinates && manager.latitude != null && manager.longitude != null) {
-    distanceFromStoreMeters = calculateHaversineDistanceMeters(lat, lng, manager.latitude, manager.longitude);
+  } else if (hasCoordinates && storeLat != null && storeLng != null) {
+    distanceFromStoreMeters = calculateHaversineDistanceMeters(lat, lng, storeLat, storeLng);
   }
 
   const markedAt = now;
-  const lateMinutes = lateMinutesFor(requirement.startTime, markedAt);
+  const lateMinutes = 0;
   const attendance = await FullTimeAttendance.findOneAndUpdate(
     { deliveryBoyId: rider._id, date: today },
     { $set: {
@@ -630,6 +640,32 @@ export const goOnline = async (req, res, next) => {
     }
 
     const isFullTime = rider.employmentType === "FULL_TIME";
+    let fullTimeRequirement = null;
+    if (isFullTime) {
+      const [rule, riderShift] = await Promise.all([
+        getActiveFullTimeRule(manager._id),
+        getDriverFullTimeShift(manager._id, rider._id),
+      ]);
+      fullTimeRequirement = resolveAttendanceRequirement({ rule, shift: riderShift });
+      if (fullTimeRequirement && todayBooking?.employmentType === "FULL_TIME") {
+        // The assigned slot checks below provide the schedule for this check-in.
+        fullTimeRequirement = {
+          ...fullTimeRequirement,
+          hasAssignedSchedule: false,
+          workingDays: [],
+          scheduleStartDate: "",
+          scheduleEndDate: "",
+          excludedDates: [],
+        };
+      }
+      if (fullTimeRequirement?.requireAttendance && !isWithinFullTimeRuleWindow(fullTimeRequirement, nowTime)) {
+        return res.status(400).json({
+          success: false,
+          code: "OUTSIDE_FULL_TIME_SHIFT",
+          message: `You're outside your scheduled Full-Time check-in window (${fullTimeRequirement.startTime} – ${fullTimeRequirement.endTime}).`,
+        });
+      }
+    }
 
     if (!todayBooking || !targetSlot) {
       if (!liveGig && !isFullTime) {
@@ -692,18 +728,24 @@ export const goOnline = async (req, res, next) => {
       });
     }
 
+    if (fullTimeRequirement?.requireAttendance && fullTimeRequirement.requireLocationValidation) {
+      const attendanceRadius = fullTimeRequirement.attendanceRadiusMeters || 200;
+      if (distanceMeters > attendanceRadius) {
+        return res.status(400).json({
+          success: false,
+          code: "OUTSIDE_ATTENDANCE_RADIUS",
+          message: `You must be within ${attendanceRadius}m of ${manager.storeName || "the dark store"} to check in for your Full-Time shift.`,
+          distanceMeters,
+          allowedRadius: attendanceRadius,
+        });
+      }
+    }
+
     // Bank any open session before resetting lastOnlineAt (re-check-in / refresh)
-    const { ensureTodayOnlineTracking, addOnlineMinutesSince, liveOnlineMinutes } =
+    const { ensureTodayOnlineTracking, liveOnlineMinutes } =
       await import("../utils/onlineHoursHelper.js");
     ensureTodayOnlineTracking(rider);
-    if (
-      (rider.status === "online" || rider.status === "on_delivery") &&
-      rider.lastOnlineAt
-    ) {
-      rider.todayOnlineMinutes =
-        (rider.todayOnlineMinutes || 0) +
-        addOnlineMinutesSince(rider, rider.lastOnlineAt, new Date());
-    }
+    rider.todayOnlineMinutes = liveOnlineMinutes(rider, now);
 
     rider.status = "online";
     rider.lastOnlineAt = new Date();
@@ -718,7 +760,15 @@ export const goOnline = async (req, res, next) => {
     let automaticAttendance = null;
     if (isFullTime) {
       try {
-        automaticAttendance = await autoMarkFullTimeAttendance(rider, manager, partnerLat, partnerLng);
+        automaticAttendance = await autoMarkFullTimeAttendance(
+          rider,
+          manager,
+          fullTimeRequirement,
+          partnerLat,
+          partnerLng,
+          storeLat,
+          storeLng
+        );
       } catch (attendanceError) {
         console.error("[full-time] automatic attendance could not be recorded:", attendanceError.message);
         automaticAttendance = { marked: false, reason: "recording_failed" };

@@ -26,6 +26,7 @@ import {
   formatOnlineMinutes,
   istDayRange,
   istDateString,
+  listIstDatesInMonth,
 } from "../utils/onlineHoursHelper.js";
 import { buildRiderActivityHistory } from "../services/activityHistoryService.js";
 import { revenueTotals } from "./managerRevenueController.js";
@@ -1540,15 +1541,96 @@ export const getDriverDetails = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Delivery partner not found in your hub area" });
     }
 
+    let period = String(req.query.period || "day").toLowerCase();
+    if (!["day", "week", "month"].includes(period)) period = "day";
+
     const todayISTDateString = istDateString();
     const targetDateStr = req.query.date ? String(req.query.date).trim() : todayISTDateString;
-    const { start: dayStart, end: dayEnd } = istDayRange(targetDateStr);
+
+    let rangeStart, rangeEnd, prevRangeStart, prevRangeEnd, periodLabel, prevPeriodLabel;
+    let datesInPeriod = [];
+    let prevDatesInPeriod = [];
+
+    if (period === "month") {
+      const [y, m] = targetDateStr.split("-").map(Number);
+      const year = y || new Date().getFullYear();
+      const monthNum = m || (new Date().getMonth() + 1);
+      datesInPeriod = listIstDatesInMonth(year, monthNum);
+      const startStr = datesInPeriod[0];
+      const endStr = datesInPeriod[datesInPeriod.length - 1];
+      rangeStart = new Date(`${startStr}T00:00:00+05:30`);
+      rangeEnd = new Date(`${endStr}T23:59:59.999+05:30`);
+
+      const prevYear = monthNum === 1 ? year - 1 : year;
+      const prevMonthNum = monthNum === 1 ? 12 : monthNum - 1;
+      prevDatesInPeriod = listIstDatesInMonth(prevYear, prevMonthNum);
+      const prevStartStr = prevDatesInPeriod[0];
+      const prevEndStr = prevDatesInPeriod[prevDatesInPeriod.length - 1];
+      prevRangeStart = new Date(`${prevStartStr}T00:00:00+05:30`);
+      prevRangeEnd = new Date(`${prevEndStr}T23:59:59.999+05:30`);
+
+      periodLabel = new Date(rangeStart).toLocaleString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
+      prevPeriodLabel = new Date(prevRangeStart).toLocaleString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
+    } else if (period === "week") {
+      const dateObj = new Date(`${targetDateStr.slice(0, 10)}T12:00:00+05:30`);
+      const dayOfWeek = (dateObj.getDay() + 6) % 7; // Monday is 0
+      const monday = new Date(dateObj);
+      monday.setDate(monday.getDate() - dayOfWeek);
+      const sunday = new Date(monday);
+      sunday.setDate(sunday.getDate() + 6);
+      const startStr = istDateString(monday);
+      const endStr = istDateString(sunday);
+      rangeStart = new Date(`${startStr}T00:00:00+05:30`);
+      rangeEnd = new Date(`${endStr}T23:59:59.999+05:30`);
+
+      datesInPeriod = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(d.getDate() + i);
+        datesInPeriod.push(istDateString(d));
+      }
+
+      const prevMonday = new Date(monday);
+      prevMonday.setDate(prevMonday.getDate() - 7);
+      const prevSunday = new Date(monday);
+      prevSunday.setDate(prevSunday.getDate() - 1);
+      const prevStartStr = istDateString(prevMonday);
+      const prevEndStr = istDateString(prevSunday);
+      prevRangeStart = new Date(`${prevStartStr}T00:00:00+05:30`);
+      prevRangeEnd = new Date(`${prevEndStr}T23:59:59.999+05:30`);
+      prevDatesInPeriod = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(prevMonday);
+        d.setDate(d.getDate() + i);
+        prevDatesInPeriod.push(istDateString(d));
+      }
+
+      periodLabel = `Week of ${new Date(rangeStart).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} – ${new Date(rangeEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`;
+      prevPeriodLabel = `Week of ${new Date(prevRangeStart).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} – ${new Date(prevRangeEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`;
+    } else {
+      // Day
+      const { start, end } = istDayRange(targetDateStr);
+      rangeStart = start;
+      rangeEnd = end;
+      datesInPeriod = [targetDateStr];
+
+      const prevDateObj = new Date(`${targetDateStr}T12:00:00+05:30`);
+      prevDateObj.setDate(prevDateObj.getDate() - 1);
+      const prevDateStr = istDateString(prevDateObj);
+      const { start: pStart, end: pEnd } = istDayRange(prevDateStr);
+      prevRangeStart = pStart;
+      prevRangeEnd = pEnd;
+      prevDatesInPeriod = [prevDateStr];
+
+      periodLabel = targetDateStr;
+      prevPeriodLabel = prevDateStr;
+    }
 
     // Query shifts for this rider
     const shifts = await Shift.find({
       managerId: manager._id,
       "slots.bookings.deliveryPartnerId": rider._id,
-    }).sort({ dateString: -1 }).limit(60);
+    }).sort({ dateString: -1 }).limit(120);
 
     let bookedShiftsOnDate = 0;
     let completedShiftsOnDate = 0;
@@ -1572,7 +1654,7 @@ export const getDriverDetails = async (req, res, next) => {
               completedAt: booking.completedAt,
             };
 
-            if (shift.dateString === targetDateStr) {
+            if (datesInPeriod.includes(shift.dateString)) {
               if (booking.status !== "CANCELLED") bookedShiftsOnDate++;
               if (booking.status === "COMPLETED") completedShiftsOnDate++;
               dateShifts.push(shiftItem);
@@ -1583,34 +1665,43 @@ export const getDriverDetails = async (req, res, next) => {
       }
     }
 
-    // Live or stored online minutes for targetDateStr
+    // Online minutes & active days for the selected period
     ensureTodayOnlineTracking(rider);
     let onlineMins = 0;
-    const dayActivity = (rider.dailyActivity || []).find((a) => a.date === targetDateStr);
-    if (dayActivity) {
-      onlineMins = Number(dayActivity.onlineMinutes || 0);
+    let activeDaysCount = 0;
+
+    for (const dStr of datesInPeriod) {
+      let dayMins = 0;
+      const dayActivity = (rider.dailyActivity || []).find((a) => a.date === dStr);
+      if (dayActivity) dayMins = Number(dayActivity.onlineMinutes || 0);
+      if (dStr === todayISTDateString) {
+        dayMins = Math.max(dayMins, liveOnlineMinutes(rider));
+      }
+      if (dayMins > 0) {
+        onlineMins += dayMins;
+        activeDaysCount++;
+      }
     }
-    if (targetDateStr === todayISTDateString) {
-      onlineMins = Math.max(onlineMins, liveOnlineMinutes(rider));
-    }
+
     const onlineTimeStr = formatOnlineMinutes(onlineMins);
-    const offlineMins = Math.max(0, 24 * 60 - onlineMins);
+    const totalPossibleMins = datesInPeriod.length * 24 * 60;
+    const offlineMins = Math.max(0, totalPossibleMins - onlineMins);
     const offlineTimeStr = formatOnlineMinutes(offlineMins);
 
-    // Query StoreOrders for this rider on targetDateStr
+    // Query StoreOrders for this rider in range
     const dateOrders = await StoreOrder.find({
       assignedRiderId: rider._id,
       $or: [
-        { deliveredAt: { $gte: dayStart, $lte: dayEnd } },
-        { assignedAt: { $gte: dayStart, $lte: dayEnd } },
-        { createdAt: { $gte: dayStart, $lte: dayEnd } },
+        { deliveredAt: { $gte: rangeStart, $lte: rangeEnd } },
+        { assignedAt: { $gte: rangeStart, $lte: rangeEnd } },
+        { createdAt: { $gte: rangeStart, $lte: rangeEnd } },
       ],
     }).sort({ createdAt: -1 });
 
     const rejectedOrdersCount = await StoreOrder.countDocuments({
       roundRobinRidersAttempted: rider._id,
       assignedRiderId: { $ne: rider._id },
-      createdAt: { $gte: dayStart, $lte: dayEnd },
+      createdAt: { $gte: rangeStart, $lte: rangeEnd },
     });
 
     const totalAssigned = dateOrders.length;
@@ -1641,24 +1732,33 @@ export const getDriverDetails = async (req, res, next) => {
     }
     const onTimeRate = deliveredOrders.length > 0 ? Math.round((onTimeCount / deliveredOrders.length) * 100) : 100;
 
-    // Previous day comparison
-    const prevDateObj = new Date(`${targetDateStr}T12:00:00+05:30`);
-    prevDateObj.setDate(prevDateObj.getDate() - 1);
-    const prevDateStr = istDateString(prevDateObj);
-    const { start: prevStart, end: prevEnd } = istDayRange(prevDateStr);
-
+    // Previous period comparison
     const prevOrders = await StoreOrder.find({
       assignedRiderId: rider._id,
       $or: [
-        { deliveredAt: { $gte: prevStart, $lte: prevEnd } },
-        { assignedAt: { $gte: prevStart, $lte: prevEnd } },
+        { deliveredAt: { $gte: prevRangeStart, $lte: prevRangeEnd } },
+        { assignedAt: { $gte: prevRangeStart, $lte: prevRangeEnd } },
       ],
     });
     const prevDelivered = prevOrders.filter((o) => o.status === "delivered");
     const prevEarnings = prevDelivered.reduce((sum, o) => sum + (Number(o.riderDeliveryEarning) || 0), 0);
 
-    const prevActivity = (rider.dailyActivity || []).find((a) => a.date === prevDateStr);
-    const prevOnlineMins = Number(prevActivity?.onlineMinutes || 0);
+    let prevOnlineMins = 0;
+    for (const dStr of prevDatesInPeriod) {
+      const prevAct = (rider.dailyActivity || []).find((a) => a.date === dStr);
+      if (prevAct) prevOnlineMins += Number(prevAct.onlineMinutes || 0);
+    }
+
+    let prevOnTimeCount = 0;
+    for (const o of prevDelivered) {
+      if (o.assignedAt && o.deliveredAt) {
+        const durationMin = (new Date(o.deliveredAt).getTime() - new Date(o.assignedAt).getTime()) / (1000 * 60);
+        if (durationMin <= 30) prevOnTimeCount++;
+      } else {
+        prevOnTimeCount++;
+      }
+    }
+    const prevOnTimeRate = prevDelivered.length > 0 ? Math.round((prevOnTimeCount / prevDelivered.length) * 100) : 100;
 
     const formattedOrdersList = dateOrders.map((o) => ({
       id: o._id.toString(),
@@ -1680,11 +1780,18 @@ export const getDriverDetails = async (req, res, next) => {
       data: {
         driver: rider.toSafeJSON(),
         selectedDate: targetDateStr,
-        isToday: targetDateStr === todayISTDateString,
+        period,
+        periodLabel,
+        isToday: period === "day" && targetDateStr === todayISTDateString,
         datePerformance: {
+          period,
+          periodLabel,
           date: targetDateStr,
-          isToday: targetDateStr === todayISTDateString,
-          attendance: (onlineMins > 0 || bookedShiftsOnDate > 0 || totalAssigned > 0) ? "Present" : "Absent",
+          isToday: period === "day" && targetDateStr === todayISTDateString,
+          attendance: (period === "day" ? (onlineMins > 0 || bookedShiftsOnDate > 0 || totalAssigned > 0) : activeDaysCount > 0) ? "Present" : "Absent",
+          attendanceLabel: period === "day" ? ((onlineMins > 0 || bookedShiftsOnDate > 0 || totalAssigned > 0) ? "On Duty" : "Off Duty") : `${activeDaysCount} / ${datesInPeriod.length} Days`,
+          daysPresent: activeDaysCount,
+          totalDays: datesInPeriod.length,
           onlineMinutes: onlineMins,
           onlineTime: onlineTimeStr,
           offlineMinutes: offlineMins,
@@ -1708,7 +1815,9 @@ export const getDriverDetails = async (req, res, next) => {
           shifts: dateShifts,
           orders: formattedOrdersList,
           comparison: {
-            prevDate: prevDateStr,
+            period,
+            periodLabel,
+            prevDate: prevPeriodLabel,
             current: {
               delivered: deliveredOrders.length,
               earnings: totalCommission,
@@ -1719,7 +1828,7 @@ export const getDriverDetails = async (req, res, next) => {
               delivered: prevDelivered.length,
               earnings: prevEarnings,
               onlineMins: prevOnlineMins,
-              onTimeRate: 95,
+              onTimeRate: prevOnTimeRate,
             },
           },
         },

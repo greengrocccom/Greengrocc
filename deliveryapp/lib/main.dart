@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -10,12 +11,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/config/api_config.dart';
 import 'core/l10n/locale_controller.dart';
 import 'core/routes/app_router.dart';
+import 'core/routes/app_routes.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'data/services/auth_service.dart';
 import 'data/services/push_notification_service.dart';
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
+import 'pickup_driver/pickup_driver_service.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 
 @pragma('vm:entry-point')
@@ -67,8 +70,60 @@ Future<void> main() async {
   runApp(const GreenGrocDeliveryApp());
 }
 
-class GreenGrocDeliveryApp extends StatelessWidget {
+class GreenGrocDeliveryApp extends StatefulWidget {
   const GreenGrocDeliveryApp({super.key});
+
+  @override
+  State<GreenGrocDeliveryApp> createState() => _GreenGrocDeliveryAppState();
+}
+
+class _GreenGrocDeliveryAppState extends State<GreenGrocDeliveryApp> with WidgetsBindingObserver {
+  Timer? _sessionTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AuthService.instance.sessionInvalidations.addListener(_onSessionInvalidated);
+    _startSessionChecks();
+  }
+
+  void _startSessionChecks() {
+    _sessionTimer?.cancel();
+    _sessionTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkRiderSession());
+  }
+
+  void _checkRiderSession() {
+    if (!PickupDriverService.instance.isLoggedIn) {
+      unawaited(AuthService.instance.validateSession());
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkRiderSession();
+      _startSessionChecks();
+    } else {
+      _sessionTimer?.cancel();
+    }
+  }
+
+  void _onSessionInvalidated() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || AuthService.instance.isLoggedIn || PickupDriverService.instance.isLoggedIn) return;
+      notificationNavigatorKey.currentState?.pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  @override
+  void dispose() {
+    _sessionTimer?.cancel();
+    AuthService.instance.sessionInvalidations.removeListener(_onSessionInvalidated);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

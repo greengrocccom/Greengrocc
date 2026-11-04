@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 
 const getTodayString = () =>
@@ -110,17 +110,6 @@ const LABEL = "block text-[11px] font-semibold uppercase tracking-wide text-slat
 const FIELD =
   "w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/15 disabled:bg-slate-50 disabled:text-slate-400";
 
-function initials(name) {
-  return (
-    String(name || "?")
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p[0].toUpperCase())
-      .join("") || "?"
-  );
-}
-
 function Card({ title, action, children }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -133,160 +122,87 @@ function Card({ title, action, children }) {
   );
 }
 
-function DriverDropdown({ riders, loading, selectedIds, onChange }) {
-  const [open, setOpen] = useState(false);
+const EMPLOYMENT_OPTIONS = [
+  ["ALL", "All"], ["FULL_TIME", "Full-Time"], ["PART_TIME", "Part-Time"],
+];
+
+function RiderSelection({ riders, employmentType, onEmploymentChange, loading, error, onRetry, selectedIds, onChange }) {
   const [search, setSearch] = useState("");
-  const wrapRef = useRef(null);
-  const closeTimer = useRef(null);
-
-  useEffect(() => {
-    const onDocClick = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDocClick);
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      clearTimeout(closeTimer.current);
-    };
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return riders;
-    return riders.filter((r) => (r.name || "").toLowerCase().includes(q) || String(r.phone || "").includes(q));
-  }, [riders, search]);
-
-  const selected = riders.filter((r) => selectedIds.includes(r.id));
-  const allFilteredSelected = filtered.length > 0 && filtered.every((r) => selectedIds.includes(r.id));
-
-  const toggle = (id) =>
-    onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]);
-
-  const toggleAll = () => {
-    const ids = filtered.map((r) => r.id);
-    onChange(allFilteredSelected ? selectedIds.filter((id) => !ids.includes(id)) : [...new Set([...selectedIds, ...ids])]);
-  };
-
-  const openNow = () => {
-    clearTimeout(closeTimer.current);
-    setOpen(true);
-  };
-  const closeSoon = () => {
-    clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setOpen(false), 250);
-  };
-
-  const summary =
-    selected.length === 0
-      ? loading
-        ? "Loading drivers…"
-        : "Select drivers"
-      : selected.length === 1
-        ? selected[0].name || selected[0].phone
-        : `${selected.length} drivers selected`;
+  const [showUnavailable, setShowUnavailable] = useState(false);
+  const query = search.trim().toLowerCase();
+  const selected = new Set(selectedIds);
+  const visible = riders.filter((rider) =>
+    (employmentType === "ALL" || rider.employmentType === employmentType) &&
+    (showUnavailable || !rider.reason) &&
+    `${rider.name} ${rider.phone}`.toLowerCase().includes(query));
+  const eligibleIds = visible.filter((rider) => !rider.reason).map((rider) => rider.id);
+  const allSelected = eligibleIds.length > 0 && eligibleIds.every((id) => selected.has(id));
+  const fullTimeCount = riders.filter((rider) => selected.has(rider.id) && rider.employmentType === "FULL_TIME").length;
 
   return (
-    <div ref={wrapRef} className="relative" onMouseEnter={openNow} onMouseLeave={closeSoon}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`${FIELD} flex items-center justify-between gap-2 text-left ${open ? "border-emerald-500 ring-2 ring-emerald-500/15" : ""}`}
-      >
-        <span className={`flex min-w-0 items-center gap-2 ${selected.length ? "text-slate-900" : "text-slate-400"}`}>
-          {selected.length > 0 ? (
-            <span className="flex -space-x-1.5">
-              {selected.slice(0, 3).map((r) => (
-                <span
-                  key={r.id}
-                  className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white ring-2 ring-white"
-                >
-                  {initials(r.name)}
-                </span>
-              ))}
-            </span>
-          ) : null}
-          <span className="truncate">{summary}</span>
-        </span>
-        <svg className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-        </svg>
-      </button>
-
-      {open ? (
-        <div className="absolute right-0 z-30 mt-1.5 w-full min-w-[320px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-          <div className="flex items-center gap-2 border-b border-slate-100 p-2.5">
-            <input
-              autoFocus
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name or phone"
-              className="h-9 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-900 focus:border-emerald-500 focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={toggleAll}
-              disabled={filtered.length === 0}
-              className="h-9 shrink-0 rounded-lg px-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40"
-            >
-              {allFilteredSelected ? "Clear all" : "Select all"}
-            </button>
+    <Card title="Assign delivery boys">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="w-full sm:w-44">
+          <span className={LABEL}>Employment type</span>
+          <select value={employmentType} onChange={(event) => onEmploymentChange(event.target.value)} className={FIELD}>
+            {EMPLOYMENT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+        <label className="min-w-48 flex-1">
+          <span className={LABEL}>Search delivery boys</span>
+          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or phone" className={FIELD} />
+        </label>
+        <label className="flex h-10 items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={showUnavailable} onChange={(event) => setShowUnavailable(event.target.checked)} className="accent-emerald-600" />
+          Show unavailable
+        </label>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs" aria-live="polite">
+        <span className="font-semibold text-slate-900">{selectedIds.length} selected</span>
+        {employmentType === "ALL" && <span className="text-slate-600">Full-Time {fullTimeCount} · Part-Time {selectedIds.length - fullTimeCount}</span>}
+      </div>
+      {loading ? <p className="py-6 text-center text-sm text-slate-500" role="status">Checking availability for this schedule…</p>
+        : error ? (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
+            {error}
+            <button type="button" onClick={onRetry} className="font-semibold underline">Retry</button>
           </div>
-          <div className="max-h-72 overflow-y-auto py-1">
-            {loading ? (
-              <p className="px-4 py-6 text-center text-xs text-slate-400">Loading drivers…</p>
-            ) : filtered.length === 0 ? (
-              <p className="px-4 py-6 text-center text-xs text-slate-400">
-                {riders.length === 0 ? "No active drivers under you yet" : "No driver matches your search"}
-              </p>
-            ) : (
-              filtered.map((r) => {
-                const checked = selectedIds.includes(r.id);
-                return (
-                  <label
-                    key={r.id}
-                    className={`flex cursor-pointer items-center gap-3 px-3 py-2 ${checked ? "bg-emerald-50/70" : "hover:bg-slate-50"}`}
-                  >
-                    <input type="checkbox" checked={checked} onChange={() => toggle(r.id)} className="h-4 w-4 accent-emerald-600" />
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-600">
-                      {initials(r.name)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="block truncate text-sm font-medium text-slate-900">{r.name || "Unnamed driver"}</span>
-                        {r.isGoodPerformance ? (
-                          <span className="rounded bg-amber-100 px-1.5 py-0.2 text-[10px] font-bold text-amber-800">
-                            ★ {Number(r.rating || 5).toFixed(1)} High
-                          </span>
-                        ) : (
-                          <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-medium text-slate-500">
-                            ★ {Number(r.rating || 5).toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      <span className="block text-xs tabular-nums text-slate-500">{r.phone || "—"}</span>
-                    </span>
-                    {r.vehicleType ? (
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
-                        {r.vehicleType}
-                      </span>
-                    ) : null}
-                  </label>
-                );
-              })
-            )}
+        ) : !visible.length ? <p className="py-6 text-center text-sm text-slate-500">
+          {showUnavailable ? "No delivery boys match these filters." : "No eligible delivery boys match these filters. Show unavailable riders to see why."}
+        </p> : (
+          <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs text-slate-600">
+                <tr>
+                  <th scope="col" className="px-3 py-3">
+                    <input type="checkbox" aria-label="Select all eligible delivery boys in this view" checked={allSelected} disabled={!eligibleIds.length}
+                      onChange={() => onChange(allSelected ? selectedIds.filter((id) => !eligibleIds.includes(id)) : [...new Set([...selectedIds, ...eligibleIds])])} className="accent-emerald-600" />
+                  </th>
+                  {['Delivery boy', 'Employment type', 'Availability', 'Existing assigned shift', 'Selection status'].map((label) => <th key={label} scope="col" className="px-3 py-3 font-semibold">{label}</th>)}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {visible.map((rider) => {
+                  const checked = selected.has(rider.id);
+                  const fullTime = rider.employmentType === "FULL_TIME";
+                  const status = { online: "Online", offline: "Offline", on_delivery: "On delivery" }[rider.status];
+                  return (
+                    <tr key={rider.id} className={checked ? "bg-emerald-50/60" : "hover:bg-slate-50"}>
+                      <td className="px-3 py-3"><input type="checkbox" aria-label={`Select ${rider.name}`} checked={checked} disabled={Boolean(rider.reason)}
+                        onChange={() => onChange(checked ? selectedIds.filter((id) => id !== rider.id) : [...selectedIds, rider.id])} className="accent-emerald-600" /></td>
+                      <th scope="row" className="px-3 py-3 font-semibold text-slate-900">{rider.name}<span className="block text-xs font-normal text-slate-500">{rider.phone}</span></th>
+                      <td className="px-3 py-3"><span className={`whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${fullTime ? "bg-indigo-50 text-indigo-700" : "bg-slate-100 text-slate-700"}`}>{fullTime ? "Full-Time" : "Part-Time"}</span></td>
+                      <td className="px-3 py-3 text-xs text-slate-700">{rider.reason ? "Unavailable" : "Available"}{status && <span className="block text-slate-500">{status}</span>}</td>
+                      <td className="px-3 py-3 text-xs text-slate-600">{rider.existingShift || "—"}</td>
+                      <td className={`px-3 py-3 text-xs font-medium ${rider.reason ? "text-amber-800" : checked ? "text-emerald-700" : "text-slate-500"}`}>{rider.reason || (checked ? "Selected" : "Ready to select")}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            <span>
-              {selectedIds.length} of {riders.length} selected
-            </span>
-            <button type="button" onClick={() => setOpen(false)} className="font-semibold text-slate-700 hover:text-slate-900">
-              Done
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
+        )}
+    </Card>
   );
 }
 
@@ -434,6 +350,7 @@ function SlotIncentiveDriverModal({ isOpen, onClose, riders, selectedIds, onSave
 
 export default function CreateShiftPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [toast, setToast] = useState({ msg: "", ok: true });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFixedPayConfirm, setShowFixedPayConfirm] = useState(false);
@@ -448,17 +365,60 @@ export default function CreateShiftPage() {
     { startTime: "09:00 AM", endTime: "01:00 PM", capacity: 10, ...NO_INCENTIVE },
   ]);
   const [modalSlotIndex, setModalSlotIndex] = useState(null);
+  const [employmentType, setEmploymentType] = useState(() =>
+    searchParams.get("employmentType") === "FULL_TIME" ? "FULL_TIME" : "ALL");
   const [riders, setRiders] = useState([]);
-  const [ridersLoading, setRidersLoading] = useState(true);
+  const [preview, setPreview] = useState({ key: "", error: "" });
+  const [refreshPreview, setRefreshPreview] = useState(0);
   const [selectedRiderIds, setSelectedRiderIds] = useState([]);
+  const [assignmentIssues, setAssignmentIssues] = useState([]);
+
+  const today = getTodayString();
+  const scheduleKey = JSON.stringify({
+    type: newShiftType,
+    recurrenceMode,
+    targetDate: recurrenceMode === "single_day" && targetDate === today && isAfterMidnightTime(newShiftType, slotsList)
+      ? getNextDayString(today) : targetDate,
+    daysOfWeek: selectedDaysOfWeek,
+    customSlots: slotsList.map(({ startTime, endTime }) => ({ startTime, endTime })),
+  });
+  const ridersLoading = preview.key !== scheduleKey;
 
   useEffect(() => {
-    managerApi
-      .getAssignableRiders()
-      .then((res) => setRiders(res.data?.riders || []))
-      .catch(() => setRiders([]))
-      .finally(() => setRidersLoading(false));
-  }, []);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await managerApi.getAssignableRiders({ schedule: scheduleKey });
+        if (cancelled) return;
+        const rows = res.data?.riders || [];
+        const eligible = new Set(rows.filter((rider) => !rider.reason).map((rider) => rider.id));
+        setRiders(rows);
+        setSelectedRiderIds((ids) => ids.filter((id) => eligible.has(id)));
+        setPreview({ key: scheduleKey, error: "" });
+      } catch (err) {
+        if (cancelled) return;
+        setRiders([]);
+        setPreview({ key: scheduleKey, error: err.response?.data?.message || "Could not check rider availability." });
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [scheduleKey, refreshPreview]);
+
+  const changeEmploymentType = (type) => {
+    setEmploymentType(type);
+    if (type !== "ALL") {
+      const matching = new Set(riders.filter((rider) => rider.employmentType === type).map((rider) => rider.id));
+      setSelectedRiderIds((ids) => ids.filter((id) => matching.has(id)));
+    }
+  };
+
+  const reloadAvailability = () => {
+    setPreview({ key: "", error: "" });
+    setRefreshPreview((value) => value + 1);
+  };
 
   const showToast = (msg, ok = false) => {
     setToast({ msg, ok });
@@ -529,7 +489,7 @@ export default function CreateShiftPage() {
 
   const handleCreateShift = async (e) => {
     e.preventDefault();
-    if (selectedRiderIds.length === 0) {
+    if (isSubmitting || ridersLoading || preview.error || selectedRiderIds.length === 0) {
       showToast("Select at least one driver for this slot");
       return;
     }
@@ -555,20 +515,14 @@ export default function CreateShiftPage() {
   const confirmCreateShift = async () => {
     setShowFixedPayConfirm(false);
 
-    let finalTargetDate = targetDate;
-    const isAfterMidnight = isAfterMidnightTime(newShiftType, slotsList);
-    const todayStr = getTodayString();
-    if (isAfterMidnight && recurrenceMode === "single_day" && targetDate === todayStr) {
-      finalTargetDate = getNextDayString(todayStr);
-    }
-
     setIsSubmitting(true);
+    setAssignmentIssues([]);
     try {
       const res = await managerApi.createShift({
+        ...JSON.parse(scheduleKey),
         name: newShiftName,
-        type: newShiftType,
+        employmentType,
         capacity: parseInt(newCapacity, 10) || 10,
-        maxCapacityPerSlot: parseInt(newCapacity, 10) || 10,
         customSlots: slotsList.map((s) => ({
           startTime: s.startTime,
           endTime: s.endTime,
@@ -579,17 +533,23 @@ export default function CreateShiftPage() {
           incentiveAudience: s.incentiveAudience || "all",
           incentiveEligibleRiderIds: Array.isArray(s.incentiveEligibleRiderIds) ? s.incentiveEligibleRiderIds : [],
         })),
-        recurrenceMode,
-        targetDate: finalTargetDate,
-        daysOfWeek: selectedDaysOfWeek,
-        deliveryEarningSlabs: [],
         riderIds: selectedRiderIds,
       });
 
       showToast(res.data.message || "Shift created successfully!", true);
-      setTimeout(() => navigate("/shifts"), 1000);
+      const skipped = res.data.skipped || [];
+      if (skipped.length) {
+        setAssignmentIssues(skipped);
+        setSelectedRiderIds([]);
+        reloadAvailability();
+      } else {
+        setSelectedRiderIds([]);
+        setTimeout(() => navigate("/shifts"), 900);
+      }
     } catch (err) {
-      showToast(err.response?.data?.message || "Failed to create shift");
+      setAssignmentIssues(err.response?.data?.skipped || []);
+      reloadAvailability();
+      showToast(err.response?.data?.message || "Failed to assign shift");
     } finally {
       setIsSubmitting(false);
     }
@@ -616,10 +576,10 @@ export default function CreateShiftPage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || ridersLoading || Boolean(preview.error) || selectedRiderIds.length === 0}
             className="h-10 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
           >
-            {isSubmitting ? "Creating…" : "Save & Assign"}
+            {isSubmitting ? "Assigning…" : "Assign Shift"}
           </button>
         </div>
       </div>
@@ -659,15 +619,6 @@ export default function CreateShiftPage() {
               value={newCapacity}
               onChange={(e) => setNewCapacity(e.target.value)}
               className={FIELD}
-            />
-          </div>
-          <div>
-            <label className={LABEL}>Assign drivers</label>
-            <DriverDropdown
-              riders={riders}
-              loading={ridersLoading}
-              selectedIds={selectedRiderIds}
-              onChange={setSelectedRiderIds}
             />
           </div>
         </div>
@@ -861,7 +812,7 @@ export default function CreateShiftPage() {
           {recurrenceMode === "single_day" ? (
             <div className="w-full max-w-xs">
               <label className={LABEL}>Date</label>
-              <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className={FIELD} />
+              <input type="date" required value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className={FIELD} />
               {isAfterMidnightTime(newShiftType, slotsList) && (
                 <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-purple-50 border border-purple-200 px-2.5 py-1.5 text-xs text-purple-900">
                   <span>🌙</span>
@@ -898,10 +849,21 @@ export default function CreateShiftPage() {
         </div>
       </Card>
 
+      {assignmentIssues.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
+          <p className="font-semibold">Riders who could not be assigned</p>
+          <ul className="mt-1 list-disc pl-5">
+            {assignmentIssues.map((issue) => <li key={issue.riderId}>{issue.name || 'Selected rider'} — {issue.reason}</li>)}
+          </ul>
+        </div>
+      )}
+      <RiderSelection riders={riders} employmentType={employmentType} onEmploymentChange={changeEmploymentType}
+        loading={ridersLoading} error={preview.error} onRetry={reloadAvailability} selectedIds={selectedRiderIds} onChange={setSelectedRiderIds} />
+
       <SlotIncentiveDriverModal
         isOpen={modalSlotIndex !== null}
         onClose={() => setModalSlotIndex(null)}
-        riders={riders}
+        riders={riders.filter((rider) => rider.employmentType === "PART_TIME")}
         selectedIds={modalSlotIndex !== null ? (slotsList[modalSlotIndex]?.incentiveEligibleRiderIds || []) : []}
         onSave={(newIds) => {
           if (modalSlotIndex !== null) {
@@ -916,11 +878,11 @@ export default function CreateShiftPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
             <h2 id="fixed-pay-title" className="text-base font-bold text-slate-900">Rider payment is fixed</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              The rider&apos;s salary or KM commission is set in Rider Payment Settings. This shift will keep that amount unchanged; only the schedule and incentives below will apply.
+              Rider Payment Settings determine salary and per-kilometre commission. Slot incentives apply to eligible Part-Time riders.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={() => setShowFixedPayConfirm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Review shift</button>
-              <button type="button" disabled={isSubmitting} onClick={confirmCreateShift} className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-60">{isSubmitting ? "Creating…" : "Confirm & Create Shift"}</button>
+              <button type="button" disabled={isSubmitting} onClick={confirmCreateShift} className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-60">{isSubmitting ? "Assigning…" : "Confirm & Assign"}</button>
             </div>
           </div>
         </div>

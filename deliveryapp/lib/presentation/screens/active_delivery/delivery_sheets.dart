@@ -739,12 +739,15 @@ class _Stepper extends StatelessWidget {
 // ─── Failed delivery ─────────────────────────────────────────────────────────
 
 /// Returns the failure reason, or null when cancelled.
-Future<String?> showDeliveryFailedSheet(BuildContext context) {
-  return _showSheet<String>(context, (_) => const _FailedSheet());
+Future<String?> showDeliveryFailedSheet(BuildContext context, {bool emergency = false, bool pickupStarted = false}) {
+  return _showSheet<String>(context, (_) => _FailedSheet(emergency: emergency, pickupStarted: pickupStarted));
 }
 
 class _FailedSheet extends StatefulWidget {
-  const _FailedSheet();
+  const _FailedSheet({required this.emergency, required this.pickupStarted});
+
+  final bool emergency;
+  final bool pickupStarted;
 
   @override
   State<_FailedSheet> createState() => _FailedSheetState();
@@ -758,6 +761,7 @@ class _FailedSheetState extends State<_FailedSheet> {
     'Customer refused order',
     'Other',
   ];
+  static const _emergencyReasons = ['Flat tyre', 'Vehicle breakdown', 'Health emergency', 'Other'];
   final _controller = TextEditingController();
   String? _selected;
 
@@ -779,11 +783,15 @@ class _FailedSheetState extends State<_FailedSheet> {
     return _SheetFrame(
       icon: Icons.report_problem_rounded,
       iconColor: _danger,
-      title: 'Delivery failed?',
-      subtitle: 'Tell the store what happened. The manager and customer will be notified.',
+      title: widget.emergency ? 'Report an emergency' : 'Delivery failed?',
+      subtitle: widget.emergency
+          ? widget.pickupStarted
+              ? 'Your manager will be alerted. If you have the parcel, contact the store to arrange handover.'
+              : 'Tell your manager why you can’t continue so they can assign another rider.'
+          : 'Tell the store what happened. The manager and customer will be notified.',
       children: [
         _ChoiceChips(
-          options: _reasons,
+          options: widget.emergency ? _emergencyReasons : _reasons,
           selected: _selected,
           color: _danger,
           onSelected: (value) => setState(() => _selected = value),
@@ -799,7 +807,7 @@ class _FailedSheetState extends State<_FailedSheet> {
         ),
         const SizedBox(height: 8),
         _SheetButton(
-          label: 'Submit failed delivery',
+          label: widget.emergency ? 'Send to manager' : 'Submit failed delivery',
           color: _danger,
           onPressed: canSubmit ? () => Navigator.pop(context, _reason) : null,
         ),

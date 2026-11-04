@@ -40,9 +40,8 @@ function scheduleRange(mode, selectedDate) {
   return { start: dateString(start), end: dateString(end) };
 }
 
-export default function CreateFullTimeShiftPage() {
+export default function EditFullTimeShiftPage() {
   const { id } = useParams();
-  const isEdit = Boolean(id);
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY);
   const [drivers, setDrivers] = useState([]);
@@ -57,28 +56,26 @@ export default function CreateFullTimeShiftPage() {
       try {
         const [driversRes, shiftsRes] = await Promise.all([
           managerApi.getFullTimeDrivers(),
-          isEdit ? managerApi.getFullTimeShifts() : Promise.resolve(null),
+          managerApi.getFullTimeShifts(),
         ]);
         if (cancelled) return;
         setDrivers(driversRes.data.drivers || []);
-        if (isEdit) {
-          const shift = (shiftsRes?.data.shifts || []).find((s) => s.id === id);
-          if (!shift) {
-            setError("Full-Time shift not found");
-          } else {
-            setForm({
-              name: shift.name,
-              startTime: to24h(shift.startTime),
-              endTime: to24h(shift.endTime),
-              workingDays: shift.workingDays || [],
-              notes: shift.notes || "",
-              driverIds: shift.driverIds || [],
-              scheduleMode: shift.scheduleMode || "full_week",
-              scheduleDate: shift.scheduleStartDate || EMPTY.scheduleDate,
-              excludedDates: shift.excludedDates || [],
-            });
-          }
+        const shift = (shiftsRes.data.shifts || []).find((s) => s.id === id);
+        if (!shift) {
+          setError("Full-Time shift not found");
+          return;
         }
+        setForm({
+          name: shift.name,
+          startTime: to24h(shift.startTime),
+          endTime: to24h(shift.endTime),
+          workingDays: shift.workingDays || [],
+          notes: shift.notes || "",
+          driverIds: shift.driverIds || [],
+          scheduleMode: shift.scheduleMode || "full_week",
+          scheduleDate: shift.scheduleStartDate || EMPTY.scheduleDate,
+          excludedDates: shift.excludedDates || [],
+        });
       } catch (err) {
         if (!cancelled) setError(apiError(err, "Failed to load data"));
       } finally {
@@ -88,7 +85,7 @@ export default function CreateFullTimeShiftPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isEdit]);
+  }, [id]);
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
   const activeRange = scheduleRange(form.scheduleMode, form.scheduleDate || EMPTY.scheduleDate);
@@ -126,17 +123,9 @@ export default function CreateFullTimeShiftPage() {
       workingDays: form.scheduleMode === "single_day" ? [selectedDate.getDay()] : form.workingDays,
       scheduleStartDate: range.start,
       scheduleEndDate: range.end,
-      monthlySalary: null,
-      leavePolicyEnabled: false,
-      paidLeavesPerMonth: 0,
-      unpaidLeaveDeductionPerDay: null,
-      latePenaltyEnabled: false,
-      lateAfterMinutes: 120,
-      latePenaltyAmount: 0,
     };
     try {
-      if (isEdit) await managerApi.updateFullTimeShift(id, payload);
-      else await managerApi.createFullTimeShift(payload);
+      await managerApi.updateFullTimeShift(id, payload);
       navigate("/shifts/fulltime");
     } catch (err) {
       setError(apiError(err, "Failed to save shift"));
@@ -147,7 +136,7 @@ export default function CreateFullTimeShiftPage() {
 
   return (
     <PageShell
-      title={isEdit ? "Edit Full-Time Shift" : "Create Full-Time Shift"}
+      title="Edit Full-Time Shift"
     >
       <div className="flex items-center gap-3">
         <Link
@@ -293,7 +282,7 @@ export default function CreateFullTimeShiftPage() {
               disabled={saving}
               className="rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700 disabled:opacity-60 transition"
             >
-              {saving ? "Saving…" : isEdit ? "Save Changes" : "Create Full-Time Shift"}
+              {saving ? "Saving…" : "Save Changes"}
             </button>
           </div>
         </form>
@@ -307,7 +296,7 @@ export default function CreateFullTimeShiftPage() {
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={() => setShowFixedPayConfirm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Review shift</button>
-              <button type="button" disabled={saving} onClick={confirmSave} className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-60">{saving ? "Saving…" : isEdit ? "Confirm Changes" : "Confirm & Create Shift"}</button>
+              <button type="button" disabled={saving} onClick={confirmSave} className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-60">{saving ? "Saving…" : "Confirm Changes"}</button>
             </div>
           </div>
         </div>

@@ -94,11 +94,12 @@ class AppDrawer extends StatelessWidget {
                     label: l10n.history,
                     onTap: () => _nav(context, AppRoutes.deliveryHistory),
                   ),
-                  _DrawerItem(
-                    icon: Icons.calendar_month_outlined,
-                    label: l10n.attendance,
-                    onTap: () => _nav(context, AppRoutes.attendance),
-                  ),
+                  if (!isFullTime)
+                    _DrawerItem(
+                      icon: Icons.calendar_month_outlined,
+                      label: l10n.attendance,
+                      onTap: () => _nav(context, AppRoutes.attendance),
+                    ),
                   _DrawerItem(
                     icon: Icons.event_busy_outlined,
                     label: 'Apply Leave',
@@ -108,11 +109,6 @@ class AppDrawer extends StatelessWidget {
                     icon: Icons.insights_outlined,
                     label: l10n.performance,
                     onTap: () => _nav(context, AppRoutes.performance),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.account_balance_wallet_outlined,
-                    label: l10n.wallet,
-                    onTap: () => _nav(context, AppRoutes.wallet),
                   ),
                   _DrawerItem(
                     icon: Icons.notifications_outlined,

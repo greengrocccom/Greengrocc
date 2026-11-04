@@ -30,11 +30,11 @@ const SPLIT_PART_LABELS = {
 };
 
 /** Department tags (Pre-order / Ready2Cook / Instant), delivery vs pickup, and how the order reached this store. */
-export function OrderDepartmentTags({ order }) {
+export function OrderDepartmentTags({ order, hideSlot = false }) {
   const departments = order?.departments || [];
   const routing = ROUTING_LABELS[order?.routingReason];
   const splitLabel = SPLIT_PART_LABELS[order?.sourcePart];
-  const slot = order?.isPreOrder && order?.preOrderSlot
+  const slot = (!hideSlot && order?.isPreOrder && order?.preOrderSlot)
     ? `${order.preOrderDate ? `${order.preOrderDate} · ` : ""}${order.preOrderSlot}`
     : "";
   return (
@@ -255,21 +255,38 @@ export function DriverAssignmentText({ order, onRiderClick }) {
 
   if (windowActive || order.assignmentStatus === "BATCH_WAITING") {
     return (
-      <p className="text-[11px] font-semibold text-violet-700 italic">
-        Same-route wait{clockLeft ? ` · ${clockLeft} left` : minsLeft != null ? ` · ~${minsLeft}m left` : ""}
-      </p>
+      <div className="space-y-1">
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 border-2 border-rose-500 px-2.5 py-1 text-xs font-black tracking-wider text-rose-700 uppercase shadow-2xs">
+          <span className="h-2 w-2 rounded-full bg-rose-600 animate-pulse" />
+          UNASSIGNED
+        </span>
+        <p className="text-[10px] font-semibold text-violet-700">
+          Same-route wait{clockLeft ? ` · ${clockLeft} left` : minsLeft != null ? ` · ~${minsLeft}m left` : ""}
+        </p>
+      </div>
     );
   }
 
   if (order.assignmentStatus === "WAITING_FOR_DRIVER") {
     return (
-      <p className="text-[11px] font-semibold text-amber-700 italic">
-        Waiting for nearby Delivery Partner…
-      </p>
+      <div className="space-y-1">
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 border-2 border-rose-500 px-2.5 py-1 text-xs font-black tracking-wider text-rose-700 uppercase shadow-2xs">
+          <span className="h-2 w-2 rounded-full bg-rose-600 animate-pulse" />
+          UNASSIGNED
+        </span>
+        <p className="text-[10px] font-semibold text-amber-700">
+          Waiting for nearby driver…
+        </p>
+      </div>
     );
   }
 
-  return <p className="text-[11px] italic text-slate-500">Unassigned</p>;
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 border-2 border-rose-500 px-2.5 py-1 text-xs font-black tracking-wider text-rose-700 uppercase shadow-2xs">
+      <span className="h-2 w-2 rounded-full bg-rose-600 animate-pulse" />
+      UNASSIGNED
+    </span>
+  );
 }
 
 /** @deprecated Use OrderStatusText */

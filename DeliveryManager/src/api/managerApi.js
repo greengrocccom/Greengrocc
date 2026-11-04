@@ -72,7 +72,8 @@ export const managerApi = {
     api.get(`${BASE}/inventory-requests`, { params }),
   requestInventory: (data) => api.post(`${BASE}/inventory-requests`, data),
   riders: () => api.get(`${BASE}/riders`),
-  getDriverDetails: (driverId, params = {}) => api.get(`${BASE}/drivers/${driverId}`, { params }),
+  getDriverDetails: (driverId, params = {}, { live = true } = {}) =>
+    api.get(`${BASE}/drivers/${driverId}`, { params, live }),
   getDriverActivityHistory: (driverId, range = "week") =>
     api.get(`${BASE}/drivers/${driverId}/activity-history`, { params: { range } }),
   toggleRiderActive: (driverId) => api.post(`${BASE}/drivers/${driverId}/toggle-active`),
@@ -117,6 +118,9 @@ export const managerApi = {
     api.post(`${BASE}/orders/${orderId}/approve-pickup-proof`),
   confirmOrderCash: (orderId) =>
     api.post(`${BASE}/orders/${orderId}/confirm-cash`),
+  getCashCollection: () => api.get(`${BASE}/cash/collection`, { live: false }),
+  confirmCashCollection: (riderId, settlementIds) =>
+    api.post(`${BASE}/cash/confirm`, { riderId, settlementIds }),
 
   returnPickups: (params) => api.get(`${BASE}/return-pickups`, { params }),
   returnPickup: (id) => api.get(`${BASE}/return-pickups/${id}`),
@@ -136,7 +140,7 @@ export const managerApi = {
   deleteSlotDateWise: (slotId, data = {}) =>
     api.delete(`${BASE}/shifts/slots/${slotId}`, { data }),
   getSlotDetailsWithRiders: (slotId) => api.get(`${BASE}/shifts/slots/${slotId}/details`),
-  getAssignableRiders: () => api.get(`${BASE}/shifts/assignable-riders`),
+  getAssignableRiders: (params) => api.get(`${BASE}/shifts/assignable-riders`, { params }),
   assignSlotRiders: (slotId, body) => api.post(`${BASE}/shifts/slots/${slotId}/assign`, body),
   unassignSlotRider: (slotId, riderId) =>
     api.delete(`${BASE}/shifts/slots/${slotId}/assign/${riderId}`),
@@ -180,6 +184,7 @@ export const managerApi = {
   setBulkDriverPaymentConfig: (data) =>
     api.put(`${BASE}/drivers/payment-config/bulk`, data),
   getMonthlyRiderPayments: (params) => api.get(`${BASE}/payments/monthly`, { params }),
+  markRiderMonthPaid: (riderId, month) => api.post(`${BASE}/payments/monthly/${riderId}/paid`, { month }),
   getRiderDistanceReport: (params) => api.get(`${BASE}/payments/distance`, { params }),
   getFullTimeAssignableOrders: () => api.get(`${BASE}/fulltime/assignable-orders`),
   getFullTimeAssignedOrders: (riderId) =>

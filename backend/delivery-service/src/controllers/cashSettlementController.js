@@ -10,6 +10,7 @@
  *   POST /manager/cash/confirm      — manager confirms receipt of cash from a rider
  */
 
+import mongoose from "mongoose";
 import {
   getDarkStorePendingCash,
   getRiderPendingCash,
@@ -47,21 +48,11 @@ export const getRiderCashPending = async (req, res, next) => {
     const rider = await DeliveryBoy.findById(riderId);
     if (!rider) return res.status(404).json({ success: false, message: "Rider not found" });
 
-    const darkStoreId = rider.managerId;
-    if (!darkStoreId) {
-      return res.json({
-        success: true,
-        pendingCashAmount: 0,
-        settlements: [],
-        message: "No dark store assigned",
-      });
-    }
-
-    const { totalPending, settlements } = await getRiderPendingCash(riderId, darkStoreId);
+    const { totalPending, settlements } = await getRiderPendingCash(riderId);
 
     return res.json({
       success: true,
-      pendingCashAmount: rider.pendingCashAmount || 0,
+      pendingCashAmount: totalPending,
       calculatedPending: totalPending,
       settlements: settlements.map((s) => s.toSafeJSON()),
     });
@@ -276,6 +267,59 @@ export const getManagerCashOverview = async (req, res, next) => {
   }
 };
 
+/** Today's physical cash activity plus unsettled cash carried forward. */
+export const getCashCollection = async (req, res, next) => {
+  try {
+    const date = istDateString();
+    const { start, end } = istDayRange(date);
+    const today = { $gte: start, $lte: end };
+    const outstanding = ["PENDING", "SUBMITTED", "DISPUTED"];
+    const records = await CashSettlement.find({
+      darkStoreId: req.user.id,
+      status: { $ne: "CANCELLED" },
+      $or: [{ collectedAt: today }, { status: "COMPLETED", confirmedAt: today }, { status: { $in: outstanding } }],
+    }).select("riderId orderId orderNumber amount status collectedAt confirmedAt").sort({ collectedAt: -1 }).lean();
+    const ids = [...new Set(records.filter((record) => record.riderId).map((record) => String(record.riderId)))];
+    const riders = await DeliveryBoy.find({ _id: { $in: ids } }).select("name phone").lean();
+    const riderById = new Map(riders.map((rider) => [String(rider._id), rider]));
+    const groups = new Map();
+    const totals = { collected: 0, received: 0, pending: 0, riderCount: 0 };
+    const isToday = (value) => value != null && value >= start && value <= end;
+    for (const record of records) {
+      const riderId = record.riderId ? String(record.riderId) : null;
+      if (!groups.has(riderId)) {
+        const rider = riderById.get(riderId);
+        groups.set(riderId, {
+          riderId, name: riderId ? rider?.name || "Unknown rider" : "Store collection",
+          phone: rider?.phone || "", collected: 0, received: 0, pending: 0, settlements: [],
+        });
+      }
+      const group = groups.get(riderId);
+      const amount = record.amount || 0;
+      if (isToday(record.collectedAt)) {
+        group.collected += amount;
+        totals.collected += amount;
+      }
+      if (record.status === "COMPLETED" && isToday(record.confirmedAt)) {
+        group.received += amount;
+        totals.received += amount;
+      }
+      if (outstanding.includes(record.status)) {
+        group.pending += amount;
+        totals.pending += amount;
+      }
+      group.settlements.push({
+        id: String(record._id), orderId: String(record.orderId), orderNumber: record.orderNumber,
+        amount, status: record.status, collectedAt: record.collectedAt, confirmedAt: record.confirmedAt,
+      });
+    }
+    totals.riderCount = ids.length;
+    return res.json({ success: true, date, totals, riders: [...groups.values()].sort((a, b) => b.pending - a.pending) });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * POST /manager/cash/confirm
  * Dark Store manager confirms receipt of cash from a rider.
@@ -287,18 +331,19 @@ export const confirmRiderCash = async (req, res, next) => {
     const managerId = req.user.id;
     const { riderId, settlementIds = [] } = req.body;
 
-    if (!riderId) {
-      return res.status(400).json({ success: false, message: "riderId is required" });
+    if (!mongoose.isObjectIdOrHexString(riderId) || !Array.isArray(settlementIds) ||
+        settlementIds.some((id) => !mongoose.isObjectIdOrHexString(id))) {
+      return res.status(400).json({ success: false, message: "Select a valid rider and cash records" });
     }
 
-    // Dark Store isolation — rider must belong to this manager's store
-    const rider = await DeliveryBoy.findById(riderId);
-    if (!rider || rider.managerId?.toString() !== managerId) {
+    // Scope by the cash collection's store, even if the rider has since changed stores.
+    if (!(await CashSettlement.exists({ darkStoreId: managerId, riderId }))) {
       return res.status(403).json({
         success: false,
         message: "Rider does not belong to your dark store",
       });
     }
+    const rider = await DeliveryBoy.findById(riderId).select("name phone");
 
     const result = await confirmCashReceipt({
       darkStoreId: managerId,
@@ -311,7 +356,7 @@ export const confirmRiderCash = async (req, res, next) => {
       success: true,
       message:
         result.confirmed > 0
-          ? `Confirmed ₹${result.totalAmount} cash from ${rider.name || rider.phone}`
+          ? `Confirmed ₹${result.totalAmount} cash from ${rider?.name || rider?.phone || "rider"}`
           : "No settlements to confirm.",
       confirmed: result.confirmed,
       totalAmount: result.totalAmount,

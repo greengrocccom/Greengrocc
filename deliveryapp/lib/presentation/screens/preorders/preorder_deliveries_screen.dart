@@ -10,6 +10,7 @@ import '../../../data/services/order_service.dart';
 import '../../../data/services/socket_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/map_navigation.dart';
+import '../active_delivery/delivery_sheets.dart';
 import '../active_delivery/pickup_qr_scan_screen.dart';
 import '../fulltime/fulltime_widgets.dart';
 
@@ -74,6 +75,34 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
     });
+  }
+
+  Future<void> _reportEmergency(Map<String, dynamic> order) async {
+    final id = order['id']?.toString();
+    if (id == null || id.isEmpty) return;
+    final reason = await showDeliveryFailedSheet(context, emergency: true, pickupStarted: order['scanned'] == true);
+    if (!mounted || reason == null || reason.isEmpty) return;
+    final result = await OrderService.instance.failDelivery(id, failureReason: reason, emergency: true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(result.success ? 'Emergency sent to your Delivery Manager.' : result.error ?? 'Could not send emergency report.'),
+    ));
+    if (result.success) await _load(silent: true);
+  }
+
+  Widget _withEmergencyAction(Map<String, dynamic> order, Widget tile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        tile,
+        TextButton.icon(
+          onPressed: () => _reportEmergency(order),
+          icon: const Icon(Icons.report_problem_outlined, size: 17),
+          label: const Text('Report emergency'),
+          style: TextButton.styleFrom(foregroundColor: const Color(0xFF9A3412)),
+        ),
+      ],
+    );
   }
 
   Future<void> _scanBags() async {
@@ -227,17 +256,17 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
         if (onTheWay.isNotEmpty) ...[
           _SectionTitle('🛵 ${l10n.outForDelivery} (${onTheWay.length})'),
           ...onTheWay.map(
-            (o) => _UnlockedTile(
+            (o) => _withEmergencyAction(o, _UnlockedTile(
               order: o,
               onCall: () => _call(o['customerPhone']?.toString() ?? ''),
               onNavigate: () => _navigate(o),
               onDeliver: () => _deliver(o),
-            ),
+            )),
           ),
         ],
         if (toScan.isNotEmpty) ...[
           _SectionTitle('🔒 ${l10n.atStoreScanToSeeAddress} (${toScan.length})'),
-          ...toScan.map((o) => _LockedTile(order: o)),
+          ...toScan.map((o) => _withEmergencyAction(o, _LockedTile(order: o))),
         ],
         if (done.isNotEmpty) ...[
           _SectionTitle('✅ ${l10n.finishedToday} (${done.length})'),

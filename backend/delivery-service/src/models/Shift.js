@@ -19,6 +19,7 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    employmentType: { type: String, enum: ["FULL_TIME", "PART_TIME"] },
     deliveryPartnerProfileImage: {
       type: String,
       default: "",
@@ -261,6 +262,7 @@ shiftSchema.methods.toSafeJSON = function toSafeJSON() {
       deliveryPartnerId: b.deliveryPartnerId ? b.deliveryPartnerId.toString() : "",
       deliveryPartnerPhone: b.deliveryPartnerPhone,
       deliveryPartnerName: b.deliveryPartnerName,
+      employmentType: b.employmentType,
       deliveryPartnerProfileImage: b.deliveryPartnerProfileImage,
       bookedAt: b.bookedAt,
       status: b.status,

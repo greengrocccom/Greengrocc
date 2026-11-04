@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
-import FinanceDateFilter from "../../components/finance/FinanceDateFilter";
 import PickupQrModal from "../../components/PickupQrModal";
 import OrderTrackingDrawer from "../../components/tracking/OrderTrackingDrawer";
 import { useLive } from "../../realtime/useLive";
@@ -11,74 +10,52 @@ import { subscribeToSocketEvent } from "../../services/socket";
 import { STATUS_TABS, matchesTab, countBySummaryBucket, OrderStatusText, OrderDepartmentTags, DriverAssignmentText, isInitialOrderStatus, allItemsAvailable, actionBtnOutline, actionBtnPrimary, actionBtnDanger, isCodPayment, isPickupOrder, formatRupee } from "./orderUtils";
 
 
-const orderMatchesDate = (order, dateFilter) => {
-  if (!dateFilter || !dateFilter.preset || dateFilter.preset === "all") return true;
-  const dStr = order.createdAt || order.orderDate || order.deliveredAt;
-  if (!dStr) return true;
-  const d = new Date(dStr);
-  if (Number.isNaN(d.getTime())) return true;
-
-  const offsetMs = 330 * 60 * 1000;
-  const nowIst = new Date(Date.now() + offsetMs);
-  const ny = nowIst.getUTCFullYear();
-  const nm = nowIst.getUTCMonth();
-  const nd = nowIst.getUTCDate();
-
-  const startOfIstDay = (year, month, day) => new Date(Date.UTC(year, month, day) - offsetMs);
-  const endOfIstDay = (year, month, day) =>
-    new Date(Date.UTC(year, month, day, 23, 59, 59, 999) - offsetMs);
-
-  let from = null;
-  let to = null;
-
-  switch (dateFilter.preset) {
-    case "today":
-      from = startOfIstDay(ny, nm, nd);
-      to = endOfIstDay(ny, nm, nd);
-      break;
-    case "yesterday":
-      from = startOfIstDay(ny, nm, nd - 1);
-      to = endOfIstDay(ny, nm, nd - 1);
-      break;
-    case "last7":
-      from = startOfIstDay(ny, nm, nd - 6);
-      to = endOfIstDay(ny, nm, nd);
-      break;
-    case "last15":
-      from = startOfIstDay(ny, nm, nd - 14);
-      to = endOfIstDay(ny, nm, nd);
-      break;
-    case "last30":
-      from = startOfIstDay(ny, nm, nd - 29);
-      to = endOfIstDay(ny, nm, nd);
-      break;
-    case "thisMonth":
-      from = startOfIstDay(ny, nm, 1);
-      to = endOfIstDay(ny, nm, nd);
-      break;
-    case "lastMonth": {
-      const lastMonthDate = new Date(Date.UTC(ny, nm, 0));
-      const lmY = lastMonthDate.getUTCFullYear();
-      const lmM = lastMonthDate.getUTCMonth();
-      const lmLastDay = lastMonthDate.getUTCDate();
-      from = startOfIstDay(lmY, lmM, 1);
-      to = endOfIstDay(lmY, lmM, lmLastDay);
-      break;
-    }
-    case "thisYear":
-      from = startOfIstDay(ny, 0, 1);
-      to = endOfIstDay(ny, nm, nd);
-      break;
-    case "custom":
-    default:
-      if (dateFilter.startDate) from = new Date(`${dateFilter.startDate}T00:00:00.000+05:30`);
-      if (dateFilter.endDate) to = new Date(`${dateFilter.endDate}T23:59:59.999+05:30`);
-      break;
+const todayIstStr = (() => {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  } catch (_) {
+    return new Date().toISOString().slice(0, 10);
   }
+})();
 
-  if (from && d < from) return false;
-  if (to && d > to) return false;
-  return true;
+const yesterdayIstStr = (() => {
+  try {
+    const d = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch (_) {
+    return "";
+  }
+})();
+
+const orderMatchesDate = (order, dateFilter) => {
+  if (!dateFilter) return true;
+  const dStr = (order.isPreOrder && order.preOrderDate)
+    ? `${order.preOrderDate}T12:00:00+05:30`
+    : (order.createdAt || order.orderDate || order.deliveredAt);
+  if (!dStr) return true;
+  try {
+    const d = new Date(dStr);
+    if (Number.isNaN(d.getTime())) return true;
+    const orderDateIst = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+    return orderDateIst === dateFilter;
+  } catch (_) {
+    return true;
+  }
 };
 
 export default function OrdersPage() {
@@ -90,11 +67,7 @@ export default function OrdersPage() {
   const [busyKey, setBusyKey] = useState("");
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
-  const [dateFilter, setDateFilter] = useState({
-    preset: "all",
-    startDate: "",
-    endDate: "",
-  });
+  const [dateFilter, setDateFilter] = useState(todayIstStr);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [pickupQrOrderId, setPickupQrOrderId] = useState(null);
@@ -337,9 +310,10 @@ export default function OrdersPage() {
         patchOrder(p.orderId, {
           status: "delivery_failed",
           failureReason: p.failureReason,
+          failureKind: p.failureKind,
           failedAt: p.failedAt,
         });
-        showToast(`Delivery failed: #${p.orderNumber || ""}`);
+        showToast(`${p.failureKind === "rider_emergency" ? "Rider emergency" : "Delivery failed"}: #${p.orderNumber || ""}`);
         load({ silent: true });
       }),
       subscribeToSocketEvent("order_delivered", (p = {}) => {
@@ -589,21 +563,57 @@ export default function OrdersPage() {
     [pendingCodOrders]
   );
 
-  const filteredOrders = orders.filter((o) => {
-    const q = searchQuery.toLowerCase();
-    const matchSearch =
-      !q ||
-      (o.orderNumber || "").toLowerCase().includes(q) ||
-      (o.customerName || "").toLowerCase().includes(q) ||
-      (o.customerPhone || "").includes(q) ||
-      (o.customerAddress || "").toLowerCase().includes(q);
-    return matchSearch && matchesTab(o, activeTab);
-  });
+  const dateFilteredOrders = useMemo(() => {
+    return orders.filter((o) => orderMatchesDate(o, dateFilter));
+  }, [orders, dateFilter]);
 
-  const summary = countBySummaryBucket(orders);
+  const summary = useMemo(() => countBySummaryBucket(dateFilteredOrders), [dateFilteredOrders]);
+
+  const filteredOrders = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return dateFilteredOrders.filter((o) => {
+      const matchSearch =
+        !q ||
+        (o.orderNumber || "").toLowerCase().includes(q) ||
+        (o.customerName || "").toLowerCase().includes(q) ||
+        (o.customerPhone || "").includes(q) ||
+        (o.customerAddress || "").toLowerCase().includes(q);
+      return matchSearch && matchesTab(o, activeTab);
+    });
+  }, [dateFilteredOrders, searchQuery, activeTab]);
+
+  const ordersByDate = useMemo(() => {
+    const groups = {};
+    for (const order of filteredOrders) {
+      const dStr = (order.isPreOrder && order.preOrderDate)
+        ? `${order.preOrderDate}T12:00:00+05:30`
+        : (order.createdAt || order.orderDate || order.deliveredAt);
+      let key = "No date";
+      if (dStr) {
+        try {
+          const d = new Date(dStr);
+          if (!Number.isNaN(d.getTime())) {
+            key = new Intl.DateTimeFormat("en-CA", {
+              timeZone: "Asia/Kolkata",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            }).format(d);
+          }
+        } catch (_) {}
+      }
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(order);
+    }
+    const sortedKeys = Object.keys(groups).sort((a, b) => (b > a ? 1 : b < a ? -1 : 0));
+    return sortedKeys.map((dateKey) => ({
+      dateKey,
+      orders: groups[dateKey],
+    }));
+  }, [filteredOrders]);
 
   const summaryCards = [
-    { id: "all", label: "All orders", count: orders.length, countClass: "text-slate-900", ring: "ring-slate-400" },
+    { id: "all", label: "All orders", count: dateFilteredOrders.length, countClass: "text-slate-900", ring: "ring-slate-400" },
     { id: "attention", label: "Needs action", count: summary.attention, countClass: "text-rose-700", ring: "ring-rose-400" },
     { id: "incoming", label: "Incoming", count: summary.incoming, countClass: "text-blue-700", ring: "ring-blue-400" },
     { id: "ongoing", label: "Ongoing", count: summary.ongoing, countClass: "text-amber-700", ring: "ring-amber-400" },
@@ -673,13 +683,7 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Date Filter Bar */}
-      <FinanceDateFilter
-        preset={dateFilter.preset}
-        startDate={dateFilter.startDate}
-        endDate={dateFilter.endDate}
-        onFilterChange={(newFilter) => setDateFilter(newFilter)}
-      />
+
 
       {/* Summary boxes */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -856,7 +860,7 @@ export default function OrdersPage() {
       <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Search */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative flex-1 min-w-[240px]">
             <input
               type="text"
               value={searchQuery}
@@ -869,22 +873,15 @@ export default function OrdersPage() {
             )}
           </div>
 
-          {/* Actions */}
+          {/* Just Calendar with Today's Date */}
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onCreateDemoOrder}
-              disabled={busyKey === "create-demo"}
-              className="btn-outline"
-            >
-              + Test order
-            </button>
-            <Link to="/stock" className="btn-outline">
-              Inventory
-            </Link>
-            <button type="button" onClick={load} className="btn-outline">
-              Refresh
-            </button>
+            <span className="text-xs font-bold text-slate-600">📅 Date:</span>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs focus:border-emerald-500 focus:outline-none"
+            />
           </div>
         </div>
 
@@ -893,8 +890,8 @@ export default function OrdersPage() {
           {STATUS_TABS.map((tab) => {
             const count =
               tab.id === "all"
-                ? orders.length
-                : summary[tab.id] ?? orders.filter((o) => matchesTab(o, tab.id)).length;
+                ? dateFilteredOrders.length
+                : summary[tab.id] ?? dateFilteredOrders.filter((o) => matchesTab(o, tab.id)).length;
             return (
               <button
                 key={tab.id}
@@ -931,75 +928,115 @@ export default function OrdersPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto rounded-xl border border-slate-200/90 bg-white shadow-2xs">
+          <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-black text-white text-xs font-bold uppercase tracking-wider">
-                <th className="py-2 px-4">Order # / Date</th>
-                <th className="py-2 px-4">Customer Details</th>
-                <th className="py-2 px-4">Delivery Address</th>
-                <th className="py-2 px-4">Status</th>
-                <th className="py-2 px-4">Assigned Driver</th>
-                <th className="py-2 px-4 text-right">Actions</th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px]">
+                <th className="py-3 px-3.5 whitespace-nowrap">Order #</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Date & Time</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Customer Details</th>
+                <th className="py-3 px-3.5">Delivery Address</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Status</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Assigned Driver</th>
+                <th className="py-3 px-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredOrders.map((order) => {
-                const oid = order.id || order._id;
+                      const oid = order.id || order._id;
                 const isInitial = isInitialOrderStatus(order.status);
                 const isPacked = order.status === "packed";
                 const isPickup = isPickupOrder(order);
                 const allAvailable = allItemsAvailable(order);
 
                 return (
-                  <tr key={oid} className="hover:bg-slate-50/60 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                  <tr key={oid} className="hover:bg-slate-50/70 transition">
+                    {/* 1. Order # */}
+                    <td className="py-3 px-3.5 font-mono text-slate-900 whitespace-nowrap align-top">
                       <button
                         type="button"
                         onClick={() => navigate(`/orders/${oid}`, { state: { order } })}
-                        className="text-left hover:text-emerald-700 hover:underline"
+                        className="text-left font-bold text-slate-900 hover:text-emerald-700 hover:underline block text-xs"
                       >
-                        <div>#{order.orderNumber}</div>
+                        #{order.orderNumber}
                       </button>
-                      <div className="text-[10px] text-slate-400 font-sans font-normal">
-                        {order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
-                      </div>
-                      <div className="font-sans">
-                        <OrderDepartmentTags order={order} />
+                      <div className="font-sans mt-1">
+                        <OrderDepartmentTags order={order} hideSlot={true} />
                       </div>
                     </td>
-                    <td className="py-3.5 px-4">
+
+                    {/* 2. Date & Time */}
+                    <td className="py-3 px-3.5 whitespace-nowrap align-top font-sans">
+                      <div className="font-bold text-xs text-slate-800">
+                        {order.createdAt
+                          ? new Date(order.createdAt).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "Today"}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                        {order.createdAt
+                          ? new Date(order.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })
+                          : "Just now"}
+                      </div>
+                      {order.isPreOrder && order.preOrderSlot ? (
+                        <div className="mt-1.5 inline-flex items-center gap-1 rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                          <span>🕒</span>
+                          <span>Slot: {order.preOrderDate ? `${order.preOrderDate} ` : ""}{order.preOrderSlot}</span>
+                        </div>
+                      ) : null}
+                    </td>
+
+                    {/* 3. Customer Details */}
+                    <td className="py-3 px-3.5 align-top">
                       <button
                         type="button"
                         onClick={() => navigate(`/orders/${oid}`, { state: { order } })}
-                        className="text-left"
+                        className="text-left font-bold text-slate-900 hover:text-emerald-700 hover:underline block text-xs"
                       >
-                        <div className="font-bold text-slate-900 hover:text-emerald-700 hover:underline">
-                          {order.customerName || "Customer"}
-                        </div>
+                        {order.customerName || "Customer"}
                       </button>
-                      <div className="text-slate-500 text-[11px]">{order.customerPhone || "N/A"}</div>
+                      <div className="text-slate-500 text-[11px] mt-0.5">{order.customerPhone || "N/A"}</div>
                       {order.status === "delivered" && isCodPayment(order.paymentMethod) && order.collectFromDriver && (
                         <div className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-extrabold text-amber-900">
                           <span>⚠️</span> Collect {formatRupee(order.collectFromDriver.amount)} from driver
                         </div>
                       )}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-700 max-w-xs">
+
+                    {/* 4. Delivery Address */}
+                    <td className="py-3 px-3.5 text-slate-700 max-w-xs align-top">
                       {isPickup ? (
-                        <div className="text-[11px] font-bold text-amber-700">Customer collects at this store</div>
+                        <span className="inline-block rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 mb-1">
+                          Store Pickup
+                        </span>
                       ) : null}
-                      <div className="truncate">{order.customerAddress || "Store Pickup"}</div>
+                      <div className="truncate text-xs font-normal text-slate-700" title={order.customerAddress}>
+                        {order.customerAddress || "Store Pickup"}
+                      </div>
                       {!isPickup && order.distanceKm != null && (
-                        <div className="mt-0.5 text-[10px] font-semibold text-emerald-700">
-                          {Number(order.distanceKm).toFixed(1)} km from this store
+                        <div className="mt-1 inline-block rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          {Number(order.distanceKm).toFixed(1)} km from store
                         </div>
                       )}
                     </td>
-                    <td className="py-3.5 px-4">
+
+                    {/* 5. Status */}
+                    <td className="py-3 px-3.5 whitespace-nowrap align-top">
                       <OrderStatusText status={order.status} order={order} />
+                      {order.status === "delivery_failed" && order.failureKind === "rider_emergency" && (
+                        <span className="mt-1 block text-xs font-semibold text-rose-700">Rider emergency</span>
+                      )}
                     </td>
-                    <td className="py-3.5 px-4">
+
+                    {/* 6. Assigned Driver */}
+                    <td className="py-3 px-3.5 whitespace-nowrap align-top">
                       <DriverAssignmentText order={order} onRiderClick={openTracking} />
                     </td>
                     <td className="py-3.5 px-4 text-right">
@@ -1008,7 +1045,7 @@ export default function OrdersPage() {
                           <button
                             type="button"
                             onClick={() => navigate(`/orders/${oid}`, { state: { order } })}
-                            className={actionBtnOutline}
+                            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1.5 transition shadow-xs"
                           >
                             View Detail
                           </button>
@@ -1049,7 +1086,7 @@ export default function OrdersPage() {
                               type="button"
                               disabled={busyKey === `cancel-${oid}`}
                               onClick={() => onCancelOrder(oid, order.orderNumber)}
-                              className={actionBtnDanger}
+                              className="rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-900 border border-orange-300 font-bold text-xs px-3 py-1.5 transition shadow-xs disabled:opacity-50"
                             >
                               {busyKey === `cancel-${oid}` ? "Cancelling…" : "Cancel"}
                             </button>

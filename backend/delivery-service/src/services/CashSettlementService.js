@@ -27,60 +27,57 @@ import { getIO } from "../../../socket.js";
  * @param {number} params.amount  - cash collected from customer
  * @returns {Promise<CashSettlement>}
  */
-export async function createCashLiability({ darkStoreId, riderId, orderId, orderNumber, amount, notes = "" }) {
-  const session = await mongoose.startSession();
+export async function createCashLiability(cash) {
+  const settlement = await mongoose.connection.transaction((session) => writeCashLiability(cash, session));
+  await publishCashCollected(settlement);
+  return settlement;
+}
+
+async function writeCashLiability({ darkStoreId, riderId, orderId, orderNumber, amount, notes = "" }, session) {
+  const [settlement] = await CashSettlement.create([{
+    darkStoreId, riderId: riderId || null, orderId, orderNumber: orderNumber || "", amount,
+    status: "PENDING", collectedAt: new Date(), notes,
+  }], { session });
+  if (riderId) {
+    await DeliveryBoy.updateOne({ _id: riderId }, { $inc: { pendingCashAmount: amount } }, { session });
+  }
+  return settlement;
+}
+
+async function publishCashCollected(settlement) {
   try {
-    session.startTransaction();
-
-    // Create settlement record
-    const [settlement] = await CashSettlement.create(
-      [
-        {
-          darkStoreId,
-          riderId: riderId || null,
-          orderId,
-          orderNumber: orderNumber || "",
-          amount,
-          status: "PENDING",
-          collectedAt: new Date(),
-          notes,
-        },
-      ],
-      { session }
-    );
-
+    const { riderId, darkStoreId, amount } = settlement;
+    const io = getIO();
+    const payload = { addedAmount: amount, riderId: riderId ? String(riderId) : null };
     if (riderId) {
-      await DeliveryBoy.findByIdAndUpdate(
-        riderId,
-        { $inc: { pendingCashAmount: amount } },
-        { session }
-      );
-    }
-
-    await session.commitTransaction();
-
-    if (!riderId) return settlement;
-    try {
-      const io = getIO();
-      const updatedRider = await DeliveryBoy.findById(riderId).select("pendingCashAmount");
-      const payload = {
-        riderId: String(riderId),
-        pendingCashAmount: updatedRider?.pendingCashAmount || 0,
-        addedAmount: amount,
-        message: `Cash collected: ₹${amount}. Hand over to darkstore manager till end of the day.`,
-      };
+      const rider = await DeliveryBoy.findById(riderId).select("pendingCashAmount");
+      payload.pendingCashAmount = rider?.pendingCashAmount || 0;
+      payload.message = `Cash collected: ₹${amount}. Hand it over to the dark store by the end of the day.`;
       io.to(`rider_${riderId}`).emit("rider_cash_updated", payload);
       io.to(`rider:${riderId}`).emit("rider_cash_updated", payload);
-      io.to(`store_${darkStoreId}`).emit("store_cash_updated", payload);
-    } catch (_) {}
+    }
+    io.to(`store_${darkStoreId}`).emit("store_cash_updated", payload);
+  } catch (_) {}
+}
 
-    return settlement;
-  } catch (err) {
-    await session.abortTransaction();
-    throw err;
-  } finally {
-    session.endSession();
-  }
+/** Record the rider’s payment and cash liability together. */
+export async function recordRiderCashCollection({ orderId, riderId, amount, allowedStatuses }) {
+  const result = await mongoose.connection.transaction(async (session) => {
+    const order = await StoreOrder.findOneAndUpdate({
+      _id: orderId, assignedRiderId: riderId, status: { $in: allowedStatuses },
+      customerOtpVerified: true, paymentStatus: { $nin: ["collected", "paid_online"] },
+    }, {
+      $set: { paymentMethod: "COD", paymentStatus: "collected", amountToCollect: amount, amountCollected: amount },
+    }, { session, returnDocument: 'after' });
+    if (!order) return null;
+    const settlement = await writeCashLiability({
+      darkStoreId: order.darkStoreId || order.managerId, riderId, orderId: order._id,
+      orderNumber: order.orderNumber, amount,
+    }, session);
+    return { order, settlement };
+  });
+  if (result) await publishCashCollected(result.settlement);
+  return result?.order || null;
 }
 
 /**
@@ -197,25 +194,41 @@ export async function confirmCashForOrder({ darkStoreId, managerId, orderId }) {
     err.statusCode = 400;
     throw err;
   }
-  if (String(order.paymentMethod || "").toUpperCase() !== "COD") {
+  if (String(order.paymentMethod || "").toUpperCase() !== "COD" || order.paymentStatus === "paid_online") {
     const err = new Error("Order is not COD / physical cash");
     err.statusCode = 400;
     throw err;
   }
-  let settlement = await CashSettlement.findOne({ orderId: order._id });
+  let settlement = await CashSettlement.findOne({
+    orderId: order._id, darkStoreId, status: { $ne: "CANCELLED" },
+  }).sort({ createdAt: -1 });
+  if (settlement?.status === "DISPUTED") {
+    const err = new Error("This cash collection is under review");
+    err.statusCode = 409;
+    throw err;
+  }
   if (!order.assignedRiderId) {
     if (!settlement) {
       const err = new Error("No cash record for this order");
       err.statusCode = 400;
       throw err;
     }
-    if (settlement.status !== "COMPLETED") {
-      settlement.status = "COMPLETED";
-      settlement.confirmedAt = new Date();
-      settlement.confirmedBy = managerId;
-      await settlement.save();
+    const updated = await CashSettlement.findOneAndUpdate(
+      { _id: settlement._id, darkStoreId, status: { $in: ["PENDING", "SUBMITTED"] } },
+      { $set: { status: "COMPLETED", confirmedAt: new Date(), confirmedBy: managerId } },
+      { returnDocument: 'after' }
+    );
+    if (updated) {
+      try { getIO().to(`store_${darkStoreId}`).emit("store_cash_updated", { orderId: String(orderId) }); } catch (_) {}
+    } else {
+      settlement = await CashSettlement.findById(settlement._id);
+      if (settlement?.status !== "COMPLETED") {
+        const err = new Error("Cash record changed. Refresh and try again.");
+        err.statusCode = 409;
+        throw err;
+      }
     }
-    return { confirmed: 1, alreadyConfirmed: false, totalAmount: settlement.amount, settlement, order };
+    return { confirmed: updated ? 1 : 0, alreadyConfirmed: !updated, totalAmount: settlement.amount, settlement: updated || settlement, order };
   }
 
   if (settlement?.status === "COMPLETED") {
@@ -230,8 +243,7 @@ export async function confirmCashForOrder({ darkStoreId, managerId, orderId }) {
 
   const amount =
     Number(settlement?.amount) ||
-    Number(order.amountCollected) ||
-    Number(order.amountToCollect) ||
+    (order.paymentStatus === "collected" ? Number(order.amountCollected) : 0) ||
     0;
 
   if (amount <= 0) {
@@ -252,19 +264,23 @@ export async function confirmCashForOrder({ darkStoreId, managerId, orderId }) {
 
   const result = await confirmCashReceipt({
     darkStoreId,
-    riderId: order.assignedRiderId,
+    riderId: settlement.riderId,
     managerId,
     settlementIds: [settlement._id],
   });
 
+  const updated = await CashSettlement.findById(settlement._id);
+  if (updated?.status !== "COMPLETED") {
+    const err = new Error("Cash record changed. Refresh and try again.");
+    err.statusCode = 409;
+    throw err;
+  }
   order.paymentStatus = "collected";
   if (!order.amountCollected) order.amountCollected = amount;
   await order.save();
-
-  const updated = await CashSettlement.findById(settlement._id);
   return {
     confirmed: result.confirmed,
-    alreadyConfirmed: false,
+    alreadyConfirmed: result.confirmed === 0,
     totalAmount: result.totalAmount || amount,
     settlement: updated,
     order,
@@ -301,27 +317,28 @@ export async function resolveCashForOrder({ orderId, outcome, note = "" }) {
   }
 
   try {
-    getIO().to(`store_${settlement.darkStoreId}`).emit("store_cash_updated", {
+    const io = getIO();
+    const payload = {
       riderId: settlement.riderId ? String(settlement.riderId) : null,
       orderId: String(orderId),
       status: settlement.status,
-    });
+    };
+    io.to(`store_${settlement.darkStoreId}`).emit("store_cash_updated", payload);
+    if (settlement.riderId) io.to(`rider_${settlement.riderId}`).emit("rider_cash_updated", payload);
   } catch (_) {}
   return settlement;
 }
 
 /**
- * Fetch pending/submitted cash summary for a rider at a specific dark store.
+ * Fetch unconfirmed physical cash for a rider across their collections.
  *
  * @param {string|ObjectId} riderId
- * @param {string|ObjectId} darkStoreId
  * @returns {Promise<{totalPending: number, settlements: CashSettlement[]}>}
  */
-export async function getRiderPendingCash(riderId, darkStoreId) {
+export async function getRiderPendingCash(riderId) {
   const settlements = await CashSettlement.find({
     riderId,
-    darkStoreId,
-    status: { $in: ["PENDING", "SUBMITTED"] },
+    status: { $in: ["PENDING", "SUBMITTED", "DISPUTED"] },
   }).sort({ createdAt: 1 });
 
   const totalPending = settlements.reduce((sum, s) => sum + s.amount, 0);

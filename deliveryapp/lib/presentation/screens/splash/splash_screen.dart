@@ -39,11 +39,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _prepareSession() async {
     try {
+      await PickupDriverService.instance.loadSession();
+    } catch (_) {}
+    if (PickupDriverService.instance.isLoggedIn) return;
+    try {
       await AuthService.instance.loadSession();
       if (AuthService.instance.isLoggedIn) {
-        // Fire-and-forget refresh — do not delay splash exit.
-        // ignore: unawaited_futures
-        AuthService.instance.fetchMe();
+        await AuthService.instance.fetchMe();
       }
     } catch (_) {}
   }
@@ -52,12 +54,8 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted || _navigated) return;
     _navigated = true;
 
-    final pickup = PickupDriverService.instance;
-    try {
-      await pickup.loadSession();
-    } catch (_) {}
-    if (!mounted) return;
-    if (pickup.isLoggedIn) {
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    if (PickupDriverService.instance.isLoggedIn) {
       Navigator.of(context).pushReplacementNamed(AppRoutes.pickupDriverHome);
       return;
     }
@@ -66,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (auth.isLoggedIn) {
       final boy = auth.deliveryBoy;
       final lastRoute = await auth.getLastRoute();
-      if (!mounted) return;
+      if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
       final route = AuthService.routeForStep(
         boy?.onboardingStep ?? 'vehicle',
         complete: boy?.onboardingComplete ?? false,

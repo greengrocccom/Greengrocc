@@ -406,7 +406,7 @@ export default function FullTimeShiftManagementPage() {
         </div>
 
         <Link
-          to="/shifts/fulltime/create"
+          to="/shifts/create?employmentType=FULL_TIME"
           className="inline-flex items-center gap-1.5 rounded-lg border border-[#064e3b] bg-[#064e3b] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#053d2e] transition cursor-pointer shrink-0"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

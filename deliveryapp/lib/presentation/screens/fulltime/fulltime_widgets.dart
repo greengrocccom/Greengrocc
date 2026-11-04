@@ -1,12 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/services/fulltime_service.dart';
-import '../../../data/services/socket_service.dart';
 
 String formatRupees(num? value) {
   final n = (value ?? 0).round().toString();
@@ -170,7 +165,7 @@ class FtErrorView extends StatelessWidget {
   }
 }
 
-/// Salary, paid-leave and late-penalty rules of the driver's Full-Time shift.
+/// Salary and leave deduction policy for a Full-Time rider.
 class PayPolicyCard extends StatelessWidget {
   const PayPolicyCard({super.key, required this.policy, required this.monthlySalary});
   final Map policy;
@@ -179,7 +174,6 @@ class PayPolicyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final leaveOn = policy['leavePolicyEnabled'] == true;
-    final lateOn = policy['latePenaltyEnabled'] == true;
     final paid = (policy['paidLeavesPerMonth'] as num?)?.toInt() ?? 0;
     final perDay = policy['unpaidLeaveDeductionPerDay'] as num?;
     return FtSectionCard(
@@ -202,7 +196,7 @@ class PayPolicyCard extends StatelessWidget {
           ),
           FtInfoRow(
             icon: Icons.beach_access_outlined,
-            label: 'Paid Leaves',
+            label: 'Leave days before deduction',
             value: leaveOn ? '$paid per month' : 'No leave policy',
           ),
           if (leaveOn)
@@ -213,14 +207,6 @@ class PayPolicyCard extends StatelessWidget {
                   ? '${formatRupees(perDay)} cut per unpaid leave'
                   : '1 day salary cut per unpaid leave',
             ),
-          FtInfoRow(
-            icon: Icons.timer_off_outlined,
-            label: 'Late Penalty',
-            value: lateOn
-                ? '${formatRupees(policy['latePenaltyAmount'] as num?)} cut if you go online '
-                    '${formatMinutes(policy['lateAfterMinutes'] as num?)} or more after shift start'
-                : 'None',
-          ),
           if (leaveOn)
             Text(
               'Not going online during a scheduled shift counts as a leave.',
@@ -232,7 +218,7 @@ class PayPolicyCard extends StatelessWidget {
   }
 }
 
-/// This month's salary: base, paid / unpaid leaves, late marks, deductions and net.
+/// This month's salary: base, leave deductions and net.
 class PayrollCard extends StatelessWidget {
   const PayrollCard({super.key, required this.payroll, this.title = 'This Month'});
   final Map payroll;
@@ -241,13 +227,9 @@ class PayrollCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final leave = (payroll['leave'] as Map?) ?? const {};
-    final late = (payroll['late'] as Map?) ?? const {};
     final leaveOn = leave['enabled'] == true;
-    final lateOn = late['enabled'] == true;
     final leaveCut = (leave['deduction'] as num?) ?? 0;
-    final lateCut = (late['deduction'] as num?) ?? 0;
     final credited = payroll['credited'] is Map;
-    final lateDays = (late['days'] as List? ?? const []).whereType<Map>().toList();
 
     return FtSectionCard(
       child: Column(
@@ -285,9 +267,9 @@ class PayrollCard extends StatelessWidget {
           if (leaveOn) ...[
             _PayRow(
               'Leaves taken',
-              '${leave['taken'] ?? 0}  (paid ${leave['paid'] ?? 0} · unpaid ${leave['unpaid'] ?? 0})',
+              '${leave['taken'] ?? 0}  (${leave['paid'] ?? 0} within allowance · ${leave['unpaid'] ?? 0} extra)',
             ),
-            _PayRow('Paid leaves left', '${leave['paidRemaining'] ?? 0} of ${leave['allowedPaid'] ?? 0}'),
+            _PayRow('Leave allowance left', '${leave['paidRemaining'] ?? 0} of ${leave['allowedPaid'] ?? 0}'),
             if (leaveCut > 0)
               _PayRow(
                 'Unpaid leave cut (${leave['unpaid']} × ${formatRupees(leave['deductionPerDay'] as num?)})',
@@ -296,18 +278,6 @@ class PayrollCard extends StatelessWidget {
               ),
           ] else if (((payroll['absentDays'] as num?) ?? 0) > 0)
             _PayRow('Absent days', '${payroll['absentDays']}'),
-          if (lateOn) ...[
-            _PayRow(
-              'Late marks (${formatMinutes(late['afterMinutes'] as num?)}+)',
-              '${late['count'] ?? 0}',
-            ),
-            if (lateCut > 0)
-              _PayRow(
-                'Late cut (${late['count']} × ${formatRupees(late['penaltyAmount'] as num?)})',
-                '− ${formatRupees(lateCut)}',
-                danger: true,
-              ),
-          ],
           const Divider(height: 18),
           Row(
             children: [
@@ -339,13 +309,6 @@ class PayrollCard extends StatelessWidget {
                 style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
               ),
             ),
-          if (lateDays.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Late days: ${lateDays.map((d) => '${d['date'].toString().substring(8)} (${formatMinutes(d['lateMinutes'] as num?)})').join(', ')}',
-              style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
-            ),
-          ],
         ],
       ),
     );
@@ -410,153 +373,4 @@ AppBar fullTimeAppBar(String title, {VoidCallback? onRefresh}) {
         ),
     ],
   );
-}
-
-/// Home dashboard card for Full-Time drivers: today's attendance + assigned orders.
-class FullTimeHomeCard extends StatefulWidget {
-  const FullTimeHomeCard({super.key});
-
-  @override
-  State<FullTimeHomeCard> createState() => FullTimeHomeCardState();
-}
-
-class FullTimeHomeCardState extends State<FullTimeHomeCard> {
-  bool _loading = true;
-  String _status = 'pending';
-  String _requiredTime = '';
-  String _darkStore = '';
-  int _assignedCount = 0;
-  StreamSubscription<Map<String, dynamic>>? _assignedSub;
-
-  @override
-  void initState() {
-    super.initState();
-    reload();
-    _assignedSub = SocketService.instance.onOrderAssigned.listen((_) => reload());
-  }
-
-  @override
-  void dispose() {
-    _assignedSub?.cancel();
-    super.dispose();
-  }
-
-  Future<void> reload() async {
-    try {
-      final results = await Future.wait([
-        FullTimeService.instance.fetchAttendanceToday(),
-        FullTimeService.instance.fetchAssignedOrders(),
-      ]);
-      if (!mounted) return;
-      final att = results[0];
-      final req = att['requirement'] as Map?;
-      setState(() {
-        _loading = false;
-        _status = att['todayStatus']?.toString() ??
-            (att['attendance'] as Map?)?['status']?.toString() ??
-            'pending';
-        _requiredTime = req == null ? '' : '${req['startTime']} – ${req['endTime']}';
-        _darkStore = (att['darkStore'] as Map?)?['name']?.toString() ?? '';
-        _assignedCount = (results[1]['activeCount'] as num?)?.toInt() ?? 0;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _open(String route) async {
-    await Navigator.pushNamed(context, route);
-    if (mounted) reload();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FtSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '🟢 Full-Time',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.success,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              if (_loading)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                AttendanceChip(status: _status),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            "Today's Attendance",
-            style: GoogleFonts.inter(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          if (_requiredTime.isNotEmpty || _darkStore.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                [
-                  if (_requiredTime.isNotEmpty) _requiredTime,
-                  if (_darkStore.isNotEmpty) _darkStore,
-                ].join(' · '),
-                style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted),
-              ),
-            ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _open(AppRoutes.fullTimeAttendance),
-                  icon: const Icon(Icons.how_to_reg_outlined, size: 18),
-                  label: const Text('Attendance'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => _open(AppRoutes.assignedOrders),
-                  icon: const Icon(Icons.assignment_outlined, size: 18),
-                  label: Text('Orders ($_assignedCount)'),
-                  style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-                ),
-              ),
-            ],
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () => _open(AppRoutes.fullTimeRules),
-              child: const Text('My Rules →'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
