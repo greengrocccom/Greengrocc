@@ -296,19 +296,19 @@ export default function VendorSalesReportsPage() {
             </span>
           </div>
 
-          {/* 6. Total Procurement Value (एकूण शेतीमाल खरेदी) */}
+          {/* 6. Total Procurement Value (Earning Statement Total) */}
           <div className="rounded-xl border border-amber-300 bg-amber-50/40 p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between gap-1 text-slate-500">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-amber-900 truncate" title="Total Procurement Value">
+              <span className="text-[10.5px] font-bold uppercase tracking-wider text-amber-900 truncate" title="Total Procurement Value (Earning Statement Total)">
                 TOTAL PROCUREMENT VALUE
               </span>
               <Tractor className="h-4 w-4 shrink-0 text-amber-600" />
             </div>
-            <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-amber-700 truncate tabular-nums">
+            <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-amber-800 truncate tabular-nums">
               {loading ? "..." : rupee(totalProcurement)}
             </p>
-            <span className="text-[10px] text-amber-800 font-medium truncate block mt-0.5">
-              एकूण शेतीमाल खरेदी (COGS)
+            <span className="text-[10px] text-amber-800 font-semibold truncate block mt-0.5">
+              Earning Statement Total (प्रमाणित खरेदी)
             </span>
           </div>
 

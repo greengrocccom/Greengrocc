@@ -581,6 +581,72 @@ export async function getVendorSalesReports(req, res) {
   }
 }
 
+// Helper to check if an order has a completed/confirmed grading statement
+function isStatementOrder(order) {
+  const status = String(order.status || "").trim().toUpperCase();
+  const quality = String(order.qualityStatus || "").trim().toUpperCase();
+  return (
+    status === "GRADE_CONFIRMED" ||
+    status === "ORDER_COMPLETED" ||
+    quality === "GRADE_CONFIRMED" ||
+    quality === "ORDER_COMPLETED"
+  );
+}
+
+function isOrderPaid(order) {
+  if (!order) return false;
+  const candidates = [
+    order.paymentStatus,
+    order.payment_status,
+    order.paymentDetails?.paymentStatus,
+    order.paymentDetails?.status,
+    order.payment?.status,
+    order.payment?.paymentStatus,
+    order.earningStatus,
+    order.earningsStatus,
+    order.settlementStatus,
+  ].filter(Boolean);
+
+  return candidates.some((val) => {
+    const s = String(val).toUpperCase().trim();
+    return (
+      s === "PAID" ||
+      s === "PAYMENT_COMPLETED" ||
+      s === "PAYMENT COMPLETED" ||
+      s === "COMPLETED" ||
+      s === "PAYMENT RECEIVED" ||
+      s === "PAID_ONLINE" ||
+      s === "PAID ONLINE" ||
+      s === "PAID_10" ||
+      s === "SETTLED" ||
+      s.startsWith("PAID") ||
+      s.includes("PAYMENT COMPLETED") ||
+      s.includes("PAYMENT_COMPLETED")
+    );
+  });
+}
+
+function getOrderStatementAmount(order) {
+  // Check finalStatement or grades array
+  const grades = Array.isArray(order.finalStatement) && order.finalStatement.length
+    ? order.finalStatement
+    : Array.isArray(order.grades) && order.grades.length
+    ? order.grades
+    : [];
+
+  if (grades.length > 0) {
+    const gradeTotal = grades.reduce((sum, g) => {
+      const q = Number(g.quantity || 0);
+      const r = Number(g.rate ?? g.price ?? 0);
+      const amt = Number(g.amount || 0);
+      return sum + (amt > 0 ? amt : q * r);
+    }, 0);
+    if (gradeTotal > 0) return gradeTotal;
+  }
+
+  return Number(order.orderValue || order.totalAmount || (Number(order.orderedQuantity || 0) * Number(order.price || 0)) || 0);
+}
+
 // ── 3. GET /api/vendor/finance/farmer-payments ─────────────────
 export async function getVendorFarmerPayments(req, res) {
   try {
@@ -589,7 +655,7 @@ export async function getVendorFarmerPayments(req, res) {
       return res.status(403).json({ success: false, message: "Vendor authentication required" });
     }
 
-    const { preset = "last30", startDate, endDate, search, status } = req.query;
+    const { preset = "all", startDate, endDate, search, status, viewMode = "statements" } = req.query;
     const vendorMatch = { $in: [vendorId, String(vendorId)] };
 
     // Fetch farmers assigned to this vendor
@@ -602,7 +668,7 @@ export async function getVendorFarmerPayments(req, res) {
 
     const farmerIds = farmers.map((f) => f.id);
 
-    // Procurement orders per farmer
+    // Fetch all orders for this vendor's farmers
     const dateMatch = buildDateRange(preset, startDate, endDate);
     const orderQuery = {
       vendorId: vendorMatch,
@@ -613,116 +679,191 @@ export async function getVendorFarmerPayments(req, res) {
       orderQuery.createdAt = dateMatch;
     }
 
-    const procurementAgg = await FarmerOrder.aggregate([
-      { $match: orderQuery },
-      {
-        $group: {
-          _id: "$farmerId",
-          totalOrders: { $sum: 1 },
-          totalQuantity: { $sum: "$orderedQuantity" },
-          totalAmount: {
-            $sum: {
-              $cond: [
-                { $gt: [{ $ifNull: ["$orderValue", 0] }, 0] },
-                "$orderValue",
-                { $multiply: [{ $ifNull: ["$orderedQuantity", 0] }, { $ifNull: ["$price", 0] }] },
-              ],
-            },
-          },
-          lastSupplyDate: { $max: "$createdAt" },
-        },
-      },
-    ]);
-
-    const procMap = new Map(procurementAgg.map((p) => [p._id, p]));
-
-    // Earnings and payments per farmer
-    const earningAgg = await FarmerEarning.aggregate([
-      { $match: { vendorId: vendorMatch, farmerId: { $in: farmerIds } } },
-      {
-        $group: {
-          _id: "$farmerId",
-          totalGross: { $sum: "$grossEarnings" },
-          totalPaid: {
-            $sum: { $cond: [{ $eq: ["$status", "Paid"] }, "$netEarnings", 0] },
-          },
-        },
-      },
-    ]);
-
-    const earnMap = new Map(earningAgg.map((e) => [e._id, e]));
+    const allOrders = await FarmerOrder.find(orderQuery).lean();
 
     // Settlements paid per farmer
-    const settlementAgg = await VendorSettlement.aggregate([
-      {
-        $match: {
-          vendorId: vendorMatch,
-          settlementType: "farmer_vendor",
-          status: { $in: ["Paid", "Partially Paid"] },
-        },
-      },
-      {
-        $group: {
-          _id: "$entityId",
-          totalSettledPaid: { $sum: "$paidAmount" },
-        },
-      },
-    ]);
-    const settleMap = new Map(settlementAgg.map((s) => [s._id, s.totalSettledPaid]));
+    const settlementQuery = {
+      vendorId: vendorMatch,
+      settlementType: "farmer_vendor",
+      status: { $in: ["Paid", "Partially Paid"] },
+    };
+    if (dateMatch) {
+      settlementQuery.createdAt = dateMatch;
+    }
 
-    let overallProcurement = 0;
-    let overallPaid = 0;
+    const settlements = await VendorSettlement.find(settlementQuery).lean();
+    const settleMap = new Map();
+    settlements.forEach((s) => {
+      settleMap.set(s.entityId, (settleMap.get(s.entityId) || 0) + Number(s.paidAmount || 0));
+    });
+
+    // 1. Calculate Earning Statement figures (exact ManagerEarningsPage logic)
+    const statementOrders = allOrders.filter(isStatementOrder);
+
+    let stmtProcurementTotal = 0;
+    let stmtPaidTotal = 0;
+    let stmtQuantityTotal = 0;
+    let stmtOrdersTotal = statementOrders.length;
+
+    // 2. Calculate All Orders figures (pipeline)
+    let allProcurementTotal = 0;
+    let allPaidTotal = 0;
+    let allQuantityTotal = 0;
+    let allOrdersTotal = allOrders.length;
+
+    // Pre-group orders by farmer
+    const farmerOrdersMap = new Map();
+    const farmerStatementOrdersMap = new Map();
+
+    farmers.forEach((f) => {
+      farmerOrdersMap.set(f.id, []);
+      farmerStatementOrdersMap.set(f.id, []);
+    });
+
+    allOrders.forEach((o) => {
+      if (farmerOrdersMap.has(o.farmerId)) {
+        farmerOrdersMap.get(o.farmerId).push(o);
+      }
+      if (isStatementOrder(o) && farmerStatementOrdersMap.has(o.farmerId)) {
+        farmerStatementOrdersMap.get(o.farmerId).push(o);
+      }
+    });
+
+    const isStatementMode = viewMode !== "all";
 
     const farmerRows = farmers
       .map((f) => {
-        const proc = procMap.get(f.id) || { totalOrders: 0, totalQuantity: 0, totalAmount: 0, lastSupplyDate: null };
-        const earn = earnMap.get(f.id) || { totalGross: 0, totalPaid: 0 };
+        const fAllOrders = farmerOrdersMap.get(f.id) || [];
+        const fStmtOrders = farmerStatementOrdersMap.get(f.id) || [];
         const settledPaid = settleMap.get(f.id) || 0;
 
-        const procurementAmount = Math.max(proc.totalAmount, earn.totalGross);
-        const paidAmount = earn.totalPaid + settledPaid;
-        const pendingAmount = Math.max(0, procurementAmount - paidAmount);
+        // Earning Statement amounts
+        let stmtProc = 0;
+        let stmtPaid = 0;
+        let stmtQty = 0;
+        fStmtOrders.forEach((o) => {
+          const amt = getOrderStatementAmount(o);
+          stmtProc += amt;
+          stmtQty += Number(o.orderedQuantity || o.quantity || 0);
+          if (isOrderPaid(o)) {
+            stmtPaid += amt;
+          }
+        });
+        stmtPaid += settledPaid;
+        const stmtPending = Math.max(0, stmtProc - stmtPaid);
 
-        overallProcurement += procurementAmount;
-        overallPaid += paidAmount;
+        stmtProcurementTotal += stmtProc;
+        stmtPaidTotal += stmtPaid;
+        stmtQuantityTotal += stmtQty;
 
-        const percentPaid = procurementAmount > 0 ? Math.min(100, Math.round((paidAmount / procurementAmount) * 100)) : (paidAmount > 0 ? 100 : 0);
+        // All Orders amounts
+        let allProc = 0;
+        let allPaid = 0;
+        let allQty = 0;
+        fAllOrders.forEach((o) => {
+          const amt = getOrderStatementAmount(o);
+          allProc += amt;
+          allQty += Number(o.orderedQuantity || o.quantity || 0);
+          if (isOrderPaid(o)) {
+            allPaid += amt;
+          }
+        });
+        allPaid += settledPaid;
+        const allPending = Math.max(0, allProc - allPaid);
+
+        allProcurementTotal += allProc;
+        allPaidTotal += allPaid;
+        allQuantityTotal += allQty;
+
+        // Active values based on selected viewMode (default: statements)
+        const activeOrdersCount = isStatementMode ? fStmtOrders.length : fAllOrders.length;
+        const activeQuantity = isStatementMode ? stmtQty : allQty;
+        const procurementAmount = isStatementMode ? stmtProc : allProc;
+        const paidAmount = isStatementMode ? stmtPaid : allPaid;
+        const pendingAmount = isStatementMode ? stmtPending : allPending;
+
+        const percentPaid = procurementAmount > 0
+          ? Math.min(100, Math.round((paidAmount / procurementAmount) * 100))
+          : (paidAmount > 0 ? 100 : 0);
+
+        const latestOrder = (isStatementMode ? fStmtOrders : fAllOrders)[0];
 
         return {
           farmerId: f.id,
           name: f.name,
-          mobile: f.mobile,
+          mobile: f.mobile || "—",
           farmName: f.farmName || f.name,
-          location: f.farmLocation || f.address?.district || "Local Farm",
+          location: f.farmLocation || f.address?.district || f.address?.city || "Local Farm",
           bankAccount: f.bank?.accountNumber ? `•••• ${f.bank.accountNumber.slice(-4)}` : "Not Added",
           bank: f.bank || {},
-          totalOrders: proc.totalOrders,
-          totalQuantity: proc.totalQuantity,
+          totalOrders: activeOrdersCount,
+          totalQuantity: activeQuantity,
           procurementAmount,
           paidAmount,
           pendingAmount,
           percentPaid,
-          lastSupplyDate: proc.lastSupplyDate,
+          statementDetails: {
+            statementOrdersCount: fStmtOrders.length,
+            statementProcurement: stmtProc,
+            statementPaid: stmtPaid,
+            statementPending: stmtPending,
+          },
+          allOrdersDetails: {
+            allOrdersCount: fAllOrders.length,
+            allProcurement: allProc,
+            allPaid: allPaid,
+            allPending: allPending,
+          },
+          lastSupplyDate: latestOrder?.createdAt || null,
           settlementStatus: pendingAmount === 0 && procurementAmount > 0 ? "Settled" : pendingAmount > 0 ? "Pending" : "No Dues",
         };
       })
       .filter((row) => {
         if (!search) return true;
         const q = String(search).toLowerCase();
-        return row.name.toLowerCase().includes(q) || row.farmerId.toLowerCase().includes(q) || row.mobile.includes(q);
+        return (
+          row.name.toLowerCase().includes(q) ||
+          row.farmerId.toLowerCase().includes(q) ||
+          row.mobile.includes(q) ||
+          row.location.toLowerCase().includes(q)
+        );
       });
 
+    const activeProcurementTotal = isStatementMode ? stmtProcurementTotal : allProcurementTotal;
+    const activePaidTotal = isStatementMode ? stmtPaidTotal : allPaidTotal;
+    const activePendingTotal = Math.max(0, activeProcurementTotal - activePaidTotal);
+    const activeQuantityTotal = isStatementMode ? stmtQuantityTotal : allQuantityTotal;
+    const activeOrdersTotal = isStatementMode ? stmtOrdersTotal : allOrdersTotal;
+
     const activeFarmersCount = farmerRows.filter((f) => f.totalOrders > 0 || f.procurementAmount > 0).length;
-    const overallPending = Math.max(0, overallProcurement - overallPaid);
+    const farmersWithDuesCount = farmerRows.filter((f) => f.pendingAmount > 0).length;
 
     return res.json({
       success: true,
+      viewMode: isStatementMode ? "statements" : "all",
       summary: {
         totalFarmers: farmers.length,
         activeFarmers: activeFarmersCount,
-        totalProcurement: overallProcurement,
-        totalPaid: overallPaid,
-        pendingPayments: overallPending,
+        farmersWithDues: farmersWithDuesCount,
+        totalOrders: activeOrdersTotal,
+        totalQuantity: activeQuantityTotal,
+        totalProcurement: activeProcurementTotal,
+        totalPaid: activePaidTotal,
+        pendingPayments: activePendingTotal,
+        earningStatement: {
+          totalProcurement: stmtProcurementTotal,
+          totalPaid: stmtPaidTotal,
+          pendingPayments: Math.max(0, stmtProcurementTotal - stmtPaidTotal),
+          totalOrders: stmtOrdersTotal,
+          totalQuantity: stmtQuantityTotal,
+        },
+        allPipeline: {
+          totalProcurement: allProcurementTotal,
+          totalPaid: allPaidTotal,
+          pendingPayments: Math.max(0, allProcurementTotal - allPaidTotal),
+          totalOrders: allOrdersTotal,
+          totalQuantity: allQuantityTotal,
+        },
       },
       farmers: farmerRows,
     });
@@ -751,18 +892,10 @@ export async function getVendorFarmerDetail(req, res) {
     const orders = await FarmerOrder.find({
       farmerId,
       vendorId: { $in: [vendorId, String(vendorId)] },
+      status: { $nin: ["CANCELLED", "REJECTED", "cancelled", "rejected"] },
     })
       .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-
-    // Earnings recorded
-    const earnings = await FarmerEarning.find({
-      farmerId,
-      vendorId: { $in: [vendorId, String(vendorId)] },
-    })
-      .sort({ createdAt: -1 })
-      .limit(50)
+      .limit(100)
       .lean();
 
     // Settlements for this farmer
@@ -774,11 +907,69 @@ export async function getVendorFarmerDetail(req, res) {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Separate into Earning Statement orders vs in-progress orders
+    const statementOrders = orders.filter(isStatementOrder);
+
+    let stmtProc = 0;
+    let stmtPaid = 0;
+    let stmtQty = 0;
+    statementOrders.forEach((o) => {
+      const amt = getOrderStatementAmount(o);
+      stmtProc += amt;
+      stmtQty += Number(o.orderedQuantity || o.quantity || 0);
+      if (isOrderPaid(o)) {
+        stmtPaid += amt;
+      }
+    });
+
+    const settledPaid = settlements
+      .filter((s) => ["Paid", "Partially Paid"].includes(s.status))
+      .reduce((sum, s) => sum + (Number(s.paidAmount) || 0), 0);
+
+    stmtPaid += settledPaid;
+    const stmtPending = Math.max(0, stmtProc - stmtPaid);
+
+    // All orders totals
+    let allProc = 0;
+    let allPaid = 0;
+    let allQty = 0;
+    orders.forEach((o) => {
+      const amt = getOrderStatementAmount(o);
+      allProc += amt;
+      allQty += Number(o.orderedQuantity || o.quantity || 0);
+      if (isOrderPaid(o)) {
+        allPaid += amt;
+      }
+    });
+    allPaid += settledPaid;
+    const allPending = Math.max(0, allProc - allPaid);
+
     return res.json({
       success: true,
       farmer,
+      summary: {
+        totalProcurement: stmtProc,
+        totalQuantity: stmtQty,
+        totalOrders: statementOrders.length,
+        totalPaid: stmtPaid,
+        pendingAmount: stmtPending,
+        earningStatement: {
+          totalProcurement: stmtProc,
+          totalPaid: stmtPaid,
+          pendingAmount: stmtPending,
+          totalOrders: statementOrders.length,
+          totalQuantity: stmtQty,
+        },
+        allPipeline: {
+          totalProcurement: allProc,
+          totalPaid: allPaid,
+          pendingAmount: allPending,
+          totalOrders: orders.length,
+          totalQuantity: allQty,
+        },
+      },
       orders,
-      earnings,
+      statementOrders,
       settlements,
     });
   } catch (err) {

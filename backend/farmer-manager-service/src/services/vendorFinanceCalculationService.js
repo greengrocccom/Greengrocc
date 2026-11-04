@@ -383,50 +383,69 @@ export async function calculateVendorFinancials({
   const commissionPaid = (commPaymentAgg?.total || 0) + (settledCommAgg?.total || 0);
   const pendingCommission = Math.max(0, adminCommission - commissionPaid);
 
-  // 5. Farmer Procurement Cost & Farmer Payables
-  const farmerMatch = {
-    vendorId: { $in: [vendor.id, String(vendor._id)] },
+  // 5. Farmer Procurement Cost & Farmer Payables (Earning Statement Total: ORDER_COMPLETED or GRADE_CONFIRMED)
+  const statementStatusMatch = {
+    $or: [
+      { status: { $in: ["GRADE_CONFIRMED", "ORDER_COMPLETED", "grade_confirmed", "order_completed"] } },
+      { qualityStatus: { $in: ["GRADE_CONFIRMED", "ORDER_COMPLETED"] } },
+    ],
   };
-  const farmerOrderMatch = { ...farmerMatch };
+
+  // Sourced orders matching Earning Statement across all time for this vendor
+  const allStatementOrders = await FarmerOrder.find({
+    vendorId: { $in: [vendor.id, String(vendor._id)] },
+    ...statementStatusMatch,
+  }).lean();
+
+  const computeStatementOrderAmt = (o) => {
+    const grades = Array.isArray(o.finalStatement) && o.finalStatement.length
+      ? o.finalStatement
+      : Array.isArray(o.grades) && o.grades.length
+      ? o.grades
+      : [];
+    let amt = 0;
+    if (grades.length > 0) {
+      const gTot = grades.reduce((sum, g) => {
+        const q = Number(g.quantity || 0);
+        const r = Number(g.rate ?? g.price ?? 0);
+        const a = Number(g.amount || 0);
+        return sum + (a > 0 ? a : q * r);
+      }, 0);
+      if (gTot > 0) amt = gTot;
+    }
+    if (!amt) {
+      amt = Number(o.orderValue || o.totalAmount || (Number(o.orderedQuantity || 0) * Number(o.price || 0)) || 0);
+    }
+    return amt;
+  };
+
+  // If a date filter is applied, check for period statement orders; if none or all-time, use allStatementOrders
+  let activeStatementOrders = allStatementOrders;
   if (dateMatch) {
-    farmerOrderMatch.createdAt = dateMatch;
+    const periodOrders = allStatementOrders.filter((o) => {
+      const d = o.createdAt ? new Date(o.createdAt) : null;
+      if (!d) return false;
+      if (dateMatch.$gte && d < dateMatch.$gte) return false;
+      if (dateMatch.$lte && d > dateMatch.$lte) return false;
+      return true;
+    });
+    if (periodOrders.length > 0) {
+      activeStatementOrders = periodOrders;
+    }
   }
 
-  // Farmer orders/procurement
-  const [farmerOrderAgg] = await FarmerOrder.aggregate([
-    { $match: { ...farmerOrderMatch, status: { $nin: ["CANCELLED", "REJECTED", "cancelled", "rejected"] } } },
-    {
-      $group: {
-        _id: null,
-        totalProcurement: {
-          $sum: {
-            $cond: [
-              { $gt: [{ $ifNull: ["$orderValue", 0] }, 0] },
-              "$orderValue",
-              { $multiply: [{ $ifNull: ["$orderedQuantity", 0] }, { $ifNull: ["$price", 0] }] },
-            ],
-          },
-        },
-      },
-    },
-  ]);
+  let totalFarmerProcurement = 0;
+  let farmerPaidFromOrders = 0;
 
-  // Farmer earnings recorded
-  const [farmerEarningAgg] = await FarmerEarning.aggregate([
-    { $match: farmerMatch },
-    {
-      $group: {
-        _id: null,
-        totalGross: { $sum: "$grossEarnings" },
-        totalPaid: {
-          $sum: { $cond: [{ $eq: ["$status", "Paid"] }, "$netEarnings", 0] },
-        },
-        totalPending: {
-          $sum: { $cond: [{ $ne: ["$status", "Paid"] }, "$netEarnings", 0] },
-        },
-      },
-    },
-  ]);
+  activeStatementOrders.forEach((o) => {
+    const amt = computeStatementOrderAmt(o);
+    totalFarmerProcurement += amt;
+
+    const payStatus = String(o.paymentStatus || "").toUpperCase();
+    if (["PAID", "COMPLETED", "SETTLED"].includes(payStatus)) {
+      farmerPaidFromOrders += amt;
+    }
+  });
 
   // Farmer settlements paid
   const [farmerSettledAgg] = await VendorSettlement.aggregate([
@@ -440,12 +459,7 @@ export async function calculateVendorFinancials({
     { $group: { _id: null, total: { $sum: "$paidAmount" } } },
   ]);
 
-  const totalFarmerProcurement = Math.max(
-    farmerOrderAgg?.totalProcurement || 0,
-    farmerEarningAgg?.totalGross || 0
-  );
-  const farmerPaidAmount =
-    (farmerEarningAgg?.totalPaid || 0) + (farmerSettledAgg?.total || 0);
+  const farmerPaidAmount = farmerPaidFromOrders + (farmerSettledAgg?.total || 0);
   const farmerPendingPayables = Math.max(
     0,
     totalFarmerProcurement - farmerPaidAmount
