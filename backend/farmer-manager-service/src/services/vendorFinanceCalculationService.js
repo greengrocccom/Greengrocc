@@ -500,6 +500,7 @@ export async function calculateVendorFinancials({
 
   // 8. Vendor Profit & Loss Equations:
   // Standard Formula: NET PROFIT = TOTAL SALE - TOTAL PROCUREMENT VALUE - ADMIN COMMISSION - TOTAL VENDOR EXPENSES - DELIVERY MANAGER EXPENSES
+  const totalSale = grossProductSales + deliveryCharges;
   const grossProductProfit = Math.max(0, netProductSales - totalFarmerProcurement);
   const vendorOperatingProfit = grossProductProfit - adminCommission - vendorOperatingExpenses;
   const vendorNetProfit = totalSale - totalFarmerProcurement - adminCommission - vendorOperatingExpenses - darkStoreExpenses;

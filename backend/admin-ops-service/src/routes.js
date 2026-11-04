@@ -1,4 +1,13 @@
 import express from "express";
+import {
+  getAdminFinanceDashboard,
+  listAdminVendorCommissions,
+  getAdminVendorCommissionDetail,
+  recordAdminCommissionPayment,
+  listAdminCommissionPayments,
+  getAdminFinanceSalesReports,
+  getAdminFinancialReports,
+} from "./adminFinanceController.js";
 import { protect, requireAdmin, optionalAuth } from "@greengrocc/shared";
 import {
   listGiftCards,
@@ -706,7 +715,32 @@ vendorHrRouter.post("/hr/performance", createHrPerformanceLog);
 vendorHrRouter.put("/hr/performance/:id", updateHrPerformanceLog);
 vendorHrRouter.delete("/hr/performance/:id", deleteHrPerformanceLog);
 
+
+// ==========================================
+// Admin Finance & Vendor Commission
+// ==========================================
+router.get("/finance/dashboard", getAdminFinanceDashboard);
+router.get("/finance/vendors", listAdminVendorCommissions);
+router.get("/finance/vendors/:vendorId/commission", getAdminVendorCommissionDetail);
+router.post("/finance/commission-payment", recordAdminCommissionPayment);
+router.get("/finance/payment-history", listAdminCommissionPayments);
+router.get("/finance/sales-report", getAdminFinanceSalesReports);
+router.get("/finance/commission-report", listAdminVendorCommissions);
+router.get("/finance/financial-reports", getAdminFinancialReports);
+
+const adminFinanceRouter = express.Router();
+adminFinanceRouter.use(protect, requireAdmin);
+adminFinanceRouter.get("/dashboard", getAdminFinanceDashboard);
+adminFinanceRouter.get("/vendors", listAdminVendorCommissions);
+adminFinanceRouter.get("/vendors/:vendorId/commission", getAdminVendorCommissionDetail);
+adminFinanceRouter.post("/commission-payment", recordAdminCommissionPayment);
+adminFinanceRouter.get("/payment-history", listAdminCommissionPayments);
+adminFinanceRouter.get("/sales-report", getAdminFinanceSalesReports);
+adminFinanceRouter.get("/commission-report", listAdminVendorCommissions);
+adminFinanceRouter.get("/financial-reports", getAdminFinancialReports);
+
 export default [
   { path: "/api/admin-ops", router },
+  { path: "/api/admin/finance", router: adminFinanceRouter },
   { path: "/api/vendor/hr-ops", router: vendorHrRouter },
 ];

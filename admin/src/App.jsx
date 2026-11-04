@@ -68,6 +68,12 @@ import DeliverySlotsPage from './pages/ops/DeliverySlotsPage';
 import DeliveryTracking from './pages/ops/DeliveryTracking';
 import StoreSupport from './pages/ops/StoreSupport';
 import FinanceManagement from './pages/ops/FinanceManagement';
+import AdminFinanceDashboardPage from './pages/finance/AdminFinanceDashboardPage';
+import AdminVendorCommissionPage from './pages/finance/AdminVendorCommissionPage';
+import AdminVendorCommissionDetailPage from './pages/finance/AdminVendorCommissionDetailPage';
+import AdminCommissionPaymentsPage from './pages/finance/AdminCommissionPaymentsPage';
+import AdminFinanceSalesReportsPage from './pages/finance/AdminFinanceSalesReportsPage';
+import AdminFinancialReportsPage from './pages/finance/AdminFinancialReportsPage';
 import RefundWarranty, {
   RefundWarrantyTypePage,
   RefundWarrantyListPage,
@@ -269,8 +275,33 @@ export default function App() {
 
               <Route path="store-support" element={<StoreSupport />} />
               <Route path="store-support/:roleKey" element={<StoreSupport />} />
-              <Route path="finance" element={<FinanceManagement />} />
-              <Route path="finance/:section" element={<FinanceManagement />} />
+              {/* Admin Finance & Sales Commission Management */}
+              <Route path="finance" element={<AdminFinanceDashboardPage />} />
+              <Route path="finance/dashboard" element={<AdminFinanceDashboardPage />} />
+              <Route path="finance/commissions" element={<AdminVendorCommissionPage />} />
+              <Route path="finance/commissions/:vendorId" element={<AdminVendorCommissionDetailPage />} />
+              <Route path="finance/payments" element={<AdminCommissionPaymentsPage />} />
+              <Route path="finance/sales-reports" element={<AdminFinanceSalesReportsPage />} />
+              <Route path="finance/financial-reports" element={<AdminFinancialReportsPage />} />
+              <Route path="finance/erp" element={<FinanceManagement />} />
+              <Route path="finance/erp/:section" element={<FinanceManagement />} />
+              <Route path="finance/estimations" element={<FinanceManagement />} />
+              <Route path="finance/taxes" element={<FinanceManagement />} />
+              <Route path="finance/expenses" element={<FinanceManagement />} />
+              <Route path="finance/purchases" element={<FinanceManagement />} />
+              <Route path="finance/journals" element={<FinanceManagement />} />
+              <Route path="finance/contacts" element={<FinanceManagement />} />
+              <Route path="finance/accounts" element={<FinanceManagement />} />
+              <Route path="finance/transfers" element={<FinanceManagement />} />
+
+              {/* Sales Routes Aliases */}
+              <Route path="sales" element={<AdminFinanceDashboardPage />} />
+              <Route path="sales/dashboard" element={<AdminFinanceDashboardPage />} />
+              <Route path="sales/commissions" element={<AdminVendorCommissionPage />} />
+              <Route path="sales/commissions/:vendorId" element={<AdminVendorCommissionDetailPage />} />
+              <Route path="sales/payments" element={<AdminCommissionPaymentsPage />} />
+              <Route path="sales/sales-reports" element={<AdminFinanceSalesReportsPage />} />
+              <Route path="sales/financial-reports" element={<AdminFinancialReportsPage />} />
               <Route path="reports" element={<Reports />} />
               <Route path="government/schemes" element={<AllGovtSchemesPage />} />
               <Route path="government/schemes/create" element={<CreateGovtSchemePage />} />
