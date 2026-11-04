@@ -279,30 +279,41 @@ export const removeFromCart = async (req, res) => {
     const variantName = normalizeVariantName(req.query.variantName);
     const colorName = normalizeColorName(req.query.colorName);
 
-    const cart = await Cart.findOne({ user: req.user._id });
-    if (!cart) {
-      return res.status(404).json({
-        success: false,
-        message: "Cart not found",
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const cart = await Cart.findOne({ user: req.user._id });
+      if (!cart) {
+        return res.status(404).json({
+          success: false,
+          message: "Cart not found",
+        });
+      }
+
+      // Reapply the removal to the latest cart after a concurrent write.
+      if (!cart.email && req.user?.email) {
+        cart.email = getUserContactEmail(req.user);
+      }
+      const remaining = cart.items.filter(
+        (item) => !matchesCartItem(item, productId, variantName, colorName)
+      );
+      if (remaining.length !== cart.items.length) cart.items = remaining;
+
+      try {
+        if (cart.isModified()) await cart.save();
+      } catch (error) {
+        if (error.name === "VersionError") continue;
+        throw error;
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Product removed from cart",
+        data: await populateCart(cart),
       });
     }
 
-    // Keep legacy carts valid if email field was missing previously.
-    if (!cart.email && req.user?.email) {
-      cart.email = getUserContactEmail(req.user);
-    }
-
-    cart.items = cart.items.filter(
-      (item) => !matchesCartItem(item, productId, variantName, colorName)
-    );
-    await cart.save();
-
-    const updated = await populateCart(cart);
-
-    res.status(200).json({
-      success: true,
-      message: "Product removed from cart",
-      data: updated,
+    return res.status(409).json({
+      success: false,
+      message: "Cart changed while removing the product. Please try again.",
     });
   } catch (error) {
     respondWithControllerError(res, error, "Remove from cart");
