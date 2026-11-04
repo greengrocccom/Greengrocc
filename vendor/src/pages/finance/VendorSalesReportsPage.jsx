@@ -22,6 +22,8 @@ import {
   Percent,
 } from "lucide-react";
 import { vendorApi } from "../../api/vendorApi";
+import { useVendorAuth } from "../../context/VendorAuthContext";
+import { Boxes } from "lucide-react";
 import FinanceDateFilter from "../../components/finance/FinanceDateFilter";
 
 const rupee = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -40,6 +42,21 @@ export default function VendorSalesReportsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [reportData, setReportData] = useState(null);
+  const auth = useVendorAuth();
+  const isSeller = auth?.vendor?.vendorType === "seller" || auth?.vendor?.vendor?.vendorType === "seller" || reportData?.vendor?.vendorType === "seller" || reportData?.vendor?.isSeller;
+  const [sellerValuation, setSellerValuation] = useState(null);
+
+  useEffect(() => {
+    if (isSeller) {
+      vendorApi.getFinanceSellerReports({ onlyAdded: "true" })
+        .then((res) => {
+          if (res?.success && res?.kpis?.totalProcurementValuation !== undefined) {
+            setSellerValuation(Number(res.kpis.totalProcurementValuation));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isSeller]);
 
   const fetchReports = async () => {
     try {
@@ -133,6 +150,9 @@ export default function VendorSalesReportsPage() {
   const deliveryFee = Number(k.deliveryCharges || 0);
   const totalSale = Number(k.totalSale || grossSales + deliveryFee);
   const totalProcurement = Number(k.farmerProcurementCost || 0);
+  const effectiveProcurement = isSeller
+    ? (sellerValuation !== null ? sellerValuation : Number(k.sellerProcurementValuation || k.totalProcurementValue || k.farmerProcurementCost || 0))
+    : totalProcurement;
   const vendorExpenses = Number(k.vendorOperatingExpenses || 0);
   const darkStoreExpenses = Number(k.darkStoreExpenses || 0);
 
@@ -152,7 +172,7 @@ export default function VendorSalesReportsPage() {
 
   // Formula as instructed:
   // TOTAL SALE - Total Procurement Value (एकूण शेतीमाल खरेदी) - Admin Commission - Total Vendor Expenses - Delivery Manager Expenses = Net Profit
-  const netProfit = totalSale - totalProcurement - adminCommission - vendorExpenses - darkStoreExpenses;
+  const netProfit = totalSale - effectiveProcurement - adminCommission - vendorExpenses - darkStoreExpenses;
   const currentProfit = Number(k.currentProfit || k.deliveredSales || 0);
 
   return (
@@ -311,19 +331,26 @@ export default function VendorSalesReportsPage() {
             </span>
           </div>
 
-          {/* 6. Total Procurement Value (Earning Statement Total) */}
+          {/* 6. Total Procurement Value (Earning Statement Total for Farmer / खरेदी भांडवल मूल्य for Seller) */}
           <div className="rounded-xl border border-amber-300 bg-amber-50/40 p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between gap-1 text-slate-500">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-amber-900 truncate" title="Total Procurement Value (Earning Statement Total)">
+              <span
+                className="text-[10.5px] font-bold uppercase tracking-wider text-amber-900 truncate"
+                title={isSeller ? "खरेदी भांडवल मूल्य (Seller Procurement Valuation)" : "Total Procurement Value (Earning Statement Total)"}
+              >
                 TOTAL PROCUREMENT VALUE
               </span>
-              <Tractor className="h-4 w-4 shrink-0 text-amber-600" />
+              {isSeller ? (
+                <Boxes className="h-4 w-4 shrink-0 text-amber-600" />
+              ) : (
+                <Tractor className="h-4 w-4 shrink-0 text-amber-600" />
+              )}
             </div>
             <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-amber-800 truncate tabular-nums">
-              {loading ? "..." : rupee(totalProcurement)}
+              {loading ? "..." : rupee(effectiveProcurement)}
             </p>
             <span className="text-[10px] text-amber-800 font-semibold truncate block mt-0.5">
-              Earning Statement Total (प्रमाणित खरेदी)
+              {isSeller ? "खरेदी भांडवल मूल्य (Seller Stock Valuation)" : "Earning Statement Total (प्रमाणित खरेदी)"}
             </span>
           </div>
 
@@ -390,7 +417,7 @@ export default function VendorSalesReportsPage() {
               {loading ? "..." : rupee(netProfit)}
             </p>
             <span className="text-[10px] font-medium text-emerald-800 truncate block mt-0.5">
-              Sale ({rupee(totalSale)}) - Proc ({rupee(totalProcurement)}) - Comm ({rupee(adminCommission)}) - Exp ({rupee(vendorExpenses + darkStoreExpenses)})
+              TOTAL SALE ({rupee(totalSale)}) - {isSeller ? "खरेदी भांडवल" : "खरेदी"} ({rupee(effectiveProcurement)}) - कमिशन ({rupee(adminCommission)}) - व्हेंडर खर्च ({rupee(vendorExpenses)}) - स्टोअर खर्च ({rupee(darkStoreExpenses)})
             </span>
           </div>
 

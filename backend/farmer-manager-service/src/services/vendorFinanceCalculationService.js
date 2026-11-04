@@ -352,16 +352,13 @@ export async function calculateVendorFinancials({
 
   const grossProductSales = orderKpis?.grossProductSales || 0;
   const deliveryCharges = orderKpis?.totalDeliveryCharges || 0;
-  const cancelledOrdersCost = orderKpis?.cancelledOrdersCost || 0;
-  const totalSale = grossProductSales + deliveryCharges;
-  // Total Customer Paid across all orders placed (including cancelled orders)
-  const totalCustomerPaid = totalSale + cancelledOrdersCost;
+  const customerPaymentTotal = orderKpis?.customerPaymentTotal || 0;
   const totalRefunds = orderKpis?.totalRefunds || 0;
   const netProductSales = Math.max(0, grossProductSales - totalRefunds);
 
   // 4. Admin Commission Calculation (Standardized formula)
-  // Admin Commission = Total Eligible Net Sale * Vendor.commissionRate / 100
-  const eligibleCommissionSales = totalSale > 0 ? totalSale : grossProductSales;
+  // Admin Commission = Total Eligible Product Sales * Vendor.commissionRate / 100
+  const eligibleCommissionSales = grossProductSales;
   const adminCommission = Math.round((eligibleCommissionSales * commissionRate) / 100);
 
   // Reconcile Commission Paid from VendorCommissionPayment and VendorSettlement
@@ -404,8 +401,8 @@ export async function calculateVendorFinancials({
     const grades = Array.isArray(o.finalStatement) && o.finalStatement.length
       ? o.finalStatement
       : Array.isArray(o.grades) && o.grades.length
-      ? o.grades
-      : [];
+        ? o.grades
+        : [];
     let amt = 0;
     if (grades.length > 0) {
       const gTot = grades.reduce((sum, g) => {
@@ -502,14 +499,10 @@ export async function calculateVendorFinancials({
   const deliveryContribution = deliveryCharges - darkStoreExpenses;
 
   // 8. Vendor Profit & Loss Equations:
-  // Gross Product Profit = Net Product Sales - Farmer Procurement Cost
+  // Standard Formula: NET PROFIT = TOTAL SALE - TOTAL PROCUREMENT VALUE - ADMIN COMMISSION - TOTAL VENDOR EXPENSES - DELIVERY MANAGER EXPENSES
   const grossProductProfit = Math.max(0, netProductSales - totalFarmerProcurement);
-
-  // Vendor Operating Profit = Gross Product Profit - Admin Commission - Vendor Operating Expenses
   const vendorOperatingProfit = grossProductProfit - adminCommission - vendorOperatingExpenses;
-
-  // Vendor Net Profit = Vendor Operating Profit + Delivery Contribution
-  const vendorNetProfit = vendorOperatingProfit + deliveryContribution;
+  const vendorNetProfit = totalSale - totalFarmerProcurement - adminCommission - vendorOperatingExpenses - darkStoreExpenses;
 
   // 9. Pending Settlements Total
   const [pendingSettlementAgg] = await VendorSettlement.aggregate([
@@ -553,9 +546,8 @@ export async function calculateVendorFinancials({
       cancelledOrdersCost: orderKpis?.cancelledOrdersCost || 0,
       grossProductSales,
       deliveryCharges,
-      customerPaymentTotal: totalCustomerPaid,
-      netCustomerPaid: totalSale,
-      totalSale,
+      customerPaymentTotal,
+      totalSale: grossProductSales + deliveryCharges,
       deliveredSales: orderKpis?.deliveredSales || 0,
       currentProfit: orderKpis?.deliveredSales || 0,
       netProductSales,
