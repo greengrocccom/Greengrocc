@@ -1,4 +1,18 @@
+@layer admin-corners;
 @import "tailwindcss";
+
+@layer admin-corners {
+  *,
+  *::before,
+  *::after {
+    border-radius: 0 !important;
+  }
+
+  *::-webkit-scrollbar-thumb,
+  *::-webkit-scrollbar-track {
+    border-radius: 0 !important;
+  }
+}
 
 @theme {
   --font-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;

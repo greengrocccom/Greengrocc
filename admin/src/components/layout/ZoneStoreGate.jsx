@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Building2,
@@ -20,6 +20,21 @@ import darkStoreApi from '../../api/darkStoreApi';
 import { BTN, BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL } from '../../utils/ui';
 
 const STORAGE_KEY = 'greengroo_admin_last_zone_store';
+
+function validStoreId(value) {
+  const id = typeof value === 'string' ? value.trim() : '';
+  return id && id !== 'undefined' && id !== 'null' ? id : '';
+}
+
+function normalizeStores(response) {
+  const rows = Array.isArray(response) ? response : response?.stores ?? response?.data;
+  const stores = new Map();
+  for (const store of Array.isArray(rows) ? rows : []) {
+    const id = validStoreId(store?._id) || validStoreId(store?.id);
+    if (id && !stores.has(id)) stores.set(id, { ...store, _id: id });
+  }
+  return [...stores.values()];
+}
 
 function StatCard({ label, value, icon: Icon }) {
   return (
@@ -69,7 +84,7 @@ export default function ZoneStoreGate({
   const navigate = useNavigate();
 
   const zoneKey = params.zoneKey || '';
-  const storeId = params.storeId || '';
+  const storeId = validStoreId(params.storeId);
   const decodedZone = decodeURIComponent(zoneKey || '').trim();
 
   // Determine base path if not explicitly provided
@@ -119,7 +134,7 @@ export default function ZoneStoreGate({
           // Fallback to darkStoreApi
           darkStoreApi.list().then((storeRes) => {
             if (!alive) return;
-            const allStores = Array.isArray(storeRes?.data) ? storeRes.data : Array.isArray(storeRes) ? storeRes : [];
+            const allStores = normalizeStores(storeRes);
             const byZone = new Map();
             for (const s of allStores) {
               const city = String(s.city || '').trim() || 'General';
@@ -139,7 +154,7 @@ export default function ZoneStoreGate({
           .list()
           .then((storeRes) => {
             if (!alive) return;
-            const allStores = Array.isArray(storeRes?.data) ? storeRes.data : Array.isArray(storeRes) ? storeRes : [];
+            const allStores = normalizeStores(storeRes);
             const byZone = new Map();
             for (const s of allStores) {
               const city = String(s.city || '').trim() || 'General';
@@ -179,7 +194,7 @@ export default function ZoneStoreGate({
       .list(`assets-management/zones/${encodeURIComponent(decodedZone)}/stores`)
       .then((res) => {
         if (!alive) return;
-        const storeList = res?.data || [];
+        const storeList = normalizeStores(res);
         setStores(storeList);
         setZoneMeta(res?.zone || { name: decodedZone, zoneKey: decodedZone });
 
@@ -212,7 +227,7 @@ export default function ZoneStoreGate({
           .list()
           .then((storeRes) => {
             if (!alive) return;
-            const all = Array.isArray(storeRes?.data) ? storeRes.data : Array.isArray(storeRes) ? storeRes : [];
+            const all = normalizeStores(storeRes);
             const matchStores = all.filter(
               (s) =>
                 String(s.city || '').toLowerCase() === decodedZone.toLowerCase() ||
@@ -258,6 +273,10 @@ export default function ZoneStoreGate({
     );
   }, [stores, q]);
 
+  if (decodedZone && params.storeId && !storeId) {
+    return <Navigate to={`${effectiveBasePath}/zones/${encodeURIComponent(decodedZone)}`} replace />;
+  }
+
   // ----------------------------------------------------
   // STEP 1: Admin needs to select a Zone
   // ----------------------------------------------------
@@ -271,7 +290,7 @@ export default function ZoneStoreGate({
         </div>
 
         {/* Quick jump to previously selected store if available */}
-        {lastSaved?.zoneKey && lastSaved?.storeId && (
+        {lastSaved?.zoneKey && validStoreId(lastSaved?.storeId) && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-teal-50 to-white p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">

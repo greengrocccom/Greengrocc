@@ -99,6 +99,18 @@ export const LIVE_ROUTES = [
     ignoreFields: { storeorders: ORDER_TRACKING_FIELDS },
   },
   { path: "/api/products/all", deps: CATALOG_COLLECTIONS },
+  {
+    path: "/api/admin/notifications/system-alerts",
+    exact: true,
+    deps: ["adminhrpayrolls", "adminhrmeetings", "adminhrcandidates", "adminhrleaverequests", "adminb2bclients", "payments", "notifications", "adminalertstates"],
+    minIntervalMs: 1000,
+  },
+  {
+    path: "/api/orders/admin/unrouted",
+    exact: true,
+    deps: ["orders", "storeorders", "users"],
+    ignoreFields: { storeorders: ORDER_TRACKING_FIELDS },
+  },
   { path: "/api/categories", deps: ["greengrocccategories"], public: true },
   { path: "/api/sections", deps: ["greengroccsections"], public: true },
   { path: "/api/orders", deps: ["orders"], scope: customerScope },

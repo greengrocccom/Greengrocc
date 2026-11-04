@@ -37,8 +37,8 @@ function resolveColorForVariant(product, variant, variantName) {
 
 function VariantRow({ product, variant, image, onClose, preOrderSlot }) {
   const { items, addToCart, incrementCartItem, decrementCartItem } = useCart();
+  const { user, openAuthModal } = useAuth();
   const isBulkUser = user?.accountType === "bulk";
-  const { openAuthModal } = useAuth();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
 

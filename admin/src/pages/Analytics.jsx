@@ -362,7 +362,7 @@ function HBars({ data, nameKey, valueKey, format = 'num', color = COLORS[0], hei
               ) : null
             }
           />
-          <Bar dataKey={valueKey} fill={color} radius={[0, 6, 6, 0]} maxBarSize={22}>
+          <Bar dataKey={valueKey} fill={color} maxBarSize={22}>
             {showShare ? (
               <LabelList
                 dataKey={valueKey}
@@ -503,7 +503,7 @@ function TrendChart({ data, unit, series, height = 300 }) {
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
           {series.map((s) =>
             s.type === 'bar' ? (
-              <Bar key={s.key} yAxisId={s.axis || 'left'} dataKey={s.key} name={s.name} fill={s.color} radius={[4, 4, 0, 0]} maxBarSize={18} />
+              <Bar key={s.key} yAxisId={s.axis || 'left'} dataKey={s.key} name={s.name} fill={s.color} maxBarSize={18} />
             ) : s.type === 'line' ? (
               <Line key={s.key} yAxisId={s.axis || 'left'} type="monotone" dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={2} dot={false} />
             ) : (
@@ -921,7 +921,7 @@ function DeliveryTab({ data }) {
                   <XAxis dataKey="bucket" fontSize={11} stroke={AXIS} />
                   <YAxis fontSize={11} stroke={AXIS} allowDecimals={false} />
                   <Tooltip cursor={{ fill: '#F1F5F9' }} content={<ChartTooltip />} />
-                  <Bar dataKey="orders" name="Orders" radius={[6, 6, 0, 0]} maxBarSize={48}>
+                  <Bar dataKey="orders" name="Orders" maxBarSize={48}>
                     {delivery.durations.map((d, i) => (
                       <Cell key={d.bucket} fill={i < 2 ? COLORS[0] : i < 4 ? COLORS[2] : COLORS[4]} />
                     ))}
@@ -1054,7 +1054,7 @@ function SupplyTab({ data }) {
                   <YAxis type="category" dataKey="status" width={130} fontSize={11} stroke={AXIS} tickFormatter={humanize} />
                   <Tooltip cursor={{ fill: '#F1F5F9' }} content={<ChartTooltip labelFormatter={humanize} valueFormat={{ value: 'inr', orders: 'num' }} />} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="orders" name="Orders" fill={COLORS[0]} radius={[0, 6, 6, 0]} maxBarSize={16} />
+                  <Bar dataKey="orders" name="Orders" fill={COLORS[0]} maxBarSize={16} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

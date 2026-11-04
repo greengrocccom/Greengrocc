@@ -1,8 +1,8 @@
 import apiClient from './client';
 
 export const darkStoreApi = {
-  list: async (params = {}) => {
-    const response = await apiClient.get('/admin/dark-stores', { params });
+  list: async (params = {}, config = {}) => {
+    const response = await apiClient.get('/admin/dark-stores', { ...config, params });
     return response.data;
   },
   getById: async (id) => {

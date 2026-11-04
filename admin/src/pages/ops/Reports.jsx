@@ -664,7 +664,6 @@ export default function Reports() {
                     yAxisId="left"
                     dataKey="sales"
                     fill="#047857"
-                    radius={[4, 4, 0, 0]}
                     maxBarSize={45}
                   />
                   <Line
@@ -804,7 +803,6 @@ export default function Reports() {
                   />
                   <Bar
                     dataKey="totalSales"
-                    radius={[0, 4, 4, 0]}
                     onClick={(entry) => handleZoneChange(entry.zone)}
                     className="cursor-pointer"
                   >
@@ -887,7 +885,6 @@ export default function Reports() {
                   <Bar
                     dataKey="totalSales"
                     fill="#7C3AED"
-                    radius={[0, 4, 4, 0]}
                     onClick={(entry) => handleFilterStore(entry.storeId)}
                     className="cursor-pointer"
                   />

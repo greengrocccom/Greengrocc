@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogOut, Menu, Search, Bell, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BTN, BTN_PRIMARY, INPUT } from '../../utils/ui';
 import apiClient from '../../api/client';
+import { useLive } from '../../realtime/useLive';
 import { getSoundSettings, playNotificationSound } from '../../utils/notificationSound';
 
-export default function Navbar({ onOpenSidebar, searchValue, onSearchChange }) {
+export default function Navbar({ onOpenSidebar, searchValue, onSearchChange, exportControl }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -23,11 +24,7 @@ export default function Navbar({ onOpenSidebar, searchValue, onSearchChange }) {
     }
   };
 
-  useEffect(() => {
-    loadUnreadCount();
-    const interval = setInterval(loadUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  useLive(loadUnreadCount);
 
   const onSearch = (event) => {
     event.preventDefault();
@@ -53,6 +50,8 @@ export default function Navbar({ onOpenSidebar, searchValue, onSearchChange }) {
             className={`${INPUT} pl-9`}
           />
         </form>
+
+        {exportControl}
 
         {/* Notification Bell Button */}
         <Link

@@ -27,6 +27,10 @@ const RERUN_DEBOUNCE_MS = 30;
 // becoming visible reconnects and catches up from the cached versions.
 const HIDDEN_DISCONNECT_MS = 60000;
 const DROP_STALE_STATUSES = new Set([401, 403, 404]);
+const MEMORY_ONLY_PATHS = new Set([
+  "/api/admin/notifications/system-alerts",
+  "/api/orders/admin/unrouted",
+]);
 
 const settings = { url: "", getToken: () => "" };
 let socket = null;
@@ -161,7 +165,7 @@ function handlePatch(payload) {
   }
   entry.data = applyOps(entry.data, payload.ops);
   entry.hash = payload.hash || "";
-  writePersisted(entry.key, entry.data, entry.hash);
+  if (entry.persist) writePersisted(entry.key, entry.data, entry.hash);
   rerunRefs(entry);
 }
 
@@ -286,6 +290,7 @@ function release(key, task) {
 function newEntry(key, url, token) {
   const entry = {
     key, url, token, data: undefined, hash: "", live: false, refs: new Set(), promise: null, releaseTimer: null,
+    persist: !MEMORY_ONLY_PATHS.has(url.split("?")[0]),
   };
   entries.set(key, entry);
   return entry;
@@ -305,7 +310,7 @@ function applySubscribeReply(entry, res) {
   }
   entry.hash = res.hash || "";
   entry.live = true;
-  if (changed || !hadData) writePersisted(entry.key, entry.data, entry.hash);
+  if (entry.persist && (changed || !hadData)) writePersisted(entry.key, entry.data, entry.hash);
   if (changed && hadData) rerunRefs(entry);
 }
 
@@ -367,7 +372,7 @@ export async function liveGet(url, token) {
   if (!entry && !owners.length) throw LIVE_FALLBACK;
 
   if (!entry) {
-    const saved = await readPersisted(key);
+    const saved = MEMORY_ONLY_PATHS.has(url.split("?")[0]) ? undefined : await readPersisted(key);
     entry = entries.get(key);
     if (!entry && saved) {
       entry = newEntry(key, url, token);

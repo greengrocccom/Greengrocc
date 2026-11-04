@@ -35,13 +35,13 @@ export default function AdminLayout() {
           onOpenSidebar={() => setMobileOpen(true)}
           searchValue={search}
           onSearchChange={setSearch}
+          exportControl={<AdminDataExport key={`${location.pathname}${location.search}`} contentRef={contentRef} />}
         />
         <main
           className={`admin-scrollbar min-h-0 flex-1 overflow-y-auto ${
             location.pathname.startsWith('/billing') ? 'p-3 sm:p-4 lg:p-5 lg:pb-2 pb-2' : 'p-3 sm:p-5 lg:p-6'
           }`}
         >
-          <AdminDataExport key={`${location.pathname}${location.search}`} contentRef={contentRef} />
           <div ref={contentRef}><Outlet context={{ search, setSearch }} /></div>
         </main>
       </div>

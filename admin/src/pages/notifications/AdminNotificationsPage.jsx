@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef } from 'react';
+import { useLive } from '../../realtime/useLive';
 import { Link } from 'react-router-dom';
 import {
   Bell,
@@ -145,15 +146,16 @@ export default function AdminNotificationsPage() {
 
   const prevUnreadCountRef = useRef(null);
 
-  const loadAlerts = async (silent = false) => {
+  const loadAlerts = async (silent = false, force = true) => {
     if (!silent) setLoading(true);
     try {
-      const res = await apiClient.get('/admin/notifications/system-alerts');
+      const res = await apiClient.get('/admin/notifications/system-alerts', { live: !force });
       const data = res.data?.data || [];
       const newMetrics = res.data?.metrics || null;
 
       // Detect incoming alerts and play chime if unread increased
       if (
+        soundSettings.enabled &&
         prevUnreadCountRef.current !== null &&
         newMetrics &&
         newMetrics.unreadCount > prevUnreadCountRef.current
@@ -173,16 +175,7 @@ export default function AdminNotificationsPage() {
     }
   };
 
-  useEffect(() => {
-    loadAlerts();
-
-    // Auto poll every 30 seconds for background incoming alerts
-    const interval = setInterval(() => {
-      loadAlerts(true);
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [soundSettings.preset, soundSettings.volume]);
+  useLive(({ silent }) => loadAlerts(silent, false));
 
   const toggleSound = () => {
     const next = { ...soundSettings, enabled: !soundSettings.enabled };

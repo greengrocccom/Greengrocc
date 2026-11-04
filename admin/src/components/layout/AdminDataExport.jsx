@@ -95,10 +95,10 @@ export default function AdminDataExport({ contentRef }) {
   };
 
   return <>
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
-      <p className="text-xs text-slate-500">Export this tab’s data in CSV or PDF</p>
-      <button type="button" onClick={open} className={BTN}><Download className="mr-1.5 h-4 w-4" />Export &amp; share</button>
-    </div>
+    <button type="button" onClick={open} aria-label="Export this page" title="Export this page as CSV or PDF" className={`${BTN} shrink-0 gap-1.5 text-xs`}>
+      <Download aria-hidden="true" className="size-4" />
+      <span className="hidden sm:inline">Export</span>
+    </button>
     {dialog ? <dialog ref={modal} onCancel={close} style={{ width: 'calc(100vw - 2rem)', maxWidth: '32rem' }} className="fixed inset-0 m-auto max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-5 text-slate-800 shadow-2xl backdrop:bg-slate-900/40">
       <div className="mb-4 flex items-start justify-between gap-3"><div><h2 className="text-lg font-bold">Export &amp; share</h2><p className="mt-1 text-sm text-slate-500">{dialog.title}</p></div><button type="button" onClick={close} className="rounded-lg p-2 hover:bg-slate-100" aria-label="Close export"><X className="h-5 w-5" /></button></div>
       <label className="mb-1 block text-sm font-semibold" htmlFor="admin-export-data">Data to export</label>
