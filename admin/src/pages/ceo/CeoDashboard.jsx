@@ -21,36 +21,20 @@ import {
   Store,
   UserCog,
   UserCheck,
-  TrendingUp,
-  Percent,
   Repeat,
-  ArrowUpRight,
-  ArrowDownRight,
   Sparkles,
-  Info,
-  Calendar,
-  Layers,
   Activity,
-  CheckCircle2,
-  Clock,
-  HelpCircle,
   Wallet,
-  ArrowDownLeft,
   Coins,
-  BadgeIndianRupee,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
-  Cell,
-  Legend,
 } from 'recharts';
 import erpApi from '../../api/erpApi';
 import { BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL } from '../../utils/ui';
@@ -341,123 +325,10 @@ export default function CeoDashboard() {
 
   const activeLens = lenses.find((item) => item.id === lens) || lenses[0];
 
-  // 1. Gross Margin % Data
-  const grossMargin = activeMetrics.grossMargin || {
-    grossMarginPercent: 31.0,
-    grossMarginPerOrder: 135,
-    totalGrossProfit: 186902,
-    totalRevenue: 602910,
-    departmentMargins: [
-      { department: 'Pre-order (Fresh Produce)', marginPercent: 32.5, revenueShare: 45, color: '#10B981' },
-      { department: 'Ready2Cook (Processed)', marginPercent: 38.0, revenueShare: 35, color: '#6366F1' },
-      { department: 'Instant Order (Quick Hubs)', marginPercent: 22.0, revenueShare: 20, color: '#F59E0B' },
-    ],
-  };
-
-  // 2. Farmer Payment Data
-  const farmerPayments = activeMetrics.farmerPayments || {
-    totalFarmerEarnings: 452700,
-    paidEarnings: 384500,
-    pendingEarnings: 68200,
-    farmerCountPaid: 48,
-    avgFarmerPayout: 8010,
-    disbursementRatePercent: 84.9,
-  };
-
-  // 3. Cash Flow Data
-  const cashFlow = activeMetrics.cashFlow || {
-    totalInflow: 602910,
-    onlineCollections: 409979,
-    codCashCollections: 192931,
-    totalOutflow: 513712,
-    farmerOutflow: 384500,
-    deliveryOutflow: 58212,
-    operationsAndPackagingOutflow: 20790,
-    netCashFlow: 89198,
-    operatingCashMargin: 14.8,
-    isPositive: true,
-  };
-
-  // 4. Average Order Value (AOV) Data
-  const aovMetric = activeMetrics.averageOrderValue || {
-    aov: 435,
-    aovToday: 428,
-    aovLast30Days: 442,
-    averageItemsPerOrder: 4.6,
-    totalSalesRevenue: 602910,
-    distribution: [
-      { bracket: 'Under ₹200', count: 250, percent: 18, color: '#94A3B8' },
-      { bracket: '₹200 - ₹500', count: 720, percent: 52, color: '#10B981' },
-      { bracket: '₹500 - ₹1,000', count: 305, percent: 22, color: '#3B82F6' },
-      { bracket: 'Above ₹1,000', count: 111, percent: 8, color: '#8B5CF6' },
-    ],
-  };
-
-  // Remaining Commerce & Growth Metrics
-  const regCust = activeMetrics.registeredCustomers || {
-    total: 1420,
-    newToday: 18,
-    newInPeriod: 425,
-    growthRatePercent: 24.5,
-    phoneVerified: 1334,
-  };
-
-  const actCust = activeMetrics.activeCustomers || {
-    monthlyActive: 386,
-    activeCount: 386,
-    weeklyActive: 148,
-    dailyActive: 42,
-    activeRatePercent: 27.2,
-    dormantCustomers: 1034,
-  };
-
-  const ordersPDay = activeMetrics.ordersPerDay || {
-    today: 54,
-    avgLast7Days: 49.6,
-    avgLast30Days: 46.2,
-    totalOrders: 1386,
-    dailyTrend: [],
-    byStatus: { delivered: 1260, shipping: 55, processing: 42, cancelled: 29 },
-  };
-
-  const delivCost = activeMetrics.deliveryCostPerOrder || {
-    avgDeliveryCost: 42,
-    avgCustomerFeeCollected: 15,
-    netSubsidyPerOrder: 27,
-    totalDeliverySpend: 58212,
-    totalCustomerFeesCollected: 20790,
-    deliveryCostPercentOfAov: 9.7,
-  };
-
-  const contribOrder = activeMetrics.contributionPerOrder || {
-    aov: 435,
-    cogsPerOrder: 300,
-    grossMarginPerOrder: 135,
-    grossMarginPercent: 31.0,
-    deliveryCostPerOrder: 42,
-    packagingPaymentGatewayPerOrder: 15,
-    netContributionPerOrder: 78,
-    contributionMarginPercent: 17.9,
-    breakevenAov: 280,
-    isProfitable: true,
-    waterfall: [
-      { stage: 'Average Order Value (Revenue)', amount: 435, isPositive: true, type: 'revenue', note: 'Customer billing' },
-      { stage: 'COGS / Farm Procurement (69%)', amount: -300, isPositive: false, type: 'cogs', note: 'Direct farm produce cost' },
-      { stage: 'Gross Margin (CM1)', amount: 135, isPositive: true, type: 'gross', note: '31% product margin' },
-      { stage: 'Last-Mile Delivery Cost', amount: -42, isPositive: false, type: 'delivery', note: 'Rider drop payout' },
-      { stage: 'Payment & Packaging (2.5%)', amount: -15, isPositive: false, type: 'overhead', note: 'Gateway & packaging' },
-      { stage: 'Net Contribution Margin (CM2)', amount: 78, isPositive: true, type: 'net', note: '+17.9% net unit margin' },
-    ],
-  };
-
-  const repeatOrder = activeMetrics.repeatOrderRate || {
-    repeatRatePercent: 39.0,
-    totalPurchasingCustomers: 580,
-    oneTimeCustomers: 354,
-    repeatCustomers: 226,
-    loyalCustomers: 64,
-    avgOrdersPerCustomer: 2.4,
-  };
+  const { farmerPayments, averageOrderValue: aovMetric, registeredCustomers: regCust,
+    activeCustomers: actCust, ordersPerDay: ordersPDay, repeatOrderRate: repeatOrder } = activeMetrics;
+  const hasExecutiveMetrics = activeMetrics.source === 'database' &&
+    [farmerPayments, aovMetric, regCust, actCust, ordersPDay, repeatOrder].every(Boolean);
 
   return (
     <div className="space-y-6 pb-12">
@@ -466,19 +337,11 @@ export default function CeoDashboard() {
         <div>
           <div className="flex items-center gap-2">
             <p className={PAGE_KICKER}>Executive Command Center</p>
-            {activeMetrics?.isSampleData ? (
-              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                Benchmark Preview
-              </span>
-            ) : (
-              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                <span className="mr-1 h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span> Live DB
-              </span>
-            )}
+            {hasExecutiveMetrics && <span className="text-[11px] font-semibold text-emerald-700">Live DB</span>}
           </div>
           <h1 className={`mt-1 ${PAGE_TITLE}`}>CEO Master Dashboard</h1>
           <p className={`mt-0.5 ${PAGE_SUB}`}>
-            Executive oversight of margins, farmer disbursements, cash liquidity, order velocity & unit economics.
+            Recorded farmer settlements, order activity, basket value, and customer retention.
           </p>
           {generated && <p className="mt-1 text-xs text-slate-400">Updated {generated}</p>}
         </div>
@@ -504,14 +367,15 @@ export default function CeoDashboard() {
       {/* 4 CORE FINANCIAL & LIQUIDITY HERO CARDS                                   */}
       {/* (1. Gross Margin %, 2. Farmer Payment, 3. Cash Flow, 4. AOV)              */}
       {/* ========================================================================= */}
+      {hasExecutiveMetrics ? <>
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
           <div className="flex items-center gap-2">
             <Coins className="h-5 w-5 text-emerald-700" />
             <h2 className="text-base font-bold text-slate-900">
-              Executive Financial & Treasury Control
+              Executive Financial Overview
             </h2>
-            <span className="text-xs text-slate-400">Margins, Farmer Settlements & Operating Liquidity</span>
+            <span className="text-xs text-slate-400">Farmer Settlements & Order Value</span>
           </div>
 
           {/* Quick Time Window Selector */}
@@ -540,34 +404,6 @@ export default function CeoDashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {/* 1. Gross Margin % */}
-          <div
-            onClick={() => setActiveDetailTab('financial_liquidity')}
-            className={`${PANEL} p-5 cursor-pointer transition hover:border-emerald-500 hover:shadow-md group relative overflow-hidden`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                1. Gross Margin %
-              </span>
-              <div className="rounded-xl bg-emerald-50 p-2 text-emerald-700 group-hover:bg-emerald-700 group-hover:text-white transition">
-                <Percent className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-2 text-3xl font-black text-slate-900">
-              {grossMargin.grossMarginPercent}%
-            </p>
-            <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
-                ₹{Number(grossMargin.totalGrossProfit).toLocaleString('en-IN')} Profit ({timeFilter.toUpperCase()})
-              </span>
-              <span className="text-slate-500">₹{grossMargin.grossMarginPerOrder} / order</span>
-            </div>
-            <div className="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
-              <span>Rev: ₹{Number(grossMargin.totalRevenue).toLocaleString('en-IN')}</span>
-              <span className="font-semibold text-indigo-700">Ready2Cook: 38%</span>
-            </div>
-          </div>
-
           {/* 2. Farmer Payment */}
           <div
             onClick={() => setActiveDetailTab('financial_liquidity')}
@@ -593,34 +429,6 @@ export default function CeoDashboard() {
             <div className="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
               <span>{farmerPayments.farmerCountPaid} Farmers Paid</span>
               <span className="font-semibold text-slate-700">Avg ₹{farmerPayments.avgFarmerPayout}</span>
-            </div>
-          </div>
-
-          {/* 3. Cash Flow */}
-          <div
-            onClick={() => setActiveDetailTab('financial_liquidity')}
-            className={`${PANEL} p-5 cursor-pointer transition hover:border-emerald-500 hover:shadow-md group relative overflow-hidden`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                3. Net Cash Flow
-              </span>
-              <div className="rounded-xl bg-blue-50 p-2 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition">
-                <Wallet className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-2 text-3xl font-black text-emerald-700">
-              {cashFlow.netCashFlow >= 0 ? '+' : ''}₹{Number(cashFlow.netCashFlow).toLocaleString('en-IN')}
-            </p>
-            <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded">
-                +{cashFlow.operatingCashMargin}% Operating Margin
-              </span>
-              <span className="text-slate-500 font-bold">{timeFilter.toUpperCase()}</span>
-            </div>
-            <div className="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
-              <span>Inflow: ₹{Number(cashFlow.totalInflow).toLocaleString('en-IN')}</span>
-              <span className="font-semibold text-rose-700">Outflow: ₹{Number(cashFlow.totalOutflow).toLocaleString('en-IN')}</span>
             </div>
           </div>
 
@@ -661,9 +469,9 @@ export default function CeoDashboard() {
         <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
           <Sparkles className="h-4 w-4 text-emerald-600" />
           <h2 className="text-sm font-bold text-slate-900">
-            Commerce Velocity & Unit Economics
+            Commerce & Customer Activity
           </h2>
-          <span className="text-xs text-slate-400">Delivery Cost, Contribution, Registered, Active & Repeat Rate</span>
+          <span className="text-xs text-slate-400">Order volume, registered customers, active buyers, and repeat purchases</span>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -682,32 +490,6 @@ export default function CeoDashboard() {
             <p className="mt-1 text-[11px] text-slate-500">
               {timeFilter === 'today' ? "Today's drops" : `${ordersPDay.totalOrders} total in ${timeFilter}`}
             </p>
-          </div>
-
-          {/* Delivery Cost Per Order */}
-          <div
-            onClick={() => setActiveDetailTab('unit_economics')}
-            className={`${PANEL} p-4 cursor-pointer transition hover:border-emerald-500 hover:shadow-xs group`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Delivery Cost</span>
-              <Truck className="h-4 w-4 text-amber-600" />
-            </div>
-            <p className="mt-1.5 text-2xl font-black text-slate-900">₹{delivCost.avgDeliveryCost}</p>
-            <p className="mt-1 text-[11px] text-amber-700">Total: ₹{Number(delivCost.totalDeliverySpend).toLocaleString('en-IN')}</p>
-          </div>
-
-          {/* Contribution Per Order */}
-          <div
-            onClick={() => setActiveDetailTab('unit_economics')}
-            className={`${PANEL} p-4 cursor-pointer transition hover:border-emerald-500 hover:shadow-xs group`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Contribution</span>
-              <Percent className="h-4 w-4 text-emerald-600" />
-            </div>
-            <p className="mt-1.5 text-2xl font-black text-emerald-700">+₹{contribOrder.netContributionPerOrder}</p>
-            <p className="mt-1 text-[11px] text-emerald-700">+{contribOrder.contributionMarginPercent}% CM2 net</p>
           </div>
 
           {/* Registered Customers */}
@@ -761,18 +543,17 @@ export default function CeoDashboard() {
               Detailed Executive Breakdown
             </h3>
             <p className="text-xs text-slate-500">
-              Interactive financial liquidity, cash flow analysis, unit economics waterfall, velocity charts, and retention.
+              Settlement totals, order trends, retention, and order value distribution.
             </p>
           </div>
 
           {/* Detail Sub-Tabs */}
           <div className="flex flex-wrap gap-1.5">
             {[
-              { id: 'financial_liquidity', label: 'Financials & Cash Flow (1, 2, 3)', icon: Wallet },
-              { id: 'unit_economics', label: 'Unit Economics Waterfall', icon: Percent },
+              { id: 'financial_liquidity', label: 'Farmer Settlements', icon: Wallet },
               { id: 'order_velocity', label: 'Orders Velocity & Pace', icon: ShoppingCart },
               { id: 'customer_funnel', label: 'Customer Funnel & Repeat Rate', icon: Users },
-              { id: 'aov_dynamics', label: 'AOV Brackets (4)', icon: IndianRupee },
+              { id: 'aov_dynamics', label: 'Order Value Brackets', icon: IndianRupee },
             ].map((tab) => {
               const Icon = tab.icon;
               const active = activeDetailTab === tab.id;
@@ -794,209 +575,10 @@ export default function CeoDashboard() {
           </div>
         </div>
 
-        {/* TAB 1: FINANCIALS, FARMER PAYMENTS & CASH FLOW */}
         {activeDetailTab === 'financial_liquidity' && (
-          <div className="space-y-4">
-            {/* 3 Overview summary cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Gross Margin Card */}
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">1. Gross Margin Health</p>
-                  <span className="text-xs font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">{grossMargin.grossMarginPercent}%</span>
-                </div>
-                <p className="mt-1 text-2xl font-black text-emerald-950">₹{Number(grossMargin.totalGrossProfit).toLocaleString('en-IN')}</p>
-                <p className="text-[11px] text-emerald-700 mt-1">
-                  Gross profit generated across ₹{Number(grossMargin.totalRevenue).toLocaleString('en-IN')} revenue
-                </p>
-              </div>
-
-              {/* Farmer Payouts Card */}
-              <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs font-bold uppercase tracking-wide text-amber-800">2. Farmer Disbursements</p>
-                  <span className="text-xs font-extrabold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">{farmerPayments.disbursementRatePercent}% cleared</span>
-                </div>
-                <p className="mt-1 text-2xl font-black text-amber-950">₹{Number(farmerPayments.paidEarnings).toLocaleString('en-IN')}</p>
-                <p className="text-[11px] text-amber-700 mt-1">
-                  ₹{Number(farmerPayments.pendingEarnings).toLocaleString('en-IN')} pending settlement • {farmerPayments.farmerCountPaid} growers
-                </p>
-              </div>
-
-              {/* Cash Flow Card */}
-              <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs font-bold uppercase tracking-wide text-blue-800">3. Operating Cash Surplus</p>
-                  <span className="text-xs font-extrabold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full">+{cashFlow.operatingCashMargin}% margin</span>
-                </div>
-                <p className="mt-1 text-2xl font-black text-blue-950">+₹{Number(cashFlow.netCashFlow).toLocaleString('en-IN')}</p>
-                <p className="text-[11px] text-blue-700 mt-1">
-                  Inflows: ₹{Math.round(cashFlow.totalInflow / 1000)}k • Total Outflows: ₹{Math.round(cashFlow.totalOutflow / 1000)}k
-                </p>
-              </div>
-            </div>
-
-            {/* Inflows vs Outflows Cash Flow Waterfall Table */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Cash Inflows & Outflows */}
-              <div className="rounded-xl border border-slate-200 p-4 bg-white space-y-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
-                  <span>Cash Flow Breakdown</span>
-                  <span className="text-emerald-700 font-bold">Net: +₹{Number(cashFlow.netCashFlow).toLocaleString('en-IN')}</span>
-                </p>
-
-                <div className="space-y-2.5 text-xs">
-                  {/* Inflow Online */}
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-emerald-50/60">
-                    <span className="font-semibold text-emerald-900">Online Gateway Collections (Razorpay / UPI)</span>
-                    <span className="font-bold text-emerald-800">+₹{Number(cashFlow.onlineCollections).toLocaleString('en-IN')}</span>
-                  </div>
-
-                  {/* Inflow COD */}
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-emerald-50/60">
-                    <span className="font-semibold text-emerald-900">COD Cash Collected at Dark Stores</span>
-                    <span className="font-bold text-emerald-800">+₹{Number(cashFlow.codCashCollections).toLocaleString('en-IN')}</span>
-                  </div>
-
-                  {/* Total Inflows */}
-                  <div className="flex justify-between items-center pt-1 border-t border-slate-200 font-bold text-slate-800">
-                    <span>Total Cash Inflow</span>
-                    <span className="text-emerald-700">+₹{Number(cashFlow.totalInflow).toLocaleString('en-IN')}</span>
-                  </div>
-
-                  {/* Outflow Farmer */}
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-rose-50/60">
-                    <span className="font-semibold text-rose-900">Farmer Produce Payments Disbursed</span>
-                    <span className="font-bold text-rose-800">-₹{Number(cashFlow.farmerOutflow).toLocaleString('en-IN')}</span>
-                  </div>
-
-                  {/* Outflow Rider */}
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-rose-50/60">
-                    <span className="font-semibold text-rose-900">Delivery Partner / Rider Payouts</span>
-                    <span className="font-bold text-rose-800">-₹{Number(cashFlow.deliveryOutflow).toLocaleString('en-IN')}</span>
-                  </div>
-
-                  {/* Outflow Ops & Packaging */}
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-rose-50/60">
-                    <span className="font-semibold text-rose-900">Payment Gateway Fees & Packaging</span>
-                    <span className="font-bold text-rose-800">-₹{Number(cashFlow.operationsAndPackagingOutflow).toLocaleString('en-IN')}</span>
-                  </div>
-
-                  {/* Total Outflows */}
-                  <div className="flex justify-between items-center pt-1 border-t border-slate-200 font-bold text-slate-800">
-                    <span>Total Cash Outflow</span>
-                    <span className="text-rose-700">-₹{Number(cashFlow.totalOutflow).toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Department Gross Margins & Farmer Payout Status */}
-              <div className="space-y-4">
-                {/* Department Gross Margins */}
-                <div className="rounded-xl border border-slate-200 p-4 bg-white space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Gross Margin % by Department</p>
-                  <div className="space-y-2">
-                    {grossMargin.departmentMargins?.map((dept) => (
-                      <div key={dept.department} className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="font-semibold text-slate-700">{dept.department}</span>
-                          <span className="font-bold text-slate-900">{dept.marginPercent}% margin ({dept.revenueShare}% share)</span>
-                        </div>
-                        <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${dept.marginPercent * 2.2}%`, backgroundColor: dept.color }}></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Farmer Payment Settlement Progress */}
-                <div className="rounded-xl border border-slate-200 p-4 bg-white space-y-3">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold uppercase tracking-wide text-slate-700">Farmer Disbursement Clearance</span>
-                    <span className="font-extrabold text-amber-700">{farmerPayments.disbursementRatePercent}% Cleared</span>
-                  </div>
-                  <div className="w-full bg-amber-100 h-3 rounded-full overflow-hidden">
-                    <div className="bg-amber-600 h-full rounded-full" style={{ width: `${farmerPayments.disbursementRatePercent}%` }}></div>
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-500 pt-1">
-                    <span>Disbursed: ₹{Number(farmerPayments.paidEarnings).toLocaleString('en-IN')}</span>
-                    <span className="font-semibold text-amber-800">Pending: ₹{Number(farmerPayments.pendingEarnings).toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: UNIT ECONOMICS & CONTRIBUTION MARGIN WATERFALL */}
-        {activeDetailTab === 'unit_economics' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Average Order Spend (AOV)</p>
-                <p className="mt-1 text-2xl font-black text-slate-900">₹{contribOrder.aov}</p>
-                <p className="text-[11px] text-slate-500 mt-1">Gross merchandise value per drop</p>
-              </div>
-              <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Delivery Fulfillment Cost</p>
-                <p className="mt-1 text-2xl font-black text-amber-900">₹{delivCost.avgDeliveryCost}</p>
-                <p className="text-[11px] text-amber-700 mt-1">
-                  Customer fee: ₹{delivCost.avgCustomerFeeCollected} • Net subsidy: ₹{delivCost.netSubsidyPerOrder}
-                </p>
-              </div>
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Net Contribution (CM2)</p>
-                <p className="mt-1 text-2xl font-black text-emerald-800">+₹{contribOrder.netContributionPerOrder}</p>
-                <p className="text-[11px] text-emerald-700 mt-1">
-                  +{contribOrder.contributionMarginPercent}% net margin • Breakeven at ₹{contribOrder.breakevenAov} AOV
-                </p>
-              </div>
-            </div>
-
-            {/* Visual Waterfall Table */}
-            <div className="rounded-xl border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-700">
-                <span>Unit Economics Step</span>
-                <span>Amount / Drop</span>
-                <span>% of AOV</span>
-                <span>Impact</span>
-              </div>
-              <div className="divide-y divide-slate-100 bg-white">
-                {contribOrder.waterfall?.map((step, idx) => {
-                  const percentOfAov = contribOrder.aov > 0
-                    ? Math.abs(Math.round((step.amount / contribOrder.aov) * 100))
-                    : 0;
-                  return (
-                    <div key={idx} className="px-4 py-3 flex items-center justify-between text-xs hover:bg-slate-50/60 transition">
-                      <div className="flex items-center gap-2">
-                        <span className={`h-2.5 w-2.5 rounded-full ${step.amount >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                        <div>
-                          <p className="font-bold text-slate-800">{step.stage}</p>
-                          <p className="text-[11px] text-slate-400">{step.note}</p>
-                        </div>
-                      </div>
-                      <div className="font-bold text-slate-900 text-sm">
-                        {step.amount >= 0 ? `+₹${step.amount}` : `-₹${Math.abs(step.amount)}`}
-                      </div>
-                      <div className="text-slate-500 font-semibold">{percentOfAov}%</div>
-                      <div>
-                        {step.type === 'net' ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                            Net Profitable
-                          </span>
-                        ) : step.amount >= 0 ? (
-                          <span className="text-emerald-600 font-semibold">+ Revenue / Margin</span>
-                        ) : (
-                          <span className="text-rose-600 font-semibold">- Cost Deducted</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <p className="text-xs text-slate-600">
+            ₹{Number(farmerPayments.paidEarnings).toLocaleString('en-IN')} paid · ₹{Number(farmerPayments.pendingEarnings).toLocaleString('en-IN')} pending · {farmerPayments.farmerCountPaid} farmers paid
+          </p>
         )}
 
         {/* TAB 3: ORDER VELOCITY & 14-DAY PACING */}
@@ -1004,7 +586,7 @@ export default function CeoDashboard() {
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">14-Day Velocity & Daily Pace</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Recent Order Velocity</p>
                 <p className="text-xs text-slate-400">Daily order and delivery counts</p>
               </div>
               <div className="flex gap-2 text-xs">
@@ -1191,6 +773,10 @@ export default function CeoDashboard() {
           </div>
         )}
       </section>
+      </> : (
+        <p className="border border-slate-200 bg-white p-4 text-xs text-slate-600">Executive metrics are currently unavailable.</p>
+      )}
+
 
       {/* ========================================================================= */}
       {/* INSIGHT LENS FILTER (SECONDARY OPERATIONAL VIEWS)                        */}
