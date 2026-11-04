@@ -1,23 +1,21 @@
 import dns from "node:dns";
 import mongoose from "mongoose";
+import { resolveMongoConfig } from "./config.js";
 
 try {
   dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 } catch (_) {}
 
 const connectDB = async (serviceName = "service") => {
-  const uri =
-    process.env.MONGODB_URI ||
-    "mongodb://127.0.0.1:27017/greengroccdb";
-
   try {
+    const { uri, dbName } = resolveMongoConfig();
     const options = {
       maxPoolSize: 50,
       minPoolSize: 5,
       serverSelectionTimeoutMS: 15000,
     };
-    if (process.env.MONGODB_DB_NAME) {
-      options.dbName = process.env.MONGODB_DB_NAME;
+    if (dbName) {
+      options.dbName = dbName;
     }
     const conn = await mongoose.connect(uri, options);
     console.log(

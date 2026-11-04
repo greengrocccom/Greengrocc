@@ -1,13 +1,11 @@
 import mongoose from "mongoose";
+import { resolveMongoConfig } from "../../shared/db/config.js";
 
 const connectDB = async () => {
-  const uri =
-    process.env.MONGODB_URI ||
-    "mongodb://127.0.0.1:27017/greengroccdb";
-
   try {
+    const { uri, dbName } = resolveMongoConfig();
     const conn = await mongoose.connect(uri, {
-      dbName: process.env.MONGODB_DB_NAME || "test",
+      dbName: dbName || "test",
     });
     console.log(
       `MongoDB connected: ${conn.connection.host} / ${conn.connection.name}`
@@ -17,7 +15,7 @@ const connectDB = async () => {
     console.error("MongoDB connection error:", error.message);
     if (error.message.includes("bad auth")) {
       console.error(
-        "Check MONGODB_URI in .env: copy a fresh connection string from Atlas (Connect → Drivers), confirm the DB user exists under Database Access, and URL-encode special characters in the password (e.g. @ → %40)."
+        "Check the selected MongoDB URI in .env: confirm the Atlas database user and URL-encode special characters in the password (e.g. @ → %40)."
       );
     }
     process.exit(1);
