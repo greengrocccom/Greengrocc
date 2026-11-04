@@ -578,7 +578,7 @@ function buildCatalogProductFromEntry(entry) {
   };
 }
 
-async function resolveCheckoutItems(rawItems, { skipStockCheck = false } = {}) {
+async function resolveCheckoutItems(rawItems, { skipStockCheck = false, isBulkOrder = false } = {}) {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return { error: "No items to checkout", status: 400 };
   }
@@ -657,7 +657,6 @@ async function resolveCheckoutItems(rawItems, { skipStockCheck = false } = {}) {
       }
     }
 
-    const isBulkOrder = Boolean(options.isBulkUser || options.isBulk || String(options.user?.accountType || "").toLowerCase() === "bulk");
     const requiredMoq = isBulkOrder
       ? (Number(product.bulkMinOrderQuantity) || 10)
       : (Number(product.minOrderQuantity) || 1);
@@ -782,7 +781,7 @@ export async function prepareOrderData(userId, addressId, options = {}) {
     }
   }
 
-  const resolvedItems = await resolveItemsForCheckout(userId, options);
+  const resolvedItems = await resolveItemsForCheckout(user, options);
   if (resolvedItems.error) {
     return resolvedItems;
   }
@@ -1023,14 +1022,15 @@ function buildPendingDeliveryAddress(user, address = null) {
   };
 }
 
-async function resolveItemsForCheckout(userId, options = {}) {
+async function resolveItemsForCheckout(user, options = {}) {
   const checkoutMode = resolveCheckoutMode(options);
   const clientItems = Array.isArray(options.checkoutItems) ? options.checkoutItems : [];
-  const cart = await populateCart(Cart.findOne({ user: userId }));
+  const cart = await populateCart(Cart.findOne({ user: user._id }));
 
   if (checkoutMode === "buyNow" || clientItems.length > 0) {
     const resolved = await resolveCheckoutItems(clientItems, {
       skipStockCheck: Boolean(options.skipStockCheck || options.requireDarkStore),
+      isBulkOrder: user.accountType === "bulk",
     });
     if (resolved.error) {
       return resolved;
@@ -1108,7 +1108,7 @@ export async function prepareCheckoutAttemptData(userId, options = {}) {
     }
   }
 
-  const resolvedItems = await resolveItemsForCheckout(userId, {
+  const resolvedItems = await resolveItemsForCheckout(user, {
     ...options,
     skipStockCheck: true,
   });
