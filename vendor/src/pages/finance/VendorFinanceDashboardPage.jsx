@@ -403,27 +403,6 @@ export default function VendorFinanceDashboardPage() {
               <ArrowUpRight className="h-4 w-4 text-slate-400" />
             </Link>
 
-            <Link
-              to="/vendor/finance/profit-loss"
-              className="flex items-center justify-between p-2 rounded-lg text-slate-700 hover:bg-slate-50 transition"
-            >
-              <span className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
-                Full Profit & Loss Statement
-              </span>
-              <ArrowUpRight className="h-4 w-4 text-slate-400" />
-            </Link>
-
-            <Link
-              to="/vendor/finance/settlements"
-              className="flex items-center justify-between p-2 rounded-lg text-slate-700 hover:bg-slate-50 transition"
-            >
-              <span className="flex items-center gap-2">
-                <Coins className="h-4 w-4 text-indigo-600" />
-                Vendor Settlements
-              </span>
-              <ArrowUpRight className="h-4 w-4 text-slate-400" />
-            </Link>
           </div>
         </div>
       </div>

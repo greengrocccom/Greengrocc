@@ -241,8 +241,6 @@ const navSections = [
           { to: '/vendor/finance/farmer-payments', label: 'Farmer Vendor Payments' },
           { to: '/vendor/finance/delivery-manager-reports', label: 'Delivery Manager Reports' },
           { to: '/vendor/finance/expenses', label: 'Expenses' },
-          { to: '/vendor/finance/profit-loss', label: 'Profit & Loss' },
-          { to: '/vendor/finance/settlements', label: 'Settlements' },
         ],
       },
       {

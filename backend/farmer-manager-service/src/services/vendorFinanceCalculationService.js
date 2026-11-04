@@ -352,13 +352,16 @@ export async function calculateVendorFinancials({
 
   const grossProductSales = orderKpis?.grossProductSales || 0;
   const deliveryCharges = orderKpis?.totalDeliveryCharges || 0;
-  const customerPaymentTotal = orderKpis?.customerPaymentTotal || 0;
+  const cancelledOrdersCost = orderKpis?.cancelledOrdersCost || 0;
+  const totalSale = grossProductSales + deliveryCharges;
+  // Total Customer Paid across all orders placed (including cancelled orders)
+  const totalCustomerPaid = totalSale + cancelledOrdersCost;
   const totalRefunds = orderKpis?.totalRefunds || 0;
   const netProductSales = Math.max(0, grossProductSales - totalRefunds);
 
   // 4. Admin Commission Calculation (Standardized formula)
-  // Admin Commission = Total Eligible Product Sales * Vendor.commissionRate / 100
-  const eligibleCommissionSales = grossProductSales;
+  // Admin Commission = Total Eligible Net Sale * Vendor.commissionRate / 100
+  const eligibleCommissionSales = totalSale > 0 ? totalSale : grossProductSales;
   const adminCommission = Math.round((eligibleCommissionSales * commissionRate) / 100);
 
   // Reconcile Commission Paid from VendorCommissionPayment and VendorSettlement
@@ -550,8 +553,9 @@ export async function calculateVendorFinancials({
       cancelledOrdersCost: orderKpis?.cancelledOrdersCost || 0,
       grossProductSales,
       deliveryCharges,
-      customerPaymentTotal,
-      totalSale: grossProductSales + deliveryCharges,
+      customerPaymentTotal: totalCustomerPaid,
+      netCustomerPaid: totalSale,
+      totalSale,
       deliveredSales: orderKpis?.deliveredSales || 0,
       currentProfit: orderKpis?.deliveredSales || 0,
       netProductSales,

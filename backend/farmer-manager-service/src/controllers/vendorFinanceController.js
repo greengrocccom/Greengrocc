@@ -520,6 +520,10 @@ export async function getVendorSalesReports(req, res) {
     const storeExpMap = new Map(storeExpAgg.map((e) => [String(e._id), e.totalExpenses]));
     const storeOrderMap = new Map(storeWiseAgg.map((o) => [String(o._id), o]));
 
+    const totalVendorProcurement = data.kpis?.farmerProcurementCost || 0;
+    const totalVendorGrossSales = data.kpis?.grossProductSales || 0;
+    const vendorRate = data.kpis?.commissionRate || 10;
+
     const darkStoreBreakdown = darkStores.map((s) => {
       const o = storeOrderMap.get(String(s._id)) || {
         totalOrders: 0,
@@ -533,7 +537,12 @@ export async function getVendorSalesReports(req, res) {
       const exp = storeExpMap.get(String(s._id)) || 0;
       const totalSale = o.grossProductSales + o.deliveryCharges;
       const customerPaymentTotal = totalSale + o.cancelledOrdersCost;
-      const netProfit = totalSale - exp;
+      const storeProcurement = totalVendorGrossSales > 0
+        ? Math.round((totalVendorProcurement * o.grossProductSales) / totalVendorGrossSales)
+        : (darkStores.length === 1 ? totalVendorProcurement : 0);
+      const storeCommission = Math.round((customerPaymentTotal * vendorRate) / 100);
+      // All deductions: Procurement + Commission + Dark Store Expenses
+      const netProfit = totalSale - storeProcurement - storeCommission - exp;
       const currentProfit = o.deliveredSales;
 
       return {

@@ -19,6 +19,7 @@ import {
   ArrowUpRight,
   Tractor,
   Wallet,
+  Percent,
 } from "lucide-react";
 import { vendorApi } from "../../api/vendorApi";
 import FinanceDateFilter from "../../components/finance/FinanceDateFilter";
@@ -135,9 +136,23 @@ export default function VendorSalesReportsPage() {
   const vendorExpenses = Number(k.vendorOperatingExpenses || 0);
   const darkStoreExpenses = Number(k.darkStoreExpenses || 0);
 
+  // Commission & Gross Customer Paid details
+  const cancelledOrdersCost = Number(k.cancelledOrdersCost || 0);
+  const customerPaidTotal = Number(
+    k.customerPaymentTotal && Number(k.customerPaymentTotal) > totalSale
+      ? k.customerPaymentTotal
+      : totalSale + cancelledOrdersCost
+  );
+  const commissionRate = Number(k.commissionRate || reportData?.vendor?.commissionRate || 10);
+  const adminCommission = Number(
+    k.adminCommission !== undefined && k.adminCommission !== null
+      ? k.adminCommission
+      : Math.round((totalSale * commissionRate) / 100)
+  );
+
   // Formula as instructed:
-  // TOTAL SALE - Total Procurement Value (एकूण शेतीमाल खरेदी) - Total Vendor Expenses - Delivery Manager Expenses = Net Profit
-  const netProfit = totalSale - totalProcurement - vendorExpenses - darkStoreExpenses;
+  // TOTAL SALE - Total Procurement Value (एकूण शेतीमाल खरेदी) - Admin Commission - Total Vendor Expenses - Delivery Manager Expenses = Net Profit
+  const netProfit = totalSale - totalProcurement - adminCommission - vendorExpenses - darkStoreExpenses;
   const currentProfit = Number(k.currentProfit || k.deliveredSales || 0);
 
   return (
@@ -222,7 +237,7 @@ export default function VendorSalesReportsPage() {
               <CreditCard className="h-4 w-4 shrink-0 text-emerald-600" />
             </div>
             <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-emerald-700 truncate tabular-nums">
-              {loading ? "..." : rupee(k.customerPaymentTotal)}
+              {loading ? "..." : rupee(customerPaidTotal)}
             </p>
             <span className="text-[10px] font-medium text-emerald-600 truncate block mt-0.5">
               {k.totalOrders || 0} Total orders placed
@@ -345,9 +360,25 @@ export default function VendorSalesReportsPage() {
           </div>
         </div>
 
-        {/* ROW 3: Final Profitability (Net Profit & Current Profit) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* 9. Net Profit (TOTAL SALE - Total Procurement - Vendor Expenses - Delivery Manager Expenses) */}
+        {/* ROW 3: Final Profitability (Admin Commission, Net Profit & Current Profit) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Admin Commission (Calculated on CUSTOMER PAID TOTAL) */}
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1 text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-950 truncate" title="Admin Commission">
+                ADMIN COMMISSION (कमिशन)
+              </span>
+              <Percent className="h-4 w-4 shrink-0 text-indigo-600" />
+            </div>
+            <p className="mt-1.5 text-xl sm:text-2xl font-bold tracking-tight text-indigo-700 truncate tabular-nums">
+              {loading ? "..." : rupee(adminCommission)}
+            </p>
+            <span className="text-[10px] font-medium text-indigo-800 truncate block mt-0.5">
+              {commissionRate}% on Net Sale ({rupee(totalSale)})
+            </span>
+          </div>
+
+          {/* 9. Net Profit */}
           <div className="rounded-xl border border-emerald-300 bg-emerald-50/50 p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between gap-1 text-slate-500">
               <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-950 truncate" title="Net Profit">
@@ -358,8 +389,8 @@ export default function VendorSalesReportsPage() {
             <p className={`mt-1.5 text-xl sm:text-2xl font-bold tracking-tight truncate tabular-nums ${netProfit >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
               {loading ? "..." : rupee(netProfit)}
             </p>
-            <span className="text-[10.5px] font-medium text-emerald-800 truncate block mt-0.5">
-              TOTAL SALE ({rupee(totalSale)}) - Procurement ({rupee(totalProcurement)}) - Vendor Exp ({rupee(vendorExpenses)}) - Delivery Exp ({rupee(darkStoreExpenses)})
+            <span className="text-[10px] font-medium text-emerald-800 truncate block mt-0.5">
+              Sale ({rupee(totalSale)}) - Proc ({rupee(totalProcurement)}) - Comm ({rupee(adminCommission)}) - Exp ({rupee(vendorExpenses + darkStoreExpenses)})
             </span>
           </div>
 
@@ -374,7 +405,7 @@ export default function VendorSalesReportsPage() {
             <p className="mt-1.5 text-xl sm:text-2xl font-bold tracking-tight text-emerald-700 truncate tabular-nums">
               {loading ? "..." : rupee(currentProfit)}
             </p>
-            <span className="text-[10.5px] font-medium text-emerald-700 truncate block mt-0.5">
+            <span className="text-[10px] font-medium text-emerald-700 truncate block mt-0.5">
               {k.completedOrders || 0} Delivered & Paid orders
             </span>
           </div>
