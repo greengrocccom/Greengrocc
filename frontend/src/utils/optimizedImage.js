@@ -1,7 +1,6 @@
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5001").trim().replace(/\/+$/, "");
 
 const OWN_BUCKET_HOST = /^greengrocc[\w.-]*\.s3[.-][\w.-]*amazonaws\.com$/i;
-const OWN_CDN_HOSTS = new Set(["cdn.greengrocc.com", "res.cloudinary.com"]);
 // Same buckets as the backend, so URLs (and caches) stay stable as boxes resize.
 const SIZES = [96, 160, 240, 320, 480, 640, 800, 1080, 1440, 1920];
 const MAX_PX = SIZES[SIZES.length - 1];
@@ -28,7 +27,7 @@ export function optimizedImageUrl(src, { widthPx, heightPx } = {}) {
   const w = widthPx > 0 ? clampPx(widthPx) : h ? null : clampPx(screenWidthPx());
   const host = url.hostname.toLowerCase();
 
-  if (OWN_BUCKET_HOST.test(host) || OWN_CDN_HOSTS.has(host)) {
+  if (OWN_BUCKET_HOST.test(host) || host === "res.cloudinary.com") {
     const params = new URLSearchParams();
     if (w) params.set("w", String(w));
     if (h) params.set("h", String(h));

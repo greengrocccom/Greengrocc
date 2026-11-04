@@ -3,7 +3,6 @@ import 'dart:ui' show PlatformDispatcher;
 import '../../config/env.dart';
 
 final _ownBucketHost = RegExp(r'^greengrocc[\w.-]*\.s3[.-][\w.-]*amazonaws\.com$');
-const _ownCdnHosts = {'cdn.greengrocc.com', 'res.cloudinary.com'};
 
 /// Same buckets as the backend `/api/img`, so nearby sizes share one cached file.
 const _sizes = [96, 160, 240, 320, 480, 640, 800, 1080, 1440, 1920];
@@ -26,7 +25,7 @@ String optimizedImageUrl(String url, {int? widthPx, int? heightPx}) {
   final w = rawW == null ? null : _snap(rawW);
   final host = uri.host.toLowerCase();
 
-  if (_ownBucketHost.hasMatch(host) || _ownCdnHosts.contains(host)) {
+  if (_ownBucketHost.hasMatch(host) || host == 'res.cloudinary.com') {
     final size = [if (w != null) 'w=$w', if (h != null) 'h=$h'].join('&');
     return '${Env.apiUrl}/api/img?$size&url=${Uri.encodeQueryComponent(raw)}';
   }
