@@ -63,7 +63,18 @@ const navSections = [
     id: 'home',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
-      { to: '/sales', label: 'Sales Summary', icon: LayoutDashboard },
+      {
+        id: 'finance',
+        label: 'Vendor Finance',
+        icon: IndianRupee,
+        children: [
+          { to: '/vendor/finance/sales-reports', label: 'Sales Reports' },
+          { to: '/vendor/finance/seller-reports', label: 'Vendor Seller Report' },
+          { to: '/vendor/finance/farmer-payments', label: 'Farmer Vendor Payments' },
+          { to: '/vendor/finance/delivery-manager-reports', label: 'Delivery Manager Reports' },
+          { to: '/vendor/finance/expenses', label: 'Expenses' },
+        ],
+      },
       { to: '/vendor/notifications', label: 'Notifications', icon: Bell },
     ],
   },
@@ -231,18 +242,6 @@ const navSections = [
     id: 'business',
     title: 'Finance & Store',
     items: [
-      {
-        id: 'finance',
-        label: 'Vendor Finance',
-        icon: IndianRupee,
-        children: [
-          { to: '/vendor/finance/dashboard', label: 'Finance Dashboard' },
-          { to: '/vendor/finance/sales-reports', label: 'Sales Reports' },
-          { to: '/vendor/finance/farmer-payments', label: 'Farmer Vendor Payments' },
-          { to: '/vendor/finance/delivery-manager-reports', label: 'Delivery Manager Reports' },
-          { to: '/vendor/finance/expenses', label: 'Expenses' },
-        ],
-      },
       {
         id: 'earnings',
         label: 'Earnings',
@@ -497,16 +496,27 @@ export default function ProductManagerLayout() {
       list = list
         .filter((section) => section.id !== 'sourcing')
         .map((section) => {
+          // Hide Farmer Vendor Payments from Vendor Finance for seller vendors
+          const cleanFinanceItems = section.items.map((item) => {
+            if (item.id === 'finance' && item.children) {
+              return {
+                ...item,
+                children: item.children.filter((c) => c.to !== '/vendor/finance/farmer-payments'),
+              }
+            }
+            return item
+          });
+
           if (section.id === 'orders') {
             return {
               ...section,
-              items: section.items.filter((item) => item.id !== 'farmer-orders'),
+              items: cleanFinanceItems.filter((item) => item.id !== 'farmer-orders'),
             }
           }
           if (section.id === 'inventory') {
             return {
               ...section,
-              items: section.items.map((item) => {
+              items: cleanFinanceItems.map((item) => {
                 if (item.id === 'inventory' && item.children) {
                   return {
                     ...item,
@@ -520,12 +530,15 @@ export default function ProductManagerLayout() {
           if (section.id === 'logistics') {
             return {
               ...section,
-              items: section.items.filter(
+              items: cleanFinanceItems.filter(
                 (item) => item.id !== 'pickups' && item.to !== '/vendor/drivers',
               ),
             }
           }
-          return section
+          return {
+            ...section,
+            items: cleanFinanceItems,
+          }
         })
     }
 

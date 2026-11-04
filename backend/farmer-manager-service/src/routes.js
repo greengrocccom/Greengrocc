@@ -1,6 +1,7 @@
 import {
   getVendorFinanceDashboard,
   getVendorSalesReports,
+  getVendorSellerReports,
   getVendorFarmerPayments,
   getVendorFarmerDetail,
   getVendorDarkStoreReports,
@@ -547,6 +548,7 @@ vendorRouter.get("/live-search", attachAuth, handleVendorLiveSearch);
 // ── Vendor Finance & Profit Management Endpoints ───────────────
 vendorRouter.get("/finance/dashboard", requireVendor, getVendorFinanceDashboard);
 vendorRouter.get("/finance/sales-reports", requireVendor, getVendorSalesReports);
+vendorRouter.get("/finance/seller-reports", requireVendor, getVendorSellerReports);
 vendorRouter.get("/finance/farmer-payments", requireVendor, getVendorFarmerPayments);
 vendorRouter.get("/finance/farmer-payments/:farmerId", requireVendor, getVendorFarmerDetail);
 vendorRouter.get("/finance/delivery-manager-reports", requireVendor, getVendorDarkStoreReports);

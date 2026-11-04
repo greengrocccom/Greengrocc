@@ -150,14 +150,24 @@ export async function syncVendorProductTotalStock(vendorId, productId, session =
   }
 
   const roundedStock = Math.floor(totalValidStock);
+
+  // Find latest purchase cost from batches if available
+  const batchesWithCost = batches
+    .filter((b) => Number(b.purchaseCost) > 0)
+    .sort((a, b) => new Date(a.receivedDate || a.createdAt) - new Date(b.receivedDate || b.createdAt));
+  const latestBatch = batchesWithCost[batchesWithCost.length - 1];
+
+  const updateFields = {
+    stock: roundedStock,
+    customInStock: roundedStock > 0,
+  };
+  if (latestBatch && Number(latestBatch.purchaseCost) > 0) {
+    updateFields.purchaseCost = Number(latestBatch.purchaseCost);
+  }
+
   await VendorProduct.updateOne(
     { vendorId, productId },
-    {
-      $set: {
-        stock: roundedStock,
-        customInStock: roundedStock > 0,
-      },
-    },
+    { $set: updateFields },
     { session }
   );
 
@@ -347,6 +357,7 @@ export async function addVendorStockBatch(req, res) {
               ? stockSource
               : "Supplier",
             purchaseCost: Math.max(0, Number(purchaseCost) || 0),
+            totalPurchaseCost: Math.max(0, Number(req.body.totalPurchaseCost) || (Number(purchaseCost) * qty) || 0),
             storageLocation: String(storageLocation || "Main Darkstore").trim(),
             remarks: String(remarks || "").trim(),
             status: initialStatus,
@@ -382,6 +393,8 @@ export async function addVendorStockBatch(req, res) {
             expiryDate: parsedExpiryDate,
             packagingType: String(packagingType || "Box").trim(),
             storageLocation: String(storageLocation || "Main Darkstore").trim(),
+            purchaseCost: Math.max(0, Number(purchaseCost) || 0),
+            totalPurchaseCost: Math.max(0, Number(req.body.totalPurchaseCost) || (Number(purchaseCost) * qty) || 0),
             reason: "New Purchase / Stock Addition",
             remarks: remarks || `Batch ${batchId} created with ${Math.floor(qty)} ${unit}`,
             userId: req.user?.id || "",
@@ -602,6 +615,27 @@ export async function listVendorStockBatches(req, res) {
       ).catch(() => {});
     }
 
+    // Backfill any missing purchase cost from VendorProduct
+    const missingCostBatches = batches.filter((b) => !b.purchaseCost || b.purchaseCost === 0);
+    if (missingCostBatches.length > 0) {
+      const pids = [...new Set(missingCostBatches.map((b) => b.productId).filter(Boolean))];
+      const prodDocs = await VendorProduct.find({ vendorId, productId: { $in: pids } })
+        .select("productId purchaseCost")
+        .lean();
+      const prodMap = new Map(prodDocs.map((p) => [String(p.productId), p]));
+      for (const b of batches) {
+        if (!b.purchaseCost || b.purchaseCost === 0) {
+          const prod = prodMap.get(String(b.productId));
+          if (prod && Number(prod.purchaseCost) > 0) {
+            b.purchaseCost = Number(prod.purchaseCost);
+          }
+        }
+        if (!b.totalPurchaseCost || b.totalPurchaseCost === 0) {
+          b.totalPurchaseCost = Number(b.purchaseCost || 0) * Number(b.quantity || b.availableQuantity || 0);
+        }
+      }
+    }
+
     // Apply text search if query provided
     if (search) {
       batches = batches.filter(
@@ -702,23 +736,44 @@ export async function listVendorStockTransactions(req, res) {
       VendorStockTransaction.countDocuments(filter),
     ]);
 
-    // Backfill any missing dates from batch
-    const needDates = transactions.filter((t) => !t.expiryDate && t.batchId);
-    if (needDates.length > 0) {
-      const batchIds = [...new Set(needDates.map((t) => t.batchId))];
-      const batchDocs = await VendorStockBatch.find({ vendorId, batchId: { $in: batchIds } })
-        .select("batchId receivedDate mfgDate expiryDate packagingType storageLocation")
-        .lean();
-      const batchMap = new Map(batchDocs.map((b) => [b.batchId, b]));
-      for (const t of transactions) {
-        if (!t.expiryDate && batchMap.has(t.batchId)) {
-          const b = batchMap.get(t.batchId);
-          t.receivedDate = t.receivedDate || b.receivedDate;
-          t.mfgDate = t.mfgDate || b.mfgDate;
-          t.expiryDate = t.expiryDate || b.expiryDate;
-          t.packagingType = t.packagingType || b.packagingType;
-          t.storageLocation = t.storageLocation || b.storageLocation;
+    // Backfill any missing dates or purchase costs from batch and product
+    const batchIds = [...new Set(transactions.map((t) => t.batchId).filter(Boolean))];
+    const productIds = [...new Set(transactions.map((t) => t.productId).filter(Boolean))];
+    const [batchDocs, prodDocs] = await Promise.all([
+      batchIds.length
+        ? VendorStockBatch.find({ vendorId, batchId: { $in: batchIds } })
+            .select("batchId receivedDate mfgDate expiryDate packagingType storageLocation purchaseCost totalPurchaseCost")
+            .lean()
+        : [],
+      productIds.length
+        ? VendorProduct.find({ vendorId, productId: { $in: productIds } })
+            .select("productId purchaseCost")
+            .lean()
+        : [],
+    ]);
+    const batchMap = new Map(batchDocs.map((b) => [b.batchId, b]));
+    const prodMap = new Map(prodDocs.map((p) => [String(p.productId), p]));
+
+    for (const t of transactions) {
+      const b = batchMap.get(t.batchId);
+      if (b) {
+        t.receivedDate = t.receivedDate || b.receivedDate;
+        t.mfgDate = t.mfgDate || b.mfgDate;
+        t.expiryDate = t.expiryDate || b.expiryDate;
+        t.packagingType = t.packagingType || b.packagingType;
+        t.storageLocation = t.storageLocation || b.storageLocation;
+        if (!t.purchaseCost || t.purchaseCost === 0) {
+          t.purchaseCost = Number(b.purchaseCost || 0);
         }
+      }
+      if (!t.purchaseCost || t.purchaseCost === 0) {
+        const prod = prodMap.get(String(t.productId));
+        if (prod && Number(prod.purchaseCost) > 0) {
+          t.purchaseCost = Number(prod.purchaseCost);
+        }
+      }
+      if (!t.totalPurchaseCost || t.totalPurchaseCost === 0) {
+        t.totalPurchaseCost = Number(t.purchaseCost || 0) * Number(t.quantity || 0);
       }
     }
 

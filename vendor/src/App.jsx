@@ -90,6 +90,7 @@ import VendorVacationPage from './pages/vacation/VendorVacationPage'
 import VendorReviewsPage from './pages/reviews/VendorReviewsPage'
 import VendorFinanceDashboardPage from './pages/finance/VendorFinanceDashboardPage'
 import VendorSalesReportsPage from './pages/finance/VendorSalesReportsPage'
+import VendorSellerReportsPage from './pages/finance/VendorSellerReportsPage'
 import VendorFarmerPaymentsPage from './pages/finance/VendorFarmerPaymentsPage'
 import VendorDeliveryManagerReportsPage from './pages/finance/VendorDeliveryManagerReportsPage'
 import VendorExpensesPage from './pages/finance/VendorExpensesPage'
@@ -283,7 +284,10 @@ function App() {
                                 {/* Vendor Finance and Profit Management */}
                 <Route path="/vendor/finance/dashboard" element={<VendorFinanceDashboardPage />} />
                 <Route path="/vendor/finance/sales-reports" element={<VendorSalesReportsPage />} />
-                <Route path="/vendor/finance/farmer-payments" element={<VendorFarmerPaymentsPage />} />
+                <Route path="/vendor/finance/seller-reports" element={<VendorSellerReportsPage />} />
+                <Route element={<FarmerOnlyLayout />}>
+                  <Route path="/vendor/finance/farmer-payments" element={<VendorFarmerPaymentsPage />} />
+                </Route>
                 <Route path="/vendor/finance/delivery-manager-reports" element={<VendorDeliveryManagerReportsPage />} />
                 <Route path="/vendor/finance/expenses" element={<VendorExpensesPage />} />
                 <Route path="/vendor/finance/profit-loss" element={<VendorProfitLossPage />} />

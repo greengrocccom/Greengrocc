@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 import DeliveryManager from "../../../delivery-service/src/models/DeliveryManager.js";
 import StoreOrder from "../../../delivery-service/src/models/StoreOrder.js";
 import DeliveryExpense from "../../../delivery-service/src/models/DeliveryExpense.js";
-import { Vendor, Farmer, FarmerOrder, FarmerEarning } from "../models.js";
+import { Vendor, Farmer, FarmerOrder, FarmerEarning, VendorStockBatch } from "../models.js";
+import { vendorProductsWithCatalog } from "../vendorProductRequestControllers.js";
 import VendorExpense from "../models/VendorExpense.js";
 import VendorSettlement from "../models/VendorSettlement.js";
 import {
@@ -1680,3 +1681,221 @@ export async function recordSettlementPayment(req, res) {
   }
 }
 
+
+// ── GET /api/vendor/finance/seller-reports ───────────────────
+export async function getVendorSellerReports(req, res) {
+  try {
+    const vendorId = getAuthenticatedVendorId(req);
+    if (!vendorId) {
+      return res.status(403).json({ success: false, message: "Vendor authentication required" });
+    }
+
+    const { search = "", section = "", status = "all", sortBy = "valuation_desc", onlyAdded = "true" } = req.query;
+
+    const [allProducts, allBatches] = await Promise.all([
+      vendorProductsWithCatalog(vendorId),
+      VendorStockBatch.find({ vendorId }).sort({ receivedDate: -1, createdAt: -1 }).lean(),
+    ]);
+
+    // Map batches by product
+    const batchMap = new Map();
+    for (const b of allBatches) {
+      const pid = String(b.productId);
+      if (!batchMap.has(pid)) batchMap.set(pid, []);
+      batchMap.get(pid).push(b);
+    }
+
+    const enrichedProducts = allProducts.map((p) => {
+      const s = Number(p.stock ?? 0);
+      const isAvail = p.inStock !== false && s > 0;
+      let stockStatus = "In Stock";
+      if (!isAvail || s <= 0) {
+        stockStatus = "Out of Stock";
+      } else if (s <= 10) {
+        stockStatus = "Low Stock";
+      }
+
+      const pBatches = batchMap.get(String(p.productId)) || [];
+      const batchesCount = pBatches.length;
+      const latestBatch = pBatches[0] || null;
+
+      const purchaseCost = Number(p.purchaseCost || p.latestPurchaseCost || latestBatch?.purchaseCost || 0);
+      const totalPurchaseValue = Number(
+        p.totalPurchaseValue !== undefined && p.totalPurchaseValue > 0
+          ? p.totalPurchaseValue
+          : Math.round(purchaseCost * Math.max(0, s) * 100) / 100
+      );
+
+      return {
+        productId: String(p.productId || p._id),
+        name: p.name || "Product",
+        sku: p.sku || "",
+        category: p.category || (Array.isArray(p.categories) ? p.categories[0] : "") || "General",
+        subcategory: p.subcategory || "",
+        section: p.section || "",
+        image: p.image || "",
+        unit: p.unit || "Units",
+        stock: s,
+        inStock: p.inStock !== false,
+        stockStatus,
+        purchaseCost,
+        totalPurchaseValue,
+        batchesCount,
+        hasAddedStock: batchesCount > 0 || (p.stock !== null && p.stock !== undefined && Number(p.stock) > 0),
+        latestBatch: latestBatch
+          ? {
+              batchId: latestBatch.batchId,
+              receivedDate: latestBatch.receivedDate,
+              expiryDate: latestBatch.expiryDate,
+              purchaseCost: latestBatch.purchaseCost,
+              quantity: latestBatch.quantity,
+              availableQuantity: latestBatch.availableQuantity,
+              status: latestBatch.status,
+            }
+          : null,
+      };
+    });
+
+    // "stock madhe add kel tech aal pahije" - strictly filter to products where stock was added
+    const shouldFilterOnlyAdded = onlyAdded !== "false";
+    const baseList = shouldFilterOnlyAdded
+      ? enrichedProducts.filter((p) => p.hasAddedStock)
+      : enrichedProducts;
+
+    let totalProcurementValuation = 0;
+    let totalStockUnits = 0;
+    let inStockCount = 0;
+    let lowStockCount = 0;
+    let outOfStockCount = 0;
+
+    const sectionCounts = {
+      all: baseList.length,
+      preorder: 0,
+      ready2cook: 0,
+      instantorder: 0,
+      other: 0,
+    };
+
+    baseList.forEach((p) => {
+      const s = Number(p.stock ?? 0);
+      if (p.stockStatus === "Out of Stock") outOfStockCount += 1;
+      else if (p.stockStatus === "Low Stock") {
+        lowStockCount += 1;
+        inStockCount += 1;
+      } else {
+        inStockCount += 1;
+      }
+
+      totalProcurementValuation += p.totalPurchaseValue;
+      totalStockUnits += Math.max(0, s);
+
+      const secKey = String(p.section || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (secKey.includes("preorder") || secKey.includes("pre-order")) {
+        sectionCounts.preorder += 1;
+      } else if (secKey.includes("ready") || secKey.includes("cook")) {
+        sectionCounts.ready2cook += 1;
+      } else if (secKey.includes("instant")) {
+        sectionCounts.instantorder += 1;
+      } else {
+        sectionCounts.other += 1;
+      }
+    });
+
+    // Apply filtering
+    let filtered = baseList;
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.subcategory.toLowerCase().includes(q)
+      );
+    }
+
+    if (section && section !== "all") {
+      const targetSec = section.toLowerCase().replace(/[^a-z0-9]/g, "");
+      filtered = filtered.filter((p) => {
+        const pSec = String(p.section || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (targetSec === "preorder") return pSec.includes("preorder") || pSec.includes("pre-order");
+        if (targetSec === "ready2cook") return pSec.includes("ready") || pSec.includes("cook");
+        if (targetSec === "instantorder") return pSec.includes("instant");
+        return pSec === targetSec;
+      });
+    }
+
+    if (status === "in_stock") {
+      filtered = filtered.filter((p) => p.stockStatus === "In Stock");
+    } else if (status === "low_stock") {
+      filtered = filtered.filter((p) => p.stockStatus === "Low Stock");
+    } else if (status === "out_of_stock") {
+      filtered = filtered.filter((p) => p.stockStatus === "Out of Stock");
+    } else if (status === "alert") {
+      filtered = filtered.filter((p) => p.stockStatus === "Low Stock" || p.stockStatus === "Out of Stock");
+    }
+
+    filtered.sort((a, b) => {
+      if (sortBy === "valuation_desc") return b.totalPurchaseValue - a.totalPurchaseValue;
+      if (sortBy === "valuation_asc") return a.totalPurchaseValue - b.totalPurchaseValue;
+      if (sortBy === "cost_desc") return b.purchaseCost - a.purchaseCost;
+      if (sortBy === "cost_asc") return a.purchaseCost - b.purchaseCost;
+      if (sortBy === "stock_desc") return b.stock - a.stock;
+      if (sortBy === "stock_asc") return a.stock - b.stock;
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      return 0;
+    });
+
+    // Enriched list of stock additions (batches created via Add Stock)
+    const enrichedBatches = allBatches.map((b) => {
+      const prod = allProducts.find((p) => String(p.productId || p._id) === String(b.productId));
+      const purchaseCost = Number(b.purchaseCost || prod?.purchaseCost || prod?.latestPurchaseCost || 0);
+      const qty = Number(b.quantity || 0);
+      const availQty = Number(b.availableQuantity || 0);
+      const totalCost = Number(b.totalPurchaseCost || (purchaseCost * qty));
+      const availableValuation = Number(purchaseCost * availQty);
+
+      return {
+        batchId: b.batchId,
+        productId: String(b.productId),
+        productName: b.productName || prod?.name || "Product",
+        sku: b.sku || prod?.sku || "",
+        category: prod?.category || "",
+        section: prod?.section || "",
+        image: prod?.image || "",
+        receivedDate: b.receivedDate || b.createdAt,
+        mfgDate: b.mfgDate,
+        expiryDate: b.expiryDate,
+        quantity: qty,
+        availableQuantity: availQty,
+        unit: b.unit || prod?.unit || "Units",
+        purchaseCost,
+        totalPurchaseCost: totalCost,
+        availableValuation,
+        status: b.status || (availQty <= 0 ? "Depleted" : "Active"),
+        storageLocation: b.storageLocation || "",
+        createdAt: b.createdAt,
+      };
+    });
+
+    return res.json({
+      success: true,
+      kpis: {
+        totalProcurementValuation: Math.round(totalProcurementValuation * 100) / 100,
+        totalStockUnits,
+        totalProducts: baseList.length,
+        inStockCount,
+        lowStockCount,
+        outOfStockCount,
+        totalBatchesCount: allBatches.length,
+        sectionCounts,
+      },
+      products: filtered,
+      batches: enrichedBatches,
+    });
+  } catch (err) {
+    console.error("getVendorSellerReports error:", err);
+    return res.status(500).json({ success: false, message: err.message || "Failed to load vendor seller reports" });
+  }
+}

@@ -1059,6 +1059,7 @@ const vendorProductSchema = new mongoose.Schema(
     price: { type: Number, default: null, min: 0 },
     discountedPrice: { type: Number, default: null, min: 0 },
     stock: { type: Number, default: null, min: 0 },
+    purchaseCost: { type: Number, default: 0, min: 0 },
     // custom* fields: "" / null means "use the catalog value". Not named like the snapshot
     // fields above, which are overwritten from the catalog on re-approval.
     customDescription: { type: String, default: "", trim: true },
@@ -1134,6 +1135,7 @@ const vendorStockBatchSchema = new mongoose.Schema(
       default: "Supplier",
     },
     purchaseCost: { type: Number, default: 0, min: 0 },
+    totalPurchaseCost: { type: Number, default: 0, min: 0 },
     storageLocation: { type: String, default: "Main Darkstore", trim: true },
     remarks: { type: String, default: "", trim: true },
     status: {
@@ -1173,6 +1175,8 @@ const vendorStockTransactionSchema = new mongoose.Schema(
     expiryDate: { type: Date, default: null },
     packagingType: { type: String, default: "", trim: true },
     storageLocation: { type: String, default: "", trim: true },
+    purchaseCost: { type: Number, default: 0, min: 0 },
+    totalPurchaseCost: { type: Number, default: 0, min: 0 },
     reason: {
       type: String,
       enum: [

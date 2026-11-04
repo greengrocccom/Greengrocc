@@ -207,134 +207,140 @@ export default function SalesReportsPage() {
         }}
       />
 
-      {/* KPI Cards Grid - Compact & Responsive 8-Cards Strip */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
-        {/* 1. Customer Paid Total */}
-        <div className="card p-2 sm:p-2.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1 text-slate-500">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Customer Paid Total">
-              Customer Paid
+      {/* KPI Cards Grid - Clean 2 Rows Structure */}
+      <div className="space-y-3">
+        {/* ROW 1: Customer Inflow & Orders Breakdown (4 Cards) */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4">
+          {/* 1. Customer Paid Total */}
+          <div className="card p-3 sm:p-3.5 flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between gap-1 text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Customer Paid Total">
+                Customer Paid
+              </span>
+              <CreditCard className="h-4 w-4 shrink-0 text-emerald-600" />
+            </div>
+            <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-emerald-700 truncate tabular-nums">
+              {rupee(kpis.customerPaymentTotal)}
+            </p>
+            <span className="text-[10px] font-medium text-emerald-600 truncate block mt-0.5">
+              Total orders placed
             </span>
-            <CreditCard className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
           </div>
-          <p className="mt-1 text-base sm:text-lg font-bold tracking-tight text-emerald-700 truncate tabular-nums">
-            {rupee(kpis.customerPaymentTotal)}
-          </p>
-          <span className="text-[9.5px] font-medium text-emerald-600 truncate block">
-            Total orders placed
-          </span>
+
+          {/* 2. Cancelled Orders Cost */}
+          <div className="card p-3 sm:p-3.5 flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between gap-1 text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Cancelled Orders Cost">
+                Cancelled Cost
+              </span>
+              <XCircle className="h-4 w-4 shrink-0 text-rose-500" />
+            </div>
+            <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-rose-600 truncate tabular-nums">
+              {rupee(kpis.cancelledOrdersCost)}
+            </p>
+            <span className="text-[10px] font-medium text-rose-500 truncate block mt-0.5">
+              - {rupee(kpis.cancelledOrdersCost)} ({kpis.cancelledOrders || 0} ord)
+            </span>
+          </div>
+
+          {/* 3. Gross Product Sales */}
+          <div className="card p-3 sm:p-3.5 flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between gap-1 text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Gross Product Sales">
+                Product Sales
+              </span>
+              <ShoppingBag className="h-4 w-4 shrink-0 text-emerald-600" />
+            </div>
+            <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-slate-900 truncate tabular-nums">
+              {rupee(kpis.grossProductSales)}
+            </p>
+            <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+              Total items billed
+            </span>
+          </div>
+
+          {/* 4. Delivery Charges */}
+          <div className="card p-3 sm:p-3.5 flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between gap-1 text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Delivery Charges">
+                Delivery Fee
+              </span>
+              <Truck className="h-4 w-4 shrink-0 text-sky-600" />
+            </div>
+            <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-slate-900 truncate tabular-nums">
+              {rupee(kpis.deliveryCharges)}
+            </p>
+            <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+              Delivery service fees
+            </span>
+          </div>
         </div>
 
-        {/* 2. Cancelled Orders Cost */}
-        <div className="card p-2 sm:p-2.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1 text-slate-500">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Cancelled Orders Cost">
-              Cancelled Cost
+        {/* ROW 2: Store Sales, Expenses & Profitability (4 Cards) */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4">
+          {/* 5. Total Sale */}
+          <div className="card p-3 sm:p-3.5 flex flex-col justify-between border-emerald-300 bg-emerald-50/30 shadow-xs">
+            <div className="flex items-center justify-between gap-1 text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-900 truncate" title="Total Sale">
+                Total Sale
+              </span>
+              <Coins className="h-4 w-4 shrink-0 text-emerald-600" />
+            </div>
+            <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-emerald-700 truncate tabular-nums">
+              {rupee(kpis.totalSale || Number(kpis.grossProductSales || 0) + Number(kpis.deliveryCharges || 0))}
+            </p>
+            <span className="text-[10px] font-medium text-emerald-600 truncate block mt-0.5">
+              Items + Delivery
             </span>
-            <XCircle className="h-3.5 w-3.5 shrink-0 text-rose-500" />
           </div>
-          <p className="mt-1 text-base sm:text-lg font-bold tracking-tight text-rose-600 truncate tabular-nums">
-            {rupee(kpis.cancelledOrdersCost)}
-          </p>
-          <span className="text-[9.5px] font-medium text-rose-500 truncate block">
-            - {rupee(kpis.cancelledOrdersCost)} ({kpis.cancelledOrders || 0} ord)
-          </span>
-        </div>
 
-        {/* 3. Gross Product Sales */}
-        <div className="card p-2 sm:p-2.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1 text-slate-500">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Gross Product Sales">
-              Product Sales
+          {/* 6. Total Expense */}
+          <div className="card p-3 sm:p-3.5 flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between gap-1 text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Total Expense">
+                Total Expense
+              </span>
+              <TrendingDown className="h-4 w-4 shrink-0 text-amber-500" />
+            </div>
+            <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-amber-600 truncate tabular-nums">
+              {rupee(kpis.totalExpense)}
+            </p>
+            <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+              Store & ops costs
             </span>
-            <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
           </div>
-          <p className="mt-1 text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate tabular-nums">
-            {rupee(kpis.grossProductSales)}
-          </p>
-          <span className="text-[9.5px] text-slate-400 truncate block">
-            Total items billed
-          </span>
-        </div>
 
-        {/* 4. Delivery Charges */}
-        <div className="card p-2 sm:p-2.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1 text-slate-500">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Delivery Charges">
-              Delivery Fee
+          {/* 7. Net Profit */}
+          <div className="card p-3 sm:p-3.5 flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between gap-1 text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Net Profit">
+                Net Profit
+              </span>
+              <TrendingUp className="h-4 w-4 shrink-0 text-emerald-600" />
+            </div>
+            <p className={`mt-1.5 text-lg sm:text-xl font-bold tracking-tight truncate tabular-nums ${Number(kpis.netProfit || 0) >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+              {rupee(kpis.netProfit)}
+            </p>
+            <span className="text-[10px] font-medium text-emerald-600 truncate block mt-0.5">
+              Sale - Expenses
             </span>
-            <Truck className="h-3.5 w-3.5 shrink-0 text-sky-600" />
           </div>
-          <p className="mt-1 text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate tabular-nums">
-            {rupee(kpis.deliveryCharges)}
-          </p>
-          <span className="text-[9.5px] text-slate-400 truncate block">
-            Delivery service fees
-          </span>
-        </div>
 
-        {/* 5. Total Sale */}
-        <div className="card p-2 sm:p-2.5 flex flex-col justify-between border-emerald-200/60 bg-emerald-50/20">
-          <div className="flex items-center justify-between gap-1 text-slate-500">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 truncate" title="Total Sale">
-              Total Sale
+          {/* 8. Current Profit (Delivered & Payment Arrived) */}
+          <div className="card p-3 sm:p-3.5 flex flex-col justify-between border-emerald-300 bg-emerald-50/40 shadow-xs">
+            <div className="flex items-center justify-between gap-1 text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-900 truncate" title="Current Profit">
+                Current Profit
+              </span>
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            </div>
+            <p className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-emerald-700 truncate tabular-nums">
+              {rupee(kpis.currentProfit || kpis.deliveredSales || 0)}
+            </p>
+            <span className="text-[10px] font-medium text-emerald-700 truncate block mt-0.5">
+              {kpis.completedOrders || 0} Delivered & Paid
             </span>
-            <Coins className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
           </div>
-          <p className="mt-1 text-base sm:text-lg font-bold tracking-tight text-emerald-700 truncate tabular-nums">
-            {rupee(kpis.totalSale || Number(kpis.grossProductSales || 0) + Number(kpis.deliveryCharges || 0))}
-          </p>
-          <span className="text-[9.5px] font-medium text-emerald-600 truncate block">
-            Items + Delivery
-          </span>
-        </div>
-
-        {/* 6. Total Expense */}
-        <div className="card p-2 sm:p-2.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1 text-slate-500">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Total Expense">
-              Total Expense
-            </span>
-            <TrendingDown className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-          </div>
-          <p className="mt-1 text-base sm:text-lg font-bold tracking-tight text-amber-600 truncate tabular-nums">
-            {rupee(kpis.totalExpense)}
-          </p>
-          <span className="text-[9.5px] text-slate-400 truncate block">
-            Store & ops costs
-          </span>
-        </div>
-
-        {/* 7. Net Profit */}
-        <div className="card p-2 sm:p-2.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1 text-slate-500">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Net Profit">
-              Net Profit
-            </span>
-            <TrendingUp className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-          </div>
-          <p className={`mt-1 text-base sm:text-lg font-bold tracking-tight truncate tabular-nums ${Number(kpis.netProfit || 0) >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
-            {rupee(kpis.netProfit)}
-          </p>
-          <span className="text-[9.5px] font-medium text-emerald-600 truncate block">
-            Sale - Expenses
-          </span>
-        </div>
-
-        {/* 8. Current Profit (Delivered & Payment Arrived) */}
-        <div className="card p-2 sm:p-2.5 flex flex-col justify-between border-emerald-300 bg-emerald-50/40">
-          <div className="flex items-center justify-between gap-1 text-slate-500">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 truncate" title="Current Profit">
-              Current Profit
-            </span>
-            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-          </div>
-          <p className="mt-1 text-base sm:text-lg font-bold tracking-tight text-emerald-700 truncate tabular-nums">
-            {rupee(kpis.currentProfit || kpis.deliveredSales || 0)}
-          </p>
-          <span className="text-[9.5px] font-medium text-emerald-700 truncate block">
-            {kpis.completedOrders || 0} Delivered & Paid
-          </span>
         </div>
       </div>
 

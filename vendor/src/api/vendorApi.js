@@ -251,6 +251,7 @@ export const vendorApi = {
   // ── Vendor Finance & Profit Management ────────────────────────
   getFinanceDashboard: (params) => api.get("/api/vendor/finance/dashboard", { params }).then((res) => res.data),
   getFinanceSalesReports: (params) => api.get("/api/vendor/finance/sales-reports", { params }).then((res) => res.data),
+  getFinanceSellerReports: (params) => api.get("/api/vendor/finance/seller-reports", { params }).then((res) => res.data),
   getFarmerPayments: (params) => api.get("/api/vendor/finance/farmer-payments", { params }).then((res) => res.data),
   getFarmerPaymentDetail: (farmerId) => api.get(`/api/vendor/finance/farmer-payments/${encodeURIComponent(farmerId)}`).then((res) => res.data),
   getDarkStoreReports: (params) => api.get("/api/vendor/finance/delivery-manager-reports", { params }).then((res) => res.data),

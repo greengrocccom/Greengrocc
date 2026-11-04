@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import mongoose from "mongoose";
 import Product from "../../legacy/models/Product.js";
-import { Farmer, FarmerProduct, Vendor, VendorProduct, VendorProductRequest } from "./models.js";
+import { Farmer, FarmerProduct, Vendor, VendorProduct, VendorProductRequest, VendorStockBatch } from "./models.js";
 import { generateId } from "../../erp-service/src/services/idGenerator.js";
 import { categoryFromName, cropCodeFromName, varietyCodeFromName } from "../../erp-service/src/config/idRegistry.js";
 import { pushFarmerProductReview } from "./farmerPush.js";
@@ -44,7 +44,7 @@ export function serializeVendorProductRequest(doc) {
   return rest;
 }
 
-const VENDOR_PRICING_FIELDS = ["price", "discountedPrice", "stock"];
+const VENDOR_PRICING_FIELDS = ["price", "discountedPrice", "stock", "purchaseCost"];
 // Name, brand, variety, category and subcategory always come from the admin catalog.
 const VENDOR_TEXT_FIELDS = [{ field: "description", key: "customDescription", label: "Description", max: 1000 }];
 const VENDOR_UNIT_TYPES = [
@@ -103,12 +103,37 @@ function summaryFromOverrides(o) {
  * untouched catalog values for reference.
  */
 export async function vendorProductsWithCatalog(vendorId) {
-  const rows = await VendorProduct.find({ vendorId }).sort({ createdAt: -1 }).lean();
+  const [rows, batches] = await Promise.all([
+    VendorProduct.find({ vendorId }).sort({ createdAt: -1 }).lean(),
+    VendorStockBatch.find({ vendorId }).sort({ receivedDate: -1, createdAt: -1 }).lean(),
+  ]);
   const ids = rows.map((r) => r.productId).filter((id) => mongoose.Types.ObjectId.isValid(id));
   const products = ids.length
     ? await Product.find({ _id: { $in: ids } }).select(`${CATALOG_FIELDS} description`).lean()
     : [];
   const byId = new Map(products.map((p) => [String(p._id), catalogProductSummary(p)]));
+
+  const batchByProd = new Map();
+  for (const b of batches) {
+    const pid = String(b.productId);
+    if (!batchByProd.has(pid)) {
+      batchByProd.set(pid, {
+        latestPurchaseCost: Number(b.purchaseCost || 0),
+        totalBatches: 0,
+        totalPurchaseValue: 0,
+        activeStock: 0,
+      });
+    }
+    const info = batchByProd.get(pid);
+    info.totalBatches += 1;
+    if (b.status !== "Expired" && b.status !== "Depleted" && Number(b.availableQuantity) > 0) {
+      info.activeStock += Number(b.availableQuantity);
+      info.totalPurchaseValue += Number(b.availableQuantity) * Number(b.purchaseCost || 0);
+    }
+    if (info.latestPurchaseCost === 0 && Number(b.purchaseCost) > 0) {
+      info.latestPurchaseCost = Number(b.purchaseCost);
+    }
+  }
   return rows.map(({ _id, __v, ...row }) => {
     const live = byId.get(row.productId);
     const base = live || { name: row.productName, image: row.productImage, category: row.category, unit: row.unit };
@@ -122,6 +147,15 @@ export async function vendorProductsWithCatalog(vendorId) {
     for (const { field, key } of VENDOR_TEXT_FIELDS) effective[field] = row[key] || base[field] || "";
     effective.unit = row.customUnit || base.unit || "";
     effective.inStock = hasOverride(row.customInStock) ? row.customInStock : base.inStock !== false;
+    const bInfo = batchByProd.get(String(row.productId)) || {};
+    const effectivePurchaseCost = Number(
+      (row.purchaseCost !== null && row.purchaseCost !== undefined && Number(row.purchaseCost) > 0)
+        ? row.purchaseCost
+        : (bInfo.latestPurchaseCost || 0)
+    );
+    const stockQty = Number(effective.stock ?? base.stock ?? 0);
+    const totalPurchaseVal = Number(bInfo.totalPurchaseValue || (effectivePurchaseCost * Math.max(0, stockQty)));
+
     const catalog = {
       name: base.name || "",
       brandName: base.brandName || "",
@@ -140,6 +174,9 @@ export async function vendorProductsWithCatalog(vendorId) {
       ...base,
       ...summaryFromOverrides(row.overrides),
       ...effective,
+      purchaseCost: effectivePurchaseCost,
+      latestPurchaseCost: bInfo.latestPurchaseCost ?? effectivePurchaseCost,
+      totalPurchaseValue: totalPurchaseVal,
       catalog,
       catalogPrice: catalog.price,
       catalogDiscountedPrice: catalog.discountedPrice,
@@ -204,7 +241,7 @@ export async function updateVendorMyProduct(req, res) {
         }
         update.customInStock = body.inStock;
       }
-      const labels = { price: "MRP", discountedPrice: "Selling price", stock: "Stock" };
+      const labels = { price: "MRP", discountedPrice: "Selling price", stock: "Stock", purchaseCost: "Purchase cost" };
       for (const field of VENDOR_PRICING_FIELDS) {
         if (!(field in (req.body || {}))) continue;
         const parsed = parseOptionalAmount(req.body[field], labels[field]);

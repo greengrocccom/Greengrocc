@@ -62,6 +62,11 @@ function formatTime12h(value) {
   return `${hour}:${min} ${period}`;
 }
 
+function formatPrice(val) {
+  const n = Number(val || 0);
+  return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
 function formatExpiryDaysText(expiryDate) {
   if (!expiryDate) return { text: "No Expiry", days: null, status: "none" };
   const exp = new Date(expiryDate);
@@ -996,17 +1001,18 @@ function SellerInventoryHistoryView() {
           </div>
         ) : (
           <div className="w-full overflow-x-auto border border-slate-200/80 bg-white shadow-sm">
-            <table className="w-full min-w-[920px] table-fixed border-collapse">
+            <table className="w-full min-w-[980px] table-fixed border-collapse">
               <colgroup>
-                <col className="w-[3.5%]" />
-                <col className="w-[14%]" />
-                <col className="w-[18%]" />
+                <col className="w-[3%]" />
+                <col className="w-[13%]" />
                 <col className="w-[16%]" />
-                <col className="w-[7%]" />
+                <col className="w-[14%]" />
+                <col className="w-[6%]" />
                 <col className="w-[8%]" />
                 <col className="w-[11%]" />
-                <col className="w-[10.5%]" />
-                <col className="w-[12%]" />
+                <col className="w-[9%]" />
+                <col className="w-[9%]" />
+                <col className="w-[11%]" />
               </colgroup>
               <thead>
                 <tr>
@@ -1016,6 +1022,7 @@ function SellerInventoryHistoryView() {
                   <th className={TH}>Dates & Expiry</th>
                   <th className={`${TH} text-center`}>Type</th>
                   <th className={`${TH} text-center`}>Quantity</th>
+                  <th className={`${TH} text-center sm:text-right`}>Purchase / खरेदी दर</th>
                   <th className={`${TH} text-center`}>Stock Balance</th>
                   <th className={TH}>Reason</th>
                   <th className={TH}>Details & Remarks</th>
@@ -1077,6 +1084,24 @@ function SellerInventoryHistoryView() {
                       {tx.transactionType === "ADD" ? "+" : "-"}
                       {tx.quantity} {tx.unit}
                     </td>
+                    <td className={`${TD} align-middle text-center sm:text-right font-medium`}>
+                      <div className="flex flex-col items-center sm:items-end">
+                        <span className="font-extrabold text-[#111827] text-xs sm:text-sm">
+                          {Number(tx.purchaseCost || 0) > 0 ? (
+                            formatPrice(tx.purchaseCost)
+                          ) : (
+                            <span className="text-slate-400 font-normal">₹0.00</span>
+                          )}
+                        </span>
+                        {Number(tx.purchaseCost || 0) > 0 && Number(tx.quantity || 0) > 0 ? (
+                          <span className="block text-[10px] text-emerald-700 font-medium">
+                            एकूण: {formatPrice(Number(tx.totalPurchaseCost || (Number(tx.purchaseCost) * Number(tx.quantity))))}
+                          </span>
+                        ) : (
+                          <span className="block text-[9px] text-slate-400">खरेदी किंमत</span>
+                        )}
+                      </div>
+                    </td>
                     <td className={`${TD} align-middle text-center font-mono text-[10px] tabular-nums`}>
                       <div className="inline-flex items-center justify-center gap-1">
                         <span className="text-slate-500">{tx.previousStock}</span>
@@ -1109,18 +1134,19 @@ function SellerInventoryHistoryView() {
           </div>
         ) : (
           <div className="w-full overflow-x-auto border border-slate-200/80 bg-white shadow-sm">
-            <table className="w-full min-w-[900px] table-fixed border-collapse">
+            <table className="w-full min-w-[980px] table-fixed border-collapse">
               <colgroup>
-                <col className="w-[4%]" />
-                <col className="w-[15%]" />
-                <col className="w-[18%]" />
-                <col className="w-[10%]" />
-                <col className="w-[8%]" />
-                <col className="w-[6%]" />
-                <col className="w-[10%]" />
-                <col className="w-[10%]" />
+                <col className="w-[3.5%]" />
+                <col className="w-[14%]" />
+                <col className="w-[16%]" />
+                <col className="w-[8.5%]" />
+                <col className="w-[7.5%]" />
+                <col className="w-[11%]" />
+                <col className="w-[5.5%]" />
                 <col className="w-[9%]" />
-                <col className="w-[10%]" />
+                <col className="w-[9%]" />
+                <col className="w-[7.5%]" />
+                <col className="w-[9%]" />
               </colgroup>
               <thead>
                 <tr>
@@ -1129,6 +1155,7 @@ function SellerInventoryHistoryView() {
                   <th className={TH}>Product</th>
                   <th className={`${TH} text-center`}>Available Stock</th>
                   <th className={`${TH} text-center`}>Total Added</th>
+                  <th className={`${TH} text-center sm:text-right`}>Purchase / खरेदी दर</th>
                   <th className={`${TH} text-center`}>Unit</th>
                   <th className={`${TH} text-center`}>Received Date</th>
                   <th className={`${TH} text-center`}>Expiry Date</th>
@@ -1155,6 +1182,24 @@ function SellerInventoryHistoryView() {
                     </td>
                     <td className={`${TD} align-middle text-center tabular-nums text-[#6B7280]`}>
                       {b.quantity}
+                    </td>
+                    <td className={`${TD} align-middle text-center sm:text-right font-medium`}>
+                      <div className="flex flex-col items-center sm:items-end">
+                        <span className="font-extrabold text-[#111827] text-xs sm:text-sm">
+                          {Number(b.purchaseCost || 0) > 0 ? (
+                            formatPrice(b.purchaseCost)
+                          ) : (
+                            <span className="text-slate-400 font-normal">₹0.00</span>
+                          )}
+                        </span>
+                        {Number(b.purchaseCost || 0) > 0 && Number(b.quantity || 0) > 0 ? (
+                          <span className="block text-[10px] text-emerald-700 font-medium">
+                            एकूण: {formatPrice(Number(b.totalPurchaseCost || (Number(b.purchaseCost) * Number(b.quantity))))}
+                          </span>
+                        ) : (
+                          <span className="block text-[9px] text-slate-400">खरेदी किंमत</span>
+                        )}
+                      </div>
                     </td>
                     <td className={`${TD} align-middle text-center font-semibold text-[#374151]`}>{b.unit}</td>
                     <td className={`${TD} align-middle text-center tabular-nums text-[#374151]`}>

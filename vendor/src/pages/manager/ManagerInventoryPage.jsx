@@ -149,6 +149,13 @@ function SellerStockModal({ product, onClose, onSaved }) {
   const [stockVal, setStockVal] = useState(
     product.stock !== null && product.stock !== undefined ? String(product.stock) : "0"
   );
+  const [costVal, setCostVal] = useState(
+    product.purchaseCost !== null && product.purchaseCost !== undefined && Number(product.purchaseCost) > 0
+      ? String(product.purchaseCost)
+      : product.latestPurchaseCost
+      ? String(product.latestPurchaseCost)
+      : ""
+  );
   const [inStock, setInStock] = useState(product.inStock !== false);
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState("");
@@ -160,14 +167,30 @@ function SellerStockModal({ product, onClose, onSaved }) {
       setModalError("Please enter a valid stock quantity (0 or greater).");
       return;
     }
+    const cleanCost = costVal === "" ? null : Number(costVal);
+    if (cleanCost !== null && (!Number.isFinite(cleanCost) || cleanCost < 0)) {
+      setModalError("Please enter a valid purchase cost (0 or greater).");
+      return;
+    }
     setSaving(true);
     setModalError("");
     try {
-      const res = await vendorApi.updateMyProduct(product.productId, {
+      const payload = {
         stock: Math.floor(cleanNum),
         inStock: cleanNum > 0 ? inStock : false,
-      });
-      onSaved(res.data || { ...product, stock: Math.floor(cleanNum), inStock: cleanNum > 0 ? inStock : false });
+      };
+      if (cleanCost !== null) {
+        payload.purchaseCost = cleanCost;
+      }
+      const res = await vendorApi.updateMyProduct(product.productId, payload);
+      onSaved(
+        res.data || {
+          ...product,
+          stock: Math.floor(cleanNum),
+          inStock: cleanNum > 0 ? inStock : false,
+          purchaseCost: cleanCost ?? product.purchaseCost,
+        }
+      );
       onClose();
     } catch (err) {
       setModalError(err?.response?.data?.message || "Failed to update stock");
@@ -254,6 +277,29 @@ function SellerStockModal({ product, onClose, onSaved }) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Purchase Cost / खरेदी दर (₹ / {product.unit || "Unit"})
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-2 text-sm font-bold text-slate-400">₹</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={costVal}
+                onChange={(e) => setCostVal(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 pl-7 pr-3 py-2 text-sm font-bold text-slate-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                placeholder="0.00"
+              />
+            </div>
+            {Number(costVal) > 0 && Number(stockVal || 0) > 0 ? (
+              <p className="mt-1 text-[11px] text-emerald-700 font-medium">
+                एकूण खरेदी मूल्य: ₹{(Number(costVal) * Number(stockVal || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
@@ -357,6 +403,7 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
 
   // Form Fields - Basic
   const [stockVal, setStockVal] = useState("50");
+  const [productSectionFilter, setProductSectionFilter] = useState("");
   const [sectionVal, setSectionVal] = useState(initialProduct?.section || "preorder");
   const [unitVal, setUnitVal] = useState(initialProduct?.unit || "Kg");
   const [priceVal, setPriceVal] = useState(initialProduct?.price ? String(initialProduct.price) : "");
@@ -374,7 +421,30 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
   const [qualityGrade, setQualityGrade] = useState("Grade A");
   const [stockSource, setStockSource] = useState("Supplier");
   const [purchaseCost, setPurchaseCost] = useState("");
+  const [totalPurchaseCost, setTotalPurchaseCost] = useState("");
   const [storageLocation, setStorageLocation] = useState("Main Darkstore");
+
+  const handlePurchaseCostChange = (val) => {
+    setPurchaseCost(val);
+    const num = Number(val);
+    const qty = Number(stockVal || 0);
+    if (val !== "" && Number.isFinite(num) && qty > 0) {
+      setTotalPurchaseCost(String(Math.round(num * qty * 100) / 100));
+    } else if (val === "") {
+      setTotalPurchaseCost("");
+    }
+  };
+
+  const handleTotalCostChange = (val) => {
+    setTotalPurchaseCost(val);
+    const num = Number(val);
+    const qty = Number(stockVal || 0);
+    if (val !== "" && Number.isFinite(num) && qty > 0) {
+      setPurchaseCost(String(Math.round((num / qty) * 100) / 100));
+    } else if (val === "") {
+      setPurchaseCost("");
+    }
+  };
   const [remarks, setRemarks] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -427,6 +497,9 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
     const next = Math.max(0, cur + amount);
     setStockVal(String(next));
     if (next > 0) setInStock(true);
+    if (purchaseCost && next > 0) {
+      setTotalPurchaseCost(String(Math.round(Number(purchaseCost) * next * 100) / 100));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -454,7 +527,7 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
         batchId: batchIdVal,
         quantity: Math.floor(cleanNum),
         stock: Math.floor(cleanNum),
-        section: sectionVal,
+        section: selectedProduct.section || sectionVal || "preorder",
         unit: unitVal,
         receivedDate,
         mfgDate: mfgDate || undefined,
@@ -465,6 +538,7 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
         qualityGrade,
         stockSource,
         purchaseCost: purchaseCost !== "" ? Number(purchaseCost) : 0,
+        totalPurchaseCost: totalPurchaseCost !== "" ? Number(totalPurchaseCost) : (purchaseCost !== "" ? Number(purchaseCost) * cleanNum : 0),
         storageLocation,
         remarks,
         price: priceVal !== "" ? Number(priceVal) : undefined,
@@ -481,12 +555,30 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return productList;
-    return productList.filter((p) =>
-      [p.name, p.sku, p.productId, p.category, p.subcategory, p.brandName, p.varietyName].some((v) =>
+    return productList.filter((p) => {
+      if (productSectionFilter && (p.section || "preorder") !== productSectionFilter) {
+        return false;
+      }
+      if (!q) return true;
+      return [p.name, p.sku, p.productId, p.category, p.subcategory, p.brandName, p.varietyName].some((v) =>
         String(v || "").toLowerCase().includes(q)
-      )
-    );
+      );
+    });
+  }, [productList, search, productSectionFilter]);
+
+  const modalSectionCounts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const searched = productList.filter((p) => {
+      if (!q) return true;
+      return [p.name, p.sku, p.productId, p.category, p.subcategory, p.brandName, p.varietyName].some((v) =>
+        String(v || "").toLowerCase().includes(q)
+      );
+    });
+    return searched.reduce((acc, p) => {
+      const sec = p.section || "preorder";
+      acc[sec] = (acc[sec] || 0) + 1;
+      return acc;
+    }, {});
   }, [productList, search]);
 
   return (
@@ -535,6 +627,40 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
                 <span className="text-[11px] text-slate-500 font-medium">
                   {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"} available
                 </span>
+              </div>
+
+              {/* Section Filter Pills */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { key: "", label: "All Sections / सर्व", icon: "📑", count: productList.length },
+                  { key: "preorder", label: "Pre-order", icon: "📦", count: modalSectionCounts["preorder"] || 0 },
+                  { key: "ready2cook", label: "Ready2Cook", icon: "🍳", count: modalSectionCounts["ready2cook"] || 0 },
+                  { key: "instantorder", label: "Instant Order", icon: "⚡", count: modalSectionCounts["instantorder"] || 0 },
+                ].map((tab) => {
+                  const active = productSectionFilter === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setProductSectionFilter(tab.key)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
+                        active
+                          ? "border-emerald-700 bg-emerald-700 text-white shadow-2xs"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span>{tab.icon}</span>
+                      <span>{tab.label}</span>
+                      <span
+                        className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                          active ? "bg-white/25 text-white" : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {tab.count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Search box */}
@@ -596,8 +722,11 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
                             <p className="font-bold text-xs text-slate-900 group-hover:text-emerald-800 truncate">
                               {p.name}
                             </p>
-                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500">
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500 flex-wrap">
                               <span className="font-mono text-emerald-700 font-bold">{p.sku || p.productId}</span>
+                              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.2 text-[9px] font-bold text-slate-700">
+                                {getSectionMeta(p.section).icon} {getSectionMeta(p.section).label}
+                              </span>
                               {p.category ? <span>• {p.category}</span> : null}
                               {p.unit ? <span>• {p.unit}</span> : null}
                               <span>
@@ -633,8 +762,11 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
                   <ProductThumb src={selectedProduct.image} name={selectedProduct.name} />
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-900 truncate">{selectedProduct.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-600">
+                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-600 flex-wrap">
                       <span className="font-mono text-emerald-700 font-bold">{selectedProduct.sku || selectedProduct.productId}</span>
+                      <span className="inline-flex items-center gap-1 rounded bg-emerald-100/90 px-1.5 py-0.2 text-[9px] font-bold text-emerald-900 border border-emerald-300">
+                        {getSectionMeta(selectedProduct.section || sectionVal).icon} {getSectionMeta(selectedProduct.section || sectionVal).label}
+                      </span>
                       {selectedProduct.category ? <span>• {selectedProduct.category}</span> : null}
                       <span>• Current Stock: <strong className="text-slate-900">{selectedProduct.stock ?? 0} {selectedProduct.unit || unitVal}</strong></span>
                     </div>
@@ -694,92 +826,157 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
                 </div>
               </div>
 
-              {/* 1. Stock Quantity & Unit */}
+              {/* 1. Stock Quantity & Purchase Cost (किती घेतला आणि कितीला घेतला) */}
               <div className="rounded-xl border border-slate-200 bg-white p-3.5 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold text-slate-800">
-                    1. Quantity & Unit / स्टॉक प्रमाण व एकक *
+                    1. Stock Quantity & Purchase Price / स्टॉक प्रमाण व खरेदी किंमत *
                   </label>
                   <span className="text-[10px] font-bold uppercase text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                     Creates New Batch
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-                  <div className="sm:col-span-2 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => adjustQty(-1)}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-bold"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={stockVal}
-                      onChange={(e) => {
-                        setStockVal(e.target.value);
-                        if (Number(e.target.value) > 0) setInStock(true);
-                      }}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-center text-lg font-extrabold text-slate-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-                      placeholder="0"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => adjustQty(1)}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-bold"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
+
+                {/* A. Quantity & Unit (किती स्टॉक घेतला) */}
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                    A. किती स्टॉक घेतला (Quantity & Unit) *
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                    <div className="sm:col-span-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => adjustQty(-1)}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-bold cursor-pointer"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={stockVal}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setStockVal(val);
+                          if (Number(val) > 0) setInStock(true);
+                          if (purchaseCost && Number(val) > 0) {
+                            setTotalPurchaseCost(String(Math.round(Number(purchaseCost) * Number(val) * 100) / 100));
+                          }
+                        }}
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-center text-lg font-extrabold text-slate-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                        placeholder="0"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => adjustQty(1)}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-bold cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div>
+                      <select
+                        value={unitVal}
+                        onChange={(e) => setUnitVal(e.target.value)}
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-600"
+                      >
+                        {["Kg", "Gram", "Pieces", "Litres", "Boxes", "Bags", "Packet", "Bunch", "Dozen"].map((u) => (
+                          <option key={u} value={u}>
+                            {u}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
-                  <div>
-                    <select
-                      value={unitVal}
-                      onChange={(e) => setUnitVal(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-600"
-                    >
-                      {["Kg", "Gram", "Pieces", "Litres", "Boxes", "Bags", "Packet", "Bunch", "Dozen"].map((u) => (
-                        <option key={u} value={u}>
-                          {u}
-                        </option>
-                      ))}
-                    </select>
+                  {/* Stock Addition Breakdown */}
+                  {selectedProduct ? (
+                    <div className="mt-2 rounded-lg bg-emerald-50/70 p-2.5 border border-emerald-200 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                        <span className="text-slate-600">
+                          Current Stock: <strong className="text-slate-800">{selectedProduct.stock ?? 0} {unitVal}</strong>
+                        </span>
+                        <span className="text-emerald-700 font-bold">
+                          + Adding: {Number(stockVal || 0)} {unitVal}
+                        </span>
+                        <span className="text-emerald-900 font-extrabold bg-white px-2 py-0.5 rounded border border-emerald-300">
+                          = New Total Stock: {Math.max(0, Number(selectedProduct.stock ?? 0) + Number(stockVal || 0))} {unitVal}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Quick Increment Buttons */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+                    <span className="text-[10px] font-semibold text-slate-400">Quick add:</span>
+                    {[10, 25, 50, 100, 250].map((step) => (
+                      <button
+                        key={step}
+                        type="button"
+                        onClick={() => adjustQty(step)}
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 transition cursor-pointer"
+                      >
+                        +{step}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Stock Addition Breakdown */}
-                {selectedProduct ? (
-                  <div className="rounded-lg bg-emerald-50/70 p-2.5 border border-emerald-200 text-xs">
-                    <div className="flex flex-wrap items-center justify-between gap-1 text-[11px]">
-                      <span className="text-slate-600">
-                        Current Stock: <strong className="text-slate-800">{selectedProduct.stock ?? 0} {unitVal}</strong>
+                {/* B. Purchase Price / कितीला घेतला (खरेदी दर व एकूण खरेदी रक्कम) */}
+                <div className="border-t border-slate-100 pt-3">
+                  <span className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                    B. कितीला घेतला (Purchase Cost & Procurement Rate)
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Rate per Unit */}
+                    <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-2.5">
+                      <label className="block text-[10.5px] font-bold text-amber-900 mb-1">
+                        प्रति एकक खरेदी दर (Rate / {unitVal})
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={purchaseCost}
+                          onChange={(e) => handlePurchaseCostChange(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full rounded-lg border border-amber-300 bg-white pl-6 pr-2.5 py-1.5 text-xs font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                        />
+                      </div>
+                      <span className="text-[9.5px] text-amber-700 mt-1 block">
+                        १ {unitVal} किती रुपयांना खरेदी केला
                       </span>
-                      <span className="text-emerald-700 font-bold">
-                        + Adding: {Number(stockVal || 0)} {unitVal}
-                      </span>
-                      <span className="text-emerald-900 font-extrabold bg-white px-2 py-0.5 rounded border border-emerald-300">
-                        = New Total Stock: {Math.max(0, Number(selectedProduct.stock ?? 0) + Number(stockVal || 0))} {unitVal}
+                    </div>
+
+                    {/* Total Purchase Amount */}
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-2.5">
+                      <label className="block text-[10.5px] font-bold text-emerald-900 mb-1">
+                        एकूण खरेदी रक्कम (Total Cost for {Number(stockVal || 0)} {unitVal})
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={totalPurchaseCost}
+                          onChange={(e) => handleTotalCostChange(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full rounded-lg border border-emerald-300 bg-white pl-6 pr-2.5 py-1.5 text-xs font-bold text-emerald-900 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <span className="text-[9.5px] text-emerald-700 mt-1 block font-medium">
+                        {Number(stockVal || 0)} {unitVal} × ₹{Number(purchaseCost || 0)} = ₹{Number(totalPurchaseCost || 0).toLocaleString("en-IN")}
                       </span>
                     </div>
                   </div>
-                ) : null}
 
-                {/* Quick Increment Buttons */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] font-semibold text-slate-400">Quick add:</span>
-                  {[10, 25, 50, 100, 250].map((step) => (
-                    <button
-                      key={step}
-                      type="button"
-                      onClick={() => adjustQty(step)}
-                      className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 transition"
-                    >
-                      +{step}
-                    </button>
-                  ))}
+
                 </div>
               </div>
 
@@ -899,7 +1096,7 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
                       min="0"
                       step="0.01"
                       value={purchaseCost}
-                      onChange={(e) => setPurchaseCost(e.target.value)}
+                      onChange={(e) => handlePurchaseCostChange(e.target.value)}
                       className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs outline-none focus:border-emerald-600"
                       placeholder="0.00"
                     />
@@ -917,63 +1114,23 @@ function AddStockModal({ initialProduct = null, myProducts = [], onClose, onProd
                 </div>
               </div>
 
-              {/* 4. Section & Store Pricing */}
-              <div className="rounded-xl border border-slate-200 bg-white p-3.5 space-y-2">
-                <label className="block text-xs font-bold text-slate-800">
-                  4. Section & Selling Price / विभाग व विक्री किंमत
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {[
-                    { key: "preorder", label: "Pre-order", icon: "📦", desc: "Advance customer booking" },
-                    { key: "ready2cook", label: "Ready2Cook", icon: "🍳", desc: "Cleaned & pre-cut packs" },
-                    { key: "instantorder", label: "Instant Order", icon: "⚡", desc: "Immediate local dispatch" },
-                  ].map((s) => {
-                    const active = sectionVal === s.key;
-                    return (
-                      <div
-                        key={s.key}
-                        onClick={() => setSectionVal(s.key)}
-                        className={`flex flex-col p-2.5 rounded-xl border cursor-pointer transition ${
-                          active
-                            ? "border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-600"
-                            : "border-slate-200 bg-slate-50/40 hover:border-slate-300"
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm">{s.icon}</span>
-                          <span className="text-xs font-bold text-slate-900">{s.label}</span>
-                        </div>
-                        <span className="text-[10px] text-slate-500 mt-0.5">{s.desc}</span>
-                      </div>
-                    );
-                  })}
+              {/* 4. Store Section (Locked to Selected Product) */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                <div>
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Layers className="h-3.5 w-3.5 text-emerald-700" />
+                    Store Section / स्टोअर विभाग (पूर्वनिर्धारित)
+                  </span>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    हा विभाग उत्पादनाच्या कॅटलॉग सेक्शननुसार आपोआप सेट झाला आहे (बदलण्याची आवश्यकता नाही)
+                  </p>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-700 mb-1">Selling Price (₹)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={discountedPriceVal}
-                      onChange={(e) => setDiscountedPriceVal(e.target.value)}
-                      placeholder="e.g. 40"
-                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-900 outline-none focus:border-emerald-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-700 mb-1">MRP Price (₹)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={priceVal}
-                      onChange={(e) => setPriceVal(e.target.value)}
-                      placeholder="e.g. 50"
-                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-900 outline-none focus:border-emerald-600"
-                    />
-                  </div>
+                <div className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-900 shadow-2xs shrink-0">
+                  <span>{getSectionMeta(selectedProduct.section || sectionVal).icon}</span>
+                  <span>{getSectionMeta(selectedProduct.section || sectionVal).label}</span>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                    Locked
+                  </span>
                 </div>
               </div>
 
@@ -1545,7 +1702,7 @@ function ProductBatchesModal({ product, onClose, onDeductFromBatch }) {
                         </div>
 
                         {/* Batch Details Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2.5 text-[11px] text-slate-600">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2.5 text-[11px] text-slate-600">
                           <div>
                             <span className="text-slate-400 block text-[10px] uppercase font-bold">Received Date</span>
                             <span className="font-medium text-slate-800">
@@ -1557,6 +1714,17 @@ function ProductBatchesModal({ product, onClose, onDeductFromBatch }) {
                             <div className="mt-0.5">
                               {renderExpiryWithDays(b.expiryDate)}
                             </div>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[10px] uppercase font-bold">Purchase / खरेदी दर</span>
+                            <span className="font-extrabold text-slate-900 block">
+                              {Number(b.purchaseCost || 0) > 0 ? formatPrice(b.purchaseCost) : "₹0.00"}
+                            </span>
+                            {Number(b.purchaseCost || 0) > 0 && Number(b.quantity || 0) > 0 ? (
+                              <span className="block text-[10px] text-emerald-700 font-medium">
+                                एकूण: {formatPrice(Number(b.totalPurchaseCost || (Number(b.purchaseCost) * Number(b.quantity))))}
+                              </span>
+                            ) : null}
                           </div>
                           <div>
                             <span className="text-slate-400 block text-[10px] uppercase font-bold">Packaging</span>
@@ -1626,6 +1794,7 @@ function ProductBatchesModal({ product, onClose, onDeductFromBatch }) {
                         <th className="px-3 py-2">Dates & Expiry</th>
                         <th className="px-3 py-2 text-center">Type</th>
                         <th className="px-3 py-2">Qty</th>
+                        <th className="px-3 py-2 text-right">Purchase / खरेदी दर</th>
                         <th className="px-3 py-2">Stock Balance</th>
                         <th className="px-3 py-2">Reason</th>
                         <th className="px-3 py-2">Remarks</th>
@@ -1664,6 +1833,16 @@ function ProductBatchesModal({ product, onClose, onDeductFromBatch }) {
                           <td className="px-3 py-2 font-bold text-slate-900">
                             {tx.transactionType === "ADD" ? "+" : "-"}
                             {tx.quantity} {tx.unit}
+                          </td>
+                          <td className="px-3 py-2 text-right font-medium">
+                            <span className="font-extrabold text-slate-900 block">
+                              {Number(tx.purchaseCost || 0) > 0 ? formatPrice(tx.purchaseCost) : "₹0.00"}
+                            </span>
+                            {Number(tx.purchaseCost || 0) > 0 && Number(tx.quantity || 0) > 0 ? (
+                              <span className="block text-[10px] text-emerald-700 font-medium">
+                                एकूण: {formatPrice(Number(tx.totalPurchaseCost || (Number(tx.purchaseCost) * Number(tx.quantity))))}
+                              </span>
+                            ) : null}
                           </td>
                           <td className="px-3 py-2 text-slate-600 font-mono text-[11px]">
                             {tx.previousStock} <ArrowRight className="inline h-2.5 w-2.5 mx-0.5 text-slate-400" /> {tx.updatedStock}
@@ -1831,6 +2010,7 @@ function VendorStockHistoryModal({ onClose }) {
                     <th className="px-3 py-2.5">Dates & Expiry</th>
                     <th className="px-3 py-2.5 text-center">Type</th>
                     <th className="px-3 py-2.5">Quantity</th>
+                    <th className="px-3 py-2.5 text-right">Purchase / खरेदी दर</th>
                     <th className="px-3 py-2.5">Stock Balance</th>
                     <th className="px-3 py-2.5">Reason</th>
                     <th className="px-3 py-2.5">Remarks</th>
@@ -1873,6 +2053,16 @@ function VendorStockHistoryModal({ onClose }) {
                       <td className="px-3 py-2.5 font-bold text-slate-900 whitespace-nowrap">
                         {tx.transactionType === "ADD" ? "+" : "-"}
                         {tx.quantity} {tx.unit}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-medium">
+                        <span className="font-extrabold text-slate-900 block">
+                          {Number(tx.purchaseCost || 0) > 0 ? formatPrice(tx.purchaseCost) : "₹0.00"}
+                        </span>
+                        {Number(tx.purchaseCost || 0) > 0 && Number(tx.quantity || 0) > 0 ? (
+                          <span className="block text-[10px] text-emerald-700 font-medium">
+                            एकूण: {formatPrice(Number(tx.totalPurchaseCost || (Number(tx.purchaseCost) * Number(tx.quantity))))}
+                          </span>
+                        ) : null}
                       </td>
                       <td className="px-3 py-2.5 font-mono text-[11px] text-slate-600 whitespace-nowrap">
                         {tx.previousStock} <ArrowRight className="inline h-2.5 w-2.5 mx-0.5 text-slate-400" /> {tx.updatedStock}
@@ -2184,12 +2374,12 @@ function SellerInventoryView() {
             <colgroup>
               <col className="w-[4%]" />
               <col className="w-[24%]" />
-              <col className="w-[13%]" />
-              <col className="w-[10%]" />
               <col className="w-[12%]" />
+              <col className="w-[10%]" />
+              <col className="w-[15%]" />
               <col className="w-[14%]" />
               <col className="w-[6%]" />
-              <col className="w-[8%]" />
+              <col className="w-[6%]" />
               <col className="w-[9%]" />
             </colgroup>
             <thead>
@@ -2198,7 +2388,7 @@ function SellerInventoryView() {
                 <th className={TH}>Product</th>
                 <th className={`${TH} text-center sm:text-left`}>Category</th>
                 <th className={`${TH} text-center`}>Section</th>
-                <th className={`${TH} text-center sm:text-right`}>Selling / MRP</th>
+                <th className={`${TH} text-center sm:text-right`}>Purchase / खरेदी दर</th>
                 <th className={`${TH} text-center`}>Available Stock</th>
                 <th className={`${TH} text-center`}>Unit</th>
                 <th className={`${TH} text-center`}>Status</th>
@@ -2270,14 +2460,29 @@ function SellerInventoryView() {
                         <span>{meta.label}</span>
                       </span>
                     </td>
+                    {/* Purchase Rate / खरेदी दर */}
                     <td className={`${TD} align-middle text-center sm:text-right font-medium`}>
-                      <span className="font-bold text-[#111827]">{formatPrice(p.discountedPrice)}</span>
-                      {Number(p.price) > Number(p.discountedPrice) ? (
-                        <span className="block text-[10px] text-slate-400 line-through">
-                          {formatPrice(p.price)}
+                      <div className="flex flex-col items-center sm:items-end">
+                        <span className="font-extrabold text-[#111827] text-xs sm:text-sm">
+                          {Number(p.purchaseCost || p.latestPurchaseCost || 0) > 0 ? (
+                            formatPrice(p.purchaseCost || p.latestPurchaseCost)
+                          ) : (
+                            <span className="text-slate-400 font-normal">₹0.00</span>
+                          )}
                         </span>
-                      ) : null}
+                        {Number(p.purchaseCost || p.latestPurchaseCost || 0) > 0 && stockNum > 0 ? (
+                          <span className="block text-[10px] text-emerald-700 font-medium">
+                            एकूण: {formatPrice(Number(p.totalPurchaseValue || (Number(p.purchaseCost || p.latestPurchaseCost) * stockNum)))}
+                          </span>
+                        ) : (
+                          <span className="block text-[9px] text-slate-400">खरेदी किंमत</span>
+                        )}
+                      </div>
                     </td>
+
+
+
+                    {/* Available Stock */}
                     <td className={`${TD} align-middle text-center tabular-nums`} onClick={(e) => e.stopPropagation()}>
                       {isInlineEditing ? (
                         <div className="inline-flex items-center justify-center gap-1">
@@ -2313,21 +2518,31 @@ function SellerInventoryView() {
                           </button>
                         </div>
                       ) : (
-                        <div className="inline-flex items-center justify-center gap-1.5">
-                          <span className="font-extrabold text-[12px] sm:text-[14px] text-[#111827] font-mono">
-                            {p.stock === null || p.stock === undefined ? "0" : Number(p.stock).toLocaleString("en-IN")}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setInlineEditId(p.productId);
-                              setInlineStockVal(String(p.stock ?? 0));
-                            }}
-                            className="rounded p-0.5 text-slate-400 hover:bg-[#E8F5E9] hover:text-[#217346] transition"
-                            title="Quick edit stock"
-                          >
-                            <Edit3 className="h-3 w-3" />
-                          </button>
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="inline-flex items-center justify-center gap-1.5">
+                            <span className="font-extrabold text-[12px] sm:text-[14px] text-[#111827] font-mono">
+                              {p.stock === null || p.stock === undefined ? "0" : Number(p.stock).toLocaleString("en-IN")}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setInlineEditId(p.productId);
+                                setInlineStockVal(String(p.stock ?? 0));
+                              }}
+                              className="rounded p-0.5 text-slate-400 hover:bg-[#E8F5E9] hover:text-[#217346] transition"
+                              title="Quick edit stock"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                            </button>
+                          </div>
+                          {Number(p.purchaseCost || p.latestPurchaseCost || 0) > 0 && stockNum > 0 ? (
+                            <span
+                              className="text-[9px] text-slate-500 font-medium truncate max-w-full"
+                              title={`Procurement Value: ${formatPrice(Number(p.totalPurchaseValue || (Number(p.purchaseCost || p.latestPurchaseCost) * stockNum)))}`}
+                            >
+                              मूल्य: {formatPrice(Number(p.totalPurchaseValue || (Number(p.purchaseCost || p.latestPurchaseCost) * stockNum)))}
+                            </span>
+                          ) : null}
                         </div>
                       )}
                     </td>
