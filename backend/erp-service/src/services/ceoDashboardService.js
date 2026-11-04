@@ -814,7 +814,7 @@ export async function getCeoDashboard(period = "30d") {
     kpis,
     lenses: [
       { id: "all", label: "All insights", count: totalFarmers + farmerManagers + liveVendors + pickupDrivers + deliveryManagers + deliveryBoys + staffCount + customers },
-      { id: "executive", label: "CEO Unit Economics", count: 7 },
+      { id: "executive", label: "CEO Metrics" },
       { id: "farmers", label: "Farmers", count: totalFarmers },
       { id: "farmer_managers", label: "Farmer managers", count: farmerManagers },
       { id: "vendors", label: "Vendors", count: liveVendors },

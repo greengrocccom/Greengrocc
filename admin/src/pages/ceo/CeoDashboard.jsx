@@ -58,7 +58,7 @@ import { BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL } from '..
 const FALLBACK_LENSES = [
   { id: 'all', label: 'All insights' },
   { id: 'financials', label: 'Financials & Cash Flow' },
-  { id: 'executive', label: 'CEO Unit Economics' },
+  { id: 'executive', label: 'CEO Metrics' },
   { id: 'farmers', label: 'Farmers' },
   { id: 'farmer_managers', label: 'Farmer managers' },
   { id: 'vendors', label: 'Vendors' },
@@ -677,7 +677,7 @@ export default function CeoDashboard() {
               <ShoppingCart className="h-4 w-4 text-indigo-600" />
             </div>
             <p className="mt-1.5 text-2xl font-black text-slate-900">
-              {ordersPDay.today}
+              {ordersPDay.averagePerDay}
             </p>
             <p className="mt-1 text-[11px] text-slate-500">
               {timeFilter === 'today' ? "Today's drops" : `${ordersPDay.totalOrders} total in ${timeFilter}`}
@@ -720,7 +720,7 @@ export default function CeoDashboard() {
               <Users className="h-4 w-4 text-blue-600" />
             </div>
             <p className="mt-1.5 text-2xl font-black text-slate-900">{Number(regCust.total).toLocaleString('en-IN')}</p>
-            <p className="mt-1 text-[11px] text-emerald-700">+{regCust.newInPeriod || regCust.newToday} in {timeFilter}</p>
+            <p className="mt-1 text-[11px] text-emerald-700">+{regCust.newInPeriod} in {timeFilter}</p>
           </div>
 
           {/* Active Customers */}
@@ -1005,7 +1005,7 @@ export default function CeoDashboard() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500">14-Day Velocity & Daily Pace</p>
-                <p className="text-xs text-slate-400">Order count and revenue growth day-by-day</p>
+                <p className="text-xs text-slate-400">Daily order and delivery counts</p>
               </div>
               <div className="flex gap-2 text-xs">
                 <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
@@ -1077,7 +1077,7 @@ export default function CeoDashboard() {
               <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-blue-700">1. Registered Base</p>
                 <p className="mt-1 text-2xl font-black text-blue-950">{regCust.total}</p>
-                <p className="text-[11px] text-blue-700 mt-1">+{regCust.newLast30Days} new users in last 30d</p>
+                <p className="text-[11px] text-blue-700 mt-1">+{regCust.newInPeriod} new users in {timeFilter}</p>
               </div>
               <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">2. Active Customers (MAU)</p>
@@ -1104,7 +1104,7 @@ export default function CeoDashboard() {
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="font-semibold text-slate-700">All Registered Accounts</span>
-                    <span className="font-bold text-slate-900">{regCust.total} (100%)</span>
+                    <span className="font-bold text-slate-900">{regCust.total}</span>
                   </div>
                   <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
                     <div className="bg-blue-600 h-full rounded-full" style={{ width: '100%' }}></div>
