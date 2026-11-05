@@ -588,6 +588,7 @@ export default function CeoDashboard() {
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Recent Order Velocity</p>
                 <p className="text-xs text-slate-400">Daily order and delivery counts</p>
+                <p className="text-xs text-slate-400">Order count and revenue growth day-by-day</p>
               </div>
               <div className="flex gap-2 text-xs">
                 <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
