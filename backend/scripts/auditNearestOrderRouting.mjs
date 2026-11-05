@@ -38,7 +38,7 @@ if (!process.argv.includes('--live')) {
       conn.db.collection('orders').find({ status: { $ne: 'attempted' } }, { projection: { orderNumber: 1, status: 1, fulfillmentType: 1, paymentStatus: 1, deliveryAddress: 1, routingError: 1, createdAt: 1 } }).sort({ createdAt: -1 }).limit(100).toArray(),
     ]);
     const parts = await conn.db.collection('storeorders').find({ sourceOrderId: { $in: orders.map(o => o._id) } }, {
-      projection: { sourceOrderId: 1, managerId: 1, status: 1, isPreOrder: 1, routingReason: 1, customerLat: 1, customerLng: 1, distanceKm: 1, createdAt: 1 },
+      projection: { sourceOrderId: 1, managerId: 1, status: 1, isPreOrder: 1, routingReason: 1, preOrderDate: 1, preOrderSlot: 1, customerLat: 1, customerLng: 1, distanceKm: 1, createdAt: 1 },
     }).toArray();
     const active = stores.filter(s => s.isActive);
     const byId = new Map(stores.map(s => [String(s._id), s]));
@@ -55,7 +55,7 @@ if (!process.argv.includes('--live')) {
           const assigned = byId.get(String(part.managerId));
           const assignedDistanceKm = ranked.find(r => r.id === String(part.managerId))?.distanceKm ?? null;
           return { store: assigned?.storeName || 'Missing store', status: part.status, isPreOrder: part.isPreOrder,
-            routingReason: part.routingReason, storedDistanceKm: part.distanceKm,
+            preOrderDate: part.preOrderDate || null, preOrderSlot: part.preOrderSlot || null, routingReason: part.routingReason, storedDistanceKm: part.distanceKm,
             assignedDistanceKm, nearestStore: byId.get(ranked[0]?.id)?.storeName || null,
             matchesNearestCurrentlyActive: ranked.length ? ranked[0].id === String(part.managerId) : null,
             parentActive: vendorById.get(assigned?.vendorId)?.status === 'Active' };
