@@ -276,44 +276,34 @@ export const addToCart = async (req, res) => {
 export const removeFromCart = async (req, res) => {
   try {
     const { productId } = req.params;
-    const variantName = normalizeVariantName(req.query.variantName);
-    const colorName = normalizeColorName(req.query.colorName);
-
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const cart = await Cart.findOne({ user: req.user._id });
-      if (!cart) {
-        return res.status(404).json({
-          success: false,
-          message: "Cart not found",
-        });
-      }
-
-      // Reapply the removal to the latest cart after a concurrent write.
-      if (!cart.email && req.user?.email) {
-        cart.email = getUserContactEmail(req.user);
-      }
-      const remaining = cart.items.filter(
-        (item) => !matchesCartItem(item, productId, variantName, colorName)
-      );
-      if (remaining.length !== cart.items.length) cart.items = remaining;
-
-      try {
-        if (cart.isModified()) await cart.save();
-      } catch (error) {
-        if (error.name === "VersionError") continue;
-        throw error;
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: "Product removed from cart",
-        data: await populateCart(cart),
-      });
+    if (!mongoose.isValidObjectId(productId)) {
+      return res.status(400).json({ success: false, message: "Invalid product ID" });
     }
-
-    return res.status(409).json({
-      success: false,
-      message: "Cart changed while removing the product. Please try again.",
+    // Match a single cart line, including its slot. Legacy lines may omit optional fields.
+    const optionalField = (value) => {
+      const normalized = normalizeVariantName(value);
+      return normalized || { $in: ["", null] };
+    };
+    const line = {
+      product: productId,
+      variantName: optionalField(req.query.variantName),
+      colorName: optionalField(req.query.colorName),
+      preOrderSlot: optionalField(req.query.preOrderSlot),
+    };
+    // $pull operates on the current array, so overlapping removals never save a stale copy.
+    // Bump the version so older read/modify/save writers cannot resurrect removed lines.
+    const cart = await populateCart(Cart.findOneAndUpdate(
+      { user: req.user._id },
+      { $pull: { items: line }, $inc: { __v: 1 } },
+      { returnDocument: "after" }
+    ));
+    if (!cart) {
+      return res.status(404).json({ success: false, message: "Cart not found" });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Product removed from cart",
+      data: cart,
     });
   } catch (error) {
     respondWithControllerError(res, error, "Remove from cart");
