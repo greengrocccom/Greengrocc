@@ -88,15 +88,7 @@ export async function updateVendorVacation(req, res) {
       });
     }
     if (!vendor) {
-      vendor = await Vendor.findOne();
-    }
-
-    if (!vendor) {
-      vendor = new Vendor({
-        id: vendorId || "vendor-1",
-        ownerName: "Vendor Owner",
-        mobile: "9999999999",
-      });
+      return res.status(404).json({ success: false, message: "Multivendor not found. Contact admin to create your account." });
     }
 
     const payload = req.body || {};

@@ -976,10 +976,9 @@ export default function MultiVendorDetailPage() {
             </div>
             <Link
               to="/dark-stores"
-              state={{ createFor: row.id }}
               className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 transition shadow-2xs"
             >
-              + Create New Dark Store
+              Review Dark Store Requests
             </Link>
           </div>
 

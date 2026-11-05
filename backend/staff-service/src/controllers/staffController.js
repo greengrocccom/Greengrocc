@@ -2,7 +2,6 @@ import jwt from "jsonwebtoken";
 import Staff from "../models/Staff.js";
 import DeliveryManager from "../../../delivery-service/src/models/DeliveryManager.js";
 import DeliveryBoy from "../../../delivery-service/src/models/DeliveryBoy.js";
-import { seedManagerStore } from "../../../delivery-service/src/services/seedManagerStore.js";
 import {
   canCreateRole,
   CREATE_PERMISSIONS,
@@ -187,7 +186,7 @@ export const createAccount = async (req, res, next) => {
     }
 
     if (targetRole === "delivery_manager") {
-      return createDeliveryManager(req, res, next);
+      return res.status(403).json({ success: false, message: "Dark store and delivery manager logins must be requested by an active multivendor created by admin, then approved by admin." });
     }
 
     if (targetRole === "delivery_boy") {
@@ -266,90 +265,6 @@ async function createStaffAccount(req, res, next, targetRole) {
       success: true,
       message: `${ROLE_LABELS[targetRole]} account created`,
       staff: staff.toSafeJSON(),
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-async function createDeliveryManager(req, res, next) {
-  try {
-    const email = String(req.body.email || "").trim().toLowerCase();
-    const phone = normalizePhone(req.body.phone);
-    const password = String(req.body.password || "");
-    const name = String(req.body.name || "").trim();
-    const state = String(req.body.state || "").trim();
-    const city = String(req.body.city || "").trim();
-    const cityId = String(req.body.cityId || "").trim().toLowerCase();
-    const area = String(req.body.area || "").trim();
-    const storeName = String(req.body.storeName || "").trim();
-    const storeAddress = String(req.body.storeAddress || "").trim();
-
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: "Enter a valid email address",
-      });
-    }
-
-    if (!/^[6-9]\d{9}$/.test(phone)) {
-      return res.status(400).json({
-        success: false,
-        message: "Enter a valid 10-digit mobile number",
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 6 characters",
-      });
-    }
-
-    if (!state || !city || !area) {
-      return res.status(400).json({
-        success: false,
-        message: "State, city and area are required for delivery manager",
-      });
-    }
-
-    const existingEmail = await DeliveryManager.findOne({ email });
-    if (existingEmail) {
-      return res.status(409).json({
-        success: false,
-        message: "Email already registered",
-      });
-    }
-
-    const existingPhone = await DeliveryManager.findOne({ phone });
-    if (existingPhone) {
-      return res.status(409).json({
-        success: false,
-        message: "Phone number already registered",
-      });
-    }
-
-    const manager = await DeliveryManager.create({
-      name,
-      email,
-      phone,
-      password,
-      state,
-      city,
-      cityId: cityId || city.toLowerCase().replace(/\s+/g, "-"),
-      area,
-      storeName: storeName || `${area} Store`,
-      storeAddress:
-        storeAddress ||
-        `${storeName || `${area} Store`}, ${area}, ${city}, ${state}`,
-    });
-
-    await seedManagerStore(manager);
-
-    return res.status(201).json({
-      success: true,
-      message: "Delivery manager account created",
-      manager: manager.toSafeJSON(),
     });
   } catch (error) {
     next(error);

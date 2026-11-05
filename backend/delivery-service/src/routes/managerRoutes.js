@@ -143,7 +143,7 @@ import {
 
 const router = express.Router();
 
-// Public self-register enabled for delivery managers
+// Retain the old URL with a clear rejection for older clients.
 router.post("/register", register);
 router.post("/login", login);
 

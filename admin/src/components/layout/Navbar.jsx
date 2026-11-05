@@ -11,6 +11,7 @@ export default function Navbar({ onOpenSidebar, searchValue, onSearchChange }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [emergencyCount, setEmergencyCount] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(() => getSoundSettings().enabled);
   const initial = (user?.name || 'A').charAt(0).toUpperCase();
 
@@ -19,6 +20,9 @@ export default function Navbar({ onOpenSidebar, searchValue, onSearchChange }) {
       const res = await apiClient.get('/admin/notifications/system-alerts');
       const count = res.data?.metrics?.unreadCount ?? 0;
       setUnreadCount(count);
+      setEmergencyCount((res.data?.data || []).filter(
+        (alert) => alert.priority === 'critical' && !alert.isRead && !alert.isDismissed,
+      ).length);
     } catch {
       // ignore
     }
@@ -55,11 +59,12 @@ export default function Navbar({ onOpenSidebar, searchValue, onSearchChange }) {
         <Link
           to="/notifications"
           className={`${BTN} relative p-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 transition`}
-          title={`Notifications & System Alerts (${unreadCount} unread)`}
+          title={`Notifications & System Alerts (${unreadCount} unread${emergencyCount ? `, ${emergencyCount} critical — needs attention` : ''})`}
+          aria-label={`Notifications: ${unreadCount} unread, ${emergencyCount} critical alerts`}
         >
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+          <Bell className={`h-4 w-4 ${emergencyCount > 0 ? 'text-red-600' : ''}`} />
+          {(unreadCount > 0 || emergencyCount > 0) && (
+            <span className={`absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white ${emergencyCount > 0 ? 'admin-emergency-indicator' : ''}`}>
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}

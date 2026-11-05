@@ -6653,36 +6653,8 @@ export async function getVendors(req, res) {
   }
 }
 
-export async function createVendor(req, res) {
-  try {
-    const payload = req.body;
-    const cleanMobile = String(payload.mobile || "").replace(/\D/g, "").slice(-10);
-    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
-      return res.status(400).json({ message: "Valid 10-digit mobile number required" });
-    }
-    if (!isPhoneOtpVerified(cleanMobile)) {
-      return res.status(400).json({
-        message: "Mobile number must be verified via GreenGrocc Common OTP (GREGRC_Common_OTP) before registering vendor",
-      });
-    }
-    consumeVerifiedPhone(cleanMobile);
-    const id = timestampId("vendor");
-    const rawPassword = payload.password || "vendor123";
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
-    const vendor = new Vendor({
-      id,
-      vendorCode: await serialId("VND"),
-      ...payload,
-      mobile: cleanMobile,
-      password: hashedPassword,
-      role: "VENDOR",
-    });
-    await vendor.save();
-    const { password: _pw, ...vendorData } = vendor.toObject();
-    res.status(201).json(vendorData);
-  } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to create vendor" });
-  }
+export async function createVendor(_req, res) {
+  return res.status(403).json({ message: "Multivendors must be created by admin from the admin panel." });
 }
 
 export async function updateVendor(req, res) {

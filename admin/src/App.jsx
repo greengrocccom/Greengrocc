@@ -1,3 +1,4 @@
+import LoginAccountsPage from './pages/ops/LoginAccountsPage';
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -246,6 +247,7 @@ export default function App() {
 
               {/* Team & HR with Zone -> Store Scope */}
               {scoped('staff-management', 'Team & HR', 'Staff Management', StaffManagementPage)}
+              <Route path="login-accounts" element={<LoginAccountsPage />} />
               {scoped('hr-management', 'Team & HR', 'HR Dashboard', HrManagement)}
               {scoped('hr-management/employees', 'Team & HR', 'Employees', HrEmployeesPage)}
               <Route path="hr-management/employees/:type/:id" element={<HrEmployeeProfilePage />} />

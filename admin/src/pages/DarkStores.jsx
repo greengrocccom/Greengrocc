@@ -211,7 +211,7 @@ export default function DarkStores() {
 
   useEffect(() => {
     if (location.state?.createFor === undefined) return;
-    openCreate(location.state.createFor || '');
+    setError('Dark stores must be requested by the multivendor, then approved by admin.');
     navigate(location.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
@@ -266,12 +266,6 @@ export default function DarkStores() {
     const skus = stores.reduce((sum, s) => sum + (s.skuCount || 0), 0);
     return { total: stores.length, active, needPin, skus };
   }, [stores]);
-
-  const openCreate = (vendorId = '') => {
-    setFormError('');
-    setEditing({ isNew: true });
-    setForm({ ...emptyForm, vendorId });
-  };
 
   const openEdit = (store) => {
     setFormError('');
@@ -396,13 +390,10 @@ export default function DarkStores() {
             <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button type="button" onClick={() => openCreate()} className={BTN_PRIMARY}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add Dark Store
-          </button>
         </div>
       </div>
 
+      <p className="text-sm text-slate-600">Multivendors request new dark stores from their panel. Approve their requests here to create manager logins.</p>
       <PendingDarkStoreRequestsBanner />
 
       {toast ? (
@@ -511,15 +502,7 @@ export default function DarkStores() {
                 <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
                   {group.stores.length} dark store{group.stores.length === 1 ? '' : 's'}
                 </span>
-                {group.vendor ? (
-                  <button
-                    type="button"
-                    onClick={() => openCreate(group.vendor.id)}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline"
-                  >
-                    <Plus className="h-3 w-3" /> Add dark store
-                  </button>
-                ) : null}
+
               </div>
               {group.stores.length === 0 ? (
                 <p className="px-1 py-2 text-xs text-slate-400">
