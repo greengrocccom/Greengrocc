@@ -131,6 +131,8 @@ export const getMyBookings = async (req, res, next) => {
       bookingId: userBooking._id ? userBooking._id.toString() : userBooking.bookingId,
       slotId: slot._id.toString(),
       shiftId: shift._id.toString(),
+      shiftType: shift.type || "",
+      shiftName: shift.name || "",
       dateString: shift.dateString,
       startTime: slot.startTime,
       endTime: slot.endTime,

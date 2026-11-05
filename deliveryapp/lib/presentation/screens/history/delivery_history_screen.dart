@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +9,7 @@ import '../../../core/config/cached_get.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/online_duration.dart';
+import '../../../core/utils/history_calendar.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/common/app_panel.dart';
@@ -22,6 +25,8 @@ class DeliveryHistoryScreen extends StatefulWidget {
 }
 
 class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
+  Timer? _dayTimer;
+  String _loadedDate = '';
   String _range = 'day';
   bool _loading = true;
   String? _error;
@@ -32,6 +37,48 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
   void initState() {
     super.initState();
     _load();
+    _dayTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted && _loadedDate != _dateKey(_todayIST())) _load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _dayTimer?.cancel();
+    super.dispose();
+  }
+
+  DateTime _todayIST() {
+    final now = DateTime.now().toUtc().add(
+      const Duration(hours: 5, minutes: 30),
+    );
+    return DateTime.utc(now.year, now.month, now.day);
+  }
+
+  String _dateKey(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
+
+  List<_DayBox> _calendarDays(List<dynamic> rows, String range) {
+    final today = _todayIST();
+    _loadedDate = _dateKey(today);
+    final byDate = <String, _DayBox>{
+      for (final row in rows.whereType<Map>())
+        row['date'].toString(): _DayBox.fromJson(
+          Map<String, dynamic>.from(row),
+        ),
+    };
+    return historyCalendarDates(range, DateTime.now()).map((date) {
+      final key = _dateKey(date);
+      final future = date.isAfter(today);
+      return _DayBox(
+        date: key,
+        dayLabel: DateFormat.E().format(date),
+        isToday: key == _loadedDate,
+        isUpcoming: future,
+        metrics: future
+            ? _ActivityMetrics.empty
+            : byDate[key]?.metrics ?? _ActivityMetrics.empty,
+      );
+    }).toList();
   }
 
   Future<void> _load() async {
@@ -50,14 +97,11 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
           }
           final data = Map<String, dynamic>.from(body['data'] as Map);
           final daysRaw = (data['days'] as List?) ?? const [];
-          final totalsRaw = (data['totals'] as Map?)?.cast<String, dynamic>() ?? {};
+          final totalsRaw =
+              (data['totals'] as Map?)?.cast<String, dynamic>() ?? {};
           if (!mounted || range != _range) return;
           setState(() {
-            _days = daysRaw
-                .whereType<Map>()
-                .map((e) => _DayBox.fromJson(Map<String, dynamic>.from(e)))
-                .where((day) => range != 'day' || day.isToday)
-                .toList();
+            _days = _calendarDays(daysRaw, range);
             _totals = _ActivityMetrics.fromJson(totalsRaw);
             _loading = false;
           });
@@ -111,10 +155,7 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: CustomAppBar(
-        title: l10n.deliveryHistory,
-        showBackButton: true,
-      ),
+      appBar: CustomAppBar(title: l10n.deliveryHistory, showBackButton: true),
       body: body,
     );
   }
@@ -176,10 +217,29 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
               ),
             )
           else ...[
-            for (var i = 0; i < _days.length; i++) ...[
-              if (i > 0) const SizedBox(height: AppSpacing.md),
-              _DayHistoryCard(day: _days[i]),
-            ],
+            if (_range == 'month')
+              for (var i = 0; i < _days.length; i += 2) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.md),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _DayHistoryCard(day: _days[i], compact: true),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: i + 1 < _days.length
+                          ? _DayHistoryCard(day: _days[i + 1], compact: true)
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              ]
+            else
+              for (var i = 0; i < _days.length; i++) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.md),
+                _DayHistoryCard(day: _days[i]),
+              ],
           ],
         ],
       ),
@@ -262,7 +322,9 @@ class _RangeChips extends StatelessWidget {
 }
 
 class _DayHistoryCard extends StatelessWidget {
-  const _DayHistoryCard({required this.day});
+  const _DayHistoryCard({required this.day, this.compact = false});
+
+  final bool compact;
 
   final _DayBox day;
 
@@ -278,7 +340,9 @@ class _DayHistoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: day.isUpcoming
+            ? (isDark ? const Color(0xFF273244) : const Color(0xFFE2E8F0))
+            : AppColors.cardBackground,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: day.isToday
@@ -297,7 +361,10 @@ class _DayHistoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
                 _localDayLabel(context, day),
@@ -318,9 +385,14 @@ class _DayHistoryCard extends StatelessWidget {
               if (day.isToday) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7),
+                    color: isDark
+                        ? const Color(0xFF064E3B)
+                        : const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -328,7 +400,9 @@ class _DayHistoryCard extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF15803D),
+                      color: isDark
+                          ? const Color(0xFF6EE7B7)
+                          : const Color(0xFF15803D),
                     ),
                   ),
                 ),
@@ -336,7 +410,28 @@ class _DayHistoryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          _ActivityChips(metrics: day.metrics),
+          if (day.isUpcoming)
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule_rounded,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    l10n.shiftUpcoming,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            _ActivityChips(metrics: day.metrics, compact: compact),
         ],
       ),
     );
@@ -368,11 +463,13 @@ class _MetricChip extends StatelessWidget {
         children: [
           Text(emoji, style: const TextStyle(fontSize: 11)),
           const SizedBox(width: 4),
-          Text(
-            AppLocalizations.of(context).labelWithColon(label),
-            style: GoogleFonts.inter(
-              fontSize: 10.5,
-              color: AppColors.textSecondary,
+          Flexible(
+            child: Text(
+              AppLocalizations.of(context).labelWithColon(label),
+              style: GoogleFonts.inter(
+                fontSize: 10.5,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
           Text(
@@ -395,7 +492,9 @@ String _localDayLabel(BuildContext context, _DayBox d) {
   if (parts.any((p) => p == null)) return d.dayLabel;
   try {
     if (parts.length == 3) {
-      return DateFormat.E(locale).format(DateTime(parts[0]!, parts[1]!, parts[2]!));
+      return DateFormat.E(
+        locale,
+      ).format(DateTime(parts[0]!, parts[1]!, parts[2]!));
     }
   } catch (_) {}
   return d.dayLabel;
@@ -407,11 +506,13 @@ class _DayBox {
     required this.dayLabel,
     required this.isToday,
     required this.metrics,
+    this.isUpcoming = false,
   });
 
   final String date;
   final String dayLabel;
   final bool isToday;
+  final bool isUpcoming;
   final _ActivityMetrics metrics;
 
   factory _DayBox.fromJson(Map<String, dynamic> json) {
@@ -453,7 +554,9 @@ class _ActivityMetrics {
 }
 
 class _ActivityChips extends StatelessWidget {
-  const _ActivityChips({required this.metrics});
+  const _ActivityChips({required this.metrics, this.compact = false});
+
+  final bool compact;
 
   final _ActivityMetrics metrics;
 
@@ -461,20 +564,44 @@ class _ActivityChips extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final distance = metrics.totalDistanceKm;
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
-        _MetricChip(emoji: '📅', label: l10n.shiftsBookedLabel, value: metrics.shiftsBooked.toString()),
-        _MetricChip(emoji: '✅', label: l10n.completedShiftsLabel, value: metrics.shiftsCompleted.toString()),
-        _MetricChip(emoji: '⏱️', label: l10n.onlineTime, value: formatOnlineDuration(metrics.onlineMinutes)),
-        _MetricChip(
-          emoji: '📍',
-          label: l10n.distance,
-          value: distance == null ? '—' : l10n.distanceKmValue(distance.toStringAsFixed(1)),
-        ),
-        _MetricChip(emoji: '🛵', label: l10n.tripsCompletedLabel, value: metrics.trips.toString()),
-      ],
-    );
+    final chips = <Widget>[
+      _MetricChip(
+        emoji: '📅',
+        label: l10n.shiftsBookedLabel,
+        value: metrics.shiftsBooked.toString(),
+      ),
+      _MetricChip(
+        emoji: '✅',
+        label: l10n.completedShiftsLabel,
+        value: metrics.shiftsCompleted.toString(),
+      ),
+      _MetricChip(
+        emoji: '⏱️',
+        label: l10n.onlineTime,
+        value: formatOnlineDuration(metrics.onlineMinutes),
+      ),
+      _MetricChip(
+        emoji: '📍',
+        label: l10n.distance,
+        value: distance == null
+            ? '—'
+            : l10n.distanceKmValue(distance.toStringAsFixed(1)),
+      ),
+      _MetricChip(
+        emoji: '🛵',
+        label: l10n.tripsCompletedLabel,
+        value: metrics.trips.toString(),
+      ),
+    ];
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final chip in chips)
+            Padding(padding: const EdgeInsets.only(bottom: 5), child: chip),
+        ],
+      );
+    }
+    return Wrap(spacing: 6, runSpacing: 6, children: chips);
   }
 }

@@ -1622,7 +1622,9 @@ export const getActivityHistory = async (req, res, next) => {
       const [y, m] = todayStr.split("-").map(Number);
       dateList = listIstDatesInMonth(y, m).filter((d) => d <= todayStr);
     } else {
-      dateList = listRecentIstDates(7);
+      const today = new Date(`${todayStr}T00:00:00Z`);
+      const daysSinceMonday = (today.getUTCDay() + 6) % 7;
+      dateList = listRecentIstDates(daysSinceMonday + 1).sort();
     }
 
     const { days, totals } = await buildDayRows(dateList);

@@ -49,6 +49,8 @@ class ShiftSlotInfo {
 }
 
 class ShiftBookingInfo {
+  final String shiftType;
+  final String shiftName;
   final String id;
   final String slotId;
   final String dateString;
@@ -61,16 +63,21 @@ class ShiftBookingInfo {
   final int notificationTimeMinutes;
   final DateTime? bookedAt;
   final String assignedBy;
+
   /// none | per_km | per_hour
   final String incentiveMode;
   final double incentiveRate;
+
   /// per_km: km to deliver in the slot before each further km is paid.
   final double incentiveAfterKm;
   final double kmDelivered;
+
   /// completed | running | upcoming (computed by the server in IST)
   final String phase;
 
   const ShiftBookingInfo({
+    this.shiftType = '',
+    this.shiftName = '',
     required this.id,
     required this.slotId,
     required this.dateString,
@@ -107,7 +114,12 @@ class ShiftBookingInfo {
   }
 
   /// Fallback when the server did not send a phase.
-  static String _localPhase(String dateString, String start, String end, String status) {
+  static String _localPhase(
+    String dateString,
+    String start,
+    String end,
+    String status,
+  ) {
     if (status == 'COMPLETED') return 'completed';
     final day = DateTime.tryParse(dateString);
     if (day == null) return 'upcoming';
@@ -126,6 +138,8 @@ class ShiftBookingInfo {
 
   factory ShiftBookingInfo.fromJson(Map<String, dynamic> json) {
     return ShiftBookingInfo(
+      shiftType: json['shiftType']?.toString() ?? '',
+      shiftName: json['shiftName']?.toString() ?? '',
       id: json['id']?.toString() ?? '',
       slotId: json['slotId']?.toString() ?? '',
       dateString: json['dateString']?.toString() ?? '',
@@ -135,8 +149,11 @@ class ShiftBookingInfo {
       storeName: json['storeName']?.toString() ?? 'Dark Store',
       storeAddress: json['storeAddress']?.toString() ?? '',
       notificationEnabled: json['notificationEnabled'] == true,
-      notificationTimeMinutes: (json['notificationTimeMinutes'] as num?)?.toInt() ?? 15,
-      bookedAt: json['bookedAt'] != null ? DateTime.tryParse(json['bookedAt'].toString()) : null,
+      notificationTimeMinutes:
+          (json['notificationTimeMinutes'] as num?)?.toInt() ?? 15,
+      bookedAt: json['bookedAt'] != null
+          ? DateTime.tryParse(json['bookedAt'].toString())
+          : null,
       assignedBy: json['assignedBy']?.toString() ?? 'rider',
       incentiveMode: json['incentiveMode']?.toString() ?? 'none',
       incentiveRate: (json['incentiveRate'] as num?)?.toDouble() ?? 0,
@@ -211,7 +228,8 @@ class ShiftService {
 
   Future<AvailableSlotsResponse?> fetchAvailableSlots(String date) async {
     try {
-      final path = '${ApiConfig.availableSlots}?date=${Uri.encodeComponent(date)}';
+      final path =
+          '${ApiConfig.availableSlots}?date=${Uri.encodeComponent(date)}';
       final res = await apiGet(path, headers: _headers);
       if (res.statusCode != 200) return null;
 
@@ -233,7 +251,9 @@ class ShiftService {
         storeAddress: body['storeAddress']?.toString() ?? '',
         slots: slotsList,
         userHasBookingForDate: body['userHasBookingForDate'] == true,
-        activeBooking: activeBookingJson != null ? ShiftBookingInfo.fromJson(activeBookingJson) : null,
+        activeBooking: activeBookingJson != null
+            ? ShiftBookingInfo.fromJson(activeBookingJson)
+            : null,
       );
     } catch (e) {
       debugPrint('[ShiftService] fetchAvailableSlots error: $e');
@@ -243,7 +263,10 @@ class ShiftService {
 
   Future<Map<String, dynamic>> fetchMyBookings() async {
     try {
-      final res = await apiGet(ApiConfig.shiftBookings + '/my', headers: _headers);
+      final res = await apiGet(
+        ApiConfig.shiftBookings + '/my',
+        headers: _headers,
+      );
       if (res.statusCode != 200) return {};
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
@@ -262,14 +285,17 @@ class ShiftService {
 
       final upcoming = rawUpcoming
           .map((b) => ShiftBookingInfo.fromJson(b as Map<String, dynamic>))
-          .where((b) => b.dateString.isEmpty || b.dateString.compareTo(todayStr) > 0)
+          .where(
+            (b) => b.dateString.isEmpty || b.dateString.compareTo(todayStr) > 0,
+          )
           .toList();
 
       final todayList = (body['todayBookings'] as List? ?? [])
           .map((b) => ShiftBookingInfo.fromJson(b as Map<String, dynamic>))
           .where((b) => b.dateString.isEmpty || b.dateString == todayStr)
           .toList();
-      if (todayList.isEmpty && todayBooking != null) todayList.add(todayBooking);
+      if (todayList.isEmpty && todayBooking != null)
+        todayList.add(todayBooking);
 
       return {
         'todayBooking': todayBooking,
@@ -290,7 +316,11 @@ class ShiftService {
     return '$y-$m-$d';
   }
 
-  Future<bool> toggleNotification(String bookingId, bool enabled, int minutes) async {
+  Future<bool> toggleNotification(
+    String bookingId,
+    bool enabled,
+    int minutes,
+  ) async {
     try {
       final path = '${ApiConfig.shiftBookings}/$bookingId/notify';
       final res = await apiPost(
@@ -307,15 +337,15 @@ class ShiftService {
     }
   }
 
-  Future<GoOnlineResult> goOnlineWithLocation(double latitude, double longitude) async {
+  Future<GoOnlineResult> goOnlineWithLocation(
+    double latitude,
+    double longitude,
+  ) async {
     try {
       final res = await apiPost(
         ApiConfig.goOnline,
         headers: _headers,
-        body: jsonEncode({
-          'latitude': latitude,
-          'longitude': longitude,
-        }),
+        body: jsonEncode({'latitude': latitude, 'longitude': longitude}),
       );
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
@@ -323,7 +353,8 @@ class ShiftService {
 
       return GoOnlineResult(
         success: isSuccess,
-        message: body['message']?.toString() ?? 'Location verification complete',
+        message:
+            body['message']?.toString() ?? 'Location verification complete',
         code: body['code']?.toString(),
         distanceMeters: (body['distanceMeters'] as num?)?.toInt(),
         allowedRadius: (body['allowedRadius'] as num?)?.toInt(),
@@ -356,7 +387,9 @@ class ShiftService {
       if (res.statusCode != 200) return [];
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final list = body['gigs'] as List? ?? [];
-      return list.map((g) => GigInfo.fromJson(g as Map<String, dynamic>)).toList();
+      return list
+          .map((g) => GigInfo.fromJson(g as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return [];
     }
@@ -408,7 +441,9 @@ class GigInfo {
 
   factory GigInfo.fromJson(Map<String, dynamic> json) {
     final rawTiers = json['tiers'] as List? ?? [];
-    final tiersList = rawTiers.map((t) => GigTierInfo.fromJson(t as Map<String, dynamic>)).toList();
+    final tiersList = rawTiers
+        .map((t) => GigTierInfo.fromJson(t as Map<String, dynamic>))
+        .toList();
 
     return GigInfo(
       id: json['id']?.toString() ?? '',
