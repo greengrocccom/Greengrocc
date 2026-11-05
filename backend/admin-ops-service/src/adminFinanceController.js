@@ -10,6 +10,7 @@ import { VendorCommissionPayment } from "./models.js";
 import { Vendor } from "../../farmer-manager-service/src/models.js";
 import DeliveryManager from "../../delivery-service/src/models/DeliveryManager.js";
 import StoreOrder from "../../delivery-service/src/models/StoreOrder.js";
+import DeliveryExpense from "../../delivery-service/src/models/DeliveryExpense.js";
 
 /**
  * 1. GET /api/admin/finance/dashboard
@@ -109,7 +110,7 @@ export async function listAdminVendorCommissions(req, res) {
 export async function getAdminVendorCommissionDetail(req, res) {
   try {
     const { vendorId } = req.params;
-    const { preset, startDate, endDate, page = 1, limit = 25 } = req.query;
+    const { preset, startDate, endDate, storeId, page = 1, limit = 25 } = req.query;
 
     const dateFilter = buildIstDateFilter(preset, startDate, endDate);
     const calc = await calculateVendorAdminCommission(vendorId, dateFilter);
@@ -119,11 +120,15 @@ export async function getAdminVendorCommissionDetail(req, res) {
     }
 
     // Dark store IDs for orders query
-    const darkStoreIds = calc.darkStores.map((s) => new mongoose.Types.ObjectId(s._id));
+    const allDarkStoreIds = calc.darkStores.map((s) => new mongoose.Types.ObjectId(s._id));
     const storeMap = new Map(calc.darkStores.map((s) => [s._id, s.storeName]));
 
+    const activeStoreIds = storeId && storeId !== "ALL" && storeId !== "all" && mongoose.isValidObjectId(storeId)
+      ? [new mongoose.Types.ObjectId(storeId)]
+      : allDarkStoreIds;
+
     const orderQuery = {
-      managerId: { $in: darkStoreIds },
+      managerId: { $in: activeStoreIds },
       isDeleted: { $ne: true },
     };
     if (dateFilter) {
@@ -133,7 +138,122 @@ export async function getAdminVendorCommissionDetail(req, res) {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.max(1, parseInt(limit, 10) || 25);
 
-    const [totalOrdersCount, rawOrders] = await Promise.all([
+    // Aggregate store-level performance for Dark Store breakdown
+    const [storeWiseAgg, storeExpAgg, totalOrdersCount, rawOrders] = await Promise.all([
+      StoreOrder.aggregate([
+        {
+          $match: {
+            managerId: { $in: allDarkStoreIds },
+            isDeleted: { $ne: true },
+            ...(dateFilter ? { createdAt: dateFilter } : {}),
+          },
+        },
+        {
+          $group: {
+            _id: "$managerId",
+            totalOrders: { $sum: 1 },
+            completedOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
+            cancelledOrders: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+            cancelledOrdersCost: {
+              $sum: {
+                $cond: [
+                  { $eq: ["$status", "cancelled"] },
+                  {
+                    $sum: {
+                      $map: {
+                        input: { $ifNull: ["$items", []] },
+                        as: "it",
+                        in: { $multiply: [{ $ifNull: ["$$it.price", 0] }, { $ifNull: ["$$it.quantity", 0] }] },
+                      },
+                    },
+                  },
+                  0,
+                ],
+              },
+            },
+            grossProductSales: {
+              $sum: {
+                $cond: [
+                  { $ne: ["$status", "cancelled"] },
+                  {
+                    $sum: {
+                      $map: {
+                        input: { $ifNull: ["$items", []] },
+                        as: "it",
+                        in: { $multiply: [{ $ifNull: ["$$it.price", 0] }, { $ifNull: ["$$it.quantity", 0] }] },
+                      },
+                    },
+                  },
+                  0,
+                ],
+              },
+            },
+            totalDeliveryCharges: {
+              $sum: {
+                $cond: [
+                  { $ne: ["$status", "cancelled"] },
+                  {
+                    $let: {
+                      vars: {
+                        rawPaid: {
+                          $cond: [
+                            { $gt: [{ $ifNull: ["$partTotal", 0] }, 0] },
+                            "$partTotal",
+                            { $ifNull: ["$amountToCollect", 0] },
+                          ],
+                        },
+                        itemsSum: {
+                          $sum: {
+                            $map: {
+                              input: { $ifNull: ["$items", []] },
+                              as: "it",
+                              in: { $multiply: [{ $ifNull: ["$$it.price", 0] }, { $ifNull: ["$$it.quantity", 0] }] },
+                            },
+                          },
+                        },
+                      },
+                      in: {
+                        $let: {
+                          vars: { diff: { $subtract: ["$$rawPaid", "$$itemsSum"] } },
+                          in: { $cond: [{ $gt: ["$$diff", 0] }, "$$diff", 0] },
+                        },
+                      },
+                    },
+                  },
+                  0,
+                ],
+              },
+            },
+            deliveredSales: {
+              $sum: {
+                $cond: [
+                  { $eq: ["$status", "delivered"] },
+                  {
+                    $sum: {
+                      $map: {
+                        input: { $ifNull: ["$items", []] },
+                        as: "it",
+                        in: { $multiply: [{ $ifNull: ["$$it.price", 0] }, { $ifNull: ["$$it.quantity", 0] }] },
+                      },
+                    },
+                  },
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      ]),
+      DeliveryExpense.aggregate([
+        {
+          $match: {
+            managerId: { $in: allDarkStoreIds },
+            isDeleted: { $ne: true },
+            ...(dateFilter ? { expenseDate: dateFilter } : {}),
+          },
+        },
+        { $group: { _id: "$managerId", totalExpenses: { $sum: "$amount" } } },
+      ]),
       StoreOrder.countDocuments(orderQuery),
       StoreOrder.find(orderQuery)
         .sort({ createdAt: -1 })
@@ -141,6 +261,55 @@ export async function getAdminVendorCommissionDetail(req, res) {
         .limit(limitNum)
         .lean(),
     ]);
+
+    const storeExpMap = new Map(storeExpAgg.map((e) => [String(e._id), e.totalExpenses]));
+    const storeOrderMap = new Map(storeWiseAgg.map((o) => [String(o._id), o]));
+
+    const totalVendorProcurement = calc.farmerProcurement || 0;
+    const totalVendorGrossSales = calc.grossProductSales || 0;
+    const vendorRate = calc.commissionRate || 10;
+
+    const darkStoreBreakdown = calc.darkStores.map((s) => {
+      const o = storeOrderMap.get(String(s._id)) || {
+        totalOrders: 0,
+        completedOrders: 0,
+        cancelledOrders: 0,
+        cancelledOrdersCost: 0,
+        grossProductSales: 0,
+        totalDeliveryCharges: 0,
+        deliveredSales: 0,
+      };
+      const exp = storeExpMap.get(String(s._id)) || 0;
+      const totalSale = o.grossProductSales + (o.totalDeliveryCharges || 0);
+      const customerPaymentTotal = totalSale + o.cancelledOrdersCost;
+      const storeProcurement = totalVendorGrossSales > 0
+        ? Math.round((totalVendorProcurement * o.grossProductSales) / totalVendorGrossSales)
+        : (calc.darkStores.length === 1 ? totalVendorProcurement : 0);
+      const storeCommission = Math.round((totalSale * vendorRate) / 100);
+      const netProfit = totalSale - storeProcurement - storeCommission - exp;
+      const currentProfit = o.deliveredSales;
+
+      return {
+        id: String(s._id),
+        name: s.storeName || s.name || "Dark Store",
+        storeName: s.storeName || s.name || "Dark Store",
+        area: s.area || "",
+        city: s.city || "",
+        totalOrders: o.totalOrders,
+        completedOrders: o.completedOrders,
+        cancelledOrders: o.cancelledOrders,
+        cancelledOrdersCost: o.cancelledOrdersCost,
+        customerPaymentTotal,
+        grossProductSales: o.grossProductSales,
+        deliveryCharges: o.totalDeliveryCharges || 0,
+        totalSale,
+        adminCommission: storeCommission,
+        commissionRate: vendorRate,
+        darkStoreExpenses: exp,
+        netProfit,
+        currentProfit,
+      };
+    });
 
     const orders = rawOrders.map((o) => {
       const isCancelled = o.status === "cancelled";
@@ -171,6 +340,7 @@ export async function getAdminVendorCommissionDetail(req, res) {
     return res.json({
       success: true,
       commission: calc,
+      darkStoreBreakdown,
       orders,
       pagination: {
         total: totalOrdersCount,

@@ -133,6 +133,121 @@ export async function calculateVendorAdminCommission(vendorIdOrDoc, dateFilter =
         cancelledOrders: {
           $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] },
         },
+        cancelledOrdersCost: {
+          $sum: {
+            $cond: [
+              { $eq: ["$status", "cancelled"] },
+              {
+                $sum: {
+                  $map: {
+                    input: { $ifNull: ["$items", []] },
+                    as: "it",
+                    in: {
+                      $multiply: [
+                        { $ifNull: ["$$it.price", 0] },
+                        { $ifNull: ["$$it.quantity", 0] },
+                      ],
+                    },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+        // Delivery Charges on non-cancelled orders
+        totalDeliveryCharges: {
+          $sum: {
+            $cond: [
+              { $ne: ["$status", "cancelled"] },
+              {
+                $let: {
+                  vars: {
+                    rawPaid: {
+                      $cond: [
+                        { $gt: [{ $ifNull: ["$partTotal", 0] }, 0] },
+                        "$partTotal",
+                        { $ifNull: ["$amountToCollect", 0] },
+                      ],
+                    },
+                    itemsSum: {
+                      $sum: {
+                        $map: {
+                          input: { $ifNull: ["$items", []] },
+                          as: "it",
+                          in: {
+                            $multiply: [
+                              { $ifNull: ["$$it.price", 0] },
+                              { $ifNull: ["$$it.quantity", 0] },
+                            ],
+                          },
+                        },
+                      },
+                    },
+                  },
+                  in: {
+                    $let: {
+                      vars: {
+                        diff: { $subtract: ["$$rawPaid", "$$itemsSum"] },
+                      },
+                      in: { $cond: [{ $gt: ["$$diff", 0] }, "$$diff", 0] },
+                    },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+        // Customer payment total on non-cancelled orders
+        customerPaymentTotal: {
+          $sum: {
+            $cond: [
+              { $ne: ["$status", "cancelled"] },
+              {
+                $let: {
+                  vars: {
+                    rawPaid: {
+                      $cond: [
+                        { $gt: [{ $ifNull: ["$partTotal", 0] }, 0] },
+                        "$partTotal",
+                        { $ifNull: ["$amountToCollect", 0] },
+                      ],
+                    },
+                    itemsSum: {
+                      $sum: {
+                        $map: {
+                          input: { $ifNull: ["$items", []] },
+                          as: "it",
+                          in: {
+                            $multiply: [
+                              { $ifNull: ["$$it.price", 0] },
+                              { $ifNull: ["$$it.quantity", 0] },
+                            ],
+                          },
+                        },
+                      },
+                    },
+                  },
+                  in: {
+                    $let: {
+                      vars: {
+                        diff: { $subtract: ["$$rawPaid", "$$itemsSum"] },
+                      },
+                      in: {
+                        $add: [
+                          "$$itemsSum",
+                          { $cond: [{ $gt: ["$$diff", 0] }, "$$diff", 0] },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
         // Eligible Product Sales: excludes cancelled orders, excludes delivery charges
         grossProductSales: {
           $sum: {
@@ -183,14 +298,19 @@ export async function calculateVendorAdminCommission(vendorIdOrDoc, dateFilter =
   ]);
 
   const grossProductSales = Number(orderKpis?.grossProductSales || 0);
-  const eligibleCommissionSales = grossProductSales;
+  const deliveryCharges = Number(orderKpis?.totalDeliveryCharges || 0);
+  const totalSale = grossProductSales + deliveryCharges;
+  const eligibleCommissionSales = totalSale;
   const totalOrders = Number(orderKpis?.totalOrders || 0);
   const completedOrders = Number(orderKpis?.completedOrders || 0);
   const cancelledOrders = Number(orderKpis?.cancelledOrders || 0);
+  const cancelledOrdersCost = Number(orderKpis?.cancelledOrdersCost || 0);
+  const cancelledCostRaw = Number(orderKpis?.cancelledOrdersCost || 0);
+  const customerPaymentTotal = Number(orderKpis?.customerPaymentTotal && Number(orderKpis.customerPaymentTotal) > totalSale ? orderKpis.customerPaymentTotal : totalSale + cancelledCostRaw);
   const deliveredSales = Number(orderKpis?.deliveredSales || 0);
 
-  // 3. Central Admin Commission calculation
-  const totalAdminCommission = Math.round((eligibleCommissionSales * commissionRate) / 100);
+  // 3. Central Admin Commission calculation on TOTAL SALE (10% of totalSale)
+  const totalAdminCommission = Math.round((totalSale * commissionRate) / 100);
 
   // 4. Commission Payments from existing VendorCommissionPayment model
   const paymentQuery = {
@@ -221,6 +341,62 @@ export async function calculateVendorAdminCommission(vendorIdOrDoc, dateFilter =
     commissionStatus = "Pending";
   }
 
+  // 5. Farmer Procurement Cost for this vendor
+  const statementStatusMatch = {
+    $or: [
+      { status: { $in: ["GRADE_CONFIRMED", "ORDER_COMPLETED", "grade_confirmed", "order_completed"] } },
+      { qualityStatus: { $in: ["GRADE_CONFIRMED", "ORDER_COMPLETED"] } },
+    ],
+  };
+  const farmerOrders = await FarmerOrder.find({
+    vendorId: { $in: vendorMatchIds },
+    ...statementStatusMatch,
+    ...(dateFilter ? { createdAt: dateFilter } : {}),
+  }).lean();
+
+  let farmerProcurement = 0;
+  for (const o of farmerOrders) {
+    const grades = Array.isArray(o.finalStatement) && o.finalStatement.length
+      ? o.finalStatement
+      : Array.isArray(o.grades) && o.grades.length
+        ? o.grades
+        : [];
+    let amt = 0;
+    if (grades.length > 0) {
+      const gTot = grades.reduce((sum, g) => {
+        const q = Number(g.quantity || 0);
+        const r = Number(g.rate ?? g.price ?? 0);
+        const a = Number(g.amount || 0);
+        return sum + (a > 0 ? a : q * r);
+      }, 0);
+      if (gTot > 0) amt = gTot;
+    }
+    if (!amt) {
+      amt = Number(o.orderValue || o.totalAmount || (Number(o.orderedQuantity || 0) * Number(o.price || 0)) || 0);
+    }
+    farmerProcurement += amt;
+  }
+  farmerProcurement = Math.round(farmerProcurement);
+
+  // 6. Vendor & Dark Store Expenses for this vendor
+  const vendorExpDocs = await VendorExpense.find({
+    vendorId: { $in: vendorMatchIds },
+    isDeleted: { $ne: true },
+    ...(dateFilter ? { date: dateFilter } : {}),
+  }).lean();
+  const vendorExpenses = Math.round(vendorExpDocs.reduce((sum, e) => sum + Number(e.amount || 0), 0));
+
+  const darkStoreExpDocs = await DeliveryExpense.find({
+    managerId: { $in: darkStoreIds },
+    isDeleted: { $ne: true },
+    ...(dateFilter ? { expenseDate: dateFilter } : {}),
+  }).lean();
+  const darkStoreExpenses = Math.round(darkStoreExpDocs.reduce((sum, e) => sum + Number(e.amount || 0), 0));
+
+  const combinedExpenses = vendorExpenses + darkStoreExpenses;
+  const netProfit = totalSale - farmerProcurement - totalAdminCommission - combinedExpenses;
+  const currentProfit = deliveredSales;
+
   return {
     vendor: {
       id: vendor.id,
@@ -239,6 +415,7 @@ export async function calculateVendorAdminCommission(vendorIdOrDoc, dateFilter =
       location: [vendor.businessAddress, vendor.city, vendor.state].filter(Boolean).join(", ") || "—",
       zones: Array.isArray(vendor.zones) ? vendor.zones : [],
       vendorType: vendor.vendorType || "farmer",
+      isAdminVendor: Boolean(vendor.isAdminVendor),
       commissionRate,
       isActive: vendor.isActive !== false,
       collectionCentre: collectionCentres[0] ? {
@@ -267,8 +444,13 @@ export async function calculateVendorAdminCommission(vendorIdOrDoc, dateFilter =
       area: s.area || "",
       city: s.city || "",
     })),
+    customerPaymentTotal,
+    cancelledOrdersCost,
     grossProductSales,
+    deliveryCharges,
+    totalSale,
     eligibleCommissionSales,
+    isAdminVendor: Boolean(vendor.isAdminVendor),
     commissionRate,
     totalAdminCommission,
     commissionPaid,
@@ -279,6 +461,12 @@ export async function calculateVendorAdminCommission(vendorIdOrDoc, dateFilter =
     completedOrders,
     cancelledOrders,
     deliveredSales,
+    farmerProcurement,
+    vendorExpenses,
+    darkStoreExpenses,
+    combinedExpenses,
+    netProfit,
+    currentProfit,
     paymentsCount: payments.length,
     payments,
   };
@@ -294,10 +482,22 @@ export async function calculateAllVendorsCommission(dateFilter = null) {
 
   const results = [];
   let totalGrossProductSales = 0;
+  let totalDeliveryCharges = 0;
+  let totalSale = 0;
+  let totalCustomerPaid = 0;
+  let totalCancelledCost = 0;
+  let totalOrders = 0;
+  let completedOrders = 0;
+  let cancelledOrders = 0;
   let totalEligibleCommissionSales = 0;
   let totalAdminCommission = 0;
   let totalCommissionReceived = 0;
   let totalPendingCommission = 0;
+  let totalFarmerProcurement = 0;
+  let totalVendorExp = 0;
+  let totalDarkStoreExp = 0;
+  let totalNetProfit = 0;
+  let totalCurrentProfit = 0;
   let pendingVendorCount = 0;
 
   for (const v of vendors) {
@@ -305,11 +505,23 @@ export async function calculateAllVendorsCommission(dateFilter = null) {
     if (!calc) continue;
     results.push(calc);
 
-    totalGrossProductSales += calc.grossProductSales;
-    totalEligibleCommissionSales += calc.eligibleCommissionSales;
-    totalAdminCommission += calc.totalAdminCommission;
-    totalCommissionReceived += calc.commissionPaid;
-    totalPendingCommission += calc.pendingCommission;
+    totalGrossProductSales += Number(calc.grossProductSales || 0);
+    totalDeliveryCharges += Number(calc.deliveryCharges || 0);
+    totalSale += Number(calc.totalSale || 0);
+    totalCustomerPaid += Number(calc.customerPaymentTotal || 0);
+    totalCancelledCost += Number(calc.cancelledOrdersCost || 0);
+    totalOrders += Number(calc.totalOrders || 0);
+    completedOrders += Number(calc.completedOrders || 0);
+    cancelledOrders += Number(calc.cancelledOrders || 0);
+    totalEligibleCommissionSales += Number(calc.eligibleCommissionSales || 0);
+    totalAdminCommission += Number(calc.totalAdminCommission || 0);
+    totalCommissionReceived += Number(calc.commissionPaid || 0);
+    totalPendingCommission += Number(calc.pendingCommission || 0);
+    totalFarmerProcurement += Number(calc.farmerProcurement || 0);
+    totalVendorExp += Number(calc.vendorExpenses || 0);
+    totalDarkStoreExp += Number(calc.darkStoreExpenses || 0);
+    totalNetProfit += Number(calc.netProfit || 0);
+    totalCurrentProfit += Number(calc.currentProfit || 0);
 
     if (calc.pendingCommission > 0) {
       pendingVendorCount += 1;
@@ -319,11 +531,24 @@ export async function calculateAllVendorsCommission(dateFilter = null) {
   return {
     vendors: results,
     totals: {
+      totalCustomerPaid,
+      totalCancelledCost,
       totalGrossProductSales,
+      totalDeliveryCharges,
+      totalSale,
+      totalOrders,
+      completedOrders,
+      cancelledOrders,
       totalEligibleCommissionSales,
       totalAdminCommission,
       totalCommissionReceived,
       totalPendingCommission,
+      totalFarmerProcurement,
+      totalVendorExpenses: totalVendorExp,
+      totalDeliveryExpenses: totalDarkStoreExp,
+      combinedExpenses: totalVendorExp + totalDarkStoreExp,
+      totalNetProfit,
+      totalCurrentProfit,
       totalVendorCount: vendors.length,
       pendingVendorCount,
     },
@@ -381,7 +606,14 @@ export async function getAdminFinanceDashboardData(dateFilter = null) {
 
   return {
     kpis: {
+      customerPaidTotal: allCommissions.totals.totalCustomerPaid,
+      cancelledOrdersCost: allCommissions.totals.totalCancelledCost,
       grossProductSales: allCommissions.totals.totalGrossProductSales,
+      deliveryCharges: allCommissions.totals.totalDeliveryCharges,
+      totalSale: allCommissions.totals.totalSale,
+      totalOrders: allCommissions.totals.totalOrders,
+      completedOrders: allCommissions.totals.completedOrders,
+      cancelledOrders: allCommissions.totals.cancelledOrders,
       eligibleCommissionSales: allCommissions.totals.totalEligibleCommissionSales,
       totalAdminCommission: allCommissions.totals.totalAdminCommission,
       commissionReceived: allCommissions.totals.totalCommissionReceived,
@@ -392,6 +624,8 @@ export async function getAdminFinanceDashboardData(dateFilter = null) {
       totalVendorExpenses: Math.round(totalVendorExpenses),
       totalDeliveryExpenses: Math.round(totalDeliveryExpenses),
       combinedExpenses: Math.round(totalVendorExpenses + totalDeliveryExpenses),
+      netProfit: allCommissions.totals.totalNetProfit,
+      currentProfit: allCommissions.totals.totalCurrentProfit,
     },
     vendorsSummary: allCommissions.vendors.map((c) => ({
       vendorId: c.vendor.id,
@@ -400,14 +634,29 @@ export async function getAdminFinanceDashboardData(dateFilter = null) {
       ownerName: c.vendor.ownerName,
       vendorType: c.vendor.vendorType,
       commissionRate: c.commissionRate,
+      customerPaidTotal: c.customerPaymentTotal || 0,
+      cancelledOrdersCost: c.cancelledOrdersCost || 0,
+      totalOrders: c.totalOrders || 0,
+      completedOrders: c.completedOrders || 0,
+      cancelledOrders: c.cancelledOrders || 0,
       grossProductSales: c.grossProductSales,
+      deliveryCharges: c.deliveryCharges || 0,
+      totalSale: c.totalSale || c.grossProductSales,
       eligibleCommissionSales: c.eligibleCommissionSales,
       totalAdminCommission: c.totalAdminCommission,
       commissionPaid: c.commissionPaid,
       pendingCommission: c.pendingCommission,
       commissionStatus: c.commissionStatus,
       lastPaymentDate: c.lastPaymentDate,
-      darkStoresCount: c.darkStores.length,
+      darkStoresCount: c.darkStores ? c.darkStores.length : 0,
+      darkStores: c.darkStores || [],
+      farmerProcurement: c.farmerProcurement || 0,
+      vendorExpenses: c.vendorExpenses || 0,
+      darkStoreExpenses: c.darkStoreExpenses || 0,
+      combinedExpenses: c.combinedExpenses || 0,
+      netProfit: c.netProfit || 0,
+      currentProfit: c.currentProfit || 0,
+      isAdminVendor: Boolean(c.vendor.isAdminVendor || c.isAdminVendor),
     })),
   };
 }
