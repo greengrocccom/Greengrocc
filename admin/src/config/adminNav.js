@@ -815,6 +815,7 @@ export const NAV_GROUPS = [
     id: 'team',
     label: 'Team & HR',
     items: [
+      { name: 'All Login Accounts', href: '/login-accounts', icon: Users, implemented: true, description: 'Edit and delete multivendors, farmers, managers, staff, delivery partners and customer logins.' },
       {
         name: 'Staff Management',
         href: '/staff-management',

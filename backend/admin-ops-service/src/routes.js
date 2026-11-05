@@ -1,3 +1,4 @@
+import { requireAccountAdmin, listLoginAccounts, updateLoginAccount, deleteLoginAccount } from './loginAccountControllers.js';
 import express from "express";
 import {
   getAdminFinanceDashboard,
@@ -334,6 +335,10 @@ router.post("/inventory-tools/adjustments", optionalAuth, createStockAdjustment)
 router.get("/inventory-tools/metadata", optionalAuth, getInventoryStoresAndVendors);
 
 router.use(protect, requireAdmin);
+
+router.get("/login-accounts/:type", requireAccountAdmin, listLoginAccounts);
+router.put("/login-accounts/:type/:id", requireAccountAdmin, updateLoginAccount);
+router.delete("/login-accounts/:type/:id", requireAccountAdmin, deleteLoginAccount);
 
 router.get("/gift-cards", listGiftCards);
 router.post("/gift-cards", createGiftCard);
