@@ -358,8 +358,9 @@ export async function calculateVendorFinancials({
 
   // 4. Admin Commission Calculation (Standardized formula)
   // Admin Commission = Total Eligible Product Sales * Vendor.commissionRate / 100
-  const eligibleCommissionSales = grossProductSales;
-  const adminCommission = Math.round((eligibleCommissionSales * commissionRate) / 100);
+  const totalSale = grossProductSales + deliveryCharges;
+  const eligibleCommissionSales = totalSale;
+  const adminCommission = Math.round((totalSale * commissionRate) / 100);
 
   // Reconcile Commission Paid from VendorCommissionPayment and VendorSettlement
   const commQuery = {
@@ -500,7 +501,6 @@ export async function calculateVendorFinancials({
 
   // 8. Vendor Profit & Loss Equations:
   // Standard Formula: NET PROFIT = TOTAL SALE - TOTAL PROCUREMENT VALUE - ADMIN COMMISSION - TOTAL VENDOR EXPENSES - DELIVERY MANAGER EXPENSES
-  const totalSale = grossProductSales + deliveryCharges;
   const grossProductProfit = Math.max(0, netProductSales - totalFarmerProcurement);
   const vendorOperatingProfit = grossProductProfit - adminCommission - vendorOperatingExpenses;
   const vendorNetProfit = totalSale - totalFarmerProcurement - adminCommission - vendorOperatingExpenses - darkStoreExpenses;

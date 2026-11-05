@@ -164,11 +164,17 @@ export default function VendorSalesReportsPage() {
       : totalSale + cancelledOrdersCost
   );
   const commissionRate = Number(k.commissionRate || reportData?.vendor?.commissionRate || 10);
-  const adminCommission = Number(
-    k.adminCommission !== undefined && k.adminCommission !== null
-      ? k.adminCommission
-      : Math.round((totalSale * commissionRate) / 100)
-  );
+  const totalDarkStoresCommission = darkStoreBreakdown.length > 0
+    ? darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.adminCommission ?? d.commission ?? Math.round((Number(d.totalSale || 0) * commissionRate) / 100)) || 0), 0)
+    : 0;
+
+  const adminCommission = totalDarkStoresCommission > 0
+    ? totalDarkStoresCommission
+    : Number(
+        k.adminCommission !== undefined && k.adminCommission !== null
+          ? k.adminCommission
+          : Math.round((totalSale * commissionRate) / 100)
+      );
 
   // Formula as instructed:
   // TOTAL SALE - Total Procurement Value (एकूण शेतीमाल खरेदी) - Admin Commission - Total Vendor Expenses - Delivery Manager Expenses = Net Profit
@@ -393,7 +399,7 @@ export default function VendorSalesReportsPage() {
           <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between gap-1 text-slate-500">
               <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-950 truncate" title="Admin Commission">
-                ADMIN COMMISSION (कमिशन)
+                TOTAL ADMIN COMMISSION (एकूण कमिशन)
               </span>
               <Percent className="h-4 w-4 shrink-0 text-indigo-600" />
             </div>
@@ -401,7 +407,7 @@ export default function VendorSalesReportsPage() {
               {loading ? "..." : rupee(adminCommission)}
             </p>
             <span className="text-[10px] font-medium text-indigo-800 truncate block mt-0.5">
-              {commissionRate}% on Net Sale ({rupee(totalSale)})
+              {commissionRate}% on TOTAL SALE ({rupee(totalSale)})
             </span>
           </div>
 
@@ -499,6 +505,7 @@ export default function VendorSalesReportsPage() {
                 <th className="px-3 py-2.5 text-right">Gross Product Sales</th>
                 <th className="px-3 py-2.5 text-right">Delivery Charges</th>
                 <th className="px-3 py-2.5 text-right font-bold text-emerald-800">Total Sale</th>
+                <th className="px-3 py-2.5 text-right font-bold text-indigo-700">Admin Commission</th>
                 <th className="px-3 py-2.5 text-right text-rose-700">Dark Store Expenses</th>
                 <th className="px-3 py-2.5 text-right font-bold">Net Profit</th>
                 <th className="px-3 py-2.5 text-right text-emerald-700">Current Profit</th>
@@ -546,6 +553,9 @@ export default function VendorSalesReportsPage() {
                     <td className="px-3 py-2.5 text-right tabular-nums font-bold text-emerald-700">
                       {rupee(s.totalSale)}
                     </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums font-bold text-indigo-700">
+                      {rupee(s.adminCommission ?? s.commission ?? Math.round((Number(s.totalSale || 0) * commissionRate) / 100))}
+                    </td>
                     <td className="px-3 py-2.5 text-right tabular-nums font-medium text-rose-600">
                       {rupee(s.totalExpense)}
                     </td>
@@ -578,12 +588,53 @@ export default function VendorSalesReportsPage() {
               })}
               {!loading && darkStoreBreakdown.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="py-6 text-center text-xs text-slate-400">
+                  <td colSpan={11} className="py-6 text-center text-xs text-slate-400">
                     No dark store data in this range
                   </td>
                 </tr>
               )}
             </tbody>
+            {darkStoreBreakdown.length > 0 && (
+              <tfoot className="border-t-2 border-slate-300 bg-slate-100/80 font-bold text-slate-900">
+                <tr>
+                  <td className="px-3 py-2.5 text-slate-800">
+                    Total Vendor (एकूण व्हेंडर)
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                    {darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.totalOrders) || 0), 0)} total
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-emerald-800 font-bold">
+                    {rupee(darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.customerPaymentTotal) || 0), 0))}
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums">
+                    {rupee(darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.grossProductSales) || 0), 0))}
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-blue-700">
+                    {rupee(darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.deliveryCharges) || 0), 0))}
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-emerald-700 font-extrabold">
+                    {rupee(darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.totalSale) || 0), 0))}
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-indigo-700 font-extrabold">
+                    {rupee(darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.adminCommission ?? d.commission ?? Math.round((Number(d.totalSale || 0) * commissionRate) / 100)) || 0), 0))}
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-rose-600 font-bold">
+                    {rupee(darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.totalExpense) || 0), 0))}
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums font-bold">
+                    <span className={netProfit >= 0 ? "text-emerald-700" : "text-rose-600"}>
+                      {rupee(darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.netProfit) || 0), 0))}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-emerald-700 font-bold">
+                    {rupee(darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.currentProfit) || 0), 0))}
+                  </td>
+                  <td className="px-3 py-2.5 text-center text-[10px] text-slate-500 font-normal">
+                    —
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
