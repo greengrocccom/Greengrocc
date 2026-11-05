@@ -353,7 +353,7 @@ export async function getVendorSalesReports(req, res) {
       const deliveryCharge = rawPaid > itemsSum ? rawPaid - itemsSum : 0;
       const customerPaid = itemsSum + deliveryCharge;
       const storeName = o.managerId?.storeName || o.managerId?.name || storeMap.get(String(o.managerId)) || "Dark Store";
-      const comm = Math.round((itemsSum * (data.kpis.commissionRate || 10)) / 100);
+      const comm = Math.round((customerPaid * (data.kpis.commissionRate || 10)) / 100);
 
       return {
         _id: o._id,
@@ -541,7 +541,7 @@ export async function getVendorSalesReports(req, res) {
       const storeProcurement = totalVendorGrossSales > 0
         ? Math.round((totalVendorProcurement * o.grossProductSales) / totalVendorGrossSales)
         : (darkStores.length === 1 ? totalVendorProcurement : 0);
-      const storeCommission = Math.round((customerPaymentTotal * vendorRate) / 100);
+      const storeCommission = Math.round((totalSale * vendorRate) / 100);
       // All deductions: Procurement + Commission + Dark Store Expenses
       const netProfit = totalSale - storeProcurement - storeCommission - exp;
       const currentProfit = o.deliveredSales;
@@ -560,6 +560,9 @@ export async function getVendorSalesReports(req, res) {
         grossProductSales: o.grossProductSales,
         deliveryCharges: o.deliveryCharges,
         totalSale,
+        commission: storeCommission,
+        adminCommission: storeCommission,
+        commissionRate: vendorRate,
         totalExpense: exp,
         netProfit,
         currentProfit,
