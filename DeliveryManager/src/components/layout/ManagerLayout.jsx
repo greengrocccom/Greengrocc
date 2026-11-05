@@ -24,8 +24,6 @@ const navSections = [
       },
       { to: "/orders", label: "Orders", icon: "orders" },
       { to: "/cash-collection", label: "Cash Collection", icon: "wallet" },
-      { to: "/sales-reports", label: "Sales Reports", icon: "file" },
-      { to: "/expenses", label: "Expenses", icon: "wallet" },
       { to: "/preorders", label: "Pre-Orders", icon: "clock" },
       { to: "/return-pickups", label: "Return Pickups", icon: "box" },
       { to: "/alerts", label: "Alerts", icon: "bell" },

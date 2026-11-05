@@ -39,9 +39,7 @@ const yesterdayIstStr = (() => {
 
 const orderMatchesDate = (order, dateFilter) => {
   if (!dateFilter) return true;
-  const dStr = (order.isPreOrder && order.preOrderDate)
-    ? `${order.preOrderDate}T12:00:00+05:30`
-    : (order.createdAt || order.orderDate || order.deliveredAt);
+  const dStr = order.createdAt || order.orderDate || order.deliveredAt;
   if (!dStr) return true;
   try {
     const d = new Date(dStr);
@@ -86,13 +84,14 @@ export default function OrdersPage() {
       const [ord, rid, sug] = await Promise.all([
         managerApi.orders({
           status:
-            "preorder_hold,incoming,order_received,stock_issue,packed,offered,assigned,pickup_verified,out_for_delivery,delivered,delivery_failed,cancelled",
-          preOrder: "include",
+            "incoming,order_received,stock_issue,packed,offered,assigned,pickup_verified,out_for_delivery,delivered,delivery_failed,cancelled",
+          preOrder: "exclude",
         }),
         managerApi.riders(),
         managerApi.routeSuggestions().catch(() => ({ data: { suggestions: [], openWindowOrders: [] } })),
       ]);
-      setOrders(ord.data.orders || []);
+      const fetchedOrders = (ord.data.orders || []).filter((o) => !o.isPreOrder && o.status !== "preorder_hold");
+      setOrders(fetchedOrders);
       setOnlineRiders((rid.data.riders || []).filter((r) => r.status === "online" || r.status === "on_delivery"));
       setRouteSuggestions(sug.data?.suggestions || []);
       setOpenWindowOrders(sug.data?.openWindowOrders || []);
@@ -564,7 +563,9 @@ export default function OrdersPage() {
   );
 
   const dateFilteredOrders = useMemo(() => {
-    return orders.filter((o) => orderMatchesDate(o, dateFilter));
+    return orders
+      .filter((o) => !o.isPreOrder && o.status !== "preorder_hold")
+      .filter((o) => orderMatchesDate(o, dateFilter));
   }, [orders, dateFilter]);
 
   const summary = useMemo(() => countBySummaryBucket(dateFilteredOrders), [dateFilteredOrders]);
@@ -585,9 +586,7 @@ export default function OrdersPage() {
   const ordersByDate = useMemo(() => {
     const groups = {};
     for (const order of filteredOrders) {
-      const dStr = (order.isPreOrder && order.preOrderDate)
-        ? `${order.preOrderDate}T12:00:00+05:30`
-        : (order.createdAt || order.orderDate || order.deliveredAt);
+      const dStr = order.createdAt || order.orderDate || order.deliveredAt;
       let key = "No date";
       if (dStr) {
         try {
@@ -938,7 +937,7 @@ export default function OrdersPage() {
                 <th className="py-3 px-3.5">Delivery Address</th>
                 <th className="py-3 px-3.5 whitespace-nowrap">Status</th>
                 <th className="py-3 px-3.5 whitespace-nowrap">Assigned Driver</th>
-                <th className="py-3 px-3.5 text-right whitespace-nowrap">Actions</th>
+                <th className="py-3 px-3.5 text-right whitespace-nowrap min-w-[180px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -985,12 +984,6 @@ export default function OrdersPage() {
                             })
                           : "Just now"}
                       </div>
-                      {order.isPreOrder && order.preOrderSlot ? (
-                        <div className="mt-1.5 inline-flex items-center gap-1 rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-                          <span>🕒</span>
-                          <span>Slot: {order.preOrderDate ? `${order.preOrderDate} ` : ""}{order.preOrderSlot}</span>
-                        </div>
-                      ) : null}
                     </td>
 
                     {/* 3. Customer Details */}
@@ -1039,13 +1032,13 @@ export default function OrdersPage() {
                     <td className="py-3 px-3.5 whitespace-nowrap align-top">
                       <DriverAssignmentText order={order} onRiderClick={openTracking} />
                     </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex flex-col items-end gap-2">
-                        <div className="flex flex-wrap items-center justify-end gap-2">
+                    <td className="py-3 px-3.5 text-right align-top whitespace-nowrap min-w-[180px]">
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                           <button
                             type="button"
                             onClick={() => navigate(`/orders/${oid}`, { state: { order } })}
-                            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1.5 transition shadow-xs"
+                            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1.5 transition shadow-xs whitespace-nowrap"
                           >
                             View Detail
                           </button>
@@ -1054,7 +1047,7 @@ export default function OrdersPage() {
                               type="button"
                               disabled={busyKey === `confirm-cash-${oid}`}
                               onClick={() => onConfirmCashReceived(oid, order.orderNumber)}
-                              className="rounded-xl border border-amber-400 bg-amber-100 px-3 py-1.5 text-[11px] font-extrabold text-amber-900 hover:bg-amber-200 transition disabled:opacity-50 shadow-xs"
+                              className="rounded-xl border border-amber-400 bg-amber-100 px-3 py-1.5 text-[11px] font-extrabold text-amber-900 hover:bg-amber-200 transition disabled:opacity-50 shadow-xs whitespace-nowrap"
                             >
                               {busyKey === `confirm-cash-${oid}`
                                 ? "Confirming…"
@@ -1066,7 +1059,7 @@ export default function OrdersPage() {
                               type="button"
                               disabled={!allAvailable || busyKey === `pack-${oid}`}
                               onClick={() => onPackOrder(oid)}
-                              className={actionBtnPrimary}
+                              className={`${actionBtnPrimary} whitespace-nowrap`}
                             >
                               {busyKey === `pack-${oid}` ? "Confirming…" : "Confirm & Pack"}
                             </button>
@@ -1076,7 +1069,7 @@ export default function OrdersPage() {
                               type="button"
                               disabled={busyKey === `handover-${oid}`}
                               onClick={() => onHandOverPickup(oid, order.orderNumber)}
-                              className={actionBtnPrimary}
+                              className={`${actionBtnPrimary} whitespace-nowrap`}
                             >
                               {busyKey === `handover-${oid}` ? "Handing over…" : "Hand over (OTP)"}
                             </button>
@@ -1086,7 +1079,7 @@ export default function OrdersPage() {
                               type="button"
                               disabled={busyKey === `cancel-${oid}`}
                               onClick={() => onCancelOrder(oid, order.orderNumber)}
-                              className="rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-900 border border-orange-300 font-bold text-xs px-3 py-1.5 transition shadow-xs disabled:opacity-50"
+                              className="rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-900 border border-orange-300 font-bold text-xs px-3 py-1.5 transition shadow-xs disabled:opacity-50 whitespace-nowrap"
                             >
                               {busyKey === `cancel-${oid}` ? "Cancelling…" : "Cancel"}
                             </button>
@@ -1097,12 +1090,6 @@ export default function OrdersPage() {
                             Out of stock — request inventory first
                           </p>
                         )}
-                        {order.routeBatchWindowEndsAt &&
-                          new Date(order.routeBatchWindowEndsAt).getTime() > Date.now() && (
-                          <span className="rounded-xl border border-violet-300 bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-800">
-                            Same-route window open
-                          </span>
-                        )}
                         {order.status === "packed" &&
                           !isPickup &&
                           !order.isPreOrder &&
@@ -1112,7 +1099,7 @@ export default function OrdersPage() {
                             type="button"
                             disabled={busyKey === `dispatch-${oid}`}
                             onClick={() => onDispatchNow(oid)}
-                            className="rounded-xl border border-violet-300 bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-800 hover:bg-violet-100 disabled:opacity-50"
+                            className="rounded-xl border border-violet-300 bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-800 hover:bg-violet-100 disabled:opacity-50 whitespace-nowrap"
                           >
                             {busyKey === `dispatch-${oid}` ? "Dispatching…" : "Assign New Rider now"}
                           </button>
@@ -1135,17 +1122,22 @@ export default function OrdersPage() {
                             const mins = Math.floor(msLeft / 60000);
                             const secs = Math.floor((msLeft % 60000) / 1000);
                             return (
-                              <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-amber-900 shadow-xs">
-                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                                QR locked · matching {mins}:{String(secs).padStart(2, "0")}
-                              </span>
+                              <div className="inline-flex flex-col items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-center shadow-2xs">
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-900 whitespace-nowrap">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                  QR locked · matching
+                                </span>
+                                <span className="text-[11px] font-extrabold text-amber-700 whitespace-nowrap">
+                                  {mins}:{String(secs).padStart(2, "0")} left
+                                </span>
+                              </div>
                             );
                           }
                           return (
                             <button
                               type="button"
                               onClick={() => openPickupQr(oid)}
-                              className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100"
+                              className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 whitespace-nowrap"
                             >
                               Show Pickup QR
                             </button>

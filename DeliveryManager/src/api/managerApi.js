@@ -118,7 +118,7 @@ export const managerApi = {
     api.post(`${BASE}/orders/${orderId}/approve-pickup-proof`),
   confirmOrderCash: (orderId) =>
     api.post(`${BASE}/orders/${orderId}/confirm-cash`),
-  getCashCollection: () => api.get(`${BASE}/cash/collection`, { live: false }),
+  getCashCollection: (params) => api.get(`${BASE}/cash/collection`, { params, live: false }),
   confirmCashCollection: (riderId, settlementIds) =>
     api.post(`${BASE}/cash/confirm`, { riderId, settlementIds }),
 

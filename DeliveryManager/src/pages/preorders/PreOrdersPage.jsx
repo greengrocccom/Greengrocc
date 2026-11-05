@@ -987,10 +987,13 @@ export default function PreOrdersPage() {
                           ) : null}
                         </div>
                       ) : (
-                        /* Bold Red Broad Capital UNASSIGNED Badge */
-                        <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 border-2 border-rose-500 px-2.5 py-1 text-xs font-black tracking-wider text-rose-700 uppercase shadow-2xs">
-                          <span className="h-2 w-2 rounded-full bg-rose-600 animate-pulse" />
-                          UNASSIGNED
+                        /* Bold Red Broad Capital UNASSIGNED Badge with Pulse & Ping Animation */
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-red-100 border-2 border-red-600 px-3 py-1 text-xs font-black tracking-wider text-red-700 uppercase shadow-xs animate-pulse ring-2 ring-red-400/40">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600" />
+                          </span>
+                          <span>UNASSIGNED</span>
                         </span>
                       )}
                     </td>

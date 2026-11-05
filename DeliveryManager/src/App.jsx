@@ -5,8 +5,6 @@ import ManagerLayout from "./components/layout/ManagerLayout";
 import LoginPage from "./pages/auth/LoginPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import RevenuePage from "./pages/revenue/RevenuePage";
-import ExpensesPage from "./pages/expenses/ExpensesPage";
-import SalesReportsPage from "./pages/sales/SalesReportsPage";
 import ProfitLossPage from "./pages/profit-loss/ProfitLossPage";
 import SettlementsPage from "./pages/settlements/SettlementsPage";
 import CashCollectionPage from "./pages/settlements/CashCollectionPage";
@@ -47,8 +45,8 @@ function App() {
             <Route element={<ManagerLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/revenue" element={<RevenuePage />} />
-              <Route path="/sales-reports" element={<SalesReportsPage />} />
-              <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/sales-reports" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/expenses" element={<Navigate to="/dashboard" replace />} />
               <Route path="/profit-loss" element={<ProfitLossPage />} />
               <Route path="/settlements" element={<SettlementsPage />} />
               <Route path="/cash-collection" element={<CashCollectionPage />} />

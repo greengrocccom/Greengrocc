@@ -171,6 +171,18 @@ export function DeliveryDelayNotice({ order }) {
   );
 }
 
+export function UnassignedBadge({ label = "UNASSIGNED" }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-red-100 border-2 border-red-600 px-3 py-1 text-xs font-black tracking-wider text-red-700 uppercase shadow-xs animate-pulse ring-2 ring-red-400/40">
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600" />
+      </span>
+      <span>{label}</span>
+    </span>
+  );
+}
+
 export function DriverAssignmentText({ order, onRiderClick }) {
   if (isPickupOrder(order)) {
     return (
@@ -240,9 +252,10 @@ export function DriverAssignmentText({ order, onRiderClick }) {
 
   if (order.offeredRider) {
     return (
-      <div>
+      <div className="space-y-1">
+        <UnassignedBadge label="OFFERING DRIVER" />
         <p className="text-[11px] font-bold text-amber-800">
-          Offering {order.offeredRider.name || order.offeredRider.phone}
+          {order.offeredRider.name || order.offeredRider.phone}
         </p>
         {windowActive ? (
           <p className="mt-1 text-[10px] font-semibold text-violet-700">
@@ -256,10 +269,7 @@ export function DriverAssignmentText({ order, onRiderClick }) {
   if (windowActive || order.assignmentStatus === "BATCH_WAITING") {
     return (
       <div className="space-y-1">
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 border-2 border-rose-500 px-2.5 py-1 text-xs font-black tracking-wider text-rose-700 uppercase shadow-2xs">
-          <span className="h-2 w-2 rounded-full bg-rose-600 animate-pulse" />
-          UNASSIGNED
-        </span>
+        <UnassignedBadge label="UNASSIGNED" />
         <p className="text-[10px] font-semibold text-violet-700">
           Same-route wait{clockLeft ? ` · ${clockLeft} left` : minsLeft != null ? ` · ~${minsLeft}m left` : ""}
         </p>
@@ -270,10 +280,7 @@ export function DriverAssignmentText({ order, onRiderClick }) {
   if (order.assignmentStatus === "WAITING_FOR_DRIVER") {
     return (
       <div className="space-y-1">
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 border-2 border-rose-500 px-2.5 py-1 text-xs font-black tracking-wider text-rose-700 uppercase shadow-2xs">
-          <span className="h-2 w-2 rounded-full bg-rose-600 animate-pulse" />
-          UNASSIGNED
-        </span>
+        <UnassignedBadge label="UNASSIGNED" />
         <p className="text-[10px] font-semibold text-amber-700">
           Waiting for nearby driver…
         </p>
@@ -281,12 +288,7 @@ export function DriverAssignmentText({ order, onRiderClick }) {
     );
   }
 
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 border-2 border-rose-500 px-2.5 py-1 text-xs font-black tracking-wider text-rose-700 uppercase shadow-2xs">
-      <span className="h-2 w-2 rounded-full bg-rose-600 animate-pulse" />
-      UNASSIGNED
-    </span>
-  );
+  return <UnassignedBadge label="UNASSIGNED" />;
 }
 
 /** @deprecated Use OrderStatusText */
@@ -305,7 +307,6 @@ export const STATUS_TABS = [
   { id: "incoming", label: "Incoming" },
   { id: "ongoing", label: "Ongoing" },
   { id: "pickup", label: "Store pickup" },
-  { id: "scheduled", label: "Pre-orders (scheduled)" },
   { id: "delivered", label: "Delivered" },
   { id: "cancelled", label: "Cancelled" },
   { id: "all", label: "All" },
@@ -318,7 +319,6 @@ export function matchesTab(order, tab) {
   if (tab === "pickup") {
     return isPickupOrder(order) && !["delivered", "cancelled", "delivery_failed"].includes(s);
   }
-  if (tab === "scheduled") return s === "preorder_hold";
   // New / pack queue awaiting action
   if (tab === "incoming") {
     return ["incoming", "order_received", "stock_issue", "packed", "offered"].includes(s);
@@ -344,7 +344,6 @@ export function countBySummaryBucket(orders = []) {
     incoming: orders.filter((o) => matchesTab(o, "incoming")).length,
     ongoing: orders.filter((o) => matchesTab(o, "ongoing")).length,
     pickup: orders.filter((o) => matchesTab(o, "pickup")).length,
-    scheduled: orders.filter((o) => matchesTab(o, "scheduled")).length,
     delivered: orders.filter((o) => matchesTab(o, "delivered")).length,
     cancelled: orders.filter((o) => matchesTab(o, "cancelled")).length,
   };

@@ -22,6 +22,7 @@ import DeliveryBoy from "../models/DeliveryBoy.js";
 import DeliveryManager from "../models/DeliveryManager.js";
 import CashSettlement from "../models/CashSettlement.js";
 import StoreOrder from "../models/StoreOrder.js";
+import { listIstDatesInMonth } from "../utils/onlineHoursHelper.js";
 
 const istDateString = (d = new Date()) =>
   new Intl.DateTimeFormat("en-CA", {
@@ -267,40 +268,138 @@ export const getManagerCashOverview = async (req, res, next) => {
   }
 };
 
-/** Today's physical cash activity plus unsettled cash carried forward. */
+/** Physical cash activity by day, week, or month plus unsettled cash. */
 export const getCashCollection = async (req, res, next) => {
   try {
-    const date = istDateString();
-    const { start, end } = istDayRange(date);
-    const today = { $gte: start, $lte: end };
+    let period = String(req.query.period || "day").toLowerCase();
+    if (!["day", "week", "month"].includes(period)) period = "day";
+
+    let dateBasis = String(req.query.dateBasis || "both").toLowerCase();
+    if (!["both", "received", "collected"].includes(dateBasis)) dateBasis = "both";
+
+    const todayIST = istDateString();
+    const targetDateStr = req.query.date ? String(req.query.date).trim() : todayIST;
+
+    let rangeStart, rangeEnd, periodLabel;
+    let datesInPeriod = [];
+    if (period === "month") {
+      const [y, m] = targetDateStr.split("-").map(Number);
+      const year = y || new Date().getFullYear();
+      const monthNum = m || (new Date().getMonth() + 1);
+      datesInPeriod = listIstDatesInMonth(year, monthNum);
+      const startStr = datesInPeriod[0];
+      const endStr = datesInPeriod[datesInPeriod.length - 1];
+      rangeStart = new Date(`${startStr}T00:00:00+05:30`);
+      rangeEnd = new Date(`${endStr}T23:59:59.999+05:30`);
+      periodLabel = new Date(rangeStart).toLocaleString("en-IN", {
+        month: "long",
+        year: "numeric",
+        timeZone: "Asia/Kolkata",
+      });
+    } else if (period === "week") {
+      const dateObj = new Date(`${targetDateStr.slice(0, 10)}T12:00:00+05:30`);
+      const dayOfWeek = (dateObj.getDay() + 6) % 7; // Monday is 0
+      const monday = new Date(dateObj);
+      monday.setDate(monday.getDate() - dayOfWeek);
+      const sunday = new Date(monday);
+      sunday.setDate(sunday.getDate() + 6);
+      const startStr = istDateString(monday);
+      const endStr = istDateString(sunday);
+      rangeStart = new Date(`${startStr}T00:00:00+05:30`);
+      rangeEnd = new Date(`${endStr}T23:59:59.999+05:30`);
+      datesInPeriod = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(d.getDate() + i);
+        datesInPeriod.push(istDateString(d));
+      }
+      periodLabel = `Week (${new Date(rangeStart).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+      })} – ${new Date(rangeEnd).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })})`;
+    } else {
+      // Day
+      const { start, end } = istDayRange(targetDateStr);
+      rangeStart = start;
+      rangeEnd = end;
+      datesInPeriod = [targetDateStr];
+      periodLabel = targetDateStr === todayIST ? "Today" : targetDateStr;
+    }
+
+    const inPeriod = { $gte: rangeStart, $lte: rangeEnd };
     const outstanding = ["PENDING", "SUBMITTED", "DISPUTED"];
+    const isCurrentPeriod =
+      (period === "day" && targetDateStr === todayIST) ||
+      (period === "week" && rangeStart <= new Date() && rangeEnd >= new Date()) ||
+      (period === "month" && rangeStart <= new Date() && rangeEnd >= new Date());
+
+    let orConditions = [];
+    if (dateBasis === "received") {
+      orConditions.push({ status: "COMPLETED", confirmedAt: inPeriod });
+      if (isCurrentPeriod) {
+        orConditions.push({ status: { $in: outstanding } });
+      }
+    } else if (dateBasis === "collected") {
+      orConditions.push({ collectedAt: inPeriod });
+    } else {
+      orConditions.push({ collectedAt: inPeriod });
+      orConditions.push({ status: "COMPLETED", confirmedAt: inPeriod });
+      if (isCurrentPeriod) {
+        orConditions.push({ status: { $in: outstanding } });
+      }
+    }
+
     const records = await CashSettlement.find({
       darkStoreId: req.user.id,
       status: { $ne: "CANCELLED" },
-      $or: [{ collectedAt: today }, { status: "COMPLETED", confirmedAt: today }, { status: { $in: outstanding } }],
-    }).select("riderId orderId orderNumber amount status collectedAt confirmedAt").sort({ collectedAt: -1 }).lean();
+      $or: orConditions,
+    })
+      .select("riderId orderId orderNumber amount status collectedAt confirmedAt submittedAt notes createdAt")
+      .sort({ collectedAt: -1, createdAt: -1 })
+      .lean();
+
     const ids = [...new Set(records.filter((record) => record.riderId).map((record) => String(record.riderId)))];
-    const riders = await DeliveryBoy.find({ _id: { $in: ids } }).select("name phone").lean();
+    const riders = await DeliveryBoy.find({ _id: { $in: ids } }).select("name phone vehicleType").lean();
     const riderById = new Map(riders.map((rider) => [String(rider._id), rider]));
+
+    const isInPeriod = (d) => d != null && d >= rangeStart && d <= rangeEnd;
+    const totals = { collected: 0, received: 0, pending: 0, riderCount: 0, transactionCount: 0 };
     const groups = new Map();
-    const totals = { collected: 0, received: 0, pending: 0, riderCount: 0 };
-    const isToday = (value) => value != null && value >= start && value <= end;
+    const formattedRecords = [];
+
     for (const record of records) {
       const riderId = record.riderId ? String(record.riderId) : null;
+      const rider = riderId ? riderById.get(riderId) : null;
+      const driverName = riderId ? (rider?.name || "Unknown rider") : "Store Direct Collection";
+      const driverPhone = rider?.phone || "";
+      const amount = Number(record.amount) || 0;
+      const isReceived = record.status === "COMPLETED";
+
       if (!groups.has(riderId)) {
-        const rider = riderById.get(riderId);
         groups.set(riderId, {
-          riderId, name: riderId ? rider?.name || "Unknown rider" : "Store collection",
-          phone: rider?.phone || "", collected: 0, received: 0, pending: 0, settlements: [],
+          riderId,
+          name: driverName,
+          phone: driverPhone,
+          collected: 0,
+          received: 0,
+          pending: 0,
+          settlements: [],
         });
       }
       const group = groups.get(riderId);
-      const amount = record.amount || 0;
-      if (isToday(record.collectedAt)) {
+
+      const collectedInPeriod = isInPeriod(record.collectedAt);
+      const receivedInPeriod = isReceived && isInPeriod(record.confirmedAt);
+
+      if (collectedInPeriod || (isCurrentPeriod && outstanding.includes(record.status))) {
         group.collected += amount;
         totals.collected += amount;
       }
-      if (record.status === "COMPLETED" && isToday(record.confirmedAt)) {
+      if (receivedInPeriod) {
         group.received += amount;
         totals.received += amount;
       }
@@ -308,13 +407,84 @@ export const getCashCollection = async (req, res, next) => {
         group.pending += amount;
         totals.pending += amount;
       }
-      group.settlements.push({
-        id: String(record._id), orderId: String(record.orderId), orderNumber: record.orderNumber,
-        amount, status: record.status, collectedAt: record.collectedAt, confirmedAt: record.confirmedAt,
+
+      const item = {
+        id: String(record._id),
+        orderId: String(record.orderId),
+        orderNumber: record.orderNumber || "",
+        riderId,
+        driverName,
+        driverPhone,
+        amount,
+        status: record.status,
+        isReceived,
+        receivedAmount: isReceived ? amount : 0,
+        collectedAt: record.collectedAt,
+        confirmedAt: record.confirmedAt,
+        submittedAt: record.submittedAt,
+        notes: record.notes || "",
+      };
+
+      group.settlements.push(item);
+      formattedRecords.push(item);
+    }
+
+    totals.riderCount = ids.length;
+    totals.transactionCount = formattedRecords.length;
+
+    // Date-wise breakdown (especially useful for showing cash received by manager across dates)
+    const dailyMap = new Map();
+    for (const dStr of datesInPeriod) {
+      dailyMap.set(dStr, {
+        date: dStr,
+        collected: 0,
+        received: 0,
+        pending: 0,
+        receivedCount: 0,
+        ordersCount: 0,
       });
     }
-    totals.riderCount = ids.length;
-    return res.json({ success: true, date, totals, riders: [...groups.values()].sort((a, b) => b.pending - a.pending) });
+
+    for (const record of formattedRecords) {
+      if (record.collectedAt) {
+        const cDate = istDateString(new Date(record.collectedAt));
+        if (dailyMap.has(cDate)) {
+          const day = dailyMap.get(cDate);
+          day.collected += record.amount;
+          day.ordersCount += 1;
+        }
+      }
+      if (record.status === "COMPLETED" && record.confirmedAt) {
+        const rDate = istDateString(new Date(record.confirmedAt));
+        if (dailyMap.has(rDate)) {
+          const day = dailyMap.get(rDate);
+          day.received += record.amount;
+          day.receivedCount += 1;
+        }
+      } else if (outstanding.includes(record.status)) {
+        if (record.collectedAt) {
+          const cDate = istDateString(new Date(record.collectedAt));
+          if (dailyMap.has(cDate)) {
+            const day = dailyMap.get(cDate);
+            day.pending += record.amount;
+          }
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      date: targetDateStr,
+      period,
+      periodLabel,
+      dateBasis,
+      rangeStart,
+      rangeEnd,
+      totals,
+      dailyBreakdown: [...dailyMap.values()],
+      riders: [...groups.values()].sort((a, b) => b.pending - a.pending),
+      records: formattedRecords,
+    });
   } catch (error) {
     next(error);
   }
