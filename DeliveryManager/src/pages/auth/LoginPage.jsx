@@ -1,4 +1,4 @@
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useCurrentStoreLocation } from "../../hooks/useCurrentStoreLocation";
@@ -130,10 +130,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-5 text-center text-sm text-gray-500">
-          New manager?{" "}
-          <Link to="/register" className="font-semibold text-green-primary hover:underline">
-            Register your store
-          </Link>
+          Your multivendor must request your dark store login and admin must approve it. Contact your multivendor for access.
         </p>
       </div>
     </div>

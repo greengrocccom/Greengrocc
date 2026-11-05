@@ -925,7 +925,8 @@ export default function InventoryToolsPage(props) {
                       <tr key={alert.id || `${alert.sku}-${alert.storeId || idx}`} className="transition hover:bg-slate-50/60">
                         <td className={TD}>
                           {alert.severity === 'critical' ? (
-                            <span className="inline-flex rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-800">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-800">
+                              <span aria-hidden="true" className="admin-emergency-indicator h-2 w-2 rounded-full bg-red-600" />
                               Critical
                             </span>
                           ) : alert.severity === 'urgent' ? (

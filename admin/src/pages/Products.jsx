@@ -2185,7 +2185,7 @@ export default function Products() {
 
   const activeSectionGroup =
     sectionGroups.find((g) => g.slug === sectionTab) || sectionGroups[0] || { slug: sectionTab, items: [] };
-  const sectionProducts = activeSectionGroup.items;
+  const sectionProducts = selectedDepartment ? activeSectionGroup.items : filteredProducts;
 
   const audienceProducts = useMemo(() => {
     if (listAudience === 'bulk') return products.filter((p) => p.enableBulkGrades);
@@ -4952,7 +4952,7 @@ export default function Products() {
               ? 'Same categories customers see on the storefront. Extra catalog categories stay off this page.'
               : catalogPage === 'sections'
                 ? 'Add and manage store sections such as GreenGrocc and Ready2Cook.'
-                : 'All products catalog with pricing, stock and inventory'}
+                : 'Manage product listings, prices, and stock.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -4984,7 +4984,7 @@ export default function Products() {
       </div>
 
       {/* Breadcrumb */}
-      {catalogPage === 'products' && (selectedCategory || selectedDepartment || listAudience) ? (
+      {catalogPage === 'products' && navLevel !== 'products' && (selectedCategory || selectedDepartment || listAudience) ? (
         <nav className="flex flex-wrap items-center gap-1.5 text-xs">
           <button
             type="button"
@@ -5367,84 +5367,52 @@ export default function Products() {
       ) : null}
 
       {catalogPage === 'products' && navLevel === 'products' ? (
-        <div className="space-y-4">
-          <div className={`${PANEL} space-y-3 p-4`}>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {selectedCategory || 'All Products'}
-                  {isBulkAudience ? (
-                    <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200">
-                      Bulk
-                    </span>
-                  ) : null}
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Showing {sectionProducts.length} product{sectionProducts.length === 1 ? '' : 's'} in{' '}
-                  {activeSectionGroup.theme?.name || 'catalog'}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => handleOpenCreate()} className={BTN_PRIMARY}>
-                  <Plus className="mr-1.5 h-4 w-4" />
-                  Add product
-                </button>
-                {selectedCategory || selectedDepartment ? (
+        <div className="space-y-3">
+          <section className={PANEL} aria-label="Catalog controls">
+            <nav aria-label="Product departments" className="flex gap-1 overflow-x-auto border-b border-slate-200 px-3">
+              {[{ slug: null, theme: { name: 'All departments' }, items: filteredProducts }, ...sectionGroups].map((group) => {
+                const active = group.slug === (selectedDepartment ? activeSectionGroup.slug : null);
+                return (
                   <button
+                    key={group.slug ?? 'all'}
                     type="button"
+                    aria-pressed={active}
                     onClick={() => {
+                      setSelectedDepartment(group.slug);
+                      if (group.slug) setSectionTab(group.slug);
                       setSelectedCategory(null);
-                      setSelectedDepartment(null);
                       setSelectedSubcategory(null);
                     }}
-                    className={BTN}
+                    className={'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 py-2 text-xs font-medium ' +
+                      (active ? 'border-[var(--admin-accent)] text-slate-950' : 'border-transparent text-slate-600 hover:bg-slate-50')}
                   >
-                    <ChevronLeft className="mr-1 h-4 w-4" />
-                    Clear filters
+                    {group.theme.name}
+                    <span className="text-[11px] tabular-nums text-slate-500">{group.items.length}</span>
                   </button>
-                ) : null}
+                );
+              })}
+            </nav>
+            <div className="grid grid-cols-2 gap-2 px-3 py-3 md:grid-cols-[minmax(12rem,2fr)_repeat(4,minmax(0,1fr))]">
+              <div className="relative col-span-2 md:col-span-1">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-500" />
+                <input type="search" aria-label="Search products" placeholder="Search product, SKU or brand" value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)} className={INPUT + ' pl-8'} />
               </div>
-            </div>
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-              <div className="relative max-w-md flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search title, SKU, brand, ID…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`${INPUT} pl-9`}
-                />
-              </div>
-
-              {/* Department Filter */}
-              <select
-                value={selectedDepartment || 'all'}
-                onChange={(e) => {
-                  const dept = e.target.value === 'all' ? null : e.target.value;
-                  setSelectedDepartment(dept);
-                  if (dept) setSectionTab(SECTION_GROUP_ALIAS[dept] || dept);
-                  setSelectedCategory(null);
-                  setSelectedSubcategory(null);
-                }}
-                className={`${INPUT} min-w-[150px]`}
-              >
-                <option value="all">All Departments ({departmentFilterOptions.length})</option>
-                {departmentFilterOptions.map((dept) => (
-                  <option key={dept.slug} value={dept.slug}>
-                    {dept.name}
-                  </option>
-                ))}
+              <select aria-label="Audience" className={INPUT} value={listAudience || "all"}
+                onChange={(e) => setListAudience(e.target.value === 'all' ? null : e.target.value)}>
+                <option value="all">All audiences</option>
+                <option value="retail">Retail</option>
+                <option value="bulk">Bulk</option>
               </select>
-
               {/* Category Filter */}
               <select
+                aria-label="Category"
                 value={selectedCategory || 'all'}
                 onChange={(e) => {
                   setSelectedCategory(e.target.value === 'all' ? null : e.target.value);
                   setSelectedSubcategory(null);
                 }}
-                className={`${INPUT} min-w-[150px]`}
+                className={`${INPUT} min-w-0`}
               >
                 <option value="all">All categories ({availableCategoriesForFilter.length})</option>
                 {availableCategoriesForFilter.map((cat) => (
@@ -5455,11 +5423,12 @@ export default function Products() {
               </select>
               {drillSubcategories.length > 0 ? (
                 <select
+                  aria-label="Subcategory"
                   value={selectedSubcategory || 'all'}
                   onChange={(e) =>
                     setSelectedSubcategory(e.target.value === 'all' ? null : e.target.value)
                   }
-                  className={`${INPUT} min-w-[140px]`}
+                  className={`${INPUT} min-w-0`}
                 >
                   <option value="all">All subcategories</option>
                   {drillSubcategories.map((sub) => (
@@ -5470,79 +5439,41 @@ export default function Products() {
                 </select>
               ) : null}
               <select
+                aria-label="Stock status"
                 value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value)}
-                className={`${INPUT} min-w-[120px]`}
+                className={`${INPUT} min-w-0`}
               >
                 <option value="all">All stock</option>
                 <option value="in_stock">In stock</option>
                 <option value="out_of_stock">Out of stock</option>
               </select>
-              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  className={`rounded-lg p-2 transition ${
-                    viewMode === 'table' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-400'
-                  }`}
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  className={`rounded-lg p-2 transition ${
-                    viewMode === 'grid' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-400'
-                  }`}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </button>
-              </div>
-              {findCategoryDoc(selectedCategory)?._id ? (
-                <button
-                  type="button"
-                  onClick={() => openTaxModal('subcategory', 'create')}
-                  className={BTN}
-                  title="Add subcategory tag for this category"
-                >
-                  <Layers className="mr-1.5 h-4 w-4" />
-                  Add subcategory
-                </button>
-              ) : null}
             </div>
-          </div>
-
-      <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
-        {sectionGroups.map((group) => {
-          const active = group.slug === activeSectionGroup.slug;
-          return (
-            <button
-              key={group.slug}
-              type="button"
-              onClick={() => {
-                setSectionTab(group.slug);
-                setSelectedDepartment(group.slug);
-                setSelectedCategory(null);
-                setSelectedSubcategory(null);
-              }}
-              className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                active ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${active ? 'bg-white' : group.theme.dot}`} />
-              {group.theme.name}
-              <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                  active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {group.items.length}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-3 py-2">
+              <p aria-live="polite" className="text-xs text-slate-600">
+                {sectionProducts.length} {sectionProducts.length === 1 ? 'product' : 'products'}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                {(searchQuery || selectedDepartment || selectedCategory || selectedSubcategory || listAudience || stockFilter !== 'all') && (
+                  <button type="button" className={BTN} onClick={() => {
+                    setSearchQuery(''); setSelectedDepartment(null); setSelectedCategory(null);
+                    setSelectedSubcategory(null); setListAudience(null); setStockFilter('all');
+                  }}>Clear filters</button>
+                )}
+                {findCategoryDoc(selectedCategory)?._id && (
+                  <button type="button" className={BTN} onClick={() => openTaxModal('subcategory', 'create')}>Add subcategory</button>
+                )}
+                <div className="flex" role="group" aria-label="Catalog view">
+                  {[['table', 'Table', List], ['grid', 'Grid', LayoutGrid]].map(([mode, label, Icon]) => (
+                    <button key={mode} type="button" className={BTN + (viewMode === mode ? " bg-slate-100" : "")}
+                      aria-pressed={viewMode === mode} onClick={() => setViewMode(mode)}>
+                      <Icon aria-hidden="true" className="mr-1 size-3.5" />{label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
       {loading ? (
         <div className={`${PANEL} flex justify-center py-20 text-slate-400`}>
           <Loader2 className="h-6 w-6 animate-spin" />
@@ -5551,10 +5482,10 @@ export default function Products() {
         <div className={`${PANEL} px-6 py-16 text-center`}>
           <Package className="mx-auto h-10 w-10 text-emerald-600/30" />
           <p className="mt-3 text-base font-semibold text-slate-800">
-            No {activeSectionGroup.theme?.name || ''} products found {selectedCategory ? `in ${selectedCategory}` : ''}
+            No products found {selectedCategory ? `in ${selectedCategory}` : ''}
           </p>
           <p className="mt-1 text-sm text-slate-400">
-            {searchQuery || stockFilter !== 'all' || selectedSubcategory
+            {searchQuery || stockFilter !== 'all' || selectedDepartment || selectedCategory || selectedSubcategory || listAudience
               ? 'Try clearing search or filters.'
               : 'Add the first product here, or add a variety after the first one exists.'}
           </p>
@@ -5566,12 +5497,13 @@ export default function Products() {
       ) : viewMode === 'table' ? (
         <div className={`${PANEL} overflow-hidden`}>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="w-full min-w-[900px] text-left text-xs">
               <thead className="border-b border-slate-100 bg-slate-50/80">
                 <tr>
-                  {['Product', 'Department', 'Category', 'Variety', 'Price', 'Stock', 'Status', ''].map((h) => (
+                  {['Product', 'Department', 'Category', 'Variety', 'Price', 'Stock', 'Status', 'Actions'].map((h) => (
                     <th
-                      key={h || 'actions'}
+                      key={h}
+                      scope="col"
                       className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500"
                     >
                       {h}
@@ -5588,21 +5520,20 @@ export default function Products() {
                   return (
                     <tr
                       key={p._id}
-                      onClick={() => handleOpenEdit(p)}
-                      className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50/80"
+                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50/80"
                     >
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                             {img ? (
-                              <img src={img} alt={p.name} className="h-full w-full object-cover" />
+                              <img src={img} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                             ) : (
                               <Package className="h-4 w-4 text-slate-400" />
                             )}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <p className="truncate font-semibold text-slate-900">{p.name}</p>
+                              <button type="button" onClick={() => handleOpenEdit(p)} className="truncate text-left font-semibold text-slate-900 hover:underline">{p.name}</button>
                               <span
                                 className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                                   p.enableBulkGrades
@@ -5614,7 +5545,7 @@ export default function Products() {
                               </span>
                             </div>
                             <p className="mt-0.5 text-[11px] text-slate-400">
-                              <span className="font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">ID {p.productId || p.sku || '—'}</span>
+                              <span className="font-mono text-slate-600">{p.productId || p.sku || '—'}</span>
                               {p.departmentId ? (
                                 <span className="font-mono font-semibold text-emerald-700"> · {p.departmentId}</span>
                               ) : null}
@@ -5628,7 +5559,7 @@ export default function Products() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${dept.bg}`}
                         >
@@ -5636,11 +5567,11 @@ export default function Products() {
                           {dept.name}
                         </span>
                       </td>
-                      <td className="px-3 py-3">
-                        <p className="text-sm font-medium text-slate-800">{primaryCat || '—'}</p>
+                      <td className="px-3 py-2">
+                        <p className="text-xs font-medium text-slate-800">{primaryCat || '—'}</p>
                         <p className="text-[11px] text-slate-400">{p.subcategory || 'General'}</p>
                       </td>
-                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                         {p.varietyName?.trim() ? (
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-200">
@@ -5672,7 +5603,7 @@ export default function Products() {
                           </button>
                         )}
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2">
                         <p className="font-semibold tabular-nums text-slate-900">
                           ₹{p.discountedPrice != null ? p.discountedPrice : p.price}
                         </p>
@@ -5685,7 +5616,7 @@ export default function Products() {
                           </p>
                         ) : null}
                       </td>
-                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => handleToggleStock(p)}
@@ -5699,7 +5630,7 @@ export default function Products() {
                           {p.inStock ? `${p.stock ?? 0} in stock` : 'Out of stock'}
                         </button>
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2">
                         <span
                           className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${
                             p.isActive ? 'text-emerald-700' : 'text-slate-400'
@@ -5711,12 +5642,13 @@ export default function Products() {
                           {p.isActive ? 'Active' : 'Hidden'}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(p)}
                             className="rounded-lg p-1.5 text-slate-400 transition hover:bg-emerald-50 hover:text-emerald-700"
+                            aria-label={"Edit " + p.name}
                             title="Edit"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
@@ -5725,6 +5657,7 @@ export default function Products() {
                             type="button"
                             onClick={() => confirmDelete(p)}
                             className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                            aria-label={"Delete " + p.name}
                             title="Delete"
                           >
                             <Trash2 className="h-3.5 w-3.5" />

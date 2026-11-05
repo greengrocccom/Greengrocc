@@ -1201,60 +1201,8 @@ export async function getVendorAdmin(req, res, next) {
   }
 }
 
-export async function createDarkStoreAdmin(req, res, next) {
-  try {
-    const body = req.body || {};
-    const storeName = String(body.storeName || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
-    const phone = String(body.phone || "").replace(/\D/g, "").slice(-10);
-    const password = String(body.password || "");
-    const state = String(body.state || "").trim();
-    const city = String(body.city || "").trim();
-    const area = String(body.area || "").trim();
-    const vendorId = String(body.vendorId || "").trim();
-
-    if (!storeName) return fail(res, 400, "Dark store name is required");
-    if (!/^\S+@\S+\.\S+$/.test(email)) return fail(res, 400, "Enter a valid manager email");
-    if (!/^[6-9]\d{9}$/.test(phone)) return fail(res, 400, "Enter a valid 10-digit mobile number");
-    if (password.length < 6) return fail(res, 400, "Password must be at least 6 characters");
-    if (!state || !city || !area) return fail(res, 400, "State, city and area are required");
-    if (vendorId && !(await Vendor.exists({ id: vendorId }))) return fail(res, 400, "Selected collection centre was not found");
-
-    const phoneConflict = await checkPhoneConflict(phone);
-    if (phoneConflict.inUse) return fail(res, 409, phoneConflict.message);
-    if (await DeliveryManager.exists({ email })) return fail(res, 409, "A dark store with this email already exists");
-
-    const latitude = body.latitude === "" || body.latitude == null ? null : Number(body.latitude);
-    const longitude = body.longitude === "" || body.longitude == null ? null : Number(body.longitude);
-    if ((latitude === null) !== (longitude === null) || [latitude, longitude].some((n) => n !== null && !Number.isFinite(n))) {
-      return fail(res, 400, "Enter both latitude and longitude, or leave both empty");
-    }
-    const geofenceRadius = Number(body.geofenceRadius);
-
-    const manager = await DeliveryManager.create({
-      name: String(body.name || "").trim() || storeName,
-      email,
-      phone,
-      password,
-      state,
-      city,
-      cityId: city.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-      area,
-      storeName,
-      storeAddress: String(body.storeAddress || "").trim(),
-      pincode: String(body.pincode || "").trim(),
-      latitude,
-      longitude,
-      ...(geofenceRadius >= 50 && geofenceRadius <= 50000 ? { geofenceRadius } : {}),
-      isActive: body.isActive !== false,
-      vendorId,
-    });
-    await seedManagerStore(manager).catch((error) => console.warn("[DarkStore] seed failed:", error.message));
-    return res.status(201).json({ success: true, message: "Dark store created", data: manager.toSafeJSON() });
-  } catch (error) {
-    if (error.code === 11000) return fail(res, 409, "A dark store with this email or mobile already exists");
-    next(error);
-  }
+export async function createDarkStoreAdmin(_req, res) {
+  return fail(res, 403, "Dark store and delivery manager logins must be requested by an active multivendor created by admin, then approved by admin.");
 }
 
 export async function listDarkStoreRequestsAdmin(req, res, next) {
@@ -1285,8 +1233,8 @@ export async function approveDarkStoreRequestAdmin(req, res, next) {
     const request = await DarkStoreRequest.findOne({ id: req.params.requestId });
     if (!request) return fail(res, 404, "Request not found");
     if (request.status !== "Pending") return fail(res, 400, `This request is already ${request.status.toLowerCase()}`);
-    if (!(await Vendor.exists({ id: request.vendorId }))) {
-      return fail(res, 400, "The collection centre that sent this request no longer exists");
+    if (!(await Vendor.exists({ id: request.vendorId, status: "Active" }))) {
+      return fail(res, 400, "The multivendor that sent this request must exist and be active");
     }
     const phoneConflict = await checkPhoneConflict(request.phone, {
       excludeModel: "DarkStoreRequest",
@@ -1928,28 +1876,7 @@ export async function createHrStaff(req, res, next) {
       payload = created.toObject();
       delete payload.password;
     } else if (role === "delivery_manager") {
-      if (!/^\S+@\S+\.\S+$/.test(email)) return fail(res, 400, "Valid email is required");
-      const state = String(req.body.state || "").trim();
-      const city = String(req.body.city || "").trim();
-      const area = String(req.body.area || "").trim();
-      if (!state || !city || !area) return fail(res, 400, "State, city and area are required");
-      const manager = await DeliveryManager.create({
-        name,
-        email,
-        phone,
-        password,
-        state,
-        city,
-        cityId: String(req.body.cityId || city).trim().toLowerCase().replace(/\s+/g, "-"),
-        area,
-        storeName: String(req.body.storeName || `${area} Store`).trim(),
-        storeAddress: String(req.body.storeAddress || "").trim(),
-        pincode: String(req.body.pincode || "").trim(),
-      });
-      await seedManagerStore(manager);
-      employeeId = String(manager._id);
-      employeeType = "delivery_manager";
-      payload = manager.toSafeJSON();
+      return fail(res, 403, "Dark store and delivery manager logins must be requested by an active multivendor created by admin, then approved by admin.");
     } else if (role === "delivery_boy") {
       const managerId = String(req.body.managerId || "").trim();
       const boy = await DeliveryBoy.create({

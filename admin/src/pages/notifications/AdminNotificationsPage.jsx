@@ -673,8 +673,8 @@ export default function AdminNotificationsPage() {
                       <CatIcon className="h-5 w-5" />
                       {!alert.isRead && (
                         <span
-                          className={`absolute -top-1 -right-1 h-3 w-3 rounded-full ${pStyles.dot} ring-2 ring-white`}
-                          title="Unread Alert"
+                          className={`absolute -top-1 -right-1 h-3 w-3 rounded-full ${pStyles.dot} ${alert.priority === 'critical' ? 'admin-emergency-indicator' : ''} ring-2 ring-white`}
+                          title={alert.priority === 'critical' ? 'Critical — needs attention' : 'Unread Alert'}
                         />
                       )}
                     </div>

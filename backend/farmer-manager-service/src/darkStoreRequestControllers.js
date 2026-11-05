@@ -2,7 +2,7 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import DeliveryManager from "../../delivery-service/src/models/DeliveryManager.js";
 import DeliveryBoy from "../../delivery-service/src/models/DeliveryBoy.js";
-import { DarkStoreRequest, VendorZone } from "./models.js";
+import { DarkStoreRequest, VendorZone, Vendor } from "./models.js";
 import { checkPhoneConflict } from "../../shared/utils/phoneCheck.js";
 
 function vendorIdOf(req) {
@@ -39,6 +39,9 @@ export async function listVendorDarkStoreRequests(req, res) {
 export async function createVendorDarkStoreRequest(req, res) {
   try {
     const vendorId = vendorIdOf(req);
+    if (!(await Vendor.exists({ id: vendorId, status: "Active" }))) {
+      return res.status(403).json({ message: "Admin must create and activate your multivendor before you can request a dark store." });
+    }
     const body = req.body || {};
     const storeName = String(body.storeName || "").trim();
     const email = String(body.email || "").trim().toLowerCase();

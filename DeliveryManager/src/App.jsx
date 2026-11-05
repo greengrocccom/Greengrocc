@@ -3,7 +3,6 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ManagerLayout from "./components/layout/ManagerLayout";
 import LoginPage from "./pages/auth/LoginPage";
-import RegisterPage from "./pages/auth/RegisterPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import RevenuePage from "./pages/revenue/RevenuePage";
 import ExpensesPage from "./pages/expenses/ExpensesPage";
@@ -43,7 +42,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<ManagerLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />

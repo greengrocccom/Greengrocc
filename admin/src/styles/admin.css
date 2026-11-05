@@ -60,3 +60,18 @@ body,
     margin-right: auto;
   }
 }
+
+/* Keep emergency labels readable while the red indicator draws attention. */
+.admin-emergency-indicator {
+  background-color: #dc2626;
+  animation: admin-emergency-blink 1.4s ease-in-out infinite;
+}
+
+@keyframes admin-emergency-blink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgb(220 38 38 / 0.45); }
+  50% { opacity: 0.4; box-shadow: 0 0 0 5px rgb(220 38 38 / 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-emergency-indicator { animation: none; }
+}
