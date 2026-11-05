@@ -1,5 +1,7 @@
 # Order placement and dark-store visibility audit
 
+Follow-up: nearest-store/PIN routing, active-parent eligibility, saved-address precedence, fixed store GPS at login, and upcoming-preorder visibility have since been corrected locally. Run `node backend/scripts/testNearestOrderRouting.mjs` for current regression checks. The original diagnostic below describes the pre-fix audit snapshot; it intentionally asserts defects and is not a passing regression suite after these corrections. Other audit findings remain outside this visibility/routing patch.
+
 Audited on 5 November 2026. Production read at approximately 13:28 IST. Scope: web checkout, Customerapp checkout/payment payloads, COD and online payment controllers, address snapshots, store resolution, dispatch, mixed carts, manager APIs and screens, realtime rooms, recovery, and account deletion. Findings refer to the current workspace source; production source revision was not independently verified. No application fixes, production writes, real payments, or notification sends were performed during this audit.
 
 ## Production evidence

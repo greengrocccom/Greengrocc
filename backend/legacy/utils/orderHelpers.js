@@ -406,13 +406,13 @@ export function mergeCustomerLocation(snapshot, customerLocation) {
   const next = { ...snapshot };
 
   if (customerLocation && typeof customerLocation === "object") {
-    if (customerLocation.address || customerLocation.fullAddress) {
+    if ((!next.fullAddress || ["Main Address", "Address to be confirmed"].includes(next.fullAddress)) && (customerLocation.address || customerLocation.fullAddress)) {
       const addrStr = String(customerLocation.address || customerLocation.fullAddress).trim();
       if (addrStr.length > 0 && addrStr !== "Main Address" && addrStr !== "Address to be confirmed") {
         next.fullAddress = addrStr;
       }
     }
-    if (customerLocation.area) {
+    if ((!next.area || next.area === "Near Location") && customerLocation.area) {
       const areaStr = String(customerLocation.area).trim();
       if (areaStr.length > 0 && areaStr !== "Near Location") {
         next.area = areaStr;
@@ -421,26 +421,27 @@ export function mergeCustomerLocation(snapshot, customerLocation) {
         }
       }
     }
-    if (customerLocation.city) {
+    if ((!next.city || next.city === "City") && customerLocation.city) {
       const cityStr = String(customerLocation.city).trim();
       if (cityStr.length > 0 && cityStr !== "City") {
         next.city = cityStr;
       }
     }
-    if (customerLocation.state) {
+    if ((!next.state || next.state === "State") && customerLocation.state) {
       const stateStr = String(customerLocation.state).trim();
       if (stateStr.length > 0 && stateStr !== "State") {
         next.state = stateStr;
       }
     }
-    if (customerLocation.pincode) {
+    if (!next.pincode && customerLocation.pincode) {
       const pinStr = String(customerLocation.pincode).trim();
       if (pinStr.length > 0 && pinStr !== "110001") {
         next.pincode = pinStr;
       }
     }
-    if (customerLocation.lat && customerLocation.lng) {
-      next.location = { lat: customerLocation.lat, lng: customerLocation.lng };
+    const fallbackCoords = coordsFromSource(customerLocation);
+    if (!coordsFromSource(next) && fallbackCoords) {
+      next.location = fallbackCoords;
     }
   }
 

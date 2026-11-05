@@ -139,19 +139,7 @@ export const login = async (req, res, next) => {
       return res.status(403).json({ success: false, message: "An active multivendor must own this dark store. Contact admin." });
     }
 
-    // Bind this dark store to the manager's current GPS so nearby orders route here.
-    const loc = readStoreLocation(req.body);
-    if (applyStoreLocation(manager, loc, { coordsOnly: true })) {
-      await DeliveryManager.updateOne(
-        { _id: manager._id },
-        {
-          $set: {
-            latitude: manager.latitude,
-            longitude: manager.longitude,
-          },
-        }
-      );
-    }
+    // The store pin is fixed; manager/device GPS must never relocate it at login.
 
     // Ensure store has inventory (e.g. older accounts)
     await seedManagerStore(manager);

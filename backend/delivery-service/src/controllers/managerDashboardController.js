@@ -338,16 +338,16 @@ export const listIncomingOrders = async (req, res, next) => {
     await flushExpiredBatchWindows(manager._id);
     const statusFilter = req.query.status
       ? String(req.query.status).split(",")
-      : ["incoming", "order_received", "stock_issue", "packed", "offered", "assigned", "out_for_delivery"];
+      : ["preorder_hold", "incoming", "order_received", "stock_issue", "packed", "offered", "assigned", "pickup_verified", "out_for_delivery"];
 
-    // Pre-orders have their own queue; ?preOrder=include|only to see them here.
+    // Show every assigned open order by default, including held pre-orders.
     const preOrderMode = String(req.query.preOrder || "").toLowerCase();
     const preOrderFilter =
-      preOrderMode === "include"
-        ? {}
-        : preOrderMode === "only"
-          ? { isPreOrder: true }
-          : { isPreOrder: { $ne: true } };
+      preOrderMode === "only"
+        ? { isPreOrder: true }
+        : preOrderMode === "exclude"
+          ? { isPreOrder: { $ne: true } }
+          : {};
 
     const orders = await StoreOrder.find({
       managerId: manager._id,

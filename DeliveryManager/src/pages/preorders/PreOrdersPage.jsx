@@ -133,7 +133,7 @@ export default function PreOrdersPage() {
   const [busyKey, setBusyKey] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [receiveIds, setReceiveIds] = useState([]);
-  const [dateFilter, setDateFilter] = useState(todayIstStr);
+  const [dateFilter, setDateFilter] = useState("");
   const [slotFilter, setSlotFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRider, setSelectedRider] = useState({});

@@ -3,12 +3,15 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import DeliveryManager from '../delivery-service/src/models/DeliveryManager.js';
+import { Vendor } from '../farmer-manager-service/src/models.js';
 import { resolveDarkStoreForOrder, readCoords, haversineKm } from '../delivery-service/src/services/darkStoreResolver.js';
 
 if (!process.argv.includes('--live')) {
   const original = DeliveryManager.find;
-  const near = { _id: 'near', isActive: true, storeName: 'Near Store', area: 'Near Area', city: 'Pune', latitude: 18.501, longitude: 73.8, deliveryRadiusKm: 5 };
-  const far = { _id: 'far', isActive: true, storeName: 'Far Store', area: 'Far Area', city: 'Pune', latitude: 18.56, longitude: 73.8, deliveryRadiusKm: 5 };
+  const originalVendors = Vendor.find;
+  Vendor.find = () => ({ select() { return this; }, lean: async () => [{ id: "test-vendor" }] });
+  const near = { _id: 'near', vendorId: 'test-vendor', isActive: true, storeName: 'Near Store', area: 'Near Area', city: 'Pune', latitude: 18.501, longitude: 73.8, deliveryRadiusKm: 5 };
+  const far = { _id: 'far', vendorId: 'test-vendor', isActive: true, storeName: 'Far Store', area: 'Far Area', city: 'Pune', latitude: 18.56, longitude: 73.8, deliveryRadiusKm: 5 };
   DeliveryManager.find = async () => [far, near];
   try {
     for (const [scenario, address] of [
@@ -21,7 +24,7 @@ if (!process.argv.includes('--live')) {
         distanceKm: result.distanceKm, nearestByGps: address.lat ? 'near' : null,
         exceedsSelectedRadius: result.distanceKm != null && result.distanceKm > result.manager.deliveryRadiusKm }));
     }
-  } finally { DeliveryManager.find = original; }
+  } finally { DeliveryManager.find = original; Vendor.find = originalVendors; }
 } else {
   const cfg = dotenv.config({ path: fileURLToPath(new URL('../.env', import.meta.url)), quiet: true }).parsed || {};
   if (!cfg.MONGODB_PRODUCTION_URI) throw new Error('Production URI not configured');

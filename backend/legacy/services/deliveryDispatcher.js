@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import StoreOrder from "../../delivery-service/src/models/StoreOrder.js";
 import StoreInventory from "../../delivery-service/src/models/StoreInventory.js";
 import {
-  ORDER_ROUTING_RADIUS_KM,
   readCoords,
   resolveDarkStoreForOrder,
 } from "../../delivery-service/src/services/darkStoreResolver.js";
@@ -78,9 +77,7 @@ export async function findStoreForOrder({ address = {}, items = [], fulfillmentT
 
   const message = result.manager
     ? ""
-    : `${ROUTING_FAILURE_TEXT[result.reason] || "No dark store found"}${
-        result.reason === "no_store_within_radius" ? ` (within ${ORDER_ROUTING_RADIUS_KM} km)` : ""
-      }`;
+    : ROUTING_FAILURE_TEXT[result.reason] || "No dark store found";
   return { ...result, itemDepartments, departments, customerCoords, allowPincodeFallback, message };
 }
 

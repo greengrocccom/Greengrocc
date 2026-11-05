@@ -67,7 +67,7 @@ export default function OrdersPage() {
   const [busyKey, setBusyKey] = useState("");
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
-  const [dateFilter, setDateFilter] = useState(todayIstStr);
+  const [dateFilter, setDateFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [pickupQrOrderId, setPickupQrOrderId] = useState(null);
@@ -873,9 +873,9 @@ export default function OrdersPage() {
             )}
           </div>
 
-          {/* Just Calendar with Today's Date */}
+          {/* A blank date shows immediate and future pre-orders together. */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-600">📅 Date:</span>
+            <button type="button" onClick={() => setDateFilter("")} className="text-xs font-bold text-emerald-700">{dateFilter ? "All dates" : "All dates (selected)"}</button>
             <input
               type="date"
               value={dateFilter}
