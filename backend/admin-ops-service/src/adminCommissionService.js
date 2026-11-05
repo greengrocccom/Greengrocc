@@ -604,7 +604,100 @@ export async function getAdminFinanceDashboardData(dateFilter = null) {
   const deliveryExpenses = await DeliveryExpense.find(deliveryExpenseMatch).lean();
   const totalDeliveryExpenses = deliveryExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
+  // 4. Daily Sales & Orders Trend for Graphs
+  const orderTrendMatch = { isDeleted: { $ne: true } };
+  if (dateFilter) {
+    orderTrendMatch.createdAt = dateFilter;
+  }
+
+  const rawDailyTrend = await StoreOrder.aggregate([
+    { $match: orderTrendMatch },
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Kolkata" },
+        },
+        totalOrders: { $sum: 1 },
+        deliveredOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
+        cancelledOrders: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+        grossProductSales: {
+          $sum: {
+            $cond: [
+              { $ne: ["$status", "cancelled"] },
+              {
+                $sum: {
+                  $map: {
+                    input: { $ifNull: ["$items", []] },
+                    as: "it",
+                    in: { $multiply: [{ $ifNull: ["$$it.price", 0] }, { $ifNull: ["$$it.quantity", 0] }] },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+        deliveryCharges: {
+          $sum: {
+            $cond: [
+              { $ne: ["$status", "cancelled"] },
+              {
+                $let: {
+                  vars: {
+                    rawPaid: {
+                      $cond: [
+                        { $gt: [{ $ifNull: ["$partTotal", 0] }, 0] },
+                        "$partTotal",
+                        { $ifNull: ["$amountToCollect", 0] },
+                      ],
+                    },
+                    itemsSum: {
+                      $sum: {
+                        $map: {
+                          input: { $ifNull: ["$items", []] },
+                          as: "it",
+                          in: { $multiply: [{ $ifNull: ["$$it.price", 0] }, { $ifNull: ["$$it.quantity", 0] }] },
+                        },
+                      },
+                    },
+                  },
+                  in: {
+                    $let: {
+                      vars: { diff: { $subtract: ["$$rawPaid", "$$itemsSum"] } },
+                      in: { $cond: [{ $gt: ["$$diff", 0] }, "$$diff", 0] },
+                    },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+
+  const dailyTrend = rawDailyTrend.map((d) => {
+    const gross = Number(d.grossProductSales || 0);
+    const deliv = Number(d.deliveryCharges || 0);
+    const totalSale = gross + deliv;
+    const adminCommission = Math.round((totalSale * 10) / 100);
+    return {
+      date: d._id,
+      label: d._id.slice(5),
+      totalOrders: d.totalOrders,
+      deliveredOrders: d.deliveredOrders,
+      cancelledOrders: d.cancelledOrders,
+      grossProductSales: gross,
+      deliveryCharges: deliv,
+      totalSale,
+      adminCommission,
+    };
+  });
+
   return {
+    dailyTrend,
     kpis: {
       customerPaidTotal: allCommissions.totals.totalCustomerPaid,
       cancelledOrdersCost: allCommissions.totals.totalCancelledCost,

@@ -16,7 +16,25 @@ import {
   TrendingDown,
   FileSpreadsheet,
   Search,
+  PieChart as PieIcon,
+  BarChart3,
+  Activity,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 import adminFinanceApi from '../../api/adminFinanceApi';
 
 const DATE_PRESETS = [
@@ -60,6 +78,7 @@ export default function AdminFinanceDashboardPage() {
       currentProfit: 0,
     },
     vendorsSummary: [],
+    dailyTrend: [],
   });
 
   const loadDashboard = async () => {
@@ -151,6 +170,55 @@ export default function AdminFinanceDashboardPage() {
       totalVendorCount: list.length || Number(data.kpis?.totalVendorCount || 0),
     };
   }, [allVendors, data.kpis]);
+
+  // Chart 1: Daily Sales Trend
+  const trendData = useMemo(() => {
+    if (Array.isArray(data.dailyTrend) && data.dailyTrend.length > 0) {
+      return data.dailyTrend;
+    }
+    return [];
+  }, [data.dailyTrend]);
+
+  // Chart 2: Sales Inflow Distribution (Pie Chart)
+  const salesInflowPieData = useMemo(() => {
+    const gross = Number(scopedKpis.grossProductSales || 0);
+    const deliv = Number(scopedKpis.deliveryCharges || 0);
+    const canc = Number(scopedKpis.cancelledOrdersCost || 0);
+    const total = gross + deliv + canc;
+    if (total === 0) return [];
+    return [
+      { name: 'Gross Product Sales', value: gross, color: '#059669' },
+      { name: 'Delivery Charges', value: deliv, color: '#2563EB' },
+      { name: 'Cancelled Orders', value: canc, color: '#E11D48' },
+    ].filter((item) => item.value > 0);
+  }, [scopedKpis]);
+
+  // Chart 3: Cost & Profit Allocation (Donut Chart)
+  const costProfitPieData = useMemo(() => {
+    const netProf = Math.max(0, Number(scopedKpis.netProfit || 0));
+    const procure = Number(scopedKpis.farmerProcurement || 0);
+    const comm = Number(scopedKpis.totalAdminCommission || 0);
+    const exp = Number(scopedKpis.combinedExpenses || 0);
+    const total = netProf + procure + comm + exp;
+    if (total === 0) return [];
+    return [
+      { name: 'Farmer Procurement', value: procure, color: '#D97706' },
+      { name: 'Net Profit', value: netProf, color: '#059669' },
+      { name: 'Admin Commission', value: comm, color: '#6366F1' },
+      { name: 'Operating Expenses', value: exp, color: '#64748B' },
+    ].filter((item) => item.value > 0);
+  }, [scopedKpis]);
+
+  // Chart 4: Top Vendors Comparison (Bar Chart)
+  const vendorBarData = useMemo(() => {
+    return allVendors.map((v) => ({
+      name: v.vendorName?.length > 14 ? v.vendorName.slice(0, 14) + '…' : v.vendorName,
+      fullName: v.vendorName,
+      totalSale: Number(v.totalSale || 0),
+      adminCommission: Number(v.totalAdminCommission || 0),
+      customerPaid: Number(v.customerPaidTotal || 0),
+    }));
+  }, [allVendors]);
 
   return (
     <div className="space-y-4 p-4 md:p-6 max-w-7xl mx-auto">
@@ -476,6 +544,305 @@ export default function AdminFinanceDashboardPage() {
         </div>
       </div>
 
+      {/* ── CHARTS & GRAPHS SECTION (पायचार्ट व आलेख) ────────────────── */}
+      <div className="space-y-4">
+        {/* ROW 1 of Charts: Sales Trend & Vendor Comparison */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Chart 1: Sales & Commission Revenue Trend (2 cols) */}
+          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-3">
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg bg-emerald-50 p-1.5 text-emerald-700">
+                  <Activity className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                    Sales & Admin Commission Revenue Trend
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Timeline of gross sales, delivery charges & admin commission
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] font-semibold">
+                <span className="flex items-center gap-1 text-emerald-700">
+                  <span className="h-2 w-2 rounded-full bg-emerald-600" /> Total Sale
+                </span>
+                <span className="flex items-center gap-1 text-indigo-700">
+                  <span className="h-2 w-2 rounded-full bg-indigo-600" /> Commission (10%)
+                </span>
+              </div>
+            </div>
+
+            <div className="h-64 sm:h-72 w-full">
+              {trendData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                  No sales trend data available for this date period.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="totalSaleGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#059669" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#059669" stopOpacity={0.0} />
+                      </linearGradient>
+                      <linearGradient id="commissionGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#6366F1" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="label" stroke="#94A3B8" fontSize={11} tickLine={false} />
+                    <YAxis
+                      stroke="#94A3B8"
+                      fontSize={11}
+                      tickLine={false}
+                      tickFormatter={(v) => `₹${Number(v) >= 1000 ? `${(Number(v) / 1000).toFixed(0)}k` : v}`}
+                    />
+                    <Tooltip
+                      formatter={(val, name) => [
+                        `₹${Number(val || 0).toLocaleString('en-IN')}`,
+                        name === 'totalSale' ? 'Total Sale' : name === 'adminCommission' ? 'Admin Commission' : name,
+                      ]}
+                      labelFormatter={(lbl) => `Date: ${lbl}`}
+                      contentStyle={{
+                        borderRadius: '0.75rem',
+                        border: '1px solid #E2E8F0',
+                        fontSize: '11px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="totalSale"
+                      stroke="#059669"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#totalSaleGrad)"
+                      name="totalSale"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="adminCommission"
+                      stroke="#6366F1"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#commissionGrad)"
+                      name="adminCommission"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Chart 2: Top Vendors Performance (Bar Chart 1 col) */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+              <span className="rounded-lg bg-indigo-50 p-1.5 text-indigo-700">
+                <BarChart3 className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                  Vendor Sales Comparison
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Total Sale vs Admin Commission by vendor
+                </p>
+              </div>
+            </div>
+
+            <div className="h-64 sm:h-72 w-full">
+              {vendorBarData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                  No vendor data recorded.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={vendorBarData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="name" stroke="#94A3B8" fontSize={10} tickLine={false} interval={0} angle={-15} textAnchor="end" />
+                    <YAxis
+                      stroke="#94A3B8"
+                      fontSize={11}
+                      tickLine={false}
+                      tickFormatter={(v) => `₹${Number(v) >= 1000 ? `${(Number(v) / 1000).toFixed(0)}k` : v}`}
+                    />
+                    <Tooltip
+                      formatter={(val, name) => [
+                        `₹${Number(val || 0).toLocaleString('en-IN')}`,
+                        name === 'totalSale' ? 'Total Sale' : 'Admin Commission',
+                      ]}
+                      labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName || ''}
+                      contentStyle={{
+                        borderRadius: '0.75rem',
+                        border: '1px solid #E2E8F0',
+                        fontSize: '11px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                      }}
+                    />
+                    <Bar dataKey="totalSale" fill="#059669" radius={[4, 4, 0, 0]} name="totalSale" />
+                    <Bar dataKey="adminCommission" fill="#6366F1" radius={[4, 4, 0, 0]} name="adminCommission" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ROW 2 of Charts: Sales Inflow Pie & Cost/Profit Donut */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Pie Chart 1: Sales Inflow Breakdown */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+              <span className="rounded-lg bg-emerald-50 p-1.5 text-emerald-700">
+                <PieIcon className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                  Sales Inflow Distribution (विक्री आवक विभागणी)
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Share of gross product sales, delivery charges & cancellations
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-4">
+              <div className="h-56 w-full">
+                {salesInflowPieData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                    No inflow data.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={salesInflowPieData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={75}
+                        innerRadius={40}
+                        paddingAngle={3}
+                      >
+                        {salesInflowPieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(val) => [`₹${Number(val || 0).toLocaleString('en-IN')}`, 'Amount']}
+                        contentStyle={{
+                          borderRadius: '0.75rem',
+                          border: '1px solid #E2E8F0',
+                          fontSize: '11px',
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Legend with Values */}
+              <div className="space-y-2 text-xs">
+                {salesInflowPieData.map((item) => {
+                  const total = salesInflowPieData.reduce((s, i) => s + i.value, 0);
+                  const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
+                  return (
+                    <div key={item.name} className="flex items-center justify-between border-b border-slate-50 pb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                        <span className="text-slate-700 font-medium">{item.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-slate-900">{formatInr(item.value)}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{pct}%</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Pie Chart 2: Cost & Profit Allocation */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+              <span className="rounded-lg bg-amber-50 p-1.5 text-amber-700">
+                <Coins className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                  Cost & Profit Allocation (खर्च व नफा वाटप)
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Procurement, net profit, admin commission & operating expenses
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-4">
+              <div className="h-56 w-full">
+                {costProfitPieData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                    No cost allocation data.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={costProfitPieData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={75}
+                        innerRadius={40}
+                        paddingAngle={3}
+                      >
+                        {costProfitPieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(val) => [`₹${Number(val || 0).toLocaleString('en-IN')}`, 'Amount']}
+                        contentStyle={{
+                          borderRadius: '0.75rem',
+                          border: '1px solid #E2E8F0',
+                          fontSize: '11px',
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Legend with Values */}
+              <div className="space-y-2 text-xs">
+                {costProfitPieData.map((item) => {
+                  const total = costProfitPieData.reduce((s, i) => s + i.value, 0);
+                  const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
+                  return (
+                    <div key={item.name} className="flex items-center justify-between border-b border-slate-50 pb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                        <span className="text-slate-700 font-medium">{item.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-slate-900">{formatInr(item.value)}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{pct}%</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Main Breakdown Table - VENDOR WISE SALES & EXPENSES (Each row is a Vendor) */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
         {/* Table Header Bar */}
@@ -540,7 +907,12 @@ export default function AdminFinanceDashboardPage() {
               ) : (
                 filteredVendors.map((v) => {
                   return (
-                    <tr key={v.vendorId} onClick={() => navigate(`/finance/commissions/${v.vendorId}`)} className="hover:bg-emerald-50/40 transition cursor-pointer" title="Click to view full vendor sales dashboard">
+                    <tr
+                      key={v.vendorId}
+                      onClick={() => navigate(`/finance/commissions/${v.vendorId}`)}
+                      className="hover:bg-emerald-50/40 transition cursor-pointer"
+                      title="Click to view full vendor sales dashboard"
+                    >
                       {/* 1. Vendor Details */}
                       <td className="px-4 py-3">
                         <div className="flex items-start gap-2">
@@ -612,7 +984,7 @@ export default function AdminFinanceDashboardPage() {
                       </td>
 
                       {/* 11. Action */}
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => navigate(`/finance/commissions/${v.vendorId}`)}
