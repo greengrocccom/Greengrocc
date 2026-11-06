@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Users,
   Calendar,
+  CalendarDays,
   RefreshCw,
   Wallet,
   ShoppingBag,
@@ -14,7 +15,6 @@ import {
   Coins,
   XCircle,
   TrendingDown,
-  FileSpreadsheet,
   Search,
   PieChart as PieIcon,
   BarChart3,
@@ -52,6 +52,7 @@ export default function AdminFinanceDashboardPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [trendView, setTrendView] = useState('daily');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [data, setData] = useState({
@@ -179,6 +180,53 @@ export default function AdminFinanceDashboardPage() {
     return [];
   }, [data.dailyTrend]);
 
+  // Chart 1 (Monthly Trend Data)
+  const monthlyTrendData = useMemo(() => {
+    if (Array.isArray(data.monthlyTrend) && data.monthlyTrend.length > 0) {
+      return data.monthlyTrend;
+    }
+    // Fallback: derive from dailyTrend if monthlyTrend is empty
+    if (Array.isArray(data.dailyTrend) && data.dailyTrend.length > 0) {
+      const monthMap = {};
+      const monthNames = {
+        '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'May', '06': 'Jun',
+        '07': 'Jul', '08': 'Aug', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
+      };
+      data.dailyTrend.forEach((d) => {
+        const mKey = (d.date || '').slice(0, 7);
+        if (!mKey) return;
+        if (!monthMap[mKey]) {
+          const [yr, mo] = mKey.split('-');
+          monthMap[mKey] = {
+            month: mKey,
+            label: `${monthNames[mo] || mo} ${yr}`,
+            totalOrders: 0,
+            deliveredOrders: 0,
+            cancelledOrders: 0,
+            grossProductSales: 0,
+            deliveryCharges: 0,
+            totalSale: 0,
+            adminCommission: 0,
+          };
+        }
+        monthMap[mKey].totalOrders += Number(d.totalOrders || 0);
+        monthMap[mKey].deliveredOrders += Number(d.deliveredOrders || 0);
+        monthMap[mKey].cancelledOrders += Number(d.cancelledOrders || 0);
+        monthMap[mKey].grossProductSales += Number(d.grossProductSales || 0);
+        monthMap[mKey].deliveryCharges += Number(d.deliveryCharges || 0);
+        monthMap[mKey].totalSale += Number(d.totalSale || 0);
+        monthMap[mKey].adminCommission += Number(d.adminCommission || 0);
+      });
+      return Object.values(monthMap).sort((a, b) => a.month.localeCompare(b.month));
+    }
+    return [];
+  }, [data.monthlyTrend, data.dailyTrend]);
+
+  // Active Timeline Data based on trendView toggle (Daily / Monthly)
+  const activeTimelineData = useMemo(() => {
+    return trendView === 'monthly' ? monthlyTrendData : trendData;
+  }, [trendView, monthlyTrendData, trendData]);
+
   // Chart 2: Sales Inflow Distribution (Pie Chart)
   const salesInflowPieData = useMemo(() => {
     const gross = Number(scopedKpis.grossProductSales || 0);
@@ -250,13 +298,6 @@ export default function AdminFinanceDashboardPage() {
           >
             <CreditCard className="h-3.5 w-3.5 text-blue-600" />
             Commission Payments
-          </Link>
-          <Link
-            to="/finance/sales-reports"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-emerald-700 transition"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-purple-600" />
-            Sales Reports
           </Link>
           <button
             type="button"
@@ -575,13 +616,13 @@ export default function AdminFinanceDashboardPage() {
             </div>
 
             <div className="h-64 sm:h-72 w-full">
-              {trendData.length === 0 ? (
+              {activeTimelineData.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-xs text-slate-400">
                   No sales trend data available for this date period.
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <AreaChart data={activeTimelineData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="totalSaleGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#059669" stopOpacity={0.3} />
@@ -686,6 +727,142 @@ export default function AdminFinanceDashboardPage() {
                     <Bar dataKey="adminCommission" fill="#6366F1" radius={[4, 4, 0, 0]} name="adminCommission" />
                   </BarChart>
                 </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── SEPARATE MONTH-WISE REVENUE & COMMISSION TREND (महिनानिहाय विक्री व कमिशन आलेख) ── */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-indigo-50 p-1.5 text-indigo-700">
+                <CalendarDays className="h-4 w-4" />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide">
+                    MONTH WISE SALES & ADMIN COMMISSION TREND (महिनानिहाय विक्री व कमिशन)
+                  </h3>
+                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                    {monthlyTrendData.length} Months
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Separate month-by-month performance of total sale, gross product sales & 10% admin commission
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
+              <span className="flex items-center gap-1.5 text-emerald-700">
+                <span className="h-2.5 w-2.5 rounded-sm bg-emerald-600" /> Total Sale (एकूण विक्री)
+              </span>
+              <span className="flex items-center gap-1.5 text-blue-700">
+                <span className="h-2.5 w-2.5 rounded-sm bg-blue-600" /> Gross Product Sales
+              </span>
+              <span className="flex items-center gap-1.5 text-indigo-700">
+                <span className="h-2.5 w-2.5 rounded-sm bg-indigo-600" /> Admin Commission (10%)
+              </span>
+            </div>
+          </div>
+
+          {/* Month Trend Grid: Chart on Left, Month Breakdown Cards on Right */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-stretch">
+            {/* Monthly Bar Chart (2 cols) */}
+            <div className="xl:col-span-2 rounded-lg border border-slate-100 bg-slate-50/50 p-3 flex flex-col justify-between">
+              <div className="h-64 sm:h-72 w-full">
+                {monthlyTrendData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                    No monthly sales trend data available.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyTrendData} margin={{ top: 15, right: 10, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                      <XAxis dataKey="label" stroke="#64748B" fontSize={11} tickLine={false} />
+                      <YAxis
+                        stroke="#64748B"
+                        fontSize={11}
+                        tickLine={false}
+                        tickFormatter={(v) => `₹${Number(v) >= 1000 ? `${(Number(v) / 1000).toFixed(0)}k` : v}`}
+                      />
+                      <Tooltip
+                        formatter={(val, name) => [
+                          `₹${Number(val || 0).toLocaleString('en-IN')}`,
+                          name === 'totalSale'
+                            ? 'Total Sale (एकूण विक्री)'
+                            : name === 'grossProductSales'
+                            ? 'Gross Product Sales'
+                            : name === 'adminCommission'
+                            ? 'Admin Commission (10%)'
+                            : name,
+                        ]}
+                        labelFormatter={(lbl, payload) => {
+                          const item = payload?.[0]?.payload;
+                          return item?.labelMr ? `${item.label} (${item.labelMr})` : `Month: ${lbl}`;
+                        }}
+                        contentStyle={{
+                          borderRadius: '0.75rem',
+                          border: '1px solid #E2E8F0',
+                          fontSize: '11px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                        }}
+                      />
+                      <Bar dataKey="totalSale" fill="#059669" radius={[4, 4, 0, 0]} name="totalSale" />
+                      <Bar dataKey="grossProductSales" fill="#2563EB" radius={[4, 4, 0, 0]} name="grossProductSales" />
+                      <Bar dataKey="adminCommission" fill="#6366F1" radius={[4, 4, 0, 0]} name="adminCommission" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Monthly Summary Cards (1 col) */}
+            <div className="space-y-2.5 overflow-y-auto max-h-72 pr-1">
+              {monthlyTrendData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-slate-400 py-10">
+                  No monthly records found.
+                </div>
+              ) : (
+                [...monthlyTrendData].reverse().map((m) => (
+                  <div
+                    key={m.month}
+                    className="rounded-lg border border-slate-200 bg-white p-3 shadow-2xs hover:border-indigo-300 transition"
+                  >
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1.5 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <CalendarDays className="h-3.5 w-3.5 text-indigo-600" />
+                        <span className="font-bold text-slate-900 text-xs">{m.label}</span>
+                        {m.labelMr && (
+                          <span className="text-[10px] text-slate-400 font-medium">({m.labelMr})</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                        {m.totalOrders} orders ({m.deliveredOrders} del)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <span className="text-slate-400 text-[10px] block font-medium">TOTAL SALE</span>
+                        <span className="font-bold text-emerald-700">{formatInr(m.totalSale)}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-slate-400 text-[10px] block font-medium">ADMIN COMMISSION</span>
+                        <span className="font-bold text-indigo-700">{formatInr(m.adminCommission)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] block font-medium">Gross Product Sales</span>
+                        <span className="font-semibold text-slate-800">{formatInr(m.grossProductSales)}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-slate-400 text-[10px] block font-medium">Delivery Charges</span>
+                        <span className="font-semibold text-blue-700">{formatInr(m.deliveryCharges)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>

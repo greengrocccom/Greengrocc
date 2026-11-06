@@ -696,8 +696,119 @@ export async function getAdminFinanceDashboardData(dateFilter = null) {
     };
   });
 
+  // 5. Monthly Sales & Orders Trend for Graphs (महिनानिहाय ट्रेंड)
+  const rawMonthlyTrend = await StoreOrder.aggregate([
+    { $match: orderTrendMatch },
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "Asia/Kolkata" },
+        },
+        totalOrders: { $sum: 1 },
+        deliveredOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
+        cancelledOrders: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+        grossProductSales: {
+          $sum: {
+            $cond: [
+              { $ne: ["$status", "cancelled"] },
+              {
+                $sum: {
+                  $map: {
+                    input: { $ifNull: ["$items", []] },
+                    as: "it",
+                    in: { $multiply: [{ $ifNull: ["$$it.price", 0] }, { $ifNull: ["$$it.quantity", 0] }] },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+        deliveryCharges: {
+          $sum: {
+            $cond: [
+              { $ne: ["$status", "cancelled"] },
+              {
+                $let: {
+                  vars: {
+                    rawPaid: {
+                      $cond: [
+                        { $gt: [{ $ifNull: ["$partTotal", 0] }, 0] },
+                        "$partTotal",
+                        { $ifNull: ["$amountToCollect", 0] },
+                      ],
+                    },
+                    itemsSum: {
+                      $sum: {
+                        $map: {
+                          input: { $ifNull: ["$items", []] },
+                          as: "it",
+                          in: { $multiply: [{ $ifNull: ["$$it.price", 0] }, { $ifNull: ["$$it.quantity", 0] }] },
+                        },
+                      },
+                    },
+                  },
+                  in: {
+                    $let: {
+                      vars: { diff: { $subtract: ["$$rawPaid", "$$itemsSum"] } },
+                      in: { $cond: [{ $gt: ["$$diff", 0] }, "$$diff", 0] },
+                    },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+
+  const monthNames = {
+    "01": { en: "Jan", mr: "जानेवारी" },
+    "02": { en: "Feb", mr: "फेब्रुवारी" },
+    "03": { en: "Mar", mr: "मार्च" },
+    "04": { en: "Apr", mr: "एप्रिल" },
+    "05": { en: "May", mr: "मे" },
+    "06": { en: "Jun", mr: "जून" },
+    "07": { en: "Jul", mr: "जुलै" },
+    "08": { en: "Aug", mr: "ऑगस्ट" },
+    "09": { en: "Sep", mr: "सप्टेंबर" },
+    "10": { en: "Oct", mr: "ऑक्टोबर" },
+    "11": { en: "Nov", mr: "नोव्हेंबर" },
+    "12": { en: "Dec", mr: "डिसेंबर" },
+  };
+
+  const monthlyTrend = rawMonthlyTrend.map((m) => {
+    const gross = Number(m.grossProductSales || 0);
+    const deliv = Number(m.deliveryCharges || 0);
+    const totalSale = gross + deliv;
+    const adminCommission = Math.round((totalSale * 10) / 100);
+    const [year, monthPart] = (m._id || "").split("-");
+    const mInfo = monthNames[monthPart] || { en: monthPart, mr: monthPart };
+    const label = `${mInfo.en} ${year}`;
+    const labelMr = `${mInfo.mr} ${year}`;
+
+    return {
+      month: m._id,
+      label,
+      labelMr,
+      year,
+      monthNum: monthPart,
+      totalOrders: m.totalOrders,
+      deliveredOrders: m.deliveredOrders,
+      cancelledOrders: m.cancelledOrders,
+      grossProductSales: gross,
+      deliveryCharges: deliv,
+      totalSale,
+      adminCommission,
+    };
+  });
+
   return {
     dailyTrend,
+    monthlyTrend,
     kpis: {
       customerPaidTotal: allCommissions.totals.totalCustomerPaid,
       cancelledOrdersCost: allCommissions.totals.totalCancelledCost,

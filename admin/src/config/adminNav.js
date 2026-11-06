@@ -762,20 +762,6 @@ export const NAV_GROUPS = [
         implemented: true,
         description: 'Payment history, partial payments, receipts and settlement transaction logs.',
       },
-      {
-        name: 'Sales Reports',
-        href: '/finance/sales-reports',
-        icon: TrendingUp,
-        implemented: true,
-        description: 'Order-wise, store-wise and vendor-wise sales breakdown with CSV export.',
-      },
-      {
-        name: 'Financial Reports',
-        href: '/finance/financial-reports',
-        icon: FileSpreadsheet,
-        implemented: true,
-        description: 'Audited statements for Vendor Commissions, Product Sales, and Payment Settlements.',
-      },
     ],
   },
   {
