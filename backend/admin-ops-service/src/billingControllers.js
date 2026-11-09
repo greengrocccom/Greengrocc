@@ -259,10 +259,11 @@ export async function getBillingCatalog(req, res) {
       for (const vp of vendorProducts) {
         const vpName = vp.productName || vp.name;
         if (!vpName) continue;
+        const vpProductId = vp.productId ? String(vp.productId) : "";
         const already = formattedProducts.some(
           (p) =>
             p.name.toLowerCase().trim() === vpName.toLowerCase().trim() ||
-            p.sku === vp.productId
+            (vpProductId && (p.sku === vpProductId || String(p.productId || "") === vpProductId))
         );
         if (!already) {
           const vpStock = Math.max(0, Number(vp.stock) || 0);
@@ -272,8 +273,8 @@ export async function getBillingCatalog(req, res) {
             storeInventoryId: null,
             productId: null,
             name: vpName,
-            sku: vp.productId || `VP-${String(vp._id).slice(-6)}`,
-            barcode: vp.productId || `VP-${String(vp._id).slice(-6)}`,
+            sku: vpProductId || `VP-${String(vp._id).slice(-6)}`,
+            barcode: vpProductId || `VP-${String(vp._id).slice(-6)}`,
             category: vp.category || "Vendor Supply",
             price: Number(vp.price || 0),
             mrp: Math.round(Number(vp.price || 0) * 1.15),

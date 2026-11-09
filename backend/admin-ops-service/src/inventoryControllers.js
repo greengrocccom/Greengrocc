@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
 import DeliveryManager from "../../delivery-service/src/models/DeliveryManager.js";
 import StoreInventory from "../../delivery-service/src/models/StoreInventory.js";
-import { productIdForSku } from "../../delivery-service/src/services/catalogStoreInventory.js";
+import {
+  INACTIVE_REASON,
+  productIdForSku,
+  storeMaySellProduct,
+} from "../../delivery-service/src/services/catalogStoreInventory.js";
 import {
   InventoryBatch,
   GoodsReceiptNote,
@@ -612,9 +616,12 @@ export async function createGrn(req, res) {
           if (!existingInv.productId) existingInv.productId = await productIdForSku(it.sku);
           await existingInv.save();
         } else {
+          const productId = await productIdForSku(it.sku);
+          const permission = await storeMaySellProduct(storeId, productId);
+          // Received stock is always recorded; it only goes on sale if the store's vendor may sell it.
           await StoreInventory.create({
             managerId: storeId,
-            productId: await productIdForSku(it.sku),
+            productId,
             sku: it.sku,
             name: it.name,
             category: it.category,
@@ -622,7 +629,8 @@ export async function createGrn(req, res) {
             stockCount: it.acceptedQty,
             price: Math.round(it.unitCost * 1.3),
             lowStockThreshold: 10,
-            isActive: true,
+            isActive: permission.allowed,
+            inactiveReason: permission.allowed ? "" : INACTIVE_REASON.VENDOR_REMOVED,
           });
         }
 

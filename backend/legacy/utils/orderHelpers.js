@@ -36,7 +36,12 @@ import {
   processOrderRewardPoints,
 } from "../controllers/rewardController.js";
 import { resolveGiftHamperForOrder, getCustomerVisibleGiftHamper } from "../../../shared/store/giftHamper.js";
-import { dispatchDeliveryOrder } from "../services/deliveryDispatcher.js";
+import { dispatchDeliveryOrder, findStoreForOrder } from "../services/deliveryDispatcher.js";
+import {
+  applyStorePriceForCheckout,
+  loadStoreInventory,
+  matchProductToItem,
+} from "../../delivery-service/src/services/nearestStoreCatalog.js";
 import { previewGiftCard, consumeGiftCard } from "../../admin-ops-service/src/giftCardService.js";
 import { computePreOrderDate, normalizePreOrderSlot } from "./preOrderHelpers.js";
 import { normalizeFulfillmentType } from "./departmentHelpers.js";
@@ -688,6 +693,35 @@ async function resolveCheckoutItems(rawItems, { skipStockCheck = false, isBulkOr
   return { items: resolved };
 }
 
+/**
+ * Price lines the way the serving dark store sells them (its vendor's price where set),
+ * so checkout charges what the product list and cart showed.
+ */
+async function priceItemsForServingStore(items, shippingAddress, fulfillmentType) {
+  if (!items?.length || !shippingAddress) return { items };
+  try {
+    const routing = await findStoreForOrder({ address: shippingAddress, items, fulfillmentType });
+    if (!routing.manager) return { items, routing };
+    const rows = await loadStoreInventory(routing.manager._id);
+    return {
+      routing,
+      items: items.map((item) => {
+        const row = item.product ? matchProductToItem(item.product, rows) : null;
+        if (!row) return item;
+        return {
+          product: applyStorePriceForCheckout(item.product, row),
+          quantity: item.quantity,
+          variantName: item.variantName,
+          colorName: item.colorName,
+        };
+      }),
+    };
+  } catch (error) {
+    console.warn("[Checkout] store pricing skipped:", error.message);
+    return { items };
+  }
+}
+
 function buildOrderItemsFromResolved(items) {
   const orderItems = [];
   let subtotal = 0;
@@ -789,14 +823,22 @@ export async function prepareOrderData(userId, addressId, options = {}) {
 
   const { itemsToProcess, cart, checkoutMode } = resolvedItems;
 
-  const built = buildOrderItemsFromResolved(itemsToProcess);
+  const fulfillmentType = normalizeFulfillmentType(options.fulfillmentType);
+  const storePriced = await priceItemsForServingStore(
+    itemsToProcess,
+    address
+      ? addressToSnapshot(address, options.customerLocation)
+      : mergeCustomerLocation(buildPendingDeliveryAddress(user, null), options.customerLocation),
+    fulfillmentType
+  );
+
+  const built = buildOrderItemsFromResolved(storePriced.items);
   if (built.error) {
     return built;
   }
 
   const { orderItems, subtotal } = built;
 
-  const fulfillmentType = normalizeFulfillmentType(options.fulfillmentType);
   const pricing = await computeOrderPricing(subtotal, options.couponCode, {
     userId,
     rewardPointsToUse: options.rewardPointsToUse,
@@ -890,12 +932,14 @@ export async function prepareOrderData(userId, addressId, options = {}) {
   ).trim();
 
   if (options.requireDarkStore) {
-    const { findStoreForOrder, findStoreShortages } = await import("../services/deliveryDispatcher.js");
-    const routing = await findStoreForOrder({
-      address: deliveryAddress,
-      items: orderItems,
-      fulfillmentType,
-    });
+    const { findStoreShortages } = await import("../services/deliveryDispatcher.js");
+    const routing = storePriced.routing?.manager
+      ? storePriced.routing
+      : await findStoreForOrder({
+          address: deliveryAddress,
+          items: orderItems,
+          fulfillmentType,
+        });
     if (!routing.manager) {
       return {
         error:
@@ -1118,7 +1162,13 @@ export async function prepareCheckoutAttemptData(userId, options = {}) {
   }
 
   const { itemsToProcess, cart, checkoutMode } = resolvedItems;
-  const built = buildOrderItemsFromResolved(itemsToProcess);
+  const fulfillmentType = normalizeFulfillmentType(options.fulfillmentType);
+  const storePriced = await priceItemsForServingStore(
+    itemsToProcess,
+    mergeCustomerLocation(buildPendingDeliveryAddress(user, address), options.customerLocation),
+    fulfillmentType
+  );
+  const built = buildOrderItemsFromResolved(storePriced.items);
   if (built.error) {
     return built;
   }
@@ -1130,7 +1180,6 @@ export async function prepareCheckoutAttemptData(userId, options = {}) {
     .select("_id")
     .lean();
 
-  const fulfillmentType = normalizeFulfillmentType(options.fulfillmentType);
   const pricing = await computeOrderPricing(subtotal, options.couponCode, {
     userId,
     excludeOrderId: attemptedOrder?._id,

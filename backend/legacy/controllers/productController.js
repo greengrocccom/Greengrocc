@@ -10,10 +10,8 @@ import {
   loadNearestStoreCatalog,
   storeProductScope,
 } from "../../delivery-service/src/services/nearestStoreCatalog.js";
-import {
-  addProductToAllStores,
-  syncProductToStores,
-} from "../../delivery-service/src/services/catalogStoreInventory.js";
+import { refreshProductInStores } from "../../delivery-service/src/services/catalogStoreInventory.js";
+import { removeCatalogProduct } from "../services/productRemoval.js";
 import { attachQuantityDiscounts } from "../../admin-ops-service/src/pricingAttach.js";
 import { DynamicPricingRule } from "../../admin-ops-service/src/models.js";
 import { VendorProduct } from "../../farmer-manager-service/src/models.js";
@@ -1510,10 +1508,6 @@ export async function createProductRecord(body, { ownerManagerId = null } = {}) 
       );
     }
 
-    await addProductToAllStores(product).catch((error) =>
-      console.warn("[Product] dark store inventory sync failed:", error.message)
-    );
-
     return { status: 201, body: { success: true, data: product }, product };
   } catch (error) {
     return productErrorResult(error);
@@ -1715,7 +1709,7 @@ export async function updateProductRecord(id, body = {}, { ownerManagerId = null
       await syncBaseProductSiblings(product).catch((error) =>
         console.warn("[Product] base product sync failed:", error.message)
       );
-      await syncProductToStores(product, existing).catch((error) =>
+      await refreshProductInStores(product, existing).catch((error) =>
         console.warn("[Product] dark store inventory sync failed:", error.message)
       );
     }
@@ -1727,19 +1721,8 @@ export async function updateProductRecord(id, body = {}, { ownerManagerId = null
 }
 
 export const deleteProduct = async (req, res) => {
-  try {
-    const product = await Product.findByIdAndDelete(req.params.id);
-
-    if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
-    }
-
-    res.status(200).json({ success: true, message: "Product deleted" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+  const result = await removeCatalogProduct(req.params.id);
+  res.status(result.status).json(result.body);
 };
 
 export const getNextProductId = async (req, res) => {

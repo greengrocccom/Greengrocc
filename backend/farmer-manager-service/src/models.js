@@ -1053,6 +1053,7 @@ const vendorProductSchema = new mongoose.Schema(
     id: { type: String, required: true, unique: true },
     vendorId: { type: String, required: true, index: true },
     ...catalogProductSnapshot,
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "GreenGroccProduct", required: true },
     requestId: { type: String, default: "" },
     addedBy: { type: String, default: "" },
     // Vendor-only overrides; null means "use the admin catalog value".

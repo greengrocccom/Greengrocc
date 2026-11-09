@@ -6,6 +6,8 @@ import Section from "../../product-service/src/models/Section.js";
 import { createProductRecord, updateProductRecord } from "../../legacy/controllers/productController.js";
 import { createCategory, updateCategory } from "../../product-service/src/controllers/categoryController.js";
 import { VendorCatalogRequest, VendorProduct } from "./models.js";
+import { syncVendorProductToStores } from "../../delivery-service/src/services/catalogStoreInventory.js";
+import { removeCatalogProduct } from "../../legacy/services/productRemoval.js";
 
 const KINDS = ["product", "category"];
 const ACTIONS = ["create", "update", "delete"];
@@ -284,6 +286,7 @@ async function linkVendorProduct(request, product) {
     },
     { upsert: true }
   );
+  await syncVendorProductToStores(request.vendorId, product._id);
 }
 
 async function applyRequest(request) {
@@ -310,8 +313,8 @@ async function applyRequest(request) {
       if (updated) await linkVendorProduct(request, updated);
       return { targetId: request.targetId };
     }
-    await Product.deleteOne({ _id: request.targetId });
-    await VendorProduct.deleteMany({ productId: request.targetId });
+    const removed = await removeCatalogProduct(request.targetId, { ownerVendorId: request.vendorId });
+    if (removed.status >= 400) return { error: removed.body?.message || "Could not delete the product", status: removed.status };
     return { targetId: request.targetId };
   }
 

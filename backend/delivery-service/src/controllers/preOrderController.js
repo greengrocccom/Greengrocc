@@ -1,3 +1,4 @@
+import { visibleStoreOrderScope } from '../services/visibleStoreOrders.js';
 import mongoose from "mongoose";
 import StoreOrder from "../models/StoreOrder.js";
 import DeliveryBoy from "../models/DeliveryBoy.js";
@@ -172,7 +173,7 @@ export const listManagerPreOrders = async (req, res, next) => {
       ...(date ? { preOrderDate: date } : defaultDateScope()),
     };
 
-    const orders = (await StoreOrder.find(filter)).sort(sortPreOrders);
+    const orders = (await StoreOrder.find(await visibleStoreOrderScope(filter))).sort(sortPreOrders);
     const riderMap = await loadRiderMap(orders);
 
     return res.json({

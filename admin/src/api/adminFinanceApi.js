@@ -3,6 +3,15 @@ import apiClient, { API_ORIGIN, readAdminToken } from './client';
 export const adminFinanceApi = {
   getDashboard: (params = {}) => apiClient.get('/admin/finance/dashboard', { params }).then((res) => res.data),
   listVendors: (params = {}) => apiClient.get('/admin/finance/vendors', { params }).then((res) => res.data),
+  getCommissionAnalytics: (params = {}) =>
+    apiClient.get('/admin/finance/commission-analytics', { params }).then((res) => res.data),
+  getTaxFigures: (params = {}) => apiClient.get('/admin/finance/tax/figures', { params }).then((res) => res.data),
+  listTaxCalculations: () => apiClient.get('/admin/finance/tax/calculations').then((res) => res.data),
+  getTaxCalculation: (id) => apiClient.get(`/admin/finance/tax/calculations/${id}`).then((res) => res.data),
+  createTaxCalculation: (data) => apiClient.post('/admin/finance/tax/calculations', data).then((res) => res.data),
+  updateTaxCalculation: (id, data) =>
+    apiClient.put(`/admin/finance/tax/calculations/${id}`, data).then((res) => res.data),
+  deleteTaxCalculation: (id) => apiClient.delete(`/admin/finance/tax/calculations/${id}`).then((res) => res.data),
   getVendorCommissionDetail: (vendorId, params = {}) =>
     apiClient.get(`/admin/finance/vendors/${vendorId}/commission`, { params }).then((res) => res.data),
   recordPayment: (data) => apiClient.post('/admin/finance/commission-payment', data).then((res) => res.data),

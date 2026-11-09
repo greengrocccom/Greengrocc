@@ -12,6 +12,14 @@ import {
 import { pruneUnavailableCartItems } from "../utils/orderHelpers.js";
 import { getUserContactEmail } from "../utils/userContact.js";
 import { respondWithControllerError } from "../utils/controllerErrors.js";
+import Address from "../models/address/Address.js";
+import {
+  addressFromQuery,
+  applyStorePriceForCheckout,
+  hasLocationHint,
+  loadNearestStoreCatalog,
+  matchProductToItem,
+} from "../../delivery-service/src/services/nearestStoreCatalog.js";
 
 const normalizeVariantName = (value) =>
   typeof value === "string" ? value.trim() : "";
@@ -51,6 +59,46 @@ const populateCart = (queryOrDoc) =>
     select: PRODUCT_PRICING_SELECT,
   });
 
+/** Store serving the location in the query, else the customer's saved address. */
+async function storeCatalogForCart(req) {
+  const query = req.query || {};
+  if (hasLocationHint(addressFromQuery(query))) return loadNearestStoreCatalog(query);
+  const userId = req.user._id;
+  const address =
+    (await Address.findOne({ user: userId, isDefault: true }).lean()) ||
+    (await Address.findOne({ user: userId }).sort({ updatedAt: -1 }).lean());
+  if (!address) return null;
+  return loadNearestStoreCatalog({
+    lat: address.location?.lat,
+    lng: address.location?.lng,
+    city: address.city,
+    area: address.area,
+    pincode: address.pincode,
+    address: address.fullAddress,
+  });
+}
+
+/** Cart lines priced like the serving store sells them (the vendor's price where it set one). */
+async function withStorePrices(cart, req) {
+  if (!cart?.items?.length) return cart;
+  try {
+    const catalog = await storeCatalogForCart(req);
+    if (!catalog?.manager || !catalog.items?.length) return cart;
+    const doc = cart.toObject ? cart.toObject() : cart;
+    return {
+      ...doc,
+      items: doc.items.map((item) =>
+        item.product?._id
+          ? { ...item, product: applyStorePriceForCheckout(item.product, matchProductToItem(item.product, catalog.items)) }
+          : item
+      ),
+    };
+  } catch (error) {
+    console.warn("[Cart] store pricing skipped:", error.message);
+    return cart;
+  }
+}
+
 export const getCart = async (req, res) => {
   try {
     let cart = await populateCart(Cart.findOne({ user: req.user._id }));
@@ -71,7 +119,7 @@ export const getCart = async (req, res) => {
       cart = await populateCart(Cart.findById(cart._id));
     }
 
-    res.status(200).json({ success: true, data: cart });
+    res.status(200).json({ success: true, data: await withStorePrices(cart, req) });
   } catch (error) {
     respondWithControllerError(res, error, "Get cart");
   }
@@ -266,7 +314,7 @@ export const addToCart = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Product added to cart",
-      data: cart,
+      data: await withStorePrices(cart, req),
     });
   } catch (error) {
     respondWithControllerError(res, error, "Add to cart");
@@ -303,7 +351,7 @@ export const removeFromCart = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Product removed from cart",
-      data: cart,
+      data: await withStorePrices(cart, req),
     });
   } catch (error) {
     respondWithControllerError(res, error, "Remove from cart");
@@ -388,7 +436,7 @@ export const updateCartItem = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Cart updated",
-      data: updated,
+      data: await withStorePrices(updated, req),
     });
   } catch (error) {
     respondWithControllerError(res, error, "Update cart");

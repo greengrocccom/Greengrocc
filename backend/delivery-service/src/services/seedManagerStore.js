@@ -1,7 +1,7 @@
 import Product from "../../../legacy/models/Product.js";
 import StoreInventory from "../models/StoreInventory.js";
 import DeliveryManager from "../models/DeliveryManager.js";
-import { addCatalogToStore } from "./catalogStoreInventory.js";
+import { addVendorCatalogToStore } from "./catalogStoreInventory.js";
 import {
   STARTER_STORE_PRODUCTS,
   buildStarterInventoryDoc,
@@ -47,9 +47,12 @@ export async function addStoreProducts(manager, entries) {
   return { productsCreated, inventoryCreated };
 }
 
+/** Demo store-owned products are for local/demo databases only. */
+const seedStarterProducts = () => process.env.SEED_STARTER_STORE_PRODUCTS === "true";
+
 /**
- * Give a new dark store its starter products. Runs once per store: stores that
- * already have inventory, or were seeded before, are left untouched.
+ * List the products approved for a new dark store's vendor (at 0 stock). Runs once
+ * per store: stores that already have inventory, or were seeded before, are left untouched.
  */
 export async function seedManagerStore(manager) {
   const empty = { productsCreated: 0, inventoryCreated: 0, ordersCreated: 0 };
@@ -61,8 +64,10 @@ export async function seedManagerStore(manager) {
     return empty;
   }
 
-  const result = await addStoreProducts(manager, STARTER_STORE_PRODUCTS);
-  const catalogRows = await addCatalogToStore(manager._id);
+  const result = seedStarterProducts()
+    ? await addStoreProducts(manager, STARTER_STORE_PRODUCTS)
+    : { productsCreated: 0, inventoryCreated: 0 };
+  const catalogRows = await addVendorCatalogToStore(manager);
   await markSeeded(manager);
   return { ...result, inventoryCreated: result.inventoryCreated + catalogRows, ordersCreated: 0 };
 }

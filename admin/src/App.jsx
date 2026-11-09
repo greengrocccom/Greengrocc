@@ -24,6 +24,7 @@ import OrderCharges from './pages/OrderCharges';
 import PreOrders from './pages/PreOrders';
 import UnroutedOrders from './pages/UnroutedOrders';
 import DarkStores from './pages/DarkStores';
+import DarkStoreCoverage from './pages/DarkStoreCoverage';
 import Coupons from './pages/Coupons';
 import RewardPoints from './pages/RewardPoints';
 import Login from './pages/Login';
@@ -71,6 +72,7 @@ import StoreSupport from './pages/ops/StoreSupport';
 import FinanceManagement from './pages/ops/FinanceManagement';
 import AdminFinanceDashboardPage from './pages/finance/AdminFinanceDashboardPage';
 import AdminVendorCommissionPage from './pages/finance/AdminVendorCommissionPage';
+import TaxCalculatorPage from './pages/finance/TaxCalculatorPage';
 import AdminVendorCommissionDetailPage from './pages/finance/AdminVendorCommissionDetailPage';
 import AdminCommissionPaymentsPage from './pages/finance/AdminCommissionPaymentsPage';
 import AdminFinanceSalesReportsPage from './pages/finance/AdminFinanceSalesReportsPage';
@@ -195,6 +197,7 @@ export default function App() {
               <Route path="delivery-team/managers/:id" element={<DeliveryManager360Page />} />
               <Route path="delivery-team/boys/:id" element={<DeliveryBoy360Page />} />
               {scoped('dark-stores', 'Delivery & Dark Stores', 'Dark Stores', DarkStores)}
+              <Route path="dark-store-coverage" element={<DarkStoreCoverage />} />
 
               {/* Assets Management (already has zone -> store structure) */}
               <Route path="assets-management" element={<AssetsZonesPage />} />
@@ -281,6 +284,7 @@ export default function App() {
               <Route path="finance" element={<AdminFinanceDashboardPage />} />
               <Route path="finance/dashboard" element={<AdminFinanceDashboardPage />} />
               <Route path="finance/commissions" element={<AdminVendorCommissionPage />} />
+              <Route path="finance/tax" element={<TaxCalculatorPage />} />
               <Route path="finance/commissions/:vendorId" element={<AdminVendorCommissionDetailPage />} />
               <Route path="finance/payments" element={<AdminCommissionPaymentsPage />} />
               <Route path="finance/sales-reports" element={<AdminFinanceSalesReportsPage />} />

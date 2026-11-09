@@ -18,13 +18,25 @@ export function readCoords(source = {}) {
   const lng = toNumber(source.location?.lng ?? source.lng ?? source.longitude ?? source.customerLng);
   return lat == null || lng == null || Math.abs(lat) > 90 || Math.abs(lng) > 180 ? null : { lat, lng };
 }
-const pincodeOf = value => /^\d{6}$/.test(String(value || '').trim()) ? String(value).trim() : '';
-const radiusOf = store => toNumber(store.deliveryRadiusKm) > 0 ? Number(store.deliveryRadiusKm) : DEFAULT_DELIVERY_RADIUS_KM;
+export const pincodeOf = value => /^\d{6}$/.test(String(value || '').trim()) ? String(value).trim() : '';
+export const radiusOf = store => toNumber(store.deliveryRadiusKm) > 0 ? Number(store.deliveryRadiusKm) : DEFAULT_DELIVERY_RADIUS_KM;
+export const coverageModeOf = store => (store?.coverageMode === 'pincode' ? 'pincode' : 'radius');
+export const servicePincodesOf = store => [...new Set((store?.servicePincodes || []).map(pincodeOf).filter(Boolean))];
 
-/** Instant/Ready2Cook: nearest serviceable store. Preorders may fall back to the same PIN. */
-export async function resolveDarkStoreForOrder(address = {}, { allowPincodeFallback = false, anyDistance = false } = {}) {
+/** A store delivers to an address only under its own coverage rule (radius OR pincode list, never both). */
+export function storeServes(store, { distanceKm = null, pincode = '' } = {}) {
+  if (coverageModeOf(store) === 'pincode') return Boolean(pincode) && servicePincodesOf(store).includes(pincode);
+  return distanceKm != null && distanceKm <= radiusOf(store);
+}
+
+/**
+ * Delivery: nearest store whose coverage includes the address. Pickup (`anyDistance`):
+ * nearest store at any distance, else one in the same PIN.
+ */
+export async function resolveDarkStoreForOrder(address = {}, { anyDistance = false } = {}) {
   const city = String(address.city || '').trim();
   const coords = readCoords(address);
+  const pincode = pincodeOf(address.pincode);
   const active = await DeliveryManager.find({ isActive: true });
   const vendorIds = [...new Set(active.map(store => String(store.vendorId || '')).filter(Boolean))];
   const vendors = vendorIds.length ? await Vendor.find({ id: { $in: vendorIds }, status: 'Active' }).select('id').lean() : [];
@@ -39,14 +51,22 @@ export async function resolveDarkStoreForOrder(address = {}, { allowPincodeFallb
   const nearest = candidates => [...candidates].sort((a, b) =>
     (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity) || String(a.manager._id).localeCompare(String(b.manager._id)))[0];
   const result = (row, reason) => ({ ...row, reason, city });
-  const reachable = nearest(rows.filter(row => row.distanceKm != null && (anyDistance || row.distanceKm <= radiusOf(row.manager))));
-  if (reachable) return result(reachable, anyDistance ? 'nearest_for_pickup' : reachable.distanceKm <= ORDER_ROUTING_RADIUS_KM ? 'within_3km' : 'within_store_radius');
-  if (allowPincodeFallback || anyDistance) {
-    const pincode = pincodeOf(address.pincode);
-    const samePin = pincode ? nearest(rows.filter(row => pincodeOf(row.manager.pincode) === pincode)) : null;
-    if (samePin) return result(samePin, 'same_pincode');
+
+  if (anyDistance) {
+    const closest = nearest(rows.filter(row => row.distanceKm != null));
+    if (closest) return result(closest, 'nearest_for_pickup');
+    const samePin = pincode
+      ? nearest(rows.filter(row => pincodeOf(row.manager.pincode) === pincode || servicePincodesOf(row.manager).includes(pincode)))
+      : null;
+    return samePin ? result(samePin, 'same_pincode') : empty('no_store_in_area');
   }
-  return empty(coords ? 'no_store_within_radius' : 'no_store_in_area');
+
+  const serving = nearest(rows.filter(row => storeServes(row.manager, { distanceKm: row.distanceKm, pincode })));
+  if (serving) {
+    if (coverageModeOf(serving.manager) === 'pincode') return result(serving, 'pincode_served');
+    return result(serving, serving.distanceKm <= ORDER_ROUTING_RADIUS_KM ? 'within_3km' : 'within_store_radius');
+  }
+  return empty(coords || pincode ? 'no_store_within_radius' : 'no_store_in_area');
 }
 
 /** Address-only callers follow the same nearest-store serviceability rules. */

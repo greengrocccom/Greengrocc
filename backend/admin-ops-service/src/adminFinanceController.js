@@ -7,6 +7,7 @@ import {
   recordVendorCommissionPayment,
 } from "./adminCommissionService.js";
 import { VendorCommissionPayment } from "./models.js";
+import { getVendorCommissionAnalytics } from "./adminCommissionAnalytics.js";
 import { Vendor } from "../../farmer-manager-service/src/models.js";
 import DeliveryManager from "../../delivery-service/src/models/DeliveryManager.js";
 import StoreOrder from "../../delivery-service/src/models/StoreOrder.js";
@@ -100,6 +101,22 @@ export async function listAdminVendorCommissions(req, res) {
   } catch (err) {
     console.error("[AdminFinance] listAdminVendorCommissions error:", err);
     return res.status(500).json({ success: false, message: err.message || "Failed to list vendor commissions" });
+  }
+}
+
+/**
+ * GET /api/admin/finance/commission-analytics
+ * Leaderboard, zone-wise commission, trend and distributions for the commission dashboard.
+ */
+export async function getAdminCommissionAnalytics(req, res) {
+  try {
+    const { preset, startDate, endDate } = req.query;
+    const dateFilter = buildIstDateFilter(preset, startDate, endDate);
+    const data = await getVendorCommissionAnalytics(dateFilter);
+    return res.json({ success: true, ...data });
+  } catch (err) {
+    console.error("[AdminFinance] getAdminCommissionAnalytics error:", err);
+    return res.status(500).json({ success: false, message: err.message || "Failed to load commission analytics" });
   }
 }
 

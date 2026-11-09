@@ -5,6 +5,7 @@
  */
 
 const STORE_COLLECTIONS = [
+  "orders",
   "storeorders",
   "deliveryboys",
   "storeinventories",
@@ -71,7 +72,7 @@ export const LIVE_ROUTES = [
   { path: "/api/alerts", deps: ["alerts"], scope: storeScope },
   {
     path: "/api/staff/preorders",
-    deps: ["storeorders", "deliveryboys", "deliverymanagers"],
+    deps: ["orders", "storeorders", "deliveryboys", "deliverymanagers"],
     ignoreFields: { deliveryboys: RIDER_PRESENCE_FIELDS, storeorders: ORDER_TRACKING_FIELDS },
   },
   { path: "/api/staff/inventory-requests", deps: ["inventoryrequests", "deliverymanagers"] },
@@ -119,7 +120,7 @@ export const LIVE_ROUTES = [
   { path: "/api/farmer-manager", deps: FARM_COLLECTIONS },
   {
     path: "/api/vendor/preorders",
-    deps: ["storeorders", "deliveryboys", "deliverymanagers"],
+    deps: ["orders", "storeorders", "deliveryboys", "deliverymanagers"],
     ignoreFields: { deliveryboys: RIDER_PRESENCE_FIELDS, storeorders: ORDER_TRACKING_FIELDS },
   },
   { path: "/api/vendor", deps: [...FARM_COLLECTIONS, "inventoryrequests"] },

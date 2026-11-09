@@ -2097,8 +2097,8 @@ export default function Products() {
     try {
       setIsDeleting(true);
       setError('');
-      await apiClient.delete(`/products/${productToDelete._id}`);
-      setSuccessMsg(`Product "${productToDelete.name}" deleted successfully.`);
+      const res = await apiClient.delete(`/products/${productToDelete._id}`);
+      setSuccessMsg(res.data?.message || `Product "${productToDelete.name}" deleted successfully.`);
       setDeleteModalOpen(false);
       setProductToDelete(null);
       await fetchData();

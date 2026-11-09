@@ -75,11 +75,23 @@ function withStock(product, inventoryBySku) {
   };
 }
 
-/** This store's own products plus every live admin catalog product. */
+/** This store's own products plus the catalog products it lists (those approved for its vendor). */
 export const listManagerProducts = async (req, res, next) => {
   try {
     const manager = await getManager(req);
-    const and = [{ $or: [{ ownerManagerId: manager._id }, { ownerManagerId: null, isActive: true }] }];
+    const listedIds = await StoreInventory.distinct("productId", {
+      managerId: manager._id,
+      isActive: true,
+      productId: { $ne: null },
+    });
+    const and = [
+      {
+        $or: [
+          { ownerManagerId: manager._id },
+          { ownerManagerId: null, isActive: true, _id: { $in: listedIds } },
+        ],
+      },
+    ];
 
     const section = String(req.query.section || "").trim().toLowerCase();
     if (section && section !== "all") {
@@ -163,8 +175,8 @@ export const updateManagerProduct = async (req, res, next) => {
 const MAX_STOCK = 100000;
 
 /**
- * PUT /products/:id/stock  { stock } — set this store's stock for an admin
- * catalog product or one of the store's own products (0 = out of stock).
+ * PUT /products/:id/stock  { stock } — set this store's stock for one of its own products
+ * or a catalog product it lists (approved for its vendor). 0 = out of stock.
  */
 export const setManagerProductStock = async (req, res, next) => {
   try {
@@ -187,14 +199,23 @@ export const setManagerProductStock = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
+    const ownProduct = String(product.ownerManagerId || "") === String(manager._id);
     const sku = inventorySkuForProduct(product);
     await linkRowsToProduct(product, { managerId: manager._id });
     const row = await StoreInventory.findOneAndUpdate(
-      { managerId: manager._id, productId: product._id },
-      { $set: { stockCount: stock, isActive: true } },
+      ownProduct
+        ? { managerId: manager._id, productId: product._id }
+        : { managerId: manager._id, productId: product._id, isActive: true },
+      { $set: ownProduct ? { stockCount: stock, isActive: true } : { stockCount: stock } },
       { returnDocument: 'after' }
     );
     if (!row) {
+      if (!ownProduct) {
+        return res.status(404).json({
+          success: false,
+          message: `"${product.name}" is not approved for your vendor, so this store cannot sell it`,
+        });
+      }
       await StoreInventory.create({
         managerId: manager._id,
         productId: product._id,
@@ -229,9 +250,10 @@ export const deleteManagerProduct = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
-    if (product.sku) {
-      await StoreInventory.deleteOne({ managerId: manager._id, sku: product.sku });
-    }
+    await StoreInventory.deleteMany({
+      managerId: manager._id,
+      $or: [{ productId: product._id }, ...(product.sku ? [{ productId: null, sku: product.sku }] : [])],
+    });
     return res.json({ success: true, message: "Product deleted" });
   } catch (error) {
     next(error);

@@ -24,6 +24,12 @@ import {
   Store,
 } from 'lucide-react';
 import adminFinanceApi from '../../api/adminFinanceApi';
+import VendorCommissionAnalytics from './VendorCommissionAnalytics';
+
+const VIEW_TABS = [
+  { id: 'analytics', label: 'Analytics & Insights' },
+  { id: 'ledger', label: 'Vendor Commission Ledger' },
+];
 
 const STATUS_FILTERS = [
   { id: 'all', label: 'All Statuses' },
@@ -43,6 +49,7 @@ const DATE_PRESETS = [
 
 export default function AdminVendorCommissionPage() {
   const navigate = useNavigate();
+  const [view, setView] = useState('analytics');
 
   // Filters & State
   const [search, setSearch] = useState('');
@@ -243,8 +250,27 @@ export default function AdminVendorCommissionPage() {
         </div>
       </div>
 
+      {/* View tabs */}
+      <div className="flex items-center gap-1 border-b border-slate-200">
+        {VIEW_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setView(t.id)}
+            className={`-mb-px border-b-2 px-3 py-2 text-xs font-bold transition ${
+              view === t.id
+                ? 'border-emerald-700 text-emerald-800'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Filters & Search Toolbar */}
       <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs">
+        {view === 'ledger' ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
@@ -283,9 +309,14 @@ export default function AdminVendorCommissionPage() {
             ))}
           </div>
         </div>
+        ) : null}
 
         {/* Date Presets Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5 text-xs">
+        <div
+          className={`flex flex-wrap items-center justify-between gap-2 text-xs ${
+            view === 'ledger' ? 'border-t border-slate-100 pt-2.5' : ''
+          }`}
+        >
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-slate-400 font-bold mr-1 flex items-center gap-1">
               <Calendar className="h-3 w-3" /> Period:
@@ -335,7 +366,11 @@ export default function AdminVendorCommissionPage() {
         </div>
       </div>
 
-      {error && (
+      {view === 'analytics' ? (
+        <VendorCommissionAnalytics preset={preset} startDate={startDate} endDate={endDate} />
+      ) : null}
+
+      {view === 'ledger' && error && (
         <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
@@ -343,7 +378,7 @@ export default function AdminVendorCommissionPage() {
       )}
 
       {/* Main Vendor Commission Table */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+      <div className={`rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden ${view === 'ledger' ? '' : 'hidden'}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1380px] text-left text-xs">
             <thead className="bg-slate-100 text-[11px] font-bold text-slate-600 uppercase border-b border-slate-200 select-none">

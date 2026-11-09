@@ -1,7 +1,16 @@
 import DeliveryManager from "../models/DeliveryManager.js";
 import StoreInventory from "../models/StoreInventory.js";
-import { productIdForSku } from "../services/catalogStoreInventory.js";
+import { INACTIVE_REASON, productIdForSku, storeMaySellProduct } from "../services/catalogStoreInventory.js";
 import { Vendor } from "../../../farmer-manager-service/src/models.js";
+import {
+  coverageModeOf,
+  pincodeOf,
+  radiusOf,
+  resolveDarkStoreForOrder,
+  servicePincodesOf,
+} from "../services/darkStoreResolver.js";
+
+export const COVERAGE_LIMITS = { minRadiusKm: 0.5, maxRadiusKm: 50, maxPincodes: 500 };
 
 const toCoord = (value) => {
   const n = Number(value);
@@ -255,9 +264,11 @@ export const createDarkStoreInventoryItem = async (req, res, next) => {
       return res.status(409).json({ success: false, message: "An item with this SKU already exists" });
     }
 
+    const productId = await productIdForSku(sku);
+    const permission = await storeMaySellProduct(store._id, productId);
     const item = await StoreInventory.create({
       managerId: store._id,
-      productId: await productIdForSku(sku),
+      productId,
       sku,
       name,
       category: String(req.body.category || "General").trim(),
@@ -265,12 +276,15 @@ export const createDarkStoreInventoryItem = async (req, res, next) => {
       price: Math.max(0, Number(req.body.price) || 0),
       stockCount: Math.max(0, Math.floor(Number(req.body.stockCount) || 0)),
       lowStockThreshold: Math.max(0, Math.floor(Number(req.body.lowStockThreshold) || 10)),
-      isActive: req.body.isActive !== false,
+      isActive: permission.allowed && req.body.isActive !== false,
+      inactiveReason: permission.allowed ? "" : INACTIVE_REASON.VENDOR_REMOVED,
     });
 
     return res.status(201).json({
       success: true,
-      message: "Inventory item created",
+      message: permission.allowed
+        ? "Inventory item created"
+        : `Inventory item created but not on sale: ${permission.reason}`,
       data: item.toSafeJSON(),
     });
   } catch (error) {
@@ -389,6 +403,165 @@ export const updateDarkStoreLocation = async (req, res, next) => {
       success: true,
       message: "Dark store location updated",
       store: serializeStore(updated),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const COVERAGE_FIELDS =
+  "storeName area city state pincode latitude longitude isActive vendorId zoneName coverageMode deliveryRadiusKm servicePincodes";
+
+function coverageSummary(store, vendorNameById = new Map()) {
+  const vendorId = String(store.vendorId || "");
+  return {
+    id: String(store._id),
+    storeName: store.storeName || `${store.area || "Dark"} Store`,
+    area: store.area || "",
+    city: store.city || "",
+    state: store.state || "",
+    pincode: store.pincode || "",
+    latitude: toCoord(store.latitude),
+    longitude: toCoord(store.longitude),
+    isActive: store.isActive !== false,
+    vendorId,
+    vendorName: vendorNameById.get(vendorId) || "",
+    zoneName: store.zoneName || "",
+    coverageMode: coverageModeOf(store),
+    deliveryRadiusKm: radiusOf(store),
+    servicePincodes: servicePincodesOf(store),
+  };
+}
+
+/** Pincodes this store serves that another active pincode-mode store also serves. */
+async function pincodeOverlaps(storeId, pincodes) {
+  if (!pincodes.length) return [];
+  const others = await DeliveryManager.find({
+    _id: { $ne: storeId },
+    isActive: true,
+    coverageMode: "pincode",
+    servicePincodes: { $in: pincodes },
+  })
+    .select("storeName area servicePincodes")
+    .lean();
+  const wanted = new Set(pincodes);
+  return others.flatMap((other) =>
+    servicePincodesOf(other)
+      .filter((pin) => wanted.has(pin))
+      .map((pincode) => ({ pincode, storeId: String(other._id), storeName: other.storeName || `${other.area} Store` }))
+  );
+}
+
+function parsePincodes(raw) {
+  const tokens = Array.isArray(raw) ? raw : String(raw ?? "").split(/[\s,;]+/);
+  const cleaned = tokens.map((value) => String(value ?? "").trim()).filter(Boolean);
+  const invalid = cleaned.filter((value) => !pincodeOf(value));
+  return { pincodes: [...new Set(cleaned.filter((value) => pincodeOf(value)))], invalid };
+}
+
+/** GET /api/admin/dark-stores/coverage — every store's coverage rule for the map. */
+export const listDarkStoreCoverage = async (_req, res, next) => {
+  try {
+    const stores = await DeliveryManager.find({}).select(COVERAGE_FIELDS).sort({ city: 1, storeName: 1 }).lean();
+    const vendorIds = [...new Set(stores.map((s) => String(s.vendorId || "")).filter(Boolean))];
+    const vendors = vendorIds.length
+      ? await Vendor.find({ id: { $in: vendorIds } }).select("id vendorName businessName ownerName").lean()
+      : [];
+    const vendorNameById = new Map(vendors.map((v) => [v.id, v.vendorName || v.businessName || v.ownerName || v.id]));
+    return res.json({
+      success: true,
+      stores: stores.map((store) => coverageSummary(store, vendorNameById)),
+      limits: COVERAGE_LIMITS,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/admin/dark-stores/:id/coverage
+ * { coverageMode: "radius", deliveryRadiusKm } | { coverageMode: "pincode", servicePincodes }
+ * Only the chosen mode is used for matching customers; the other mode's saved values are kept but ignored.
+ */
+export const updateDarkStoreCoverage = async (req, res, next) => {
+  try {
+    const store = await DeliveryManager.findById(req.params.id).select(COVERAGE_FIELDS).lean();
+    if (!store) return res.status(404).json({ success: false, message: "Dark store not found" });
+
+    const mode = String(req.body.coverageMode || "").trim().toLowerCase();
+    if (mode !== "radius" && mode !== "pincode") {
+      return res.status(400).json({ success: false, message: "Choose a coverage mode: radius or pincode" });
+    }
+
+    const update = { coverageMode: mode };
+    if (mode === "radius") {
+      const km = Number(req.body.deliveryRadiusKm);
+      const { minRadiusKm, maxRadiusKm } = COVERAGE_LIMITS;
+      if (!Number.isFinite(km) || km < minRadiusKm || km > maxRadiusKm) {
+        return res.status(400).json({
+          success: false,
+          message: `Radius must be between ${minRadiusKm} and ${maxRadiusKm} km`,
+        });
+      }
+      if (toCoord(store.latitude) == null || toCoord(store.longitude) == null) {
+        return res.status(400).json({
+          success: false,
+          message: "Set this store's map location (Dark Stores page) before using radius coverage",
+        });
+      }
+      update.deliveryRadiusKm = Math.round(km * 10) / 10;
+    } else {
+      const { pincodes, invalid } = parsePincodes(req.body.servicePincodes);
+      if (invalid.length) {
+        return res.status(400).json({ success: false, message: `Not valid 6-digit pincodes: ${invalid.slice(0, 10).join(", ")}` });
+      }
+      if (!pincodes.length) {
+        return res.status(400).json({ success: false, message: "Add at least one pincode this store serves" });
+      }
+      if (pincodes.length > COVERAGE_LIMITS.maxPincodes) {
+        return res.status(400).json({ success: false, message: `At most ${COVERAGE_LIMITS.maxPincodes} pincodes per store` });
+      }
+      update.servicePincodes = pincodes;
+    }
+
+    await DeliveryManager.updateOne({ _id: store._id }, { $set: update }, { runValidators: true });
+    const saved = await DeliveryManager.findById(store._id).select(COVERAGE_FIELDS).lean();
+    const overlaps = mode === "pincode" ? await pincodeOverlaps(store._id, servicePincodesOf(saved)) : [];
+
+    return res.json({
+      success: true,
+      message:
+        mode === "radius"
+          ? `${saved.storeName} now delivers within ${radiusOf(saved)} km`
+          : `${saved.storeName} now delivers to ${servicePincodesOf(saved).length} pincode(s)`,
+      store: coverageSummary(saved),
+      overlaps,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** POST /api/admin/dark-stores/coverage/check { lat, lng, pincode } — which store a customer here gets. */
+export const checkDarkStoreCoverage = async (req, res, next) => {
+  try {
+    const lat = toCoord(req.body.lat ?? req.body.latitude);
+    const lng = toCoord(req.body.lng ?? req.body.longitude);
+    const pincode = pincodeOf(req.body.pincode);
+    if ((lat == null || lng == null) && !pincode) {
+      return res.status(400).json({ success: false, message: "Give a map point or a 6-digit pincode" });
+    }
+    const resolved = await resolveDarkStoreForOrder({
+      ...(lat != null && lng != null ? { lat, lng } : {}),
+      pincode,
+    });
+    return res.json({
+      success: true,
+      served: Boolean(resolved.manager),
+      storeId: resolved.manager ? String(resolved.manager._id) : null,
+      storeName: resolved.manager?.storeName || "",
+      distanceKm: resolved.distanceKm != null ? Math.round(resolved.distanceKm * 100) / 100 : null,
+      reason: resolved.reason,
     });
   } catch (error) {
     next(error);

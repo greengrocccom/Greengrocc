@@ -1,4 +1,5 @@
 import express from "express";
+import { listMyCleaningReports, submitCleaningReport, getCleaningReportPhoto, listCleaningReports } from "../controllers/cleaningReportController.js";
 import { protect, requireRoles } from "@greengrocc/shared";
 import {
   createAccount,
@@ -44,6 +45,10 @@ router.post("/login", login);
 router.use(protect);
 
 router.get("/me", me);
+router.get("/my/cleaning-reports", listMyCleaningReports);
+router.post("/my/cleaning-reports", submitCleaningReport);
+router.get("/cleaning-reports", requireRoles("admin"), listCleaningReports);
+router.get("/cleaning-reports/:id/photo", getCleaningReportPhoto);
 
 // Staff Mobile App Endpoints
 router.get("/my/overview", getStaffOverview);

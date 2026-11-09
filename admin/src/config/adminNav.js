@@ -56,6 +56,8 @@ import {
   Monitor,
   Smartphone,
   Settings,
+  Radar,
+  Calculator,
 } from 'lucide-react';
 
 /**
@@ -545,6 +547,19 @@ export const NAV_GROUPS = [
         description: 'Manage dark store locations, coverage, and store operations.',
       },
       {
+        name: 'Store Coverage',
+        href: '/dark-store-coverage',
+        icon: Radar,
+        implemented: true,
+        description: 'Set each dark store\'s delivery area: a radius on the map or a list of pincodes.',
+        capabilities: [
+          'See every store\'s delivery radius on a map',
+          'Change a store\'s radius and preview it live',
+          'Switch a store to pincode coverage and choose its pincodes',
+          'Click the map or enter a pincode to see which store serves it',
+        ],
+      },
+      {
         name: 'Assets Management',
         href: '/assets-management',
         icon: Boxes,
@@ -754,6 +769,19 @@ export const NAV_GROUPS = [
         icon: Percent,
         implemented: true,
         description: 'Vendor product sales, commission rates, earnings, pending balances and settlements.',
+      },
+      {
+        name: 'Tax Calculator',
+        href: '/finance/tax',
+        icon: Calculator,
+        implemented: true,
+        description: 'Calculate tax on vendor sales (auto-fetched), admin sales, and any extra taxes or deductions.',
+        capabilities: [
+          'Total vendor sale fetched from the platform for any period',
+          'Admin sale typed in or picked from platform figures',
+          'Add or deduct any tax with your own name, amount and rate',
+          'Save drafts or lock final calculations',
+        ],
       },
       {
         name: 'Commission Payments',

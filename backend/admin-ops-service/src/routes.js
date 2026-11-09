@@ -8,8 +8,10 @@ import {
   listAdminCommissionPayments,
   getAdminFinanceSalesReports,
   getAdminFinancialReports,
+  getAdminCommissionAnalytics,
 } from "./adminFinanceController.js";
-import { protect, requireAdmin, optionalAuth } from "@greengrocc/shared";
+import { protect, requireAdmin, requireRoles, optionalAuth } from "@greengrocc/shared";
+import * as taxCalculator from "./taxCalculator.js";
 import {
   listGiftCards,
   createGiftCard,
@@ -737,12 +739,22 @@ const adminFinanceRouter = express.Router();
 adminFinanceRouter.use(protect, requireAdmin);
 adminFinanceRouter.get("/dashboard", getAdminFinanceDashboard);
 adminFinanceRouter.get("/vendors", listAdminVendorCommissions);
+adminFinanceRouter.get("/commission-analytics", getAdminCommissionAnalytics);
 adminFinanceRouter.get("/vendors/:vendorId/commission", getAdminVendorCommissionDetail);
 adminFinanceRouter.post("/commission-payment", recordAdminCommissionPayment);
 adminFinanceRouter.get("/payment-history", listAdminCommissionPayments);
 adminFinanceRouter.get("/sales-report", getAdminFinanceSalesReports);
 adminFinanceRouter.get("/commission-report", listAdminVendorCommissions);
 adminFinanceRouter.get("/financial-reports", getAdminFinancialReports);
+
+const adminOnly = requireRoles("admin");
+adminFinanceRouter.get("/tax/figures", adminOnly, taxCalculator.getTaxFigures);
+adminFinanceRouter.post("/tax/preview", adminOnly, taxCalculator.previewTaxSheet);
+adminFinanceRouter.get("/tax/calculations", adminOnly, taxCalculator.listTaxCalculations);
+adminFinanceRouter.post("/tax/calculations", adminOnly, taxCalculator.createTaxCalculation);
+adminFinanceRouter.get("/tax/calculations/:id", adminOnly, taxCalculator.getTaxCalculation);
+adminFinanceRouter.put("/tax/calculations/:id", adminOnly, taxCalculator.updateTaxCalculation);
+adminFinanceRouter.delete("/tax/calculations/:id", adminOnly, taxCalculator.deleteTaxCalculation);
 
 export default [
   { path: "/api/admin-ops", router },

@@ -5,6 +5,8 @@ import { DepartmentBadge } from "../products/productDepartments";
 const ROUTING_LABELS = {
   within_3km: "Within 3 km",
   same_pincode: "Same pincode",
+  pincode_served: "Served pincode",
+  within_store_radius: "Within store radius",
 };
 
 export function isPickupOrder(order) {

@@ -1,3 +1,4 @@
+import { visibleStoreOrderScope } from '../services/visibleStoreOrders.js';
 import DeliveryBoy from "../models/DeliveryBoy.js";
 import DeliveryManager from "../models/DeliveryManager.js";
 import StoreInventory from "../models/StoreInventory.js";
@@ -218,6 +219,7 @@ export const getDashboardSummary = async (req, res, next) => {
   try {
     const manager = await getManager(req);
     await seedManagerStore(manager);
+    const visibleScope = await visibleStoreOrderScope({ managerId: manager._id });
     const [
       incoming,
       inventoryCount,
@@ -229,7 +231,7 @@ export const getDashboardSummary = async (req, res, next) => {
       preOrdersWithProductManager,
       preOrdersReadyToAssign,
     ] = await Promise.all([
-      StoreOrder.countDocuments({
+      StoreOrder.countDocuments({ ...visibleScope,
         managerId: manager._id,
         isPreOrder: { $ne: true },
         status: { $in: ["incoming", "order_received", "stock_issue"] },
@@ -256,12 +258,12 @@ export const getDashboardSummary = async (req, res, next) => {
         managerId: manager._id,
         status: "pending",
       }),
-      StoreOrder.countDocuments({
+      StoreOrder.countDocuments({ ...visibleScope,
         managerId: manager._id,
         isPreOrder: true,
         status: "preorder_hold",
       }),
-      StoreOrder.countDocuments({
+      StoreOrder.countDocuments({ ...visibleScope,
         managerId: manager._id,
         isPreOrder: true,
         status: { $in: ["packed", "offered"] },
@@ -280,21 +282,21 @@ export const getDashboardSummary = async (req, res, next) => {
       cashRows,
       revenue,
     ] = await Promise.all([
-      StoreOrder.countDocuments({
+      StoreOrder.countDocuments({ ...visibleScope,
         managerId: manager._id,
         status: "delivery_failed",
         "failureResolution.status": { $in: ["pending", "", null] },
       }),
-      StoreOrder.countDocuments({ managerId: manager._id, "onlinePaymentClaim.status": "pending" }),
-      StoreOrder.countDocuments({
+      StoreOrder.countDocuments({ ...visibleScope, managerId: manager._id, "onlinePaymentClaim.status": "pending" }),
+      StoreOrder.countDocuments({ ...visibleScope,
         managerId: manager._id,
         isPreOrder: { $ne: true },
         status: "packed",
         assignmentStatus: { $in: ["WAITING_FOR_DRIVER", "SEARCHING_FOR_DRIVER"] },
       }),
-      StoreOrder.countDocuments({ managerId: manager._id, pickupProofStatus: "pending", customerAddressUnlocked: false }),
-      StoreOrder.countDocuments({ managerId: manager._id, status: { $in: ["pickup_verified", "out_for_delivery"] } }),
-      StoreOrder.countDocuments({ managerId: manager._id, status: "delivered", deliveredAt: { $gte: dayStart } }),
+      StoreOrder.countDocuments({ ...visibleScope, managerId: manager._id, pickupProofStatus: "pending", customerAddressUnlocked: false }),
+      StoreOrder.countDocuments({ ...visibleScope, managerId: manager._id, status: { $in: ["pickup_verified", "out_for_delivery"] } }),
+      StoreOrder.countDocuments({ ...visibleScope, managerId: manager._id, status: "delivered", deliveredAt: { $gte: dayStart } }),
       CashSettlement.aggregate([
         { $match: { darkStoreId: manager._id, status: { $in: ["PENDING", "SUBMITTED", "DISPUTED"] } } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -349,11 +351,11 @@ export const listIncomingOrders = async (req, res, next) => {
           ? { isPreOrder: { $ne: true } }
           : {};
 
-    const orders = await StoreOrder.find({
+    const orders = await StoreOrder.find(await visibleStoreOrderScope({
       managerId: manager._id,
       status: { $in: statusFilter },
       ...preOrderFilter,
-    }).sort({ createdAt: -1 });
+    })).sort({ createdAt: -1 });
 
     const riderIds = [
       ...new Set(

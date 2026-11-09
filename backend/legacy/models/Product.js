@@ -213,7 +213,6 @@ const productSchema = new mongoose.Schema(
       trim: true,
       uppercase: true,
       default: "",
-      index: true,
     },
     name: {
       type: String,
@@ -600,6 +599,18 @@ productSchema.index(
     partialFilterExpression: { sku: { $type: "string", $gt: "" } },
   }
 );
+productSchema.index(
+  { productId: 1 },
+  {
+    name: "productId_unique",
+    unique: true,
+    partialFilterExpression: { productId: { $type: "string", $gt: "" } },
+  }
+);
+
+productSchema.pre("validate", function normalizeOwnerVendorId() {
+  if (this.ownerVendorId == null) this.ownerVendorId = "";
+});
 
 const Product = mongoose.model(
   "GreenGroccProduct",

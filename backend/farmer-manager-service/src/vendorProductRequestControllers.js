@@ -5,10 +5,12 @@ import { Farmer, FarmerProduct, Vendor, VendorProduct, VendorProductRequest, Ven
 import { generateId } from "../../erp-service/src/services/idGenerator.js";
 import { categoryFromName, cropCodeFromName, varietyCodeFromName } from "../../erp-service/src/config/idRegistry.js";
 import { pushFarmerProductReview } from "./farmerPush.js";
+import { syncVendorProductToStores, toObjectId } from "../../delivery-service/src/services/catalogStoreInventory.js";
 
 const CATALOG_FIELDS =
   "name sku categories subcategory section productImages price discountedPrice unit stock inStock isActive brandName varietyName";
-const ADMIN_CATALOG_FILTER = { isActive: { $ne: false }, ownerManagerId: null };
+// Shared admin catalog: excludes dark-store-owned and vendor-owned products.
+const ADMIN_CATALOG_FILTER = { isActive: { $ne: false }, ownerManagerId: null, ownerVendorId: { $in: ["", null] } };
 const CATALOG_SECTION_ORDER = ["preorder", "ready2cook", "instantorder"];
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -134,7 +136,8 @@ export async function vendorProductsWithCatalog(vendorId) {
       info.latestPurchaseCost = Number(b.purchaseCost);
     }
   }
-  return rows.map(({ _id, __v, ...row }) => {
+  return rows.map(({ _id, __v, ...stored }) => {
+    const row = { ...stored, productId: String(stored.productId) };
     const live = byId.get(row.productId);
     const base = live || { name: row.productName, image: row.productImage, category: row.category, unit: row.unit };
     const effective = {};
@@ -199,7 +202,7 @@ export async function updateVendorMyProduct(req, res) {
   try {
     const vendorId = vendorIdOf(req);
     const productId = String(req.params.productId || "").trim();
-    const row = await VendorProduct.findOne({ vendorId, productId });
+    const row = toObjectId(productId) ? await VendorProduct.findOne({ vendorId, productId }) : null;
     if (!row) return res.status(404).json({ message: "This product is not in your products" });
 
     const update = {};
@@ -259,6 +262,7 @@ export async function updateVendorMyProduct(req, res) {
 
     Object.assign(row, update, { pricingUpdatedAt: new Date() });
     await row.save();
+    await syncVendorProductToStores(vendorId, productId);
     const products = await vendorProductsWithCatalog(vendorId);
     res.json(products.find((p) => p.productId === productId) || null);
   } catch (err) {
@@ -284,9 +288,14 @@ export async function addVendorStockProduct(req, res) {
       return res.status(400).json({ message: "Product selection is required" });
     }
 
-    const catalogProd = await Product.findById(productId).lean();
+    const catalogProd = toObjectId(productId)
+      ? await Product.findOne({ _id: productId, ownerManagerId: null }).lean()
+      : null;
     if (!catalogProd) {
       return res.status(404).json({ message: "Catalog product not found" });
+    }
+    if (catalogProd.ownerVendorId && catalogProd.ownerVendorId !== vendorId) {
+      return res.status(403).json({ message: "This product belongs to another vendor" });
     }
 
     if (section && (!catalogProd.section || catalogProd.section === "general")) {
@@ -328,6 +337,7 @@ export async function addVendorStockProduct(req, res) {
       { vendorId, productId: String(catalogProd._id), status: "Pending" },
       { $set: { status: "Approved", reviewedAt: new Date(), notes: "Added directly via Seller Stock" } }
     );
+    await syncVendorProductToStores(vendorId, catalogProd._id);
 
     const products = await vendorProductsWithCatalog(vendorId);
     const item = products.find((p) => p.productId === String(catalogProd._id));
@@ -342,9 +352,9 @@ export async function getVendorMyProductFull(req, res) {
   try {
     const vendorId = vendorIdOf(req);
     const productId = String(req.params.productId || "").trim();
-    const row = await VendorProduct.findOne({ vendorId, productId }).lean();
+    const row = toObjectId(productId) ? await VendorProduct.findOne({ vendorId, productId }).lean() : null;
     if (!row) return res.status(404).json({ message: "This product is not in your products" });
-    const catalog = mongoose.Types.ObjectId.isValid(productId) ? await Product.findById(productId).lean() : null;
+    const catalog = await Product.findById(productId).lean();
     if (!catalog && !row.overrides) return res.status(404).json({ message: "This product is no longer in the admin catalog" });
 
     const product = { ...(catalog || {}), ...(row.overrides || {}) };
@@ -367,12 +377,13 @@ export async function deleteVendorMyProduct(req, res) {
     const productId = String(req.params.productId || "").trim();
     const removed = await VendorProduct.findOneAndDelete({
       vendorId,
-      $or: [{ productId }, { id: productId }],
+      $or: [...(toObjectId(productId) ? [{ productId }] : []), { id: productId }],
     });
     if (!removed) {
       return res.status(404).json({ message: "Product not found in your products" });
     }
-    res.json({ success: true, message: "Product removed from your products" });
+    await syncVendorProductToStores(vendorId, removed.productId);
+    res.json({ success: true, message: "Product removed from your products and your dark stores" });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to remove product" });
   }
@@ -410,7 +421,7 @@ export async function listVendorCatalogProducts(req, res) {
       VendorProduct.find({ vendorId }).select("productId").lean(),
       VendorProductRequest.find({ vendorId, status: "Pending" }).select("productId").lean(),
     ]);
-    const addedIds = new Set(added.map((r) => r.productId));
+    const addedIds = new Set(added.map((r) => String(r.productId)));
     const pendingIds = new Set(pending.map((r) => r.productId));
     res.json({
       page,
@@ -624,8 +635,8 @@ export async function requestFarmerProduct(req, res) {
     const vendorProd = await VendorProduct.findOne({
       vendorId: farmer.vendorId,
       $or: [
-        ...(productId ? [{ productId }, { id: productId }] : []),
-        { name: new RegExp(`^${escapeRegex(productName)}$`, "i") },
+        ...(toObjectId(productId) ? [{ productId }] : []),
+        ...(productId ? [{ id: productId }] : []),
         { productName: new RegExp(`^${escapeRegex(productName)}$`, "i") },
       ],
     }).lean();
@@ -634,7 +645,7 @@ export async function requestFarmerProduct(req, res) {
       return res.status(400).json({ message: "This product is not approved in your vendor's catalog." });
     }
 
-    const boundProductId = vendorProd.productId || vendorProd.id || productId;
+    const boundProductId = String(vendorProd.productId || vendorProd.id || productId);
     const finalProductName = vendorProd.productName || vendorProd.name || productName;
 
     const existing = await FarmerProduct.findOne({

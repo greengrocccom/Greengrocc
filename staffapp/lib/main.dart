@@ -5,10 +5,13 @@ import 'core/notification_navigator.dart';
 import 'core/push_notification_service.dart';
 import 'screens/splash_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await PushNotificationService.instance.init();
   runApp(const GreenGrooStaffApp());
+  // Permission prompts and FCM/network delays must not block app startup.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    PushNotificationService.instance.init();
+  });
 }
 
 class GreenGrooStaffApp extends StatelessWidget {

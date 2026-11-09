@@ -73,11 +73,24 @@ const deliveryManagerSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    /**
+     * How customers are matched to this store — exactly one rule applies:
+     * "radius" = within deliveryRadiusKm of the store pin; "pincode" = address PIN is in servicePincodes.
+     */
+    coverageMode: {
+      type: String,
+      enum: ["radius", "pincode"],
+      default: "radius",
+    },
     deliveryRadiusKm: {
       type: Number,
       default: 5,
-      min: 1,
-      max: 25,
+      min: 0.5,
+      max: 50,
+    },
+    servicePincodes: {
+      type: [{ type: String, trim: true, match: /^\d{6}$/ }],
+      default: [],
     },
     geofenceRadius: {
       type: Number,
@@ -147,7 +160,9 @@ deliveryManagerSchema.methods.toSafeJSON = function toSafeJSON() {
     pincode: this.pincode || "",
     latitude: this.latitude ?? null,
     longitude: this.longitude ?? null,
+    coverageMode: this.coverageMode === "pincode" ? "pincode" : "radius",
     deliveryRadiusKm: this.deliveryRadiusKm ?? 5,
+    servicePincodes: this.servicePincodes || [],
     geofenceRadius: this.geofenceRadius ?? 500,
     isActive: this.isActive,
     createdAt: this.createdAt,

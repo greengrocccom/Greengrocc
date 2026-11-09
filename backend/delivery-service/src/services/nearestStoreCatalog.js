@@ -136,6 +136,33 @@ export async function resolveMatchingProducts(items) {
   return found.filter((product) => matchProductToItem(product, items));
 }
 
+/**
+ * The product priced the way this store sells it: the stock row's selling price (the
+ * vendor's price when it set one) and MRP. Multi-unit, slab and grade pricing keep their own prices.
+ */
+export function applyStorePrice(doc, item) {
+  const storePrice = Number(item?.price);
+  if (!item || !Number.isFinite(storePrice) || storePrice <= 0) return doc;
+  const storeMrp = Number(item.mrp);
+  const mrp = Number.isFinite(storeMrp) && storeMrp > 0 ? storeMrp : Number(doc.price) || 0;
+  const price = Math.max(mrp, storePrice);
+  return {
+    ...doc,
+    price,
+    discountedPrice: storePrice,
+    discountedPercent: price > 0 ? Math.round(((price - storePrice) / price) * 100) : 0,
+  };
+}
+
+/** applyStorePrice for checkout/cart lines: skipped where the line is not priced from the product's single price. */
+export function applyStorePriceForCheckout(product, item) {
+  if (!product || !item) return product;
+  const doc = product.toObject ? product.toObject() : { ...product };
+  const singlePriced =
+    doc.variantType !== "multi" && doc.pricingType !== "bulk" && !doc.enableBulkGrades;
+  return singlePriced ? applyStorePrice(doc, item) : product;
+}
+
 function applyStoreStock(doc, item, catalog) {
   const hasStore = Boolean(catalog?.store?.id || catalog?.store?._id || catalog?.manager);
   // No location yet → keep catalog stock as-is. A known location with no dark
@@ -154,7 +181,6 @@ function applyStoreStock(doc, item, catalog) {
 
   const storeStock = item ? Number(item.stockCount) || 0 : 0;
   const inStock = storeStock > 0;
-  const storePrice = Number(item?.price);
   const variants = Array.isArray(doc.variants)
     ? doc.variants.map((variant) => ({
         ...variant,
@@ -162,21 +188,21 @@ function applyStoreStock(doc, item, catalog) {
         stock: storeStock,
       }))
     : doc.variants;
-  return {
-    ...doc,
-    variants,
-    inStock,
-    stock: storeStock,
-    storeStock,
-    storeSku: item?.sku || "",
-    storeCategory: item?.category || "",
-    storeId: catalog?.store?.id || catalog?.store?._id || null,
-    storeName: catalog?.store?.storeName || "",
-    storeArea: catalog?.store?.area || "",
-    ...(item && Number.isFinite(storePrice) && storePrice > 0
-      ? { discountedPrice: storePrice, price: Math.max(doc.price || storePrice, storePrice) }
-      : {}),
-  };
+  return applyStorePrice(
+    {
+      ...doc,
+      variants,
+      inStock,
+      stock: storeStock,
+      storeStock,
+      storeSku: item?.sku || "",
+      storeCategory: item?.category || "",
+      storeId: catalog?.store?.id || catalog?.store?._id || null,
+      storeName: catalog?.store?.storeName || "",
+      storeArea: catalog?.store?.area || "",
+    },
+    item
+  );
 }
 
 export function attachStoreAvailability(products, catalog) {
@@ -297,15 +323,13 @@ export async function loadNearestStoreCatalog(query = {}) {
 }
 
 /**
- * Products a customer may see: the whole admin catalog, plus the resolved dark
- * store's own products. Admin products the store doesn't stock still show —
- * attachStoreAvailability marks them out of stock.
- * UPDATE: To hide out-of-stock products completely until approved, we only
- * show admin products if they have > 0 stock.
+ * Products a customer may see: the resolved dark store's own products, plus catalog
+ * products that store lists with stock (only products approved for its vendor get an
+ * active row). With no store resolved, the shared admin catalog without vendor-owned products.
  */
 export function storeProductScope(catalog) {
   const manager = catalog?.manager;
-  if (!manager) return { ownerManagerId: null };
+  if (!manager) return { ownerManagerId: null, ownerVendorId: { $in: ["", null] } };
   const inStockMatch = mongoMatchForInventory(catalog.inStockItems || []);
   return { 
     $or: [

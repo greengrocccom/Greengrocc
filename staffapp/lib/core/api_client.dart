@@ -1,9 +1,20 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'session_manager.dart';
 import 'user_friendly_error.dart';
 
 class ApiClient {
+  static Future<Uint8List> getImage(String endpoint) async {
+    final base = await getBaseUrl();
+    final response = await http.get(Uri.parse('$base$endpoint'), headers: await _headers())
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      _handleResponse(response);
+      throw Exception('Could not load photo');
+    }
+    return response.bodyBytes;
+  }
   static const String defaultBaseUrl = 'https://api.greengrocc.com';
 
   static Future<String> getBaseUrl() async {

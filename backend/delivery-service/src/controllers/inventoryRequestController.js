@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import InventoryRequest from "../models/InventoryRequest.js";
 import StoreInventory from "../models/StoreInventory.js";
-import { productIdForSku } from "../services/catalogStoreInventory.js";
+import { productIdForSku, storeMaySellProduct } from "../services/catalogStoreInventory.js";
 import DeliveryManager from "../models/DeliveryManager.js";
 import Staff from "../../../staff-service/src/models/Staff.js";
 import { Vendor } from "../../../farmer-manager-service/src/models.js";
@@ -124,10 +124,15 @@ export const createInventoryRequest = async (req, res, next) => {
       managerId: manager._id,
       sku,
     });
+    const requestedProductId = item?.productId || (await productIdForSku(sku));
+    const permission = await storeMaySellProduct(manager._id, requestedProductId);
+    if (!permission.allowed) {
+      return res.status(403).json({ success: false, message: permission.reason });
+    }
     if (!item) {
       item = await StoreInventory.create({
         managerId: manager._id,
-        productId: await productIdForSku(sku),
+        productId: requestedProductId,
         sku,
         name: productName || sku,
         category,
@@ -362,16 +367,25 @@ export const reviewInventoryRequest = async (req, res, next) => {
     }
 
     if (decision === "approved" && request.status !== "approved") {
+      const existingRow = await StoreInventory.findOne({ managerId: request.managerId, sku: request.sku })
+        .select("productId")
+        .lean();
+      const rowProductId = existingRow?.productId || (await productIdForSku(request.sku));
+      const permission = await storeMaySellProduct(request.managerId, rowProductId);
+      if (!permission.allowed) {
+        return res.status(409).json({ success: false, message: `${permission.reason}. Reject this request instead.` });
+      }
+
       const updated = await StoreInventory.findOneAndUpdate(
         { managerId: request.managerId, sku: request.sku },
-        { $inc: { stockCount: request.quantity }, $set: { isActive: true } },
+        { $inc: { stockCount: request.quantity }, $set: { isActive: true, inactiveReason: "" } },
         { returnDocument: 'after' }
       );
 
       if (!updated) {
         await StoreInventory.create({
           managerId: request.managerId,
-          productId: await productIdForSku(request.sku),
+          productId: rowProductId,
           sku: request.sku,
           name: request.productName,
           category: request.category || "General",

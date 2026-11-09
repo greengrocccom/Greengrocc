@@ -9,6 +9,7 @@ import 'announcements_screen.dart';
 import 'meetings_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
+import 'cleaning_report_screen.dart';
 
 class ServicesScreen extends StatelessWidget {
   final VoidCallback? onSwitchToAttendance;
@@ -42,6 +43,7 @@ class ServicesScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const CleaningReportEntry(),
             // Banner / Introduction
             Container(
               padding: const EdgeInsets.all(16),

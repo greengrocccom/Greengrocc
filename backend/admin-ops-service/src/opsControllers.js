@@ -41,6 +41,11 @@ import {
 import CatalogProduct from "../../legacy/models/Product.js";
 import { createCentreForVendor, createManagerBusinessId } from "../../farmer-manager-service/src/pickupControllers.js";
 import { seedManagerStore } from "../../delivery-service/src/services/seedManagerStore.js";
+import {
+  switchOffVendorProducts,
+  syncVendorProductToStores,
+  toObjectId,
+} from "../../delivery-service/src/services/catalogStoreInventory.js";
 import { checkPhoneConflict } from "../../shared/utils/phoneCheck.js";
 import { randomIdSuffix, serialId, timestampId } from "../../shared/ids.js";
 import {
@@ -1163,6 +1168,8 @@ export async function deleteVendorAdmin(req, res, next) {
   try {
     const vendor = await Vendor.findOneAndDelete(vendorQuery(req.params.id));
     if (!vendor) return fail(res, 404, "Vendor not found");
+    // Before the stores are unlinked below, so the rows can still be found by vendor.
+    await switchOffVendorProducts(vendor.id);
     await Promise.all([
       VendorDocument.deleteMany({ vendorId: vendor.id }),
       VendorZone.deleteMany({ vendorId: vendor.id }),
@@ -1354,11 +1361,11 @@ export async function listVendorProductRequestsAdmin(req, res, next) {
         const key = `${vp.vendorId}:::${vp.productId}`;
         if (requestKeySet.has(key)) continue;
         const vendor = vendorById.get(vp.vendorId);
-        const catalog = productById.get(vp.productId) || null;
+        const catalog = productById.get(String(vp.productId)) || null;
         data.push({
           id: vp.id || `vp-${vp.vendorId}-${vp.productId}`,
           vendorId: vp.vendorId,
-          productId: vp.productId,
+          productId: String(vp.productId),
           productName: vp.productName || catalog?.name || "Product",
           productImage: vp.productImage || catalog?.image || "",
           category: vp.category || catalog?.category || "",
@@ -1416,29 +1423,36 @@ export async function approveVendorProductRequestAdmin(req, res, next) {
     if (!(await Vendor.exists({ id: request.vendorId }))) {
       return fail(res, 400, "The collection centre that sent this request no longer exists");
     }
-    const product = mongoose.Types.ObjectId.isValid(request.productId)
-      ? await CatalogProduct.findOne({ _id: request.productId, isActive: { $ne: false } }).lean()
+    const productId = toObjectId(request.productId);
+    const product = productId
+      ? await CatalogProduct.findOne({ _id: productId, isActive: { $ne: false }, ownerManagerId: null }).lean()
       : null;
     if (!product) return fail(res, 400, "This product is no longer active in the catalog");
+    if (product.ownerVendorId && product.ownerVendorId !== request.vendorId) {
+      return fail(res, 400, "This product belongs to another vendor");
+    }
 
     const summary = catalogProductSummary(product);
-    await VendorProduct.findOneAndUpdate(
-      { vendorId: request.vendorId, productId: request.productId },
-      {
-        $set: { productName: summary.name, productImage: summary.image, category: summary.category, unit: summary.unit },
-        $setOnInsert: {
-          id: `vp-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
-          requestId: request.id,
-          addedBy: String(req.user?.id || req.user?._id || "admin"),
+    await mongoose.connection.transaction(async (session) => {
+      await VendorProduct.findOneAndUpdate(
+        { vendorId: request.vendorId, productId },
+        {
+          $set: { productName: summary.name, productImage: summary.image, category: summary.category, unit: summary.unit },
+          $setOnInsert: {
+            id: `vp-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
+            requestId: request.id,
+            addedBy: String(req.user?.id || req.user?._id || "admin"),
+          },
         },
-      },
-      { upsert: true, returnDocument: "after" }
-    );
-    request.status = "Approved";
-    request.adminRemarks = String(req.body?.remarks || "").trim();
-    request.reviewedAt = new Date();
-    await request.save();
-    return ok(res, serializeVendorProductRequest(request), { message: "Product added to the collection centre" });
+        { upsert: true, returnDocument: "after", session }
+      );
+      await syncVendorProductToStores(request.vendorId, productId, { session });
+      request.status = "Approved";
+      request.adminRemarks = String(req.body?.remarks || "").trim();
+      request.reviewedAt = new Date();
+      await request.save({ session });
+    });
+    return ok(res, serializeVendorProductRequest(request), { message: "Product added to the collection centre and its dark stores" });
   } catch (error) {
     next(error);
   }
@@ -1475,9 +1489,15 @@ export async function removeVendorProductAdmin(req, res, next) {
   try {
     const vendor = await Vendor.findOne(vendorQuery(req.params.id)).select("id").lean();
     if (!vendor) return fail(res, 404, "Vendor not found");
-    const removed = await VendorProduct.findOneAndDelete({ vendorId: vendor.id, productId: req.params.productId });
+    const productId = toObjectId(req.params.productId);
+    if (!productId) return fail(res, 404, "Product is not assigned to this collection centre");
+    let removed = null;
+    await mongoose.connection.transaction(async (session) => {
+      removed = await VendorProduct.findOneAndDelete({ vendorId: vendor.id, productId }, { session });
+      if (removed) await syncVendorProductToStores(vendor.id, productId, { session });
+    });
     if (!removed) return fail(res, 404, "Product is not assigned to this collection centre");
-    return ok(res, { productId: req.params.productId }, { message: "Product removed from the collection centre" });
+    return ok(res, { productId: String(productId) }, { message: "Product removed from the collection centre and its dark stores" });
   } catch (error) {
     next(error);
   }

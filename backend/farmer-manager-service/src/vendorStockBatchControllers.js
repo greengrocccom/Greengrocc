@@ -9,6 +9,9 @@ import {
   VendorStockTransaction,
 } from "./models.js";
 import { vendorProductsWithCatalog } from "./vendorProductRequestControllers.js";
+import { syncVendorProductToStores, toObjectId } from "../../delivery-service/src/services/catalogStoreInventory.js";
+
+const validProductIds = (ids) => ids.filter((id) => toObjectId(id));
 
 function vendorIdOf(req) {
   return req.user?.vendorId || req.user?.id || "";
@@ -165,11 +168,13 @@ export async function syncVendorProductTotalStock(vendorId, productId, session =
     updateFields.purchaseCost = Number(latestBatch.purchaseCost);
   }
 
-  await VendorProduct.updateOne(
-    { vendorId, productId },
-    { $set: updateFields },
-    { session }
-  );
+  if (toObjectId(productId)) {
+    await VendorProduct.updateOne(
+      { vendorId, productId },
+      { $set: updateFields },
+      { session }
+    );
+  }
 
   return roundedStock;
 }
@@ -216,9 +221,14 @@ export async function addVendorStockBatch(req, res) {
       return res.status(400).json({ message: "Stock quantity must be a positive number greater than 0" });
     }
 
-    const catalogProd = await Product.findById(productId).lean();
+    const catalogProd = toObjectId(productId)
+      ? await Product.findOne({ _id: productId, ownerManagerId: null }).lean()
+      : null;
     if (!catalogProd) {
       return res.status(404).json({ message: "Catalog product not found" });
+    }
+    if (catalogProd.ownerVendorId && catalogProd.ownerVendorId !== vendorId) {
+      return res.status(403).json({ message: "This product belongs to another vendor" });
     }
 
     // Optional update for catalog section if missing
@@ -410,6 +420,7 @@ export async function addVendorStockBatch(req, res) {
         { $set: { status: "Approved", reviewedAt: new Date(), notes: `Added via Stock Batch ${batchId}` } },
         { session }
       );
+      await syncVendorProductToStores(vendorId, catalogProd._id, { session });
 
       return {
         batch: newBatch[0],
@@ -513,7 +524,9 @@ export async function deductVendorStockBatch(req, res) {
       }
 
       // 2. Fetch previous product total stock
-      const vendorProd = await VendorProduct.findOne({ vendorId, productId }).session(session);
+      const vendorProd = toObjectId(productId)
+        ? await VendorProduct.findOne({ vendorId, productId }).session(session)
+        : null;
       const prevProductStock = Number(vendorProd?.stock ?? 0);
       const prevBatchStock = Number(batch.availableQuantity);
 
@@ -618,7 +631,7 @@ export async function listVendorStockBatches(req, res) {
     // Backfill any missing purchase cost from VendorProduct
     const missingCostBatches = batches.filter((b) => !b.purchaseCost || b.purchaseCost === 0);
     if (missingCostBatches.length > 0) {
-      const pids = [...new Set(missingCostBatches.map((b) => b.productId).filter(Boolean))];
+      const pids = validProductIds([...new Set(missingCostBatches.map((b) => b.productId).filter(Boolean))]);
       const prodDocs = await VendorProduct.find({ vendorId, productId: { $in: pids } })
         .select("productId purchaseCost")
         .lean();
@@ -738,7 +751,7 @@ export async function listVendorStockTransactions(req, res) {
 
     // Backfill any missing dates or purchase costs from batch and product
     const batchIds = [...new Set(transactions.map((t) => t.batchId).filter(Boolean))];
-    const productIds = [...new Set(transactions.map((t) => t.productId).filter(Boolean))];
+    const productIds = validProductIds([...new Set(transactions.map((t) => t.productId).filter(Boolean))]);
     const [batchDocs, prodDocs] = await Promise.all([
       batchIds.length
         ? VendorStockBatch.find({ vendorId, batchId: { $in: batchIds } })
