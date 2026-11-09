@@ -2116,4 +2116,2510 @@ class AppLocalizationsMr extends AppLocalizations {
   String onlineDuration(String time) {
     return '$time ऑनलाइन';
   }
+
+  @override
+  String get delQrScannedAddressUnlocked =>
+      'QR स्कॅन झाला! ग्राहकाचा पत्ता उघडला आहे.';
+
+  @override
+  String get delQrScannedCaptureItemPhoto =>
+      'QR स्कॅन झाला! आता मॅनेजरच्या मंजुरीसाठी सामानाचा फोटो काढा.';
+
+  @override
+  String get delItemProof => 'सामानाचा पुरावा';
+
+  @override
+  String get delItemProofSendSubtitle => 'मंजुरीसाठी हा फोटो मॅनेजरला पाठवा.';
+
+  @override
+  String get delSendToManager => 'मॅनेजरला पाठवा';
+
+  @override
+  String get delItemPhotoSentWaiting =>
+      'सामानाचा फोटो पाठवला. मॅनेजरच्या मंजुरीची वाट पाहत आहे.';
+
+  @override
+  String get delCameraOpenFailed => 'कॅमेरा उघडता आला नाही. परवानग्या तपासा.';
+
+  @override
+  String get delDeliveryProof => 'डिलिव्हरीचा पुरावा';
+
+  @override
+  String get delDeliveryProofSendSubtitle =>
+      'हा फोटो पाठवा, मग ग्राहकाचा OTP टाका.';
+
+  @override
+  String get delSendPhoto => 'फोटो पाठवा';
+
+  @override
+  String get delRetake => 'पुन्हा काढा';
+
+  @override
+  String get delPhotoSendFailed => 'फोटो पाठवता आला नाही. पुन्हा प्रयत्न करा.';
+
+  @override
+  String get delEmergencySent =>
+      'आपत्कालीन सूचना तुमच्या डिलिव्हरी मॅनेजरला पाठवली.';
+
+  @override
+  String get delMarkedFailedNotified =>
+      'डिलिव्हरी अयशस्वी म्हणून नोंदवली. मॅनेजरला कळवले आहे.';
+
+  @override
+  String get delCouldNotMarkFailed => 'अयशस्वी म्हणून नोंदवता आले नाही.';
+
+  @override
+  String get delDelaySent =>
+      'उशिराची माहिती तुमच्या डिलिव्हरी मॅनेजरला पाठवली.';
+
+  @override
+  String get delCouldNotSendDelay => 'उशिराची माहिती पाठवता आली नाही.';
+
+  @override
+  String get delIncorrectOtp => 'चुकीचा OTP';
+
+  @override
+  String get delCashConfirmFailed => 'रोख रकमेची पुष्टी झाली नाही';
+
+  @override
+  String get delPreviousQrExpired =>
+      'मागील QR ची मुदत संपली. नवीन QR साठी पुन्हा ऑनलाइनवर टॅप करा.';
+
+  @override
+  String get delUnableToOpenPaymentQr => 'पेमेंट QR उघडता आला नाही.';
+
+  @override
+  String get delPleaseTryAgain => 'कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get delScanToPayUpi => 'UPI ने पैसे भरण्यासाठी स्कॅन करा';
+
+  @override
+  String get delPaymentQrUnavailable => 'पेमेंट QR उपलब्ध नाही.';
+
+  @override
+  String delAskCustomerScanUpi(String amount) {
+    return 'ग्राहकाला कोणत्याही UPI ॲपने स्कॅन करायला सांगा. रक्कम ₹$amount निश्चित आहे.';
+  }
+
+  @override
+  String get delCloseQr => 'QR बंद करा';
+
+  @override
+  String get delCheckPayment => 'पेमेंट तपासा';
+
+  @override
+  String get delCouldNotCompleteDelivery => 'डिलिव्हरी पूर्ण करता आली नाही.';
+
+  @override
+  String get delCouldNotOpenMaps =>
+      'Google Maps उघडता आले नाही. Maps इंस्टॉल करा किंवा पुन्हा प्रयत्न करा.';
+
+  @override
+  String get delStorePhoneUnavailable => 'स्टोअरचा फोन नंबर उपलब्ध नाही.';
+
+  @override
+  String get delCustomerPhoneUnavailable => 'ग्राहकाचा फोन नंबर उपलब्ध नाही.';
+
+  @override
+  String get delCouldNotOpenDialer => 'फोन डायलर उघडता आला नाही.';
+
+  @override
+  String get delNoActiveDelivery => 'कोणतीही सक्रिय डिलिव्हरी नाही';
+
+  @override
+  String get delNoActiveDeliveryHint =>
+      'आपोआप आळीपाळीने ऑर्डर मिळवण्यासाठी होम स्क्रीनवर ऑनलाइन रहा.';
+
+  @override
+  String get delCheckForOrders => 'ऑर्डर तपासा';
+
+  @override
+  String get delOutForDelivery => 'डिलिव्हरीसाठी रवाना';
+
+  @override
+  String get delAwaitingApproval => 'मंजुरीची प्रतीक्षा';
+
+  @override
+  String get delWaitingForPickup => 'पिकअपची प्रतीक्षा';
+
+  @override
+  String get delReportEmergency => 'आपत्कालीन स्थिती कळवा';
+
+  @override
+  String delPickupQrUnlocksIn(String countdown) {
+    return 'पिकअप QR $countdown मध्ये उघडेल — तोपर्यंत डार्क स्टोअरला जा.';
+  }
+
+  @override
+  String get delAddressUnlocksAfterPickup =>
+      'डार्क स्टोअरचा पिकअप QR पडताळल्यानंतर पत्ता उघडेल';
+
+  @override
+  String delDeliverOrderBy(String time) {
+    return 'ही ऑर्डर $time पर्यंत डिलिव्हर करा';
+  }
+
+  @override
+  String get delOrderDetails => 'ऑर्डरचा तपशील';
+
+  @override
+  String get delPickupDarkStore => 'पिकअप डार्क स्टोअर';
+
+  @override
+  String get delCallStore => 'स्टोअरला कॉल करा';
+
+  @override
+  String get delPickupVerifiedAddressUnlocked =>
+      'पिकअप पडताळला — ग्राहकाचा पत्ता उघडला';
+
+  @override
+  String get delItemPhotoSentWaitingManager =>
+      'सामानाचा फोटो पाठवला — मॅनेजरची प्रतीक्षा';
+
+  @override
+  String get delQrScannedTakeItemProof =>
+      'QR स्कॅन झाला — खाली सामानाचा पुरावा घ्या';
+
+  @override
+  String get delScanQrAtStoreToStart => 'सुरू करण्यासाठी स्टोअरवर QR स्कॅन करा';
+
+  @override
+  String get delPickupQr => 'पिकअप QR';
+
+  @override
+  String delSameRouteSearch(String countdown) {
+    return 'एकाच मार्गाचा शोध · $countdown';
+  }
+
+  @override
+  String delOrderCustomerAddress(String orderNumber) {
+    return '#$orderNumber · ग्राहकाचा पत्ता';
+  }
+
+  @override
+  String get delCustomerAddress => 'ग्राहकाचा पत्ता';
+
+  @override
+  String get delViewOnMap => 'नकाशावर पहा';
+
+  @override
+  String delMinutesShort(String minutes) {
+    return '$minutes मिनिटे';
+  }
+
+  @override
+  String delHoursShort(String hours) {
+    return '$hours तास';
+  }
+
+  @override
+  String delHoursMinutesShort(String hours, String minutes) {
+    return '$hours तास $minutes मिनिटे';
+  }
+
+  @override
+  String get delDelayPrompt =>
+      'अडकलात किंवा उशीर होतोय? तुमच्या मॅनेजरला कळवा.';
+
+  @override
+  String delReportedLateCustomerUpdated(String duration) {
+    return '$duration उशिराची माहिती दिली · मॅनेजरने ग्राहकाला कळवले';
+  }
+
+  @override
+  String delReportedLateWaitingManager(String duration) {
+    return '$duration उशिराची माहिती दिली · मॅनेजरची प्रतीक्षा';
+  }
+
+  @override
+  String get delUpdate => 'अपडेट करा';
+
+  @override
+  String get delReportDelay => 'उशीर कळवा';
+
+  @override
+  String get delOrderItems => 'ऑर्डरमधील वस्तू';
+
+  @override
+  String get delGroceryPack => 'किराणा पॅक';
+
+  @override
+  String delItemsAndTotal(String count, String amount) {
+    return '$count वस्तू • ₹$amount';
+  }
+
+  @override
+  String get delOrderTimeline => 'ऑर्डर टाइमलाइन';
+
+  @override
+  String get delOrderAssigned => 'ऑर्डर सोपवली';
+
+  @override
+  String get delOrderAssignedSubtitle => 'तुम्हाला नवीन ऑर्डर सोपवली आहे';
+
+  @override
+  String get delGoToStoreScanPickupQr => 'स्टोअरवर जा आणि पिकअप QR स्कॅन करा.';
+
+  @override
+  String delSuggestedRoute(String count) {
+    return 'सुचवलेला मार्ग · $count डिलिव्हरी';
+  }
+
+  @override
+  String get delWaitingForManager => 'मॅनेजरची प्रतीक्षा';
+
+  @override
+  String get delTakeItemProof => 'सामानाचा पुरावा घ्या';
+
+  @override
+  String get delCaptureDeliveryProof => 'डिलिव्हरीचा पुरावा घ्या';
+
+  @override
+  String get delEnterOtpAndComplete => 'OTP टाका आणि पूर्ण करा';
+
+  @override
+  String get delCompleteDelivery => 'डिलिव्हरी पूर्ण करा';
+
+  @override
+  String get delDeliveryFailed => 'डिलिव्हरी अयशस्वी';
+
+  @override
+  String get delEnterDeliveryOtp => 'डिलिव्हरी OTP टाका';
+
+  @override
+  String delAskCustomerOtpForOrder(String orderNumber) {
+    return 'ग्राहकाकडून त्यांच्या ऑर्डर #$orderNumber वर दिसणारा 4 अंकी OTP विचारा.';
+  }
+
+  @override
+  String get delVerifyOtp => 'OTP पडताळा';
+
+  @override
+  String delCollectAmount(String amount) {
+    return '₹$amount घ्या';
+  }
+
+  @override
+  String delPaymentBreakdownQuestion(String itemsTotal, String deliveryFee) {
+    return 'सामान ₹$itemsTotal  ·  डिलिव्हरी शुल्क ₹$deliveryFee\nग्राहक कसे पैसे देणार?';
+  }
+
+  @override
+  String get delOnlinePayment => 'ऑनलाइन पेमेंट';
+
+  @override
+  String get delOnlinePaymentSubtitle =>
+      'ग्राहकाला स्कॅन करण्यासाठी अचूक रकमेचा UPI QR दाखवा';
+
+  @override
+  String get delCashOnDelivery => 'कॅश ऑन डिलिव्हरी';
+
+  @override
+  String get delCashOnDeliverySubtitle => 'तुम्ही ग्राहकाकडून रोख रक्कम घेतली';
+
+  @override
+  String get delCashCollected => 'रोख रक्कम मिळाली';
+
+  @override
+  String get delCashCollectedSubtitle =>
+      'दिवस संपण्यापूर्वी ही रोख रक्कम तुमच्या डार्क स्टोअर मॅनेजरकडे जमा करा.';
+
+  @override
+  String get delItemTotal => 'सामानाची एकूण रक्कम';
+
+  @override
+  String get delDeliveryFee => 'डिलिव्हरी शुल्क';
+
+  @override
+  String get delTotalToSubmit => 'जमा करायची एकूण रक्कम';
+
+  @override
+  String get delAddNoteOptional => 'स्टोअरसाठी छोटी नोंद जोडा (ऐच्छिक).';
+
+  @override
+  String get delNoteHandedToCustomer => 'ग्राहकाकडे दिले';
+
+  @override
+  String get delNoteLeftAtDoor => 'दारात ठेवले';
+
+  @override
+  String get delNoteHandedToFamily => 'कुटुंबातील सदस्याकडे दिले';
+
+  @override
+  String get delNoteHandedToSecurity => 'सिक्युरिटी गार्डकडे दिले';
+
+  @override
+  String get delAnythingElseOptional => 'आणखी काही? (ऐच्छिक)';
+
+  @override
+  String get delMarkAsDelivered => 'डिलिव्हर झाले म्हणून नोंदवा';
+
+  @override
+  String get delNotYet => 'अजून नाही';
+
+  @override
+  String get delReasonHeavyTraffic => 'खूप ट्रॅफिक';
+
+  @override
+  String get delReasonVehicleIssue => 'वाहनात अडचण';
+
+  @override
+  String get delReasonBadWeather => 'खराब हवामान';
+
+  @override
+  String get delReasonOtherDeliveriesFirst => 'आधी इतर डिलिव्हरी';
+
+  @override
+  String get delReasonOther => 'इतर';
+
+  @override
+  String get delRunningLateTitle => 'डिलिव्हरीला उशीर होतोय?';
+
+  @override
+  String get delRunningLateSubtitle =>
+      'तुम्हाला किती उशीर होईल ते तुमच्या डिलिव्हरी मॅनेजरला सांगा. ते ग्राहकाला कळवू शकतात.';
+
+  @override
+  String get delHours => 'तास';
+
+  @override
+  String get delMinutes => 'मिनिटे';
+
+  @override
+  String get delAddDetailsOptional => 'तपशील जोडा (ऐच्छिक)';
+
+  @override
+  String delSendDelayWithDuration(String duration) {
+    return 'उशीर कळवा · $duration';
+  }
+
+  @override
+  String get delPickADelay => 'उशिराचा वेळ निवडा';
+
+  @override
+  String get delReasonCustomerNotReachable => 'ग्राहकाशी संपर्क होत नाही';
+
+  @override
+  String get delReasonCustomerNotAvailable => 'ग्राहक उपलब्ध नाही';
+
+  @override
+  String get delReasonWrongAddress => 'चुकीचा / अपूर्ण पत्ता';
+
+  @override
+  String get delReasonCustomerRefused => 'ग्राहकाने ऑर्डर नाकारली';
+
+  @override
+  String get delReasonFlatTyre => 'टायर पंक्चर';
+
+  @override
+  String get delReasonVehicleBreakdown => 'वाहन बंद पडले';
+
+  @override
+  String get delReasonHealthEmergency => 'आरोग्याची आपत्कालीन स्थिती';
+
+  @override
+  String get delReportAnEmergency => 'आपत्कालीन स्थिती कळवा';
+
+  @override
+  String get delDeliveryFailedQuestion => 'डिलिव्हरी अयशस्वी झाली?';
+
+  @override
+  String get delEmergencyWithParcelHint =>
+      'तुमच्या मॅनेजरला कळवले जाईल. पार्सल तुमच्याकडे असल्यास ते सोपवण्यासाठी स्टोअरशी संपर्क करा.';
+
+  @override
+  String get delEmergencyNoParcelHint =>
+      'तुम्ही पुढे का जाऊ शकत नाही ते तुमच्या मॅनेजरला सांगा, म्हणजे ते दुसरा रायडर नेमू शकतील.';
+
+  @override
+  String get delFailedDeliveryHint =>
+      'काय झाले ते स्टोअरला सांगा. मॅनेजर आणि ग्राहकाला कळवले जाईल.';
+
+  @override
+  String get delDescribeReason => 'कारण सांगा';
+
+  @override
+  String get delSubmitFailedDelivery => 'अयशस्वी डिलिव्हरी सबमिट करा';
+
+  @override
+  String get delInvalidPickupQr =>
+      'चुकीचा पिकअप QR. मॅनेजरच्या स्क्रीनवर दिसणारा कोड स्कॅन करा.';
+
+  @override
+  String get delScanPreOrderQrs => 'प्री-ऑर्डर QR स्कॅन करा';
+
+  @override
+  String get delScanPickupQr => 'पिकअप QR स्कॅन करा';
+
+  @override
+  String delUnlockedCount(String count) {
+    return '$count अनलॉक झाले';
+  }
+
+  @override
+  String get delCameraUnavailable => 'कॅमेरा उपलब्ध नाही';
+
+  @override
+  String get delUnableToStartCamera => 'कॅमेरा सुरू करता आला नाही.';
+
+  @override
+  String get delCameraPermissionNeeded => 'कॅमेऱ्याची परवानगी आवश्यक आहे';
+
+  @override
+  String get delAllowCameraToScanPickup =>
+      'मॅनेजरच्या स्क्रीनवरील पिकअप QR स्कॅन करण्यासाठी कॅमेऱ्याला परवानगी द्या.';
+
+  @override
+  String get delAllowCamera => 'कॅमेऱ्याला परवानगी द्या';
+
+  @override
+  String get delOpenAppSettings => 'ॲप सेटिंग्ज उघडा';
+
+  @override
+  String get delScannerNotReady => 'स्कॅनर तयार नाही';
+
+  @override
+  String get delCameraOpenError => 'कॅमेरा उघडताना काहीतरी चूक झाली.';
+
+  @override
+  String get delVerifyingPickup => 'पिकअप पडताळत आहे…';
+
+  @override
+  String get delScanEachBagHint =>
+      'प्रत्येक बॅगवरील QR एकेक करून स्कॅन करा. प्रत्येक स्कॅननंतर त्या ग्राहकाचा पत्ता दिसेल.';
+
+  @override
+  String get delAlignQrHint =>
+      'QR चौकटीच्या आत ठेवा. मॅनेजर तो \"Show Pickup QR\" मध्ये दाखवतात.';
+
+  @override
+  String delOrderNumberItems(String orderNumber, String count) {
+    return '#$orderNumber · $count वस्तू';
+  }
+
+  @override
+  String get delNoItemsInOrder => 'या ऑर्डरमध्ये कोणतीही वस्तू नाही';
+
+  @override
+  String get delItemFallback => 'वस्तू';
+
+  @override
+  String delQty(String qty) {
+    return 'प्रमाण: $qty';
+  }
+
+  @override
+  String delQtyWithUnit(String qty, String unit) {
+    return 'प्रमाण: $qty $unit';
+  }
+
+  @override
+  String get delCouldNotSendItemPhoto =>
+      'सामानाचा फोटो पाठवता आला नाही. पुन्हा प्रयत्न करा.';
+
+  @override
+  String get delItemProofHint =>
+      'पॅक केलेल्या सामानाचा स्पष्ट फोटो काढा. मॅनेजर पडताळणी करून ग्राहकाचा पत्ता उघडतील.';
+
+  @override
+  String get delTapToCaptureItemPhoto => 'सामानाचा फोटो काढण्यासाठी टॅप करा';
+
+  @override
+  String get delCouldNotUploadDeliveryPhoto =>
+      'डिलिव्हरी फोटो अपलोड करता आला नाही. पुन्हा प्रयत्न करा.';
+
+  @override
+  String get delDeliveryProofHint =>
+      'ग्राहकाच्या दारात / दिलेल्या पॅकेजचा फोटो काढा. मग पूर्ण करण्यासाठी ग्राहकाचा OTP टाका.';
+
+  @override
+  String get delTapToCaptureDeliveryPhoto =>
+      'डिलिव्हरी फोटो काढण्यासाठी टॅप करा';
+
+  @override
+  String get delUploadAndContinueToOtp => 'अपलोड करा आणि OTP वर जा';
+
+  @override
+  String get delCouldNotSendEmergency => 'आपत्कालीन अहवाल पाठवता आला नाही.';
+
+  @override
+  String get delOrderOffer => 'ऑर्डर ऑफर';
+
+  @override
+  String get delNewDeliveryOffer => 'नवीन डिलिव्हरी ऑफर';
+
+  @override
+  String delSecondsToRespond(String seconds) {
+    return 'उत्तर देण्यासाठी $seconds सेकंद';
+  }
+
+  @override
+  String get delCouldNotLoadAssignedOrders =>
+      'सोपवलेल्या ऑर्डर लोड करता आल्या नाहीत.';
+
+  @override
+  String get delAssignedOrders => 'सोपवलेल्या ऑर्डर';
+
+  @override
+  String delOrderAssignedCountOne(String count) {
+    return '$count ऑर्डर सोपवली';
+  }
+
+  @override
+  String delOrdersAssignedCount(String count) {
+    return '$count ऑर्डर सोपवल्या';
+  }
+
+  @override
+  String delDeliveredTodayAssignedByManager(String count) {
+    return 'आज $count डिलिव्हर झाल्या · तुमच्या डिलिव्हरी मॅनेजरने सोपवलेल्या';
+  }
+
+  @override
+  String get delStartDelivery => 'डिलिव्हरी सुरू करा';
+
+  @override
+  String get delNoOrdersAssignedHint =>
+      'सध्या कोणतीही ऑर्डर सोपवलेली नाही.\nमॅनेजरने ऑर्डर सोपवताच तुम्हाला सूचना मिळेल.';
+
+  @override
+  String get delDeliveredToday => 'आज डिलिव्हर झालेल्या';
+
+  @override
+  String get delReadyForPickup => 'पिकअपसाठी तयार';
+
+  @override
+  String get delPickupVerified => 'पिकअप पडताळला';
+
+  @override
+  String get delPreOrder => 'प्री-ऑर्डर';
+
+  @override
+  String get delAddressUnlocksAfterPickupVerification =>
+      'पिकअप पडताळणीनंतर ग्राहकाचा पत्ता उघडेल';
+
+  @override
+  String get delTurnOnLocationForTracking =>
+      'लाइव्ह ट्रॅकिंग शेअर करण्यासाठी लोकेशन सुरू करा';
+
+  @override
+  String get delLocationPermissionForTracking =>
+      'लाइव्ह ट्रॅकिंग शेअर करण्यासाठी लोकेशनची परवानगी आवश्यक आहे';
+
+  @override
+  String get delTrackingNotificationTitle => 'लाइव्ह लोकेशन शेअर होत आहे';
+
+  @override
+  String get delTrackingNotificationText =>
+      'ग्राहक नकाशावर तुमची डिलिव्हरी पाहू शकतात';
+
+  @override
+  String get delTrackingChannelName => 'लाइव्ह डिलिव्हरी ट्रॅकिंग';
+
+  @override
+  String ftDurationHours(String hours) {
+    return '$hours ता';
+  }
+
+  @override
+  String ftDurationMinutes(String minutes) {
+    return '$minutes मि';
+  }
+
+  @override
+  String get ftEveryDay => 'दररोज';
+
+  @override
+  String get ftPresent => 'हजर';
+
+  @override
+  String get ftAbsent => 'गैरहजर';
+
+  @override
+  String get ftOffDay => 'सुट्टीचा दिवस';
+
+  @override
+  String get ftNotRequired => 'आवश्यक नाही';
+
+  @override
+  String get ftRetry => 'पुन्हा प्रयत्न करा';
+
+  @override
+  String get ftRefresh => 'रिफ्रेश करा';
+
+  @override
+  String get ftSalaryLeavePolicy => 'पगार आणि रजा धोरण';
+
+  @override
+  String get ftMonthlySalary => 'मासिक पगार';
+
+  @override
+  String ftAmountPerMonth(String amount) {
+    return '$amount / महिना';
+  }
+
+  @override
+  String get ftLeaveDaysBeforeDeduction => 'कपातीपूर्वी रजेचे दिवस';
+
+  @override
+  String ftCountPerMonth(String count) {
+    return 'दरमहा $count';
+  }
+
+  @override
+  String get ftNoLeavePolicy => 'रजा धोरण नाही';
+
+  @override
+  String get ftExtraLeave => 'अतिरिक्त रजा';
+
+  @override
+  String ftAmountCutPerUnpaidLeave(String amount) {
+    return 'प्रत्येक बिनपगारी रजेसाठी $amount कपात';
+  }
+
+  @override
+  String get ftOneDaySalaryCutPerUnpaidLeave =>
+      'प्रत्येक बिनपगारी रजेसाठी 1 दिवसाचा पगार कपात';
+
+  @override
+  String get ftOfflineDuringShiftCountsAsLeave =>
+      'नियोजित शिफ्टमध्ये ऑनलाइन न आल्यास ती रजा मानली जाईल.';
+
+  @override
+  String get ftThisMonth => 'या महिन्यात';
+
+  @override
+  String get ftCredited => 'जमा झाले';
+
+  @override
+  String get ftBaseSalary => 'मूळ पगार';
+
+  @override
+  String get ftPresentDays => 'हजर दिवस';
+
+  @override
+  String ftPresentOfWorkingDays(String present, String total) {
+    return '$total कामाच्या दिवसांपैकी $present';
+  }
+
+  @override
+  String get ftLeavesTaken => 'घेतलेल्या रजा';
+
+  @override
+  String ftLeavesTakenBreakdown(String taken, String paid, String unpaid) {
+    return '$taken  (मर्यादेत $paid · अतिरिक्त $unpaid)';
+  }
+
+  @override
+  String get ftLeaveAllowanceLeft => 'शिल्लक रजा';
+
+  @override
+  String ftCountOfTotal(String count, String total) {
+    return '$total पैकी $count';
+  }
+
+  @override
+  String ftUnpaidLeaveCut(String days, String rate) {
+    return 'बिनपगारी रजा कपात ($days × $rate)';
+  }
+
+  @override
+  String get ftAbsentDays => 'गैरहजर दिवस';
+
+  @override
+  String get ftNetSalary => 'निव्वळ पगार';
+
+  @override
+  String get ftEstimatedNetSalary => 'अंदाजे निव्वळ पगार';
+
+  @override
+  String ftUpdatesDailyWorkingDaysLeft(String days) {
+    return 'दररोज अपडेट होते — या महिन्यात $days कामाचे दिवस शिल्लक.';
+  }
+
+  @override
+  String ftFailedToLoadRules(String code) {
+    return 'नियम लोड करता आले नाहीत ($code)';
+  }
+
+  @override
+  String get ftCouldNotConnectServer =>
+      'सर्व्हरशी कनेक्ट होऊ शकले नाही. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get ftFullTimeRulesPay => 'फुल-टाइम नियम आणि पगार';
+
+  @override
+  String get ftFullTimePartnerBadge => 'फुल-टाइम पार्टनर';
+
+  @override
+  String get ftFixedBaseSalary => 'निश्चित मूळ पगार';
+
+  @override
+  String get ftPerMonthSuffix => '/ महिना';
+
+  @override
+  String get ftDirectMonthlyPayout =>
+      'स्टोअरमधील दैनंदिन पडताळलेल्या हजेरीवर आधारित थेट मासिक पेमेंट';
+
+  @override
+  String get ftGeoRadius => 'लोकेशन परिघ';
+
+  @override
+  String ftMetersCompact(String meters) {
+    return '$meters मी';
+  }
+
+  @override
+  String ftMetersValue(String meters) {
+    return '$meters मी';
+  }
+
+  @override
+  String get ftStorePunchIn => 'स्टोअर पंच-इन';
+
+  @override
+  String get ftPaidLeaves => 'पगारी रजा';
+
+  @override
+  String ftDaysCount(String count) {
+    return '$count दिवस';
+  }
+
+  @override
+  String get ftStandard => 'सामान्य';
+
+  @override
+  String get ftPerMonthLabel => 'दरमहा';
+
+  @override
+  String get ftDispatch => 'डिस्पॅच';
+
+  @override
+  String get ftManager => 'मॅनेजर';
+
+  @override
+  String get ftDirectAssign => 'थेट नेमणूक';
+
+  @override
+  String get ftAssignedShift => 'नेमून दिलेली शिफ्ट';
+
+  @override
+  String get ftAssignedRosterTiming => 'नेमून दिलेले रोस्टर आणि वेळ';
+
+  @override
+  String get ftFixedShift => 'निश्चित शिफ्ट';
+
+  @override
+  String ftWorkingDaysList(String days) {
+    return 'कामाचे दिवस: $days';
+  }
+
+  @override
+  String get ftCurrentMonthPayroll => 'चालू महिन्याचा पगार तपशील';
+
+  @override
+  String get ftCreditedBadge => 'जमा झाले';
+
+  @override
+  String get ftInProgressBadge => 'प्रगतीपथावर';
+
+  @override
+  String get ftCurrentCycle => 'चालू चक्र';
+
+  @override
+  String get ftBaseMonthlySalary => 'मूळ मासिक पगार';
+
+  @override
+  String get ftPresentDaysTitle => 'हजर दिवस';
+
+  @override
+  String ftPresentOfDays(String present, String total) {
+    return '$total पैकी $present दिवस';
+  }
+
+  @override
+  String get ftLeavesTakenTitle => 'घेतलेल्या रजा';
+
+  @override
+  String ftLeavesTakenDaysBreakdown(String taken, String paid, String unpaid) {
+    return '$taken दिवस ($paid पगारी · $unpaid अतिरिक्त)';
+  }
+
+  @override
+  String get ftRemainingPaidLeaves => 'शिल्लक पगारी रजा';
+
+  @override
+  String ftCountOfTotalLeft(String count, String total) {
+    return '$total पैकी $count शिल्लक';
+  }
+
+  @override
+  String ftLeaveDeductionCalc(String days, String rate) {
+    return 'रजा कपात ($days × $rate)';
+  }
+
+  @override
+  String get ftUnexcusedAbsentDays => 'परवानगीशिवाय गैरहजर दिवस';
+
+  @override
+  String get ftFinalCreditedAmount => 'अंतिम जमा रक्कम';
+
+  @override
+  String get ftEstimatedNetPayout => 'अंदाजे निव्वळ पेमेंट';
+
+  @override
+  String ftUpdatedDailyShiftsLeft(String count) {
+    return '• दररोज अपडेट होते. या महिन्यात $count नियोजित शिफ्ट्स शिल्लक.';
+  }
+
+  @override
+  String get ftDailyAttendanceGeofencing => 'दैनंदिन हजेरी आणि जिओफेन्सिंग';
+
+  @override
+  String get ftDarkStoreGeofenceCheck => 'डार्क स्टोअर जिओफेन्स तपासणी';
+
+  @override
+  String ftGeofenceCheckDesc(String meters) {
+    return 'हजेरी पंच करण्यासाठी तुम्ही नेमून दिलेल्या डार्क स्टोअरपासून $meters मीटरच्या आत प्रत्यक्ष उपस्थित असणे आवश्यक आहे.';
+  }
+
+  @override
+  String get ftGpsLocationVerification => 'GPS लोकेशन पडताळणी';
+
+  @override
+  String get ftGpsVerificationDesc =>
+      'तुम्ही शिफ्टसाठी ऑनलाइन होताच डिव्हाइसचे अचूक लोकेशन आपोआप पडताळले जाते.';
+
+  @override
+  String get ftAutoCheckInOnline => 'ऑनलाइन होताच ऑटो चेक-इन';
+
+  @override
+  String get ftAutoCheckInDesc =>
+      'स्टोअरवर नियोजित शिफ्टच्या वेळेत ऑनलाइन होताच हजेरी लगेच नोंदवली जाते.';
+
+  @override
+  String get ftStoreAttendanceGuideline => 'स्टोअर हजेरी मार्गदर्शक सूचना';
+
+  @override
+  String get ftLeaveTermsAbsencePolicy => 'रजेच्या अटी आणि गैरहजेरी धोरण';
+
+  @override
+  String get ftPaidLeaveAllowance => 'पगारी रजा मर्यादा';
+
+  @override
+  String get ftLeavePolicy => 'रजा धोरण';
+
+  @override
+  String ftPaidLeaveEntitlementDesc(String count) {
+    return 'तुम्हाला प्रत्येक कॅलेंडर महिन्यात पगारात कोणतीही कपात न होता $count पगारी रजा मिळतात.';
+  }
+
+  @override
+  String get ftLeavesNeedApprovalDesc =>
+      'रजा तुमच्या स्टोअर मॅनेजरकडून आधीच मंजूर करून घ्यावी लागते.';
+
+  @override
+  String get ftUnpaidAbsenceDeductions => 'बिनपगारी गैरहजेरी कपात';
+
+  @override
+  String ftAmountDeductedPerLeaveDay(String amount) {
+    return 'प्रत्येक मंजुरी नसलेल्या किंवा अतिरिक्त रजेच्या दिवसासाठी $amount कपात होते.';
+  }
+
+  @override
+  String get ftProratedSalaryDeductedDesc =>
+      'मासिक मर्यादेपेक्षा जास्त प्रत्येक दिवसासाठी 1 दिवसाचा प्रमाणशीर पगार कपात होतो.';
+
+  @override
+  String get ftUnapprovedAbsenceDeductedDesc =>
+      'मंजुरीशिवाय गैरहजेरी तुमच्या मासिक हिशोबातून कापली जाईल.';
+
+  @override
+  String get ftShiftAttendanceRule => 'शिफ्ट हजेरी नियम';
+
+  @override
+  String get ftShiftAttendanceRuleDesc =>
+      'आधी मंजुरी घेतली नसल्यास नियोजित शिफ्टमध्ये ऑनलाइन न येणे गैरहजेरी म्हणून नोंदवले जाते.';
+
+  @override
+  String get ftOrderDispatchAssignment => 'ऑर्डर डिस्पॅच आणि नेमणूक';
+
+  @override
+  String get ftDedicatedManagerDispatch => 'स्वतंत्र स्टोअर मॅनेजर डिस्पॅच';
+
+  @override
+  String get ftManualAssignmentDesc =>
+      'ऑर्डर आणि प्री-ऑर्डर तुमचा स्टोअर मॅनेजर थेट तुम्हाला देतो. तुम्हाला उपलब्ध ऑर्डर शोधण्याची गरज नाही.';
+
+  @override
+  String ftAssignmentModeValue(String mode) {
+    return 'नेमणूक मोड: $mode';
+  }
+
+  @override
+  String get ftStoreOperationalGuidelines => 'स्टोअर कामकाज मार्गदर्शक सूचना';
+
+  @override
+  String get ftStoreRule => 'स्टोअर नियम';
+
+  @override
+  String get ftNeedAssistanceRulesPay => 'नियम किंवा पगाराबाबत मदत हवी आहे?';
+
+  @override
+  String ftReachOutStoreManagerAt(String store) {
+    return '$store येथील तुमच्या स्टोअर मॅनेजरशी संपर्क साधा.';
+  }
+
+  @override
+  String get ftSpeakWithStoreManager =>
+      'कोणत्याही चौकशीसाठी तुमच्या स्टोअर मॅनेजरशी बोला.';
+
+  @override
+  String get ftCouldNotLoadAttendanceRetry =>
+      'हजेरी लोड करता आली नाही. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String ftMarkedAt(String time) {
+    return '$time वाजता नोंदवली';
+  }
+
+  @override
+  String ftMetersFromStore(String meters) {
+    return 'स्टोअरपासून $meters मी';
+  }
+
+  @override
+  String ftLateAfterCheckIn(String duration) {
+    return 'चेक-इन वेळेनंतर $duration';
+  }
+
+  @override
+  String get ftTodayNotWorkingDay => 'आज कामाचा दिवस नाही.';
+
+  @override
+  String get ftAttendanceNotRequired => 'तुमच्या शिफ्टसाठी हजेरी आवश्यक नाही.';
+
+  @override
+  String get ftNoAttendanceRecorded => 'या दिवसाची हजेरी नोंदवली गेली नाही.';
+
+  @override
+  String ftAttendanceAutoWithinRadius(String meters) {
+    return 'डार्क स्टोअरपासून $meters मीटरच्या आत ऑनलाइन झाल्यावर हजेरी आपोआप नोंदवली जाते.';
+  }
+
+  @override
+  String get ftAttendanceAuto => 'ऑनलाइन झाल्यावर हजेरी आपोआप नोंदवली जाते.';
+
+  @override
+  String get ftTodaysAttendance => 'आजची हजेरी';
+
+  @override
+  String get ftCheckIn => 'चेक-इन';
+
+  @override
+  String get ftStoreRadius => 'स्टोअर परिघ';
+
+  @override
+  String get ftFromStore => 'स्टोअरपासून अंतर';
+
+  @override
+  String get ftLateBy => 'उशीर';
+
+  @override
+  String get ftOnTime => 'वेळेवर';
+
+  @override
+  String get ftWorkRules => 'कामाचे नियम';
+
+  @override
+  String get ftDarkStore => 'डार्क स्टोअर';
+
+  @override
+  String get ftLocation => 'लोकेशन';
+
+  @override
+  String ftWithinMetersOfStore(String meters) {
+    return 'स्टोअरपासून $meters मी आत';
+  }
+
+  @override
+  String ftDaysPresent(String count) {
+    return '$count दिवस हजर';
+  }
+
+  @override
+  String get ftThisMonthLower => 'या महिन्यात';
+
+  @override
+  String get ftMonthlyAttendanceSummary => 'मासिक हजेरी सारांश';
+
+  @override
+  String get ftLeave => 'रजा';
+
+  @override
+  String get ftRemaining => 'शिल्लक';
+
+  @override
+  String get ftLate => 'उशिरा';
+
+  @override
+  String get ftOffDayLegend => 'सुट्टीचा दिवस';
+
+  @override
+  String get ftCouldNotLoadPerformance =>
+      'परफॉर्मन्स लोड करता आला नाही. पुन्हा प्रयत्नासाठी खाली ओढा.';
+
+  @override
+  String get ftKeyRates => 'मुख्य दर';
+
+  @override
+  String get ftSinceVerification => 'पडताळणीपासून';
+
+  @override
+  String get ftDeclineRate => 'नाकारण्याचा दर';
+
+  @override
+  String get ftOrderOffers => 'ऑर्डर ऑफर';
+
+  @override
+  String get ftHowYouRespondedOffers => 'तुम्ही ऑफरला कसा प्रतिसाद दिला';
+
+  @override
+  String get ftNoOrderOffersYet =>
+      'अजून कोणतीही ऑर्डर ऑफर नाही. ऑर्डर मिळवण्यासाठी ऑनलाइन व्हा.';
+
+  @override
+  String get ftOffersLower => 'ऑफर';
+
+  @override
+  String get ftAccepted => 'स्वीकारल्या';
+
+  @override
+  String get ftDeclined => 'नाकारल्या';
+
+  @override
+  String get ftMissed => 'चुकलेल्या';
+
+  @override
+  String get ftTripOutcomes => 'ट्रिपचे निकाल';
+
+  @override
+  String get ftDeliveredVsCancelledVsFailed =>
+      'डिलिव्हर विरुद्ध रद्द विरुद्ध अयशस्वी';
+
+  @override
+  String get ftTripOutcomesEmpty =>
+      'तुमच्या पहिल्या डिलिव्हरीनंतर ट्रिपचे निकाल येथे दिसतील.';
+
+  @override
+  String get ftCancelled => 'रद्द';
+
+  @override
+  String get ftOnTimeDeliveries => 'वेळेवर डिलिव्हरी';
+
+  @override
+  String get ftDeliveredWithin60Min => 'नेमणुकीनंतर 60 मिनिटांच्या आत डिलिव्हर';
+
+  @override
+  String get ftTripsDelivered => 'डिलिव्हर केलेल्या ट्रिप्स';
+
+  @override
+  String get ftOffersReceived => 'मिळालेल्या ऑफर';
+
+  @override
+  String get ftCancellationRate => 'रद्द करण्याचा दर';
+
+  @override
+  String get ftMissedOffers => 'चुकलेल्या ऑफर';
+
+  @override
+  String get ftRatingsAppearAfter =>
+      'ग्राहकांनी तुमच्या डिलिव्हरीला रेटिंग दिल्यानंतर रेटिंग दिसेल.';
+
+  @override
+  String get ftBasedOnDeliveriesSinceVerification =>
+      'पडताळणीनंतरच्या तुमच्या डिलिव्हरीवर आधारित.';
+
+  @override
+  String ftRatingCountOne(String count) {
+    return '$count रेटिंग';
+  }
+
+  @override
+  String ftSinceDate(String date) {
+    return '$date पासून';
+  }
+
+  @override
+  String get ftNoRatingsYet => 'अजून रेटिंग नाही';
+
+  @override
+  String get ftNoDataYet => 'अजून डेटा नाही';
+
+  @override
+  String get ftNotEnoughTrendData => 'ट्रेंडसाठी अजून पुरेसा डेटा नाही';
+
+  @override
+  String get ftCouldNotLoadAttendancePull =>
+      'हजेरी लोड करता आली नाही. पुन्हा प्रयत्नासाठी खाली ओढा.';
+
+  @override
+  String get ftOnlineTime => 'ऑनलाइन वेळ';
+
+  @override
+  String get ftTotalTrips => 'एकूण ट्रिप्स';
+
+  @override
+  String get ftShiftsBooked => 'बुक केलेल्या शिफ्ट्स';
+
+  @override
+  String get ftTodaysProgress => 'आजची प्रगती';
+
+  @override
+  String get ftOnlineHours => 'ऑनलाइन तास';
+
+  @override
+  String get ftActiveDays => 'सक्रिय दिवस';
+
+  @override
+  String get ftShiftsCompleted => 'पूर्ण झालेल्या शिफ्ट्स';
+
+  @override
+  String get ftTripsPerDay => 'दररोजच्या ट्रिप्स';
+
+  @override
+  String get ftOnlineHoursPerDay => 'दररोजचे ऑनलाइन तास';
+
+  @override
+  String get ftTapBarForDetails => 'दिवसाचा तपशील पाहण्यासाठी बारवर टॅप करा';
+
+  @override
+  String get ftNoActivityThisWeek =>
+      'या आठवड्यात कोणतीही ॲक्टिव्हिटी नोंदवली नाही';
+
+  @override
+  String ftTripCountOne(String count) {
+    return '$count ट्रिप';
+  }
+
+  @override
+  String ftTripCountMany(String count) {
+    return '$count ट्रिप्स';
+  }
+
+  @override
+  String get ftWeekCalendar => 'आठवड्याचे कॅलेंडर';
+
+  @override
+  String get ftTapDayForDetails =>
+      'ऑनलाइन वेळ आणि ट्रिप्स पाहण्यासाठी दिवसावर टॅप करा';
+
+  @override
+  String get ftNoDaysYet => 'दाखवण्यासाठी अजून दिवस नाहीत.';
+
+  @override
+  String get ftNoActivity => 'ॲक्टिव्हिटी नाही';
+
+  @override
+  String get ftHours => 'तास';
+
+  @override
+  String get ftAvgPerOrder => 'सरासरी / ऑर्डर';
+
+  @override
+  String get ftEarningPerKm => 'प्रति किमी कमाई';
+
+  @override
+  String ftAvgPerActiveDay(String amount) {
+    return '$amount सरासरी / सक्रिय दिवस';
+  }
+
+  @override
+  String get ftNoEarningsYetLower => 'अजून कमाई नाही';
+
+  @override
+  String get ftWeeklyEarningsUnavailable => 'साप्ताहिक कमाई सध्या उपलब्ध नाही';
+
+  @override
+  String get ftTodaysEarningsTimeline => 'आजच्या कमाईची टाइमलाइन';
+
+  @override
+  String get ftCumulativeEarningsDesc => 'प्रत्येक डिलिव्हरीनंतरची एकूण कमाई';
+
+  @override
+  String ftAmountTotal(String amount) {
+    return 'एकूण $amount';
+  }
+
+  @override
+  String ftOrderCountOne(String count) {
+    return '$count ऑर्डर';
+  }
+
+  @override
+  String ftOrderCountMany(String count) {
+    return '$count ऑर्डर्स';
+  }
+
+  @override
+  String get ftGigsNoBookingNeeded =>
+      'गिगसाठी बुकिंगची गरज नाही. गिग सुरू असताना ऑनलाइन व्हा, तुम्ही आपोआप सामील व्हाल.';
+
+  @override
+  String get ftAddAtLeastOneLeaveDate => 'किमान एक रजेची तारीख जोडा';
+
+  @override
+  String get ftReasonRequired => 'कारण आवश्यक आहे';
+
+  @override
+  String get ftLeaveRequestSubmitted => 'रजेची विनंती पाठवली';
+
+  @override
+  String get ftCasualLeave => 'किरकोळ रजा';
+
+  @override
+  String get ftSickLeave => 'आजारपणाची रजा';
+
+  @override
+  String get ftEarnedLeave => 'अर्जित रजा';
+
+  @override
+  String get ftUnpaidLeave => 'बिनपगारी रजा';
+
+  @override
+  String ftLeaveTypeGeneric(String type) {
+    return '$type रजा';
+  }
+
+  @override
+  String get ftApproved => 'मंजूर';
+
+  @override
+  String get ftRejected => 'नाकारली';
+
+  @override
+  String get ftApplyLeave => 'रजेसाठी अर्ज';
+
+  @override
+  String get ftApplyLeaveSubtitle => 'एक किंवा अधिक तारखांसाठी रजा मागा';
+
+  @override
+  String get ftTypeOfLeave => 'रजेचा प्रकार';
+
+  @override
+  String get ftLeaveTypeCasual => 'किरकोळ';
+
+  @override
+  String get ftLeaveTypeSick => 'आजारपण';
+
+  @override
+  String get ftLeaveTypeEarned => 'अर्जित';
+
+  @override
+  String get ftLeaveTypeUnpaid => 'बिनपगारी';
+
+  @override
+  String get ftReason => 'कारण';
+
+  @override
+  String get ftReasonHint => 'तुम्हाला रजा का हवी आहे?';
+
+  @override
+  String get ftLeaveDates => 'रजेच्या तारखा';
+
+  @override
+  String get ftLeaveDatesHint =>
+      'एक किंवा अधिक तारखा जोडा. सलग नसलेले दिवसही निवडता येतात.';
+
+  @override
+  String get ftAddDate => 'तारीख जोडा';
+
+  @override
+  String get ftSubmitting => 'पाठवत आहे…';
+
+  @override
+  String get ftSubmitLeaveRequest => 'रजेची विनंती पाठवा';
+
+  @override
+  String get ftMyLeaveRequests => 'माझ्या रजेच्या विनंत्या';
+
+  @override
+  String get ftNoLeaveRequestsYet => 'अजून रजेची विनंती नाही.';
+
+  @override
+  String ftAdminNote(String note) {
+    return 'ॲडमिन टीप: $note';
+  }
+
+  @override
+  String get ftCouldNotSubmitLeave => 'रजेची विनंती पाठवता आली नाही';
+
+  @override
+  String ftRequestFailed(String code) {
+    return 'विनंती अयशस्वी ($code)';
+  }
+
+  @override
+  String get ftCouldNotMarkAttendance => 'हजेरी नोंदवता आली नाही';
+
+  @override
+  String ftKmRange(String min, String max) {
+    return '$min – $max किमी';
+  }
+
+  @override
+  String get pkStatusReadyForPickup => 'पिकअपसाठी तयार';
+
+  @override
+  String get pkStatusOnTheWayToFarm => 'शेताकडे रवाना';
+
+  @override
+  String get pkStatusReachedFarm => 'शेतावर पोहोचलो';
+
+  @override
+  String get pkStatusOrderChecked => 'ऑर्डर तपासला';
+
+  @override
+  String get pkStatusQrVerified => 'QR पडताळला';
+
+  @override
+  String get pkStatusPickupConfirmed => 'पिकअप निश्चित झाले';
+
+  @override
+  String get pkStatusOnTheWayToCentre => 'केंद्राकडे रवाना';
+
+  @override
+  String get pkStatusAtCollectionCentre => 'संकलन केंद्रावर';
+
+  @override
+  String get pkStatusReceived => 'प्राप्त झाले';
+
+  @override
+  String get pkStepAcceptOrReject => 'स्वीकारा किंवा नाकारा';
+
+  @override
+  String get pkHintOpenToAcceptOrReject =>
+      'स्वीकारण्यासाठी किंवा नाकारण्यासाठी पिकअप उघडा';
+
+  @override
+  String get pkStepLeftForPickup => 'पिकअपसाठी निघालो';
+
+  @override
+  String pkHintStatusWillBecome(String status) {
+    return 'स्थिती बदलून $status होईल';
+  }
+
+  @override
+  String get pkStepCheckOrder => 'ऑर्डर तपासा';
+
+  @override
+  String get pkHintOpenToVerifyOrder => 'ऑर्डर तपासण्यासाठी पिकअप उघडा';
+
+  @override
+  String get pkStepScanFarmerQr => 'शेतकऱ्याचा QR स्कॅन करा';
+
+  @override
+  String get pkHintOpenToScanQr => 'QR स्कॅन करण्यासाठी पिकअप उघडा';
+
+  @override
+  String get pkStepConfirmPickup => 'पिकअप निश्चित करा';
+
+  @override
+  String get pkHintOpenToConfirmWithPhoto =>
+      'फोटोसह निश्चित करण्यासाठी पिकअप उघडा';
+
+  @override
+  String get pkStepReachedCollectionCentre => 'संकलन केंद्रावर पोहोचलो';
+
+  @override
+  String get pkUnitKg => 'किलो';
+
+  @override
+  String get pkUnitGram => 'ग्रॅम';
+
+  @override
+  String get pkUnitQuintal => 'क्विंटल';
+
+  @override
+  String get pkUnitTon => 'टन';
+
+  @override
+  String get pkUnitCrate => 'क्रेट';
+
+  @override
+  String get pkUnitBox => 'बॉक्स';
+
+  @override
+  String get pkUnitBag => 'पोते';
+
+  @override
+  String get pkUnitPiece => 'नग';
+
+  @override
+  String get pkUnitDozen => 'डझन';
+
+  @override
+  String get pkUnitBunch => 'जुडी';
+
+  @override
+  String pkGradeValue(String grade) {
+    return 'ग्रेड $grade';
+  }
+
+  @override
+  String get pkProduce => 'शेतमाल';
+
+  @override
+  String pkOrdersCount(String count) {
+    return '$count ऑर्डर';
+  }
+
+  @override
+  String get pkDriver => 'ड्रायव्हर';
+
+  @override
+  String get pkLoginFailed => 'लॉगिन अयशस्वी झाले';
+
+  @override
+  String get pkSessionExpired => 'सेशन संपले';
+
+  @override
+  String pkRequestFailed(String code) {
+    return 'विनंती अयशस्वी ($code)';
+  }
+
+  @override
+  String get pkNewPickupAssigned => 'नवीन पिकअप नियुक्त केले';
+
+  @override
+  String pkCopiedValue(String value) {
+    return '$value कॉपी केले';
+  }
+
+  @override
+  String get pkTotal => 'एकूण';
+
+  @override
+  String get pkClose => 'बंद करा';
+
+  @override
+  String get pkNoQr => 'QR उपलब्ध नाही';
+
+  @override
+  String get pkOrderQr => 'ऑर्डर QR';
+
+  @override
+  String get pkScanToViewOrderDetails => 'ऑर्डरचा तपशील पाहण्यासाठी स्कॅन करा';
+
+  @override
+  String get pkBatchQr => 'बॅच QR';
+
+  @override
+  String get pkScanToViewBatchDetails =>
+      'बॅचचा संपूर्ण तपशील पाहण्यासाठी स्कॅन करा';
+
+  @override
+  String get pkTotalWeightOrdered => 'एकूण वजन (ऑर्डर केलेले)';
+
+  @override
+  String get pkPackedWeight => 'पॅक केलेले वजन';
+
+  @override
+  String get pkPackages => 'पॅकेज';
+
+  @override
+  String get pkOrderValue => 'ऑर्डर मूल्य';
+
+  @override
+  String get pkPickups => 'पिकअप';
+
+  @override
+  String get pkLeave => 'रजा';
+
+  @override
+  String get pkJustNow => 'आत्ताच';
+
+  @override
+  String pkMinutesAgo(String minutes) {
+    return '$minutes मिनिटांपूर्वी';
+  }
+
+  @override
+  String pkHoursAgo(String hours) {
+    return '$hours तासांपूर्वी';
+  }
+
+  @override
+  String get pkNotificationsEmpty =>
+      'अद्याप कोणतीही सूचना नाही.\nतुमच्या व्हेंडरने नियुक्त केलेले नवीन पिकअप येथे दिसतील.';
+
+  @override
+  String get pksRejectPickupTitle => 'हा पिकअप नाकारायचा?';
+
+  @override
+  String get pksRejectPickupBody =>
+      'दुसरा ड्रायव्हर नेमण्यासाठी हा व्हेंडरकडे परत जाईल.';
+
+  @override
+  String get pksReasonOptional => 'कारण (पर्यायी)';
+
+  @override
+  String get pksPickupRejectedSent =>
+      'पिकअप नाकारला आणि व्हेंडरकडे परत पाठवला.';
+
+  @override
+  String get pksPickupAccepted => 'पिकअप स्वीकारला.';
+
+  @override
+  String get pksPickupAcceptedHint =>
+      'पिकअप स्वीकारला. निघताना \"पिकअपसाठी निघालो\" वर टॅप करा.';
+
+  @override
+  String get pksLeftForPickup => 'पिकअपसाठी निघालात.';
+
+  @override
+  String get pksLeftForPickupOnTheWay => 'पिकअपसाठी निघालो — वाटेत';
+
+  @override
+  String get pksLeftForPickupStatus =>
+      'पिकअपसाठी निघालात. स्थिती: शेताकडे वाटेत.';
+
+  @override
+  String get pksReachedFarmDone => 'शेतावर पोहोचलात.';
+
+  @override
+  String get pksReachedFarmButton => 'शेतावर पोहोचलो';
+
+  @override
+  String get pksOrderChecked => 'ऑर्डर तपासला.';
+
+  @override
+  String get pksQrVerifiedSuccess => 'QR यशस्वीरित्या पडताळला';
+
+  @override
+  String get pksQrVerifiedCheckItems => 'QR पडताळला — आयटम तपासा';
+
+  @override
+  String get pksMatchItemsBeforeConfirm =>
+      'पुष्टी करण्यापूर्वी शेतकऱ्यासोबत प्रत्येक आयटम, ग्रेड आणि वजन जुळवा.';
+
+  @override
+  String get pksItemsMatchConfirm => 'आयटम जुळतात — पिकअपची पुष्टी करा';
+
+  @override
+  String get pksLater => 'नंतर';
+
+  @override
+  String get pksPickupConfirmedStatus =>
+      'पिकअपची पुष्टी झाली. स्थिती: पिकअप झाला.';
+
+  @override
+  String get pksCouldNotOpenDialer => 'डायलर उघडता आला नाही';
+
+  @override
+  String get pksCouldNotOpenMap => 'नकाशा उघडता आला नाही';
+
+  @override
+  String pksOrderTitle(String id) {
+    return 'ऑर्डर $id';
+  }
+
+  @override
+  String get pksNewPickupAssignedToYou => 'तुम्हाला नवीन पिकअप दिला आहे';
+
+  @override
+  String get pksAcceptOrRejectHint =>
+      'खालील तपशील आणि आयटम तपासा, नंतर हा पिकअप सुरू करण्यासाठी स्वीकारा किंवा व्हेंडरकडे परत पाठवण्यासाठी नाकारा.';
+
+  @override
+  String get pksYourCurrentStatus => 'तुमची सध्याची स्थिती';
+
+  @override
+  String pksNextStep(String step) {
+    return 'पुढे: $step';
+  }
+
+  @override
+  String get pksUpdateStepHint =>
+      'खालील टप्पा अपडेट करा, म्हणजे शेतकरी, मॅनेजर आणि व्हेंडरला तुम्ही काय करत आहात ते दिसेल.';
+
+  @override
+  String get pksLotBatchId => 'लॉट / बॅच ID';
+
+  @override
+  String get pksShowBatchQr => 'बॅच QR दाखवा';
+
+  @override
+  String get pksShowOrderQr => 'ऑर्डर QR दाखवा';
+
+  @override
+  String get pksPickupProgress => 'पिकअपची प्रगती';
+
+  @override
+  String get pksPickupDetails => 'पिकअप तपशील';
+
+  @override
+  String get pksOrderId => 'ऑर्डर ID';
+
+  @override
+  String get pksFarmerName => 'शेतकऱ्याचे नाव';
+
+  @override
+  String get pksFarmerLocation => 'शेतकऱ्याचे ठिकाण';
+
+  @override
+  String get pksProduct => 'उत्पादन';
+
+  @override
+  String get pksQuantity => 'प्रमाण';
+
+  @override
+  String get pksPackageCount => 'पॅकेज संख्या';
+
+  @override
+  String get pksPickupDateTime => 'पिकअप तारीख/वेळ';
+
+  @override
+  String get pksPickupInstructions => 'पिकअप सूचना';
+
+  @override
+  String get pksDefaultPickupInstructions =>
+      'शेतात प्रवेश आणि पॅकिंगच्या सूचनांचे पालन करा.';
+
+  @override
+  String get pksCallFarmer => 'शेतकऱ्याला कॉल करा';
+
+  @override
+  String get pksViewLocation => 'ठिकाण पहा';
+
+  @override
+  String get pksItemsToCollect => 'गोळा करायचे आयटम';
+
+  @override
+  String get pksCheckItemsThenScan =>
+      'शेतकऱ्यासोबत प्रत्येक आयटम, ग्रेड आणि वजन तपासा, नंतर शेतकरी QR स्कॅन करा.';
+
+  @override
+  String get pksDriverArrivedAtPickup =>
+      'ड्रायव्हर पिकअपच्या ठिकाणी पोहोचला आहे.';
+
+  @override
+  String get pksOrderVerification => 'ऑर्डर पडताळणी';
+
+  @override
+  String get pksProductName => 'उत्पादनाचे नाव';
+
+  @override
+  String get pksVariety => 'वाण';
+
+  @override
+  String get pksGrade => 'ग्रेड';
+
+  @override
+  String get pksOrderedQuantity => 'ऑर्डर केलेले प्रमाण';
+
+  @override
+  String get pksPackedQuantity => 'पॅक केलेले प्रमाण';
+
+  @override
+  String get pksPickupLocation => 'पिकअपचे ठिकाण';
+
+  @override
+  String get pksCheckOrder => 'ऑर्डर तपासा';
+
+  @override
+  String get pksOrderCheckedScanNext =>
+      'ऑर्डर तपासला. आता शेतकरी QR स्कॅन करा.';
+
+  @override
+  String get pksScanFarmerQr => 'शेतकरी QR स्कॅन करा';
+
+  @override
+  String get pksScanQrToVerifyOrder =>
+      'हा ऑर्डर पडताळण्यासाठी शेतकऱ्याने दाखवलेला QR स्कॅन करा.';
+
+  @override
+  String get pksAtFarmScanHint =>
+      'शेतावर आहात? शेतकरी QR स्कॅन केल्यावर एकाच टप्प्यात तुम्ही पोहोचल्याची नोंद होईल, ऑर्डर तपासला जाईल आणि QR पडताळला जाईल.';
+
+  @override
+  String get pksOpenCameraAndScan => 'कॅमेरा उघडा आणि स्कॅन करा';
+
+  @override
+  String get pksOrPasteFarmerQr =>
+      'किंवा स्कॅन केलेले शेतकरी QR मूल्य पेस्ट करा:';
+
+  @override
+  String get pksPasteFarmerQr => 'शेतकरी QR पेस्ट करा';
+
+  @override
+  String get pksVerify => 'पडताळा';
+
+  @override
+  String get pksOrderSummary => 'ऑर्डर सारांश';
+
+  @override
+  String get pksFarmer => 'शेतकरी';
+
+  @override
+  String get pksDriver => 'ड्रायव्हर';
+
+  @override
+  String get pksVehicleNumber => 'वाहन क्रमांक';
+
+  @override
+  String get pksConfirmOrderPickup => 'ऑर्डर पिकअपची पुष्टी करा';
+
+  @override
+  String get pksPickupConfirmedFromFarmer =>
+      'शेतकऱ्याकडून पिकअपची पुष्टी झाली.';
+
+  @override
+  String get pksOnTheWayToCentre => 'सेंटरकडे वाटेत';
+
+  @override
+  String get pksOnTheWayToCentreDone => 'सेंटरकडे वाटेत.';
+
+  @override
+  String get pksReachedCollectionCentre => 'कलेक्शन सेंटरला पोहोचलो';
+
+  @override
+  String get pksAtCollectionCentre => 'कलेक्शन सेंटरवर पोहोचलात.';
+
+  @override
+  String get pksWaitingForCentreReceiving =>
+      'कलेक्शन सेंटरवर आहात. सेंटरकडून माल स्वीकारण्याची प्रतीक्षा आहे.';
+
+  @override
+  String get pksReceivedAtCentre => 'कलेक्शन सेंटरवर स्वीकारला.';
+
+  @override
+  String pksCopiedValue(String value) {
+    return '$value कॉपी केले';
+  }
+
+  @override
+  String get pksPhotoTooLarge => 'फोटो खूप मोठा आहे. पुन्हा प्रयत्न करा.';
+
+  @override
+  String pksCouldNotGetPhoto(String error) {
+    return 'फोटो मिळाला नाही: $error';
+  }
+
+  @override
+  String get pksConfirmPickup => 'पिकअपची पुष्टी करा';
+
+  @override
+  String get pksConfirmReceivedQuestion =>
+      'हा ऑर्डर शेतकऱ्याकडून मिळाल्याची पुष्टी करायची?';
+
+  @override
+  String pksPickupPhotosCount(String count, String max) {
+    return 'पिकअप फोटो ($count/$max)';
+  }
+
+  @override
+  String get pksTakeLivePhotoHint =>
+      'मालाचा लाइव्ह फोटो घ्या (किमान 1, जास्तीत जास्त 4).';
+
+  @override
+  String get pksGallery => 'गॅलरी';
+
+  @override
+  String get pksPickupOrders => 'पिकअप ऑर्डर';
+
+  @override
+  String get pksAssignedSubtitle => 'शेताकडे निघताना स्थिती अपडेट करा.';
+
+  @override
+  String get pksNoAssignedPickups => 'दिलेले कोणतेही पिकअप नाहीत.';
+
+  @override
+  String get pksProgressSubtitle =>
+      'वाटेत, शेतावर, पुष्टी करत असलेले किंवा सेंटरकडे परतणारे.';
+
+  @override
+  String get pksNoPickupsInProgress => 'प्रगतीत कोणतेही पिकअप नाहीत.';
+
+  @override
+  String get pksCompletedSubtitle => 'कलेक्शन सेंटरवर स्वीकारलेले.';
+
+  @override
+  String get pksNoCompletedPickups => 'पूर्ण झालेले कोणतेही पिकअप नाहीत.';
+
+  @override
+  String get pksHistorySubtitle => 'कलेक्शन सेंटरवर पूर्ण झालेले पिकअप.';
+
+  @override
+  String get pksNoPickupHistory => 'अद्याप पिकअप इतिहास नाही.';
+
+  @override
+  String pksPackagesCount(String count) {
+    return '$count पॅकेज';
+  }
+
+  @override
+  String get pksShowQr => 'QR दाखवा';
+
+  @override
+  String pksOrdersInBatchOne(String count) {
+    return 'या बॅचमध्ये $count ऑर्डर';
+  }
+
+  @override
+  String pksOrdersInBatchMany(String count) {
+    return 'या बॅचमध्ये $count ऑर्डर';
+  }
+
+  @override
+  String get pksDriverId => 'ड्रायव्हर ID';
+
+  @override
+  String get pksVehicleId => 'वाहन ID';
+
+  @override
+  String get pksBatchDetails => 'बॅच तपशील';
+
+  @override
+  String get pksOverview => 'आढावा';
+
+  @override
+  String get pksNoQr => 'QR नाही';
+
+  @override
+  String get pksTapQrToEnlarge => 'मोठा करण्यासाठी QR वर टॅप करा';
+
+  @override
+  String get pksCollectionCentre => 'कलेक्शन सेंटर';
+
+  @override
+  String get pksDriverMobile => 'ड्रायव्हर मोबाइल';
+
+  @override
+  String get pksFarmers => 'शेतकरी';
+
+  @override
+  String get pksProducts => 'उत्पादने';
+
+  @override
+  String pksOrdersInBatchTitle(String count) {
+    return 'या बॅचमधील ऑर्डर ($count)';
+  }
+
+  @override
+  String get pksNoOrders => 'ऑर्डर नाहीत';
+
+  @override
+  String get pksLeaveCasual => 'नैमित्तिक';
+
+  @override
+  String get pksLeaveSick => 'आजारपण';
+
+  @override
+  String get pksLeaveEarned => 'अर्जित';
+
+  @override
+  String get pksLeaveUnpaid => 'बिनपगारी';
+
+  @override
+  String pksLeaveTypeTitle(String type) {
+    return '$type रजा';
+  }
+
+  @override
+  String get pksAddLeaveDateError => 'किमान एक रजेची तारीख जोडा';
+
+  @override
+  String get pksEnterReasonError => 'कृपया कारण लिहा';
+
+  @override
+  String get pksLeaveSubmitted => 'रजेची विनंती पाठवली';
+
+  @override
+  String get pksApplyForLeave => 'रजेसाठी अर्ज करा';
+
+  @override
+  String get pksLeaveIntro =>
+      'पिकअप ड्रायव्हर एक किंवा अधिक तारखांसाठी रजेची विनंती करू शकतात.';
+
+  @override
+  String get pksTypeOfLeave => 'रजेचा प्रकार';
+
+  @override
+  String get pksReason => 'कारण';
+
+  @override
+  String get pksLeaveReasonHint => 'तुम्हाला रजा का हवी आहे?';
+
+  @override
+  String get pksLeaveDates => 'रजेच्या तारखा';
+
+  @override
+  String get pksLeaveDatesHint =>
+      'एक किंवा अधिक तारखा जोडा. सलग नसलेले दिवसही निवडता येतात.';
+
+  @override
+  String get pksAddDate => 'तारीख जोडा';
+
+  @override
+  String get pksSubmitLeaveRequest => 'रजेची विनंती पाठवा';
+
+  @override
+  String get pksMyLeaveRequests => 'माझ्या रजेच्या विनंत्या';
+
+  @override
+  String get pksNoLeaveRequests => 'अद्याप रजेची कोणतीही विनंती नाही.';
+
+  @override
+  String get pksLeaveApproved => 'मंजूर';
+
+  @override
+  String get pksLeaveRejected => 'नाकारली';
+
+  @override
+  String pksAdminNote(String note) {
+    return 'ॲडमिन नोंद: $note';
+  }
+
+  @override
+  String get pksScanQrShownByFarmer => 'शेतकऱ्याने दाखवलेला QR स्कॅन करा';
+
+  @override
+  String get pksQrNoMatch => 'हा QR तुमच्या कोणत्याही चालू पिकअपशी जुळत नाही.';
+
+  @override
+  String get pksPickupDriverUpper => 'पिकअप ड्रायव्हर';
+
+  @override
+  String get pksHomeSubtitle => 'शेतापासून कलेक्शन सेंटरपर्यंत पिकअप';
+
+  @override
+  String pksLatestCount(String count) {
+    return 'नवीनतम $count';
+  }
+
+  @override
+  String get pksViewAll => 'सर्व पहा';
+
+  @override
+  String get pksNoRecentPickups => 'अलीकडील पिकअप नाहीत';
+
+  @override
+  String get pksNextUp => 'पुढचे काम';
+
+  @override
+  String get pksOpenPickup => 'पिकअप उघडा';
+
+  @override
+  String get pksNewPickupAssigned => 'नवीन पिकअप दिला';
+
+  @override
+  String get pksDismiss => 'बंद करा';
+
+  @override
+  String pksPickupWhen(String when) {
+    return 'पिकअप $when';
+  }
+
+  @override
+  String get pksLogOutTitle => 'लॉग आउट करायचे?';
+
+  @override
+  String get pksLogOutBody =>
+      'पुन्हा लॉग इन करण्यासाठी तुम्हाला तुमचा मोबाइल नंबर आणि पासवर्ड लागेल.';
+
+  @override
+  String get pksLogOut => 'लॉग आउट';
+
+  @override
+  String get pksProfileRole => 'पिकअप ड्रायव्हर · शेत → कलेक्शन सेंटर';
+
+  @override
+  String get pksMobile => 'मोबाइल';
+
+  @override
+  String get pksArea => 'क्षेत्र';
+
+  @override
+  String get pksPolicies => 'धोरणे';
+
+  @override
+  String get pksNoPolicies => 'अद्याप कोणतेही धोरण प्रकाशित झालेले नाही.';
+
+  @override
+  String get pksPolicy => 'धोरण';
+
+  @override
+  String get pksStatusInactive => 'निष्क्रिय';
+
+  @override
+  String get pksTryAgain => 'पुन्हा प्रयत्न करा';
+
+  @override
+  String get pksCameraUnavailable => 'कॅमेरा उपलब्ध नाही';
+
+  @override
+  String get pksCameraStartFailed =>
+      'कॅमेरा सुरू करता आला नाही. मागे जा आणि त्याऐवजी QR मूल्य पेस्ट करा.';
+
+  @override
+  String get pksCameraPermissionNeeded => 'कॅमेरा परवानगी आवश्यक आहे';
+
+  @override
+  String get pksAllowCameraToScan =>
+      'शेतकरी QR स्कॅन करण्यासाठी कॅमेरा वापरण्याची परवानगी द्या.';
+
+  @override
+  String get pksOpenAppSettings => 'ॲप सेटिंग्ज उघडा';
+
+  @override
+  String get pksPointCameraHint =>
+      'शेतकऱ्याने दाखवलेल्या शेतकरी QR कडे कॅमेरा धरा.';
+
+  @override
+  String get svcDarkStore => 'डार्क स्टोअर';
+
+  @override
+  String get svcNearby => 'जवळच';
+
+  @override
+  String get svcScanStoreQrToUnlock => 'अनलॉक करण्यासाठी स्टोअर QR स्कॅन करा';
+
+  @override
+  String get svcPreOrder => 'प्री-ऑर्डर';
+
+  @override
+  String get svcNotPickupQr => 'हा पिकअप QR नाही';
+
+  @override
+  String get svcOrderUnlocked => 'ऑर्डर अनलॉक झाली';
+
+  @override
+  String get svcCouldNotVerifyQr => 'हा QR सत्यापित करता आला नाही';
+
+  @override
+  String get svcNetworkErrorTryAgain => 'नेटवर्क त्रुटी — पुन्हा प्रयत्न करा';
+
+  @override
+  String get svcNetworkError => 'नेटवर्क त्रुटी. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get svcIncorrectOtp =>
+      'चुकीचा OTP. ग्राहकाला त्यांच्या ऑर्डरचा OTP विचारा.';
+
+  @override
+  String get svcCouldNotMarkFailed =>
+      'डिलिव्हरी अयशस्वी म्हणून नोंदवता आली नाही.';
+
+  @override
+  String get svcCouldNotSendDelay => 'उशिराची माहिती पाठवता आली नाही.';
+
+  @override
+  String get svcCouldNotUploadDeliveryPhoto =>
+      'डिलिव्हरी फोटो अपलोड करता आला नाही.';
+
+  @override
+  String get svcOtpVerificationFailed => 'OTP पडताळणी अयशस्वी';
+
+  @override
+  String get svcCashConfirmationFailed => 'रोख रकमेची पुष्टी अयशस्वी';
+
+  @override
+  String get svcCouldNotCheckRazorpay =>
+      'Razorpay तपासता आले नाही. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get svcInvalidReturnQr => 'अवैध रिटर्न QR';
+
+  @override
+  String get svcPhotoUploadFailed => 'फोटो अपलोड अयशस्वी';
+
+  @override
+  String get svcCouldNotMarkReturnedToStore =>
+      'स्टोअरला परत केले म्हणून नोंदवता आले नाही';
+
+  @override
+  String svcFailedToSendOtp(String code) {
+    return 'OTP पाठवण्यात अयशस्वी ($code)';
+  }
+
+  @override
+  String get svcLoginAgainForOnboarding =>
+      'ऑनबोर्डिंग सुरू ठेवण्यासाठी कृपया पुन्हा लॉगिन करा';
+
+  @override
+  String svcCouldNotSaveOnboarding(String code) {
+    return 'ऑनबोर्डिंग डेटा सेव्ह करता आला नाही ($code)';
+  }
+
+  @override
+  String get svcCouldNotUpdateStatus => 'स्थिती अपडेट करता आली नाही';
+
+  @override
+  String svcCannotReachServerAt(String url) {
+    return '$url शी कनेक्ट होता आले नाही';
+  }
+
+  @override
+  String svcCouldNotLoadAreas(String code) {
+    return 'क्षेत्रे लोड करता आली नाहीत ($code)';
+  }
+
+  @override
+  String get svcUnableToReachServer => 'सर्व्हरशी कनेक्ट होता येत नाही';
+
+  @override
+  String get svcAuthenticationFailed => 'प्रमाणीकरण अयशस्वी';
+
+  @override
+  String get svcInvalidServerResponse => 'सर्व्हरकडून अवैध प्रतिसाद';
+
+  @override
+  String get svcLocationVerificationComplete => 'लोकेशन पडताळणी पूर्ण झाली';
+
+  @override
+  String get svcCannotVerifyLocation =>
+      'लोकेशन सत्यापित करता आले नाही. कृपया सर्व्हर कनेक्शन तपासा.';
+
+  @override
+  String get svcStoreGig => 'स्टोअर गिग';
+
+  @override
+  String get svcNewDeliveryOffer => 'नवीन डिलिव्हरी ऑफर!';
+
+  @override
+  String svcEarnAmount(String amount) {
+    return '₹$amount कमवा';
+  }
+
+  @override
+  String svcOfferForOrder(String number) {
+    return 'ऑर्डर #$number साठी नवीन डिलिव्हरी ऑफर. पाहण्यासाठी आणि स्वीकारण्यासाठी टॅप करा!';
+  }
+
+  @override
+  String get svcOfferAvailable =>
+      'नवीन डिलिव्हरी ऑफर उपलब्ध आहे. पाहण्यासाठी आणि स्वीकारण्यासाठी टॅप करा!';
+
+  @override
+  String get svcProfileVerifiedBody =>
+      'तुमची प्रोफाइल सत्यापित झाली आहे! आता तुम्ही ऑनलाइन जाऊन ऑर्डर घेऊ शकता.';
+
+  @override
+  String get svcVerificationStatusUpdate => 'पडताळणी स्थिती अपडेट';
+
+  @override
+  String get svcReviewVerificationDetails =>
+      'कृपया ॲपमध्ये तुमचे पडताळणी तपशील तपासा.';
+
+  @override
+  String get svcGreenGrocAlert => 'GreenGroc अलर्ट';
+
+  @override
+  String get svcGreenGrocDelivery => 'GreenGroc डिलिव्हरी';
+
+  @override
+  String svcDurationMinutes(String minutes) {
+    return '$minutes मिनिटे';
+  }
+
+  @override
+  String svcDurationHours(String hours) {
+    return '$hours तास';
+  }
+
+  @override
+  String svcDurationHoursMinutes(String hours, String minutes) {
+    return '$hours तास $minutes मिनिटे';
+  }
+
+  @override
+  String get uiAssignedOrders => 'असाइन केलेल्या ऑर्डर';
+
+  @override
+  String get uiMyRules => 'माझे नियम';
+
+  @override
+  String get uiApplyLeave => 'रजेसाठी अर्ज करा';
+
+  @override
+  String get uiRetry => 'पुन्हा प्रयत्न करा';
+
+  @override
+  String get uiUnread => 'न वाचलेले';
+
+  @override
+  String get uiWelcomeTitle => 'डिलिव्हरी पार्टनरमध्ये\nआपले स्वागत आहे';
+
+  @override
+  String get uiWelcomeSubtitle =>
+      'ऑर्डर डिलिव्हर करा. तुमच्या वेळेनुसार कमवा.\nस्वतःचे बॉस बना.';
+
+  @override
+  String get uiByContinuingAgreePrefix => 'पुढे जाऊन, तुम्ही आमच्या\n';
+
+  @override
+  String get uiByContinuingAgreeSuffix => ' यांच्याशी सहमत आहात.';
+
+  @override
+  String get uiRegistrationSuccessful => 'नोंदणी यशस्वी!';
+
+  @override
+  String get uiRegistrationSuccessBody =>
+      'तुमचा अर्ज यशस्वीरित्या\nसबमिट झाला आहे. आम्ही तुमची कागदपत्रे\nतपासून लवकरच तुम्हाला कळवू.';
+
+  @override
+  String get uiSelectState => 'राज्य निवडा';
+
+  @override
+  String get uiSelectStateSubtitle => 'कृपया तुमचे राज्य निवडा';
+
+  @override
+  String get uiSearchState => 'राज्य शोधा';
+
+  @override
+  String uiSelectCityIn(String state) {
+    return 'कृपया $state मधील तुमचे शहर निवडा';
+  }
+
+  @override
+  String get uiSelectCitySubtitle => 'कृपया तुमचे शहर निवडा';
+
+  @override
+  String get uiNoCitiesFound => 'कोणतेही शहर सापडले नाही';
+
+  @override
+  String uiSelectAreaIn(String city) {
+    return 'कृपया $city मधील तुमचे क्षेत्र निवडा';
+  }
+
+  @override
+  String get uiSelectAreaSubtitle => 'कृपया तुमचे क्षेत्र निवडा';
+
+  @override
+  String get uiFetchingDarkStore =>
+      'डार्क स्टोअरच्या लोकेशनची माहिती मिळवत आहोत...';
+
+  @override
+  String get uiCouldNotCheckDarkStores => 'डार्क स्टोअर तपासता आले नाहीत';
+
+  @override
+  String get uiCheckConnectionTryAgain =>
+      'तुमचे इंटरनेट कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.';
+
+  @override
+  String get uiActiveHub => 'सक्रिय हब';
+
+  @override
+  String uiPinCode(String pincode) {
+    return 'पिन $pincode';
+  }
+
+  @override
+  String uiStoreManagerContact(String phone) {
+    return 'स्टोअर मॅनेजर संपर्क: $phone';
+  }
+
+  @override
+  String get uiNoDarkStoreRegistered => 'कोणतेही डार्क स्टोअर नोंदणीकृत नाही';
+
+  @override
+  String get uiNoHubRegistered => 'हब नोंदणीकृत नाही';
+
+  @override
+  String uiNoDarkStoreInArea(String area) {
+    return '$area मध्ये अद्याप कोणत्याही डिलिव्हरी मॅनेजरने डार्क स्टोअर हब नोंदणीकृत केलेला नाही.';
+  }
+
+  @override
+  String get uiEmploymentType => 'नोकरीचा प्रकार';
+
+  @override
+  String get uiPartTime => 'पार्ट-टाइम';
+
+  @override
+  String get uiPartTimeSubtitle => 'लवचिक शिफ्ट — हवे तेव्हा काम करा';
+
+  @override
+  String get uiFullTime => 'फुल-टाइम';
+
+  @override
+  String get uiFullTimeSubtitle => 'ठरलेल्या शिफ्ट — स्थिर मासिक पगार';
+
+  @override
+  String get uiProfileDetails => 'प्रोफाइल तपशील';
+
+  @override
+  String get uiProfileDetailsSubtitle => 'आम्हाला तुमच्याबद्दल अधिक सांगा';
+
+  @override
+  String get uiEmailOptional => 'ईमेल (पर्यायी)';
+
+  @override
+  String get uiEmailAddress => 'ईमेल पत्ता';
+
+  @override
+  String get uiDateOfBirth => 'जन्मतारीख';
+
+  @override
+  String get uiDateHint => 'दिवस/महिना/वर्ष';
+
+  @override
+  String get uiEmergencyContact => 'आपत्कालीन संपर्क';
+
+  @override
+  String get uiEmergencyContactMobile => 'आपत्कालीन संपर्क मोबाइल नंबर';
+
+  @override
+  String get uiReviewSubmit => 'तपासा आणि सबमिट करा';
+
+  @override
+  String get uiReviewSubmitSubtitle =>
+      'सबमिट करण्यापूर्वी कृपया\nतुमची माहिती तपासा';
+
+  @override
+  String get uiLocation => 'ठिकाण';
+
+  @override
+  String get uiDocDl => 'DL';
+
+  @override
+  String get uiDocRc => 'RC';
+
+  @override
+  String get uiConfirmDetailsCorrect =>
+      'मी खात्री देतो/देते की वरील सर्व\nमाहिती बरोबर आहे.';
+
+  @override
+  String get uiSubmit => 'सबमिट करा';
+
+  @override
+  String get uiDocsSafeSecure =>
+      'तुमची कागदपत्रे आमच्याकडे पूर्णपणे सुरक्षित आहेत.';
+
+  @override
+  String get uiUploading => 'अपलोड होत आहे…';
+
+  @override
+  String get uiUploaded => 'अपलोड झाले';
+
+  @override
+  String get uiDocsTapToView => 'पूर्ण आकारात पाहण्यासाठी फोटोवर टॅप करा';
+
+  @override
+  String get uiDocsViewOnly =>
+      'कागदपत्रे फक्त पाहण्यासाठी आहेत. ती अपडेट करण्यासाठी तुमच्या डिलिव्हरी मॅनेजरशी संपर्क साधा.';
+
+  @override
+  String get uiUploadedDocuments => 'अपलोड केलेली कागदपत्रे';
+
+  @override
+  String get uiNotUploaded => 'अपलोड केलेले नाही';
+
+  @override
+  String get uiDocPassport => 'पासपोर्ट';
+
+  @override
+  String get uiDocStatusApproved => 'मंजूर';
+
+  @override
+  String get uiDocStatusRejected => 'नाकारले';
+
+  @override
+  String get uiUnderReview => 'पडताळणी सुरू आहे';
+
+  @override
+  String get uiVehicleScreenSubtitle =>
+      'वाहनाची माहिती आणि नोंदणीकृत कागदपत्रे';
+
+  @override
+  String get uiVehicleTypeMotorcycle => 'मोटारसायकल / बाईक';
+
+  @override
+  String get uiVehicleTypeElectric => 'इलेक्ट्रिक वाहन (EV)';
+
+  @override
+  String get uiVehicleTypeBicycle => 'सायकल';
+
+  @override
+  String get uiVehicleTypeVan => 'डिलिव्हरी व्हॅन / ऑटो';
+
+  @override
+  String get uiVehicleTypeOnFoot => 'पायी';
+
+  @override
+  String get uiNotSpecified => 'नमूद नाही';
+
+  @override
+  String get uiNoPlateNumber => 'प्लेट नंबर नाही';
+
+  @override
+  String get uiAssignedPartnerVehicle => 'डिलिव्हरी पार्टनरला दिलेले वाहन';
+
+  @override
+  String get uiVehicleSpecifications => 'वाहनाची वैशिष्ट्ये';
+
+  @override
+  String get uiVehicleType => 'वाहनाचा प्रकार';
+
+  @override
+  String get uiNotAssigned => 'असाइन केलेले नाही';
+
+  @override
+  String get uiPropulsionCategory => 'इंधन / श्रेणी';
+
+  @override
+  String get uiPropulsionElectric => 'इलेक्ट्रिक (EV)';
+
+  @override
+  String get uiPropulsionPedal => 'पेडल (इंजिनशिवाय)';
+
+  @override
+  String get uiPropulsionPetrol => 'मोटर / पेट्रोल';
+
+  @override
+  String get uiRegistrationStatus => 'नोंदणी स्थिती';
+
+  @override
+  String get uiDocumentsSubmitted => 'कागदपत्रे सबमिट केली';
+
+  @override
+  String get uiPendingDocuments => 'कागदपत्रे बाकी आहेत';
+
+  @override
+  String get uiVehicleDocsSubtitle =>
+      'या वाहनासाठी सबमिट केलेली सरकारी आणि वाहन पडताळणी कागदपत्रे.';
+
+  @override
+  String get uiVehicleRcFull => 'वाहन RC (नोंदणी प्रमाणपत्र)';
+
+  @override
+  String get uiVehicleRcFullSubtitle => 'वाहन नोंदणीचे अधिकृत प्रमाणपत्र';
+
+  @override
+  String get uiVehicleInsurance => 'वाहन विमा';
+
+  @override
+  String get uiVehicleInsuranceSubtitle => 'वैध मोटार विमा पॉलिसी प्रमाणपत्र';
+
+  @override
+  String get uiDrivingLicenceFull => 'ड्रायव्हिंग लायसन्स (DL)';
+
+  @override
+  String get uiDrivingLicenceFullSubtitle =>
+      'मोटार वाहन चालवण्याचा अधिकृत परवाना';
+
+  @override
+  String get uiVehicleManagedByManager =>
+      'वाहन तपशील आणि पडताळणी कागदपत्रे तुमच्या डार्क स्टोअर डिलिव्हरी मॅनेजरद्वारे व्यवस्थापित केली जातात. वाहन अपडेट करण्यासाठी किंवा बदलण्यासाठी तुमच्या मॅनेजरशी संपर्क साधा.';
+
+  @override
+  String uiDocNumber(String number) {
+    return 'क्रमांक: $number';
+  }
+
+  @override
+  String get uiTapToPreview => 'पाहण्यासाठी टॅप करा';
 }

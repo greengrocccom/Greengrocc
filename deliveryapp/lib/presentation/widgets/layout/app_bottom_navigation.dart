@@ -54,7 +54,7 @@ class AppBottomNavigation extends StatelessWidget {
               3,
               Icons.history_rounded,
               Icons.history_rounded,
-              'History',
+              l10n.history,
             ),
           ],
         ),

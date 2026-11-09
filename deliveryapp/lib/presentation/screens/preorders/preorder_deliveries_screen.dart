@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/order_service.dart';
@@ -84,8 +85,9 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
     if (!mounted || reason == null || reason.isEmpty) return;
     final result = await OrderService.instance.failDelivery(id, failureReason: reason, emergency: true);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(result.success ? 'Emergency sent to your Delivery Manager.' : result.error ?? 'Could not send emergency report.'),
+      content: Text(result.success ? l10n.delEmergencySent : result.error ?? l10n.delCouldNotSendEmergency),
     ));
     if (result.success) await _load(silent: true);
   }
@@ -98,7 +100,7 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
         TextButton.icon(
           onPressed: () => _reportEmergency(order),
           icon: const Icon(Icons.report_problem_outlined, size: 17),
-          label: const Text('Report emergency'),
+          label: Text(AppLocalizations.of(context).delReportEmergency),
           style: TextButton.styleFrom(foregroundColor: const Color(0xFF9A3412)),
         ),
       ],
@@ -487,7 +489,7 @@ class _DoneTile extends StatelessWidget {
     final at = DateTime.tryParse(order['deliveredAt']?.toString() ?? '')?.toLocal();
     final time = at == null
         ? ''
-        : ' · ${at.hour % 12 == 0 ? 12 : at.hour % 12}:${at.minute.toString().padLeft(2, '0')} ${at.hour < 12 ? 'AM' : 'PM'}';
+        : ' · ${localizedDateFormat('h:mm a').format(at)}';
     return Opacity(
       opacity: 0.8,
       child: FtSectionCard(

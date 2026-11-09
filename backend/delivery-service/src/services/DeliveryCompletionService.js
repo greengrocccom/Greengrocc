@@ -26,6 +26,7 @@ import { calculateRiderEarning, applyEarningSnapshot } from "./ShiftEarningServi
 import { validatePaymentForCompletion } from "./PaymentCollectionService.js";
 import { getIO } from "../../../socket.js";
 import { syncCustomerOrderFromStore } from "./syncCustomerOrderFromStore.js";
+import { shipOrderStockOnDispatch } from "./storeStockService.js";
 import { getRouteAndEta } from "./directionsService.js";
 
 const MAX_OTP_ATTEMPTS = 5;
@@ -320,6 +321,8 @@ export async function completeDelivery({ orderId, riderId, skipConditionCheck = 
     } catch (err) {
       console.warn("[completion] customer order sync failed:", err.message);
     }
+    // Normally already done at out for delivery; covers orders closed without that step.
+    shipOrderStockOnDispatch(order);
 
     return {
       success: true,

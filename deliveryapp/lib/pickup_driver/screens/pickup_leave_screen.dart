@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../pickup_driver_service.dart';
 import '../pickup_flow.dart';
 import '../widgets/pickup_ui.dart';
 
-const _leaveTypes = [
-  ('casual', 'Casual'),
-  ('sick', 'Sick'),
-  ('earned', 'Earned'),
-  ('unpaid', 'Unpaid'),
-];
+List<(String, String)> _leaveTypes(AppLocalizations l10n) => [
+      ('casual', l10n.pksLeaveCasual),
+      ('sick', l10n.pksLeaveSick),
+      ('earned', l10n.pksLeaveEarned),
+      ('unpaid', l10n.pksLeaveUnpaid),
+    ];
 
 /// Leave requests for pickup drivers — mirrors vendor `DriverLeavePage`.
 class PickupLeaveScreen extends StatefulWidget {
@@ -80,12 +81,13 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context);
     if (_dates.isEmpty) {
-      setState(() => _error = 'Add at least one leave date');
+      setState(() => _error = l10n.pksAddLeaveDateError);
       return;
     }
     if (_reason.text.trim().isEmpty) {
-      setState(() => _error = 'Please enter a reason');
+      setState(() => _error = l10n.pksEnterReasonError);
       return;
     }
     setState(() {
@@ -104,7 +106,7 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
         _dates.clear();
         _leaveType = 'casual';
       });
-      showPickupSnack(context, 'Leave request submitted');
+      showPickupSnack(context, l10n.pksLeaveSubmitted);
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -134,15 +136,30 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
     return (const Color(0xFFFFFBEB), const Color(0xFFB45309));
   }
 
+  String _statusLabel(AppLocalizations l10n, String status) => switch (status) {
+        'pending' => l10n.pending,
+        'approved' => l10n.pksLeaveApproved,
+        'rejected' => l10n.pksLeaveRejected,
+        _ => status,
+      };
+
+  String _typeLabel(AppLocalizations l10n, String type) {
+    for (final t in _leaveTypes(l10n)) {
+      if (t.$1 == type) return t.$2;
+    }
+    return type.isEmpty ? '' : type[0].toUpperCase() + type.substring(1);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: PickupColors.page,
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
-        title: Text('Apply for leave',
+        title: Text(l10n.pksApplyForLeave,
             style: pickupText(17, weight: FontWeight.w800)),
       ),
       body: RefreshIndicator(
@@ -152,7 +169,7 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
           children: [
-            Text('Pickup drivers can request leave with one or more dates.',
+            Text(l10n.pksLeaveIntro,
                 style: pickupText(13, color: PickupColors.muted)),
             if (_error.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -163,14 +180,14 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Type of leave',
+                  Text(l10n.pksTypeOfLeave,
                       style: pickupText(12.5, weight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final t in _leaveTypes)
+                      for (final t in _leaveTypes(l10n))
                         ChoiceChip(
                           label: Text(t.$2),
                           selected: _leaveType == t.$1,
@@ -186,7 +203,7 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  Text('Reason',
+                  Text(l10n.pksReason,
                       style: pickupText(12.5, weight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   TextField(
@@ -194,16 +211,16 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
                     minLines: 3,
                     maxLines: 5,
                     decoration: InputDecoration(
-                      hintText: 'Why do you need leave?',
+                      hintText: l10n.pksLeaveReasonHint,
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Text('Leave dates',
+                  Text(l10n.pksLeaveDates,
                       style: pickupText(12.5, weight: FontWeight.w700)),
                   const SizedBox(height: 2),
-                  Text('Add one or more dates. Non-continuous days are supported.',
+                  Text(l10n.pksLeaveDatesHint,
                       style: pickupText(11.5, color: PickupColors.faint)),
                   const SizedBox(height: 8),
                   Wrap(
@@ -222,14 +239,14 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
                         ),
                       ActionChip(
                         avatar: const Icon(Icons.add, size: 18),
-                        label: const Text('Add date'),
+                        label: Text(l10n.pksAddDate),
                         onPressed: _addDate,
                       ),
                     ],
                   ),
                   const SizedBox(height: 18),
                   PickupButton(
-                    label: 'Submit leave request',
+                    label: l10n.pksSubmitLeaveRequest,
                     busy: _saving,
                     onPressed: _submit,
                   ),
@@ -241,7 +258,7 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('My leave requests',
+                  Text(l10n.pksMyLeaveRequests,
                       style: pickupText(14, weight: FontWeight.w800)),
                   const SizedBox(height: 10),
                   if (_loading)
@@ -253,11 +270,11 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
                       ),
                     )
                   else if (_rows.isEmpty)
-                    Text('No leave requests yet.',
+                    Text(l10n.pksNoLeaveRequests,
                         style: pickupText(13, color: PickupColors.faint))
                   else
                     for (final row in _rows) ...[
-                      _leaveRow(row),
+                      _leaveRow(l10n, row),
                       const SizedBox(height: 10),
                     ],
                 ],
@@ -269,7 +286,7 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
     );
   }
 
-  Widget _leaveRow(Map<String, dynamic> row) {
+  Widget _leaveRow(AppLocalizations l10n, Map<String, dynamic> row) {
     final status = str(row['status']).isEmpty ? 'pending' : str(row['status']);
     final tone = _tone(status);
     final type = str(row['leaveType']);
@@ -288,7 +305,7 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
             children: [
               Expanded(
                 child: Text(
-                  '${type.isEmpty ? '' : type[0].toUpperCase() + type.substring(1)} leave',
+                  l10n.pksLeaveTypeTitle(_typeLabel(l10n, type)),
                   style: pickupText(13.5, weight: FontWeight.w700),
                 ),
               ),
@@ -299,7 +316,7 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
                   color: tone.$1,
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text(status,
+                child: Text(_statusLabel(l10n, status),
                     style: pickupText(11,
                         weight: FontWeight.w700, color: tone.$2)),
               ),
@@ -314,7 +331,7 @@ class _PickupLeaveScreenState extends State<PickupLeaveScreen> {
           ],
           if (str(row['adminNotes']).isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text('Admin note: ${str(row['adminNotes'])}',
+            Text(l10n.pksAdminNote(str(row['adminNotes'])),
                 style: pickupText(12, color: PickupColors.muted)),
           ],
         ],

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/onboarding_nav.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/buttons/primary_button.dart';
 
 class ReviewSubmitScreen extends StatefulWidget {
@@ -16,14 +17,14 @@ class ReviewSubmitScreen extends StatefulWidget {
 class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
   bool _confirmed = true;
 
-  static const _docBadges = [
-    _DocBadge(title: 'Aadhaar', icon: Icons.badge_outlined),
-    _DocBadge(title: 'PAN Card', icon: Icons.credit_card_outlined),
-    _DocBadge(title: 'DL', icon: Icons.subtitles_outlined),
-    _DocBadge(title: 'RC', icon: Icons.description_outlined),
-    _DocBadge(title: 'Insurance', icon: Icons.verified_user_outlined),
-    _DocBadge(title: 'Police Verification', icon: Icons.local_police_outlined),
-  ];
+  List<_DocBadge> _docBadges(AppLocalizations l10n) => [
+        _DocBadge(title: l10n.docAadhaar, icon: Icons.badge_outlined),
+        _DocBadge(title: l10n.panCard, icon: Icons.credit_card_outlined),
+        _DocBadge(title: l10n.uiDocDl, icon: Icons.subtitles_outlined),
+        _DocBadge(title: l10n.uiDocRc, icon: Icons.description_outlined),
+        _DocBadge(title: l10n.insurance, icon: Icons.verified_user_outlined),
+        _DocBadge(title: l10n.policeVerification, icon: Icons.local_police_outlined),
+      ];
 
   void _submit() {
     if (!_confirmed) return;
@@ -32,6 +33,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -50,7 +52,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                   children: [
                     const SizedBox(height: 8),
                     Text(
-                      'Review & Submit',
+                      l10n.uiReviewSubmit,
                       style: GoogleFonts.inter(
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -59,7 +61,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Please review your details before\nsubmitting',
+                      l10n.uiReviewSubmitSubtitle,
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         color: AppColors.textSecondary,
@@ -70,7 +72,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
 
                     // Section 1: Personal Details Card
                     _buildSummaryCard(
-                      title: 'Personal Details',
+                      title: l10n.personalDetails,
                       children: [
                         _buildDetailText('Rahul Sharma', isTitle: true),
                         const SizedBox(height: 4),
@@ -83,7 +85,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
 
                     // Section 2: Location Card
                     _buildSummaryCard(
-                      title: 'Location',
+                      title: l10n.uiLocation,
                       children: [
                         _buildDetailText('Maharashtra, Pune, Kothrud'),
                       ],
@@ -92,13 +94,13 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
 
                     // Section 3: Documents Summary Card
                     _buildSummaryCard(
-                      title: 'Documents',
+                      title: l10n.documents,
                       children: [
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              for (final doc in _docBadges) ...[
+                              for (final doc in _docBadges(l10n)) ...[
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
@@ -168,7 +170,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'I confirm that all the above details\nare correct.',
+                            l10n.uiConfirmDetailsCorrect,
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               color: AppColors.textPrimary,
@@ -188,7 +190,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
             Padding(
               padding: const EdgeInsets.all(24),
               child: PrimaryButton(
-                label: 'Submit',
+                label: l10n.uiSubmit,
                 onPressed: _confirmed ? _submit : null,
               ),
             ),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../core/config/api_config.dart';
+import '../../core/l10n/app_l10n.dart';
 import 'auth_service.dart';
 
 class LeaveRequestItem {
@@ -85,7 +86,7 @@ class LeaveService {
       }),
     );
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      String message = 'Could not submit leave';
+      String message = appL10n.ftCouldNotSubmitLeave;
       try {
         final decoded = jsonDecode(res.body);
         if (decoded is Map && decoded['message'] != null) {

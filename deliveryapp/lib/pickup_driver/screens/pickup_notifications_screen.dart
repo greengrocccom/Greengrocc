@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../pickup_driver_service.dart';
 import '../pickup_flow.dart';
 import '../pickup_push_service.dart';
@@ -57,10 +58,11 @@ class _PickupNotificationsScreenState extends State<PickupNotificationsScreen> {
   String _ago(String iso) {
     final at = DateTime.tryParse(iso)?.toLocal();
     if (at == null) return '';
+    final l10n = AppLocalizations.of(context);
     final diff = DateTime.now().difference(at);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-    if (diff.inHours < 24) return '${diff.inHours} h ago';
+    if (diff.inMinutes < 1) return l10n.pkJustNow;
+    if (diff.inMinutes < 60) return l10n.pkMinutesAgo('${diff.inMinutes}');
+    if (diff.inHours < 24) return l10n.pkHoursAgo('${diff.inHours}');
     return '${at.day.toString().padLeft(2, '0')}/${at.month.toString().padLeft(2, '0')}/${at.year}';
   }
 
@@ -88,7 +90,7 @@ class _PickupNotificationsScreenState extends State<PickupNotificationsScreen> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
-        title: Text('Notifications',
+        title: Text(AppLocalizations.of(context).notifications,
             style: pickupText(17, weight: FontWeight.w800)),
       ),
       body: RefreshIndicator(
@@ -106,8 +108,8 @@ class _PickupNotificationsScreenState extends State<PickupNotificationsScreen> {
                     child: CircularProgressIndicator(color: PickupColors.brand)),
               )
             else if (_items.isEmpty)
-              const EmptyState(
-                'No notifications yet.\nNew pickups assigned by your vendor will appear here.',
+              EmptyState(
+                AppLocalizations.of(context).pkNotificationsEmpty,
                 icon: Icons.notifications_none_rounded,
               )
             else

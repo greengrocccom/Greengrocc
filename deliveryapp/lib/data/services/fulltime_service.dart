@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../core/config/api_config.dart';
+import '../../core/l10n/app_l10n.dart';
 import 'auth_service.dart';
 
 class FullTimeApiException implements Exception {
@@ -31,7 +32,7 @@ class FullTimeService {
     final body = _decode(res.body);
     if (res.statusCode != 200 || body['success'] == false) {
       throw FullTimeApiException(
-        body['message']?.toString() ?? 'Request failed (${res.statusCode})',
+        body['message']?.toString() ?? appL10n.ftRequestFailed('${res.statusCode}'),
         code: body['code']?.toString(),
       );
     }
@@ -58,7 +59,7 @@ class FullTimeService {
     final body = _decode(res.body);
     if (res.statusCode != 200 || body['success'] != true) {
       throw FullTimeApiException(
-        body['message']?.toString() ?? 'Could not mark attendance',
+        body['message']?.toString() ?? appL10n.ftCouldNotMarkAttendance,
         code: body['code']?.toString(),
       );
     }

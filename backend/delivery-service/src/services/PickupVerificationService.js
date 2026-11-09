@@ -352,6 +352,9 @@ async function unlockForDelivery(order, { verifiedBy = null, message }) {
   import("./deliveryOtpSmsService.js")
     .then(({ sendDeliveryOtpSmsOnDispatch }) => sendDeliveryOtpSmsOnDispatch(order))
     .catch(() => {});
+  import("./storeStockService.js")
+    .then(({ shipOrderStockOnDispatch }) => shipOrderStockOnDispatch(order))
+    .catch(() => {});
 
   try {
     getIO()

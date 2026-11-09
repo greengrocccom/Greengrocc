@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import 'pickup_push_service.dart';
 import 'screens/pickup_detail_screen.dart';
 import 'screens/pickup_home_screen.dart';
@@ -60,6 +61,7 @@ class _PickupDriverShellState extends State<PickupDriverShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
@@ -84,29 +86,30 @@ class _PickupDriverShellState extends State<PickupDriverShell> {
             backgroundColor: Colors.white,
             indicatorColor: PickupColors.brandSoft,
             onDestinationSelected: (i) => setState(() => _index = i),
-            destinations: const [
+            destinations: [
               NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded, color: PickupColors.brand),
-                label: 'Home',
+                icon: const Icon(Icons.home_outlined),
+                selectedIcon:
+                    const Icon(Icons.home_rounded, color: PickupColors.brand),
+                label: l10n.home,
               ),
               NavigationDestination(
-                icon: Icon(Icons.local_shipping_outlined),
-                selectedIcon:
-                    Icon(Icons.local_shipping_rounded, color: PickupColors.brand),
-                label: 'Pickups',
+                icon: const Icon(Icons.local_shipping_outlined),
+                selectedIcon: const Icon(Icons.local_shipping_rounded,
+                    color: PickupColors.brand),
+                label: l10n.pkPickups,
               ),
               NavigationDestination(
-                icon: Icon(Icons.event_busy_outlined),
-                selectedIcon:
-                    Icon(Icons.event_busy_rounded, color: PickupColors.brand),
-                label: 'Leave',
+                icon: const Icon(Icons.event_busy_outlined),
+                selectedIcon: const Icon(Icons.event_busy_rounded,
+                    color: PickupColors.brand),
+                label: l10n.pkLeave,
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_outline_rounded),
+                icon: const Icon(Icons.person_outline_rounded),
                 selectedIcon:
-                    Icon(Icons.person_rounded, color: PickupColors.brand),
-                label: 'Profile',
+                    const Icon(Icons.person_rounded, color: PickupColors.brand),
+                label: l10n.profile,
               ),
             ],
           ),

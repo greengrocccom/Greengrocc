@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/config/cached_get.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../l10n/app_localizations.dart';
@@ -51,7 +51,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Could not load performance. Pull to retry.';
+        _error = appL10n.ftCouldNotLoadPerformance;
       });
     }
   }
@@ -122,8 +122,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppPanel(
-          title: 'Key rates',
-          subtitle: 'Since verification',
+          title: l10n.ftKeyRates,
+          subtitle: l10n.ftSinceVerification,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +147,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               Expanded(
                 child: ProgressRing(
                   percent: _pct('declineRate'),
-                  label: 'Decline rate',
+                  label: l10n.ftDeclineRate,
                   color: AppColors.warning,
                   size: 84,
                 ),
@@ -156,31 +156,31 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           ),
         ),
         AppPanel(
-          title: 'Order offers',
-          subtitle: 'How you responded to offers',
+          title: l10n.ftOrderOffers,
+          subtitle: l10n.ftHowYouRespondedOffers,
           child: offered == 0
-              ? const EmptyPanelMessage(
-                  message: 'No order offers yet. Go online to start receiving orders.',
+              ? EmptyPanelMessage(
+                  message: l10n.ftNoOrderOffersYet,
                   icon: Icons.notifications_none_rounded,
                 )
               : DonutChart(
                   centerTitle: '$offered',
-                  centerSubtitle: 'offers',
+                  centerSubtitle: l10n.ftOffersLower,
                   segments: [
-                    DonutSegment(label: 'Accepted', value: accepted.toDouble(), color: AppColors.primary),
-                    DonutSegment(label: 'Declined', value: declined.toDouble(), color: AppColors.warning),
-                    DonutSegment(label: 'Missed', value: timeout.toDouble(), color: AppColors.error),
+                    DonutSegment(label: l10n.ftAccepted, value: accepted.toDouble(), color: AppColors.primary),
+                    DonutSegment(label: l10n.ftDeclined, value: declined.toDouble(), color: AppColors.warning),
+                    DonutSegment(label: l10n.ftMissed, value: timeout.toDouble(), color: AppColors.error),
                     if (pending > 0)
-                      DonutSegment(label: 'Pending', value: pending.toDouble(), color: AppColors.textMuted),
+                      DonutSegment(label: l10n.pending, value: pending.toDouble(), color: AppColors.textMuted),
                   ],
                 ),
         ),
         AppPanel(
-          title: 'Trip outcomes',
-          subtitle: 'Delivered vs cancelled vs failed',
+          title: l10n.ftTripOutcomes,
+          subtitle: l10n.ftDeliveredVsCancelledVsFailed,
           child: delivered + cancelled + failed == 0
-              ? const EmptyPanelMessage(
-                  message: 'Your trip outcomes will show here after your first delivery.',
+              ? EmptyPanelMessage(
+                  message: l10n.ftTripOutcomesEmpty,
                   icon: Icons.delivery_dining_outlined,
                 )
               : Column(
@@ -197,9 +197,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     const SizedBox(height: AppSpacing.md),
                     Row(
                       children: [
-                        Expanded(child: _OutcomeStat(label: 'Delivered', value: delivered, color: AppColors.primary)),
-                        Expanded(child: _OutcomeStat(label: 'Cancelled', value: cancelled, color: AppColors.warning)),
-                        Expanded(child: _OutcomeStat(label: 'Failed', value: failed, color: AppColors.error)),
+                        Expanded(child: _OutcomeStat(label: l10n.delivered, value: delivered, color: AppColors.primary)),
+                        Expanded(child: _OutcomeStat(label: l10n.ftCancelled, value: cancelled, color: AppColors.warning)),
+                        Expanded(child: _OutcomeStat(label: l10n.failedStatus, value: failed, color: AppColors.error)),
                       ],
                     ),
                     if (delivered > 0) ...[
@@ -210,7 +210,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'On-time deliveries',
+                              l10n.ftOnTimeDeliveries,
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -219,7 +219,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                             ),
                           ),
                           Text(
-                            '$onTime of $delivered',
+                            l10n.ftCountOfTotal('$onTime', '$delivered'),
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
@@ -238,7 +238,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Delivered within 60 minutes of assignment',
+                        l10n.ftDeliveredWithin60Min,
                         style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
                       ),
                     ],
@@ -248,24 +248,24 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         KpiGrid(
           children: [
             KpiTile(
-              label: 'Trips delivered',
+              label: l10n.ftTripsDelivered,
               value: '$delivered',
               icon: Icons.check_circle_outline_rounded,
             ),
             KpiTile(
-              label: 'Offers received',
+              label: l10n.ftOffersReceived,
               value: '$offered',
               icon: Icons.notifications_active_outlined,
               accent: AppColors.info,
             ),
             KpiTile(
-              label: 'Cancellation rate',
+              label: l10n.ftCancellationRate,
               value: _rateText(_pct('cancellationRate')),
               icon: Icons.cancel_outlined,
               accent: AppColors.warning,
             ),
             KpiTile(
-              label: 'Missed offers',
+              label: l10n.ftMissedOffers,
               value: '$timeout',
               icon: Icons.timer_off_outlined,
               accent: AppColors.error,
@@ -275,8 +275,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         const SizedBox(height: AppSpacing.xl),
         Text(
           ratingCount == 0
-              ? 'Customer ratings appear after customers rate your deliveries.'
-              : 'Based on your deliveries since verification.',
+              ? l10n.ftRatingsAppearAfter
+              : l10n.ftBasedOnDeliveriesSinceVerification,
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted),
         ),
@@ -300,6 +300,7 @@ class _RatingHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasRating = count > 0 && average != null;
     final value = hasRating ? average! : 0.0;
     return Container(
@@ -365,9 +366,11 @@ class _RatingHero extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   hasRating
-                      ? '$count rating${count == 1 ? '' : 's'}'
-                          '${since != null ? ' · since ${DateFormat('d MMM yyyy').format(since!)}' : ''}'
-                      : 'No ratings yet',
+                      ? [
+                          count == 1 ? l10n.ftRatingCountOne(count.toString()) : l10n.ratingsCount(count),
+                          if (since != null) l10n.ftSinceDate(localizedDateFormat('d MMM yyyy').format(since!)),
+                        ].join(' · ')
+                      : l10n.ftNoRatingsYet,
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     color: Colors.white.withValues(alpha: 0.85),

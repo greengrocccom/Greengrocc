@@ -8,6 +8,7 @@ import { getIO } from "../../../socket.js";
 import { applyStoreOrderStatus, releaseAssignedRider } from "../services/storeOrderLifecycle.js";
 import { syncCustomerOrderFromStore } from "../services/syncCustomerOrderFromStore.js";
 import { sendDeliveryOtpSmsOnDispatch } from "../services/deliveryOtpSmsService.js";
+import { shipOrderStockOnDispatch } from "../services/storeStockService.js";
 import { isVendorConfirmed } from "../services/preOrderProgress.js";
 import { getManager } from "./managerDashboardController.js";
 import {
@@ -666,7 +667,10 @@ export const adminSetPreOrderProgress = async (req, res, next) => {
     await syncCustomerOrderFromStore(order, syncStatus).catch((err) =>
       console.warn("[preorder] customer sync failed:", err.message)
     );
-    if (order.status === "out_for_delivery") sendDeliveryOtpSmsOnDispatch(order);
+    if (order.status === "out_for_delivery") {
+      sendDeliveryOtpSmsOnDispatch(order);
+      shipOrderStockOnDispatch(order);
+    }
     emitPreOrderChange(order, "preorder_updated", {
       orderId: order._id.toString(),
       orderNumber: order.orderNumber,
@@ -831,6 +835,7 @@ export const markPreOrdersOutForDelivery = async (req, res, next) => {
         console.warn("[preorder] customer sync failed:", err.message)
       );
       sendDeliveryOtpSmsOnDispatch(order);
+      shipOrderStockOnDispatch(order);
       emitPreOrderChange(order, "order_status_updated", {
         orderId: order._id.toString(),
         orderNumber: order.orderNumber,

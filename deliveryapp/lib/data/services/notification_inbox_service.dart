@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/l10n/app_l10n.dart';
 import 'auth_service.dart';
 import 'push_notification_service.dart';
 import 'socket_service.dart';
@@ -123,7 +124,7 @@ class NotificationInboxService extends ChangeNotifier {
         final n = RiderNotification.fromJson(data);
         upsertLocal(n);
         PushNotificationService.instance.showLocalNotification(
-          title: n.title.isNotEmpty ? n.title : 'GreenGroc Alert',
+          title: n.title.isNotEmpty ? n.title : appL10n.svcGreenGrocAlert,
           body: n.body,
           data: {
             ...n.data,

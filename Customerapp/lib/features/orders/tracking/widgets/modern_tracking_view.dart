@@ -74,6 +74,7 @@ class _ModernTrackingViewState extends State<ModernTrackingView> {
   String _headerSubtitle(OrderTracking tracking) {
     if (tracking.isDelivered) return 'Your order has been delivered 🎉';
     if (tracking.isCancelled) return 'Your order has been cancelled ❌';
+    if (tracking.riderToStore) return 'Your delivery partner is heading to the store 🏪';
     if (tracking.liveTracking || tracking.status == 'out_for_delivery' || tracking.status == 'shipping') {
       return 'Your order is on the way 🛵';
     }

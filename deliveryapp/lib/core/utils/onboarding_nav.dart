@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../routes/app_routes.dart';
 import '../theme/app_colors.dart';
 import '../../data/services/auth_service.dart' show AuthApiException, AuthService;
+import '../../l10n/app_localizations.dart';
 
 /// Shared app-bar back button. Pops if possible, otherwise goes to [fallbackRoute].
 class AppBackButton extends StatelessWidget {
@@ -44,7 +45,9 @@ Future<bool> goOnboardingStep(
     await AuthService.instance.updateOnboarding(step: step, data: data);
   } catch (e) {
     if (!context.mounted) return false;
-    final msg = e is AuthApiException ? e.message : e.toString();
+    final msg = e is AuthApiException
+        ? e.message
+        : AppLocalizations.of(context).somethingWentWrong;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
@@ -70,7 +73,9 @@ Future<void> completeOnboarding(BuildContext context) async {
     );
   } catch (e) {
     if (!context.mounted) return;
-    final msg = e is AuthApiException ? e.message : e.toString();
+    final msg = e is AuthApiException
+        ? e.message
+        : AppLocalizations.of(context).somethingWentWrong;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),

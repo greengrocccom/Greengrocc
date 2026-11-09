@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../data/services/order_service.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Time-limited offer without customer details.
 class OrderDispatchDialog extends StatefulWidget {
@@ -27,7 +28,7 @@ class OrderDispatchDialog extends StatefulWidget {
     return showGeneralDialog(
       context: context,
       barrierDismissible: false,
-      barrierLabel: 'Order offer',
+      barrierLabel: AppLocalizations.of(context).delOrderOffer,
       barrierColor: Colors.black.withValues(alpha: 0.55),
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (ctx, _, _) => OrderDispatchDialog(
@@ -104,6 +105,7 @@ class _OrderDispatchDialogState extends State<OrderDispatchDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Material(
         color: Colors.transparent,
@@ -135,12 +137,12 @@ class _OrderDispatchDialogState extends State<OrderDispatchDialog> {
                 child: const Icon(Icons.inventory_2_outlined, size: 26, color: Color(0xFF047857)),
               ),
               const SizedBox(height: 14),
-              Text('New delivery offer', textAlign: TextAlign.center, style: GoogleFonts.inter(
+              Text(l10n.delNewDeliveryOffer, textAlign: TextAlign.center, style: GoogleFonts.inter(
                 fontSize: 23, fontWeight: FontWeight.w800, color: colors.onSurface,
               )),
               if (widget.offer.orderNumber.isNotEmpty) ...[
                 const SizedBox(height: 5),
-                Text('Order #${widget.offer.orderNumber}', style: GoogleFonts.inter(
+                Text(l10n.orderNumberHash(widget.offer.orderNumber), style: GoogleFonts.inter(
                   fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurfaceVariant,
                 )),
               ],
@@ -167,7 +169,7 @@ class _OrderDispatchDialogState extends State<OrderDispatchDialog> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '${_remainingSeconds}s to respond',
+                      l10n.delSecondsToRespond(_remainingSeconds.toString()),
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -199,7 +201,7 @@ class _OrderDispatchDialogState extends State<OrderDispatchDialog> {
                         elevation: 0,
                       ),
                       child: Text(
-                        'Decline',
+                        l10n.declineShort,
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -231,7 +233,7 @@ class _OrderDispatchDialogState extends State<OrderDispatchDialog> {
                               ),
                             )
                           : Text(
-                              'Accept',
+                              l10n.acceptShort,
                               style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,

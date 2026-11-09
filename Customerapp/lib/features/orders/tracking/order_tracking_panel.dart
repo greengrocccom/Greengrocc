@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -63,6 +64,8 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
   LatLng? _driver;
   double? _heading;
   DateTime? _lastFixAt;
+  List<LatLng>? _progressRoute;
+  int _progressIndex = 0;
 
   StreamSubscription<Map<String, dynamic>>? _locationSub;
   StreamSubscription<Map<String, dynamic>>? _statusSub;
@@ -222,14 +225,21 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
     final samePart = storeOrderId == null ||
         tracking.storeOrderId == null ||
         storeOrderId == tracking.storeOrderId;
-    if (status != null && samePart && status != tracking.status) {
-      setState(() {
-        _tracking = tracking.withStatus(status, live: data['liveTracking'] == true);
-        if (_tracking!.isClosed) {
-          _driver = null;
-          _routeTimer?.cancel();
-        }
-      });
+    if (status != null && samePart) {
+      final next = tracking.withStatus(
+        status,
+        live: data['liveTracking'] == true,
+        phase: data['riderPhase']?.toString(),
+      );
+      if (next.status != tracking.status ||
+          next.liveTracking != tracking.liveTracking ||
+          next.riderPhase != tracking.riderPhase) {
+        setState(() {
+          _tracking = next;
+          if (next.isClosed || !next.liveTracking) _driver = null;
+          if (next.isClosed) _routeTimer?.cancel();
+        });
+      }
     }
     _statusDebounce?.cancel();
     _statusDebounce = Timer(const Duration(milliseconds: 800), () {
@@ -237,6 +247,46 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
       widget.onStatusChanged?.call();
       _load(silent: true);
     });
+  }
+
+  /// The route still ahead of the rider and the ETA scaled to it, so both shrink with
+  /// every GPS fix between server refreshes. Matching only moves forward along the route.
+  ({List<LatLng> route, OrderTracking tracking}) _liveView(OrderTracking tracking) {
+    final rider = _driver;
+    final route = _route;
+    if (rider == null || route.length < 2) return (route: route, tracking: tracking);
+    if (!identical(_progressRoute, route)) {
+      _progressRoute = route;
+      _progressIndex = 0;
+    }
+    var index = math.min(_progressIndex, route.length - 1);
+    var best = _metersBetween(rider, route[index]);
+    for (var i = index + 1; i < route.length; i++) {
+      final meters = _metersBetween(rider, route[i]);
+      if (meters < best) {
+        best = meters;
+        index = i;
+      }
+    }
+    _progressIndex = index;
+    final ahead = [rider, ...route.sublist(index + 1)];
+    final eta = tracking.eta;
+    final total = _pathMeters(route);
+    if (eta == null || eta.seconds <= 0 || total <= 0) return (route: ahead, tracking: tracking);
+    final meters = _pathMeters(ahead);
+    final live = RoadRouteResult(
+      points: ahead,
+      distanceMeters: meters.round(),
+      durationSeconds: (eta.seconds * math.min(1.0, meters / total)).round(),
+    );
+    return (
+      route: ahead,
+      tracking: tracking.withAccurateEta(
+        text: live.etaText,
+        distanceMeters: live.distanceMeters,
+        seconds: live.durationSeconds,
+      ),
+    );
   }
 
   void _onSocketStatus(SocketStatus status) {
@@ -335,10 +385,11 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
       }
 
       // Render the complete modern tracking view matching the exact UI mockup
+      final live = _liveView(tracking);
       return ModernTrackingView(
         order: widget.order!,
-        tracking: tracking,
-        route: _route,
+        tracking: live.tracking,
+        route: live.route,
         driver: _driver,
         heading: _heading,
         onBack: () => Navigator.of(context).maybePop(),
@@ -374,7 +425,7 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
       children: [
         if ((_offline || _socketDown) && !tracking.isClosed) _ConnectionBanner(offline: _offline),
         if (tracking.delay != null && !tracking.isClosed) _DelayBanner(delay: tracking.delay!),
-        if (tracking.showLiveMap) ..._liveSection(tracking) else ..._preOrderSection(tracking),
+        if (tracking.showLiveMap) ..._liveSection(_liveView(tracking)) else ..._preOrderSection(tracking),
         _Card(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,7 +444,8 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
     );
   }
 
-  List<Widget> _liveSection(OrderTracking tracking) {
+  List<Widget> _liveSection(({List<LatLng> route, OrderTracking tracking}) live) {
+    final tracking = live.tracking;
     final eta = tracking.eta;
     final String title;
     final String subtitle;
@@ -403,6 +455,9 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
     } else if (tracking.isCancelled) {
       title = 'Order cancelled';
       subtitle = 'This order will not be delivered';
+    } else if (tracking.riderToStore) {
+      title = eta != null ? 'Arriving in ${eta.text}' : 'Delivery partner assigned';
+      subtitle = '${tracking.driver?.name ?? 'Your delivery partner'} is picking up your order from the store';
     } else if (tracking.liveTracking) {
       title = eta != null ? 'Arriving in ${eta.text}' : 'On the way';
       subtitle = '${tracking.driver?.name ?? 'Your delivery partner'} is on the way';
@@ -460,7 +515,7 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
                   heading: _heading,
                   store: tracking.storeLocation,
                   destination: tracking.destination,
-                  route: _route,
+                  route: live.route,
                   etaText: tracking.eta?.text,
                   distanceMeters: tracking.eta?.distanceMeters,
                   liveTracking: tracking.liveTracking,
@@ -471,7 +526,7 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
                   heading: _heading,
                   store: tracking.storeLocation,
                   destination: tracking.destination,
-                  route: _route,
+                  route: live.route,
                 ),
             ],
             if (tracking.liveTracking && _lastFixAt != null && !tracking.isClosed) ...[
@@ -506,7 +561,11 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  tracking.liveTracking ? 'Your delivery partner' : 'Assigned delivery partner',
+                  tracking.riderToStore
+                      ? 'Picking up your order from the store'
+                      : tracking.liveTracking
+                          ? 'Your delivery partner'
+                          : 'Assigned delivery partner',
                   style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
                 ),
                 if (driver.phone.isNotEmpty) ...[
@@ -756,4 +815,21 @@ class _OtherPartNote extends StatelessWidget {
       ),
     );
   }
+}
+
+double _metersBetween(LatLng a, LatLng b) {
+  double rad(double deg) => deg * math.pi / 180;
+  final dLat = rad(b.latitude - a.latitude);
+  final dLng = rad(b.longitude - a.longitude);
+  final h = math.pow(math.sin(dLat / 2), 2) +
+      math.cos(rad(a.latitude)) * math.cos(rad(b.latitude)) * math.pow(math.sin(dLng / 2), 2);
+  return 6371000 * 2 * math.atan2(math.sqrt(h), math.sqrt(1 - h));
+}
+
+double _pathMeters(List<LatLng> points) {
+  var meters = 0.0;
+  for (var i = 1; i < points.length; i++) {
+    meters += _metersBetween(points[i - 1], points[i]);
+  }
+  return meters;
 }

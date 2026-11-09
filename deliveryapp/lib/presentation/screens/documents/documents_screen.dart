@@ -26,15 +26,27 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     });
   }
 
-  static const _keys = [
-    ('license', 'Driving Licence', Icons.credit_card_outlined),
-    ('aadhaar', 'Aadhaar', Icons.fingerprint_outlined),
-    ('pan', 'PAN', Icons.description_outlined),
-    ('rc', 'Vehicle RC', Icons.two_wheeler_outlined),
-    ('insurance', 'Insurance', Icons.security_outlined),
-    ('passport', 'Passport', Icons.badge_outlined),
-    ('policeVerification', 'Police Verification', Icons.local_police_outlined),
-  ];
+  static List<(String, String, IconData)> _keys(AppLocalizations l10n) => [
+        ('license', l10n.drivingLicense, Icons.credit_card_outlined),
+        ('aadhaar', l10n.docAadhaar, Icons.fingerprint_outlined),
+        ('pan', l10n.docPan, Icons.description_outlined),
+        ('rc', l10n.vehicleRc, Icons.two_wheeler_outlined),
+        ('insurance', l10n.insurance, Icons.security_outlined),
+        ('passport', l10n.uiDocPassport, Icons.badge_outlined),
+        ('policeVerification', l10n.policeVerification, Icons.local_police_outlined),
+      ];
+
+  static String _statusLabel(AppLocalizations l10n, String status) {
+    return switch (status) {
+      'approved' => l10n.uiDocStatusApproved,
+      'verified' => l10n.verified,
+      'rejected' => l10n.uiDocStatusRejected,
+      'uploaded' => l10n.uiUploaded,
+      'pending' => l10n.pending,
+      'under_review' => l10n.uiUnderReview,
+      _ => status.replaceAll('_', ' '),
+    };
+  }
 
   ImageProvider? _imageFor(Map<String, dynamic> map) {
     final url = map['url']?.toString() ?? '';
@@ -64,7 +76,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     final uploaded = <({String key, String title, IconData icon, Map<String, dynamic> map, ImageProvider? image})>[];
     final missing = <({String key, String title, IconData icon})>[];
 
-    for (final entry in _keys) {
+    for (final entry in _keys(l10n)) {
       final raw = docs[entry.$1];
       final map = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
       final image = _imageFor(map);
@@ -86,7 +98,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       backgroundColor: AppColors.background,
       appBar: CustomAppBar(
         title: l10n.documents,
-        subtitle: 'Tap a photo to view full size',
+        subtitle: l10n.uiDocsTapToView,
         showBackButton: true,
       ),
       body: ListView(
@@ -100,7 +112,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Documents are view-only. Contact your Delivery Manager to update them.',
+                    l10n.uiDocsViewOnly,
                     style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ),
@@ -110,7 +122,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
           const SizedBox(height: 14),
           if (uploaded.isNotEmpty) ...[
             Text(
-              'Uploaded documents',
+              l10n.uiUploadedDocuments,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
@@ -185,7 +197,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                               ),
                               const SizedBox(height: 3),
                               StatusChip(
-                                label: status.replaceAll('_', ' '),
+                                label: _statusLabel(l10n, status),
                                 type: status == 'approved'
                                     ? StatusType.success
                                     : status == 'rejected'
@@ -205,7 +217,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
           if (missing.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text(
-              'Not uploaded',
+              l10n.uiNotUploaded,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
@@ -240,8 +252,8 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                           ),
                         ),
                       ),
-                      const StatusChip(
-                        label: 'not uploaded',
+                      StatusChip(
+                        label: l10n.uiNotUploaded,
                         type: StatusType.warning,
                       ),
                     ],

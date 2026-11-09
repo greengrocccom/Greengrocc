@@ -5,6 +5,7 @@ import '../../../core/constants/service_locations.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/onboarding_nav.dart';
+import '../../../l10n/app_localizations.dart';
 
 class CitySelectionScreen extends StatefulWidget {
   const CitySelectionScreen({super.key});
@@ -44,6 +45,7 @@ class _CitySelectionScreenState extends State<CitySelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final cities = _filteredCities;
 
     return Scaffold(
@@ -64,7 +66,7 @@ class _CitySelectionScreenState extends State<CitySelectionScreen> {
                 children: [
                   const SizedBox(height: 8),
                   Text(
-                    'Select City',
+                    l10n.selectCity,
                     style: GoogleFonts.inter(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -74,8 +76,8 @@ class _CitySelectionScreenState extends State<CitySelectionScreen> {
                   const SizedBox(height: 6),
                   Text(
                     _selectedState != null
-                        ? 'Please select your city in $_selectedState'
-                        : 'Please select your city',
+                        ? l10n.uiSelectCityIn(_selectedState!)
+                        : l10n.uiSelectCitySubtitle,
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: AppColors.textSecondary,
@@ -89,7 +91,7 @@ class _CitySelectionScreenState extends State<CitySelectionScreen> {
                     onChanged: (v) => setState(() => _query = v),
                     style: GoogleFonts.inter(fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Search city',
+                      hintText: l10n.searchCity,
                       prefixIcon: const Icon(
                         Icons.search_rounded,
                         color: Color(0xFF9CA3AF),
@@ -124,7 +126,7 @@ class _CitySelectionScreenState extends State<CitySelectionScreen> {
               child: cities.isEmpty
                   ? Center(
                       child: Text(
-                        'No cities found',
+                        l10n.uiNoCitiesFound,
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           color: AppColors.textSecondary,

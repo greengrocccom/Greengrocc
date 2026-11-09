@@ -69,18 +69,18 @@ class AppDrawer extends StatelessWidget {
                   ),
                   _DrawerItem(
                     icon: Icons.event_available_outlined,
-                    label: 'Pre-order deliveries',
+                    label: l10n.preOrderDeliveriesTitle,
                     onTap: () => _nav(context, AppRoutes.preOrderDeliveries),
                   ),
                   if (isFullTime) ...[
                     _DrawerItem(
                       icon: Icons.assignment_outlined,
-                      label: 'Assigned Orders',
+                      label: l10n.uiAssignedOrders,
                       onTap: () => _nav(context, AppRoutes.assignedOrders),
                     ),
                     _DrawerItem(
                       icon: Icons.rule_outlined,
-                      label: 'My Rules',
+                      label: l10n.uiMyRules,
                       onTap: () => _nav(context, AppRoutes.fullTimeRules),
                     ),
                   ],
@@ -102,7 +102,7 @@ class AppDrawer extends StatelessWidget {
                     ),
                   _DrawerItem(
                     icon: Icons.event_busy_outlined,
-                    label: 'Apply Leave',
+                    label: l10n.uiApplyLeave,
                     onTap: () => _nav(context, AppRoutes.leave),
                   ),
                   _DrawerItem(
@@ -132,7 +132,7 @@ class AppDrawer extends StatelessWidget {
                   ),
                   _DrawerItem(
                     icon: Icons.account_balance_outlined,
-                    label: 'Bank details',
+                    label: l10n.bankDetails,
                     onTap: () => _nav(context, AppRoutes.bankDetails),
                   ),
                   _DrawerItem(

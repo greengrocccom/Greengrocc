@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../core/config/api_config.dart';
+import '../../core/l10n/app_l10n.dart';
 import 'auth_service.dart';
 import 'push_notification_service.dart';
 
@@ -151,13 +152,13 @@ class SocketService {
         _orderOfferController.add(map);
         final num = map['orderNumber']?.toString() ?? '';
         final earn = map['estimatedEarnings'] ?? map['earnUpTo'] ?? '';
-        final earnTxt = earn.toString().isNotEmpty ? ' · Earn ₹$earn' : '';
+        final earnTxt = earn.toString().isNotEmpty ? ' · ${appL10n.svcEarnAmount('$earn')}' : '';
         final idStr = map['orderId']?.toString() ?? '';
         PushNotificationService.instance.showLocalNotification(
-          title: 'New Delivery Offer!$earnTxt',
+          title: '${appL10n.svcNewDeliveryOffer}$earnTxt',
           body: num.isNotEmpty
-              ? 'New delivery offer for Order #$num. Tap to review and accept!'
-              : 'New delivery offer available. Tap to review and accept!',
+              ? appL10n.svcOfferForOrder(num)
+              : appL10n.svcOfferAvailable,
           data: {
             'screen': 'home',
             'type': 'ORDER_RECEIVED',
@@ -210,15 +211,15 @@ class SocketService {
           AuthService.instance.applyVerificationStatus('approved');
           AuthService.instance.fetchMe();
           PushNotificationService.instance.showLocalNotification(
-            title: "You're Verified!",
-            body: 'Your profile has been verified! You can now go online and receive orders.',
+            title: appL10n.notifVerifiedTitle,
+            body: appL10n.svcProfileVerifiedBody,
             data: {'screen': 'home', 'type': 'VERIFICATION_COMPLETED'},
           );
         } else if (status == 'rejected') {
           AuthService.instance.applyVerificationStatus('rejected');
           PushNotificationService.instance.showLocalNotification(
-            title: 'Verification Status Update',
-            body: map['remarks']?.toString() ?? 'Please review your verification details in the app.',
+            title: appL10n.svcVerificationStatusUpdate,
+            body: map['remarks']?.toString() ?? appL10n.svcReviewVerificationDetails,
             data: {'screen': 'home', 'type': 'DOCUMENT_REJECTED'},
           );
         }
@@ -287,8 +288,8 @@ class SocketService {
     });
   }
 
-  /// Live GPS for one delivery. The server only accepts it for assigned
-  /// ready-to-cook / instant orders after pickup; the ack says why if not.
+  /// Live GPS for one delivery. The server only accepts it for ready-to-cook /
+  /// instant orders assigned to this rider; the ack says why if not.
   Future<Map<String, dynamic>?> emitDriverLocation({
     required String orderId,
     required double lat,

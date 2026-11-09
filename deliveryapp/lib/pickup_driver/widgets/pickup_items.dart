@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../pickup_flow.dart';
 import 'pickup_ui.dart';
 
@@ -12,9 +13,10 @@ class PickupItemsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final p = pickup;
     final items = pickupItems(p);
-    final unit = str(p['unit']).isEmpty ? 'Kg' : str(p['unit']);
+    final unit = pickupUnitText(str(p['unit']).isEmpty ? 'Kg' : str(p['unit']));
     final totalQty = items.fold<num>(0, (s, i) => s + i.quantity);
     final itemsTotal = items.fold<num>(0, (s, i) => s + i.total);
     final orderValue = num.tryParse(str(p['orderValue'])) ?? 0;
@@ -82,10 +84,11 @@ class PickupItemsTable extends StatelessWidget {
             ),
           ),
         const Divider(height: 18),
-        _totalRow('Total weight (ordered)', '${formatQty(totalQty)} $unit'),
-        if (packed > 0) _totalRow('Packed weight', '${formatQty(packed)} $unit'),
-        if (pkgs.isNotEmpty && pkgs != '0') _totalRow('Packages', pkgs),
-        _totalRow('Order value', formatRupees(totalValue), bold: true),
+        _totalRow(l10n.pkTotalWeightOrdered, '${formatQty(totalQty)} $unit'),
+        if (packed > 0)
+          _totalRow(l10n.pkPackedWeight, '${formatQty(packed)} $unit'),
+        if (pkgs.isNotEmpty && pkgs != '0') _totalRow(l10n.pkPackages, pkgs),
+        _totalRow(l10n.pkOrderValue, formatRupees(totalValue), bold: true),
       ],
     );
   }

@@ -1,4 +1,14 @@
-import StoreInventory from "../models/StoreInventory.js";
+import StoreInventory, { availableStock, hasAvailableExpr } from "../models/StoreInventory.js";
+import StoreOrder from "../models/StoreOrder.js";
+
+/**
+ * Store stock follows an order in three steps:
+ *   reserve / pack  → units move into heldCount (customers can no longer buy them)
+ *   out for delivery → units come off stockCount and heldCount (the physical stock drops)
+ *   cancel           → held units are released, or shipped units are put back
+ * Orders reserved before heldCount existed (no stockHeldAt) took their units straight off
+ * stockCount; they are only marked shipped, and cancelling puts the units back as before.
+ */
 
 /** Rows are keyed by SKU and, when linked, by `pid:<productId>`. */
 export function buildStockMap(rows = []) {
@@ -29,12 +39,20 @@ function rowFilter(managerId, item, row) {
   return { managerId, sku: item.sku };
 }
 
+const fulfilableItems = (order) => (order.items || []).filter((item) => !item.customerInformed);
+
+/** Lower a counter by `quantity` without going below zero. */
+const decrementClamped = (field, quantity) => ({
+  $max: [0, { $subtract: [{ $ifNull: [`$${field}`, 0] }, quantity] }],
+});
+
+/** Set counters with an aggregation-pipeline update (needed for the clamped decrements). */
+const pipelineUpdate = (filter, set) => StoreInventory.updateOne(filter, [{ $set: set }], { updatePipeline: true });
+
 export function findOrderShortages(order, stockMap) {
   const shortages = [];
-  for (const item of order.items || []) {
-    if (item.customerInformed) continue;
-    const stock = stockRowFor(item, stockMap);
-    const available = stock ? stock.stockCount : 0;
+  for (const item of fulfilableItems(order)) {
+    const available = availableStock(stockRowFor(item, stockMap));
     if (available < item.quantity) {
       shortages.push({
         sku: item.sku,
@@ -48,11 +66,11 @@ export function findOrderShortages(order, stockMap) {
 }
 
 /**
- * Atomically take stock for every fulfilable item, or none at all.
+ * Atomically hold available stock for every fulfilable item, or none at all.
  * Returns { taken, shortages, empty }.
  */
-async function takeStock(managerId, order) {
-  const fulfilable = (order.items || []).filter((item) => !item.customerInformed);
+async function holdStock(managerId, order) {
+  const fulfilable = fulfilableItems(order);
   if (fulfilable.length === 0) {
     return { taken: false, shortages: [], empty: true };
   }
@@ -63,19 +81,17 @@ async function takeStock(managerId, order) {
     return { taken: false, shortages };
   }
 
-  const deducted = [];
+  const held = [];
   for (const item of fulfilable) {
     const filter = rowFilter(managerId, item, stockRowFor(item, stockMap));
     const updated = await StoreInventory.findOneAndUpdate(
-      { ...filter, stockCount: { $gte: item.quantity } },
-      { $inc: { stockCount: -item.quantity } },
-      { returnDocument: 'after' }
+      { ...filter, ...hasAvailableExpr(item.quantity) },
+      { $inc: { heldCount: item.quantity } },
+      { returnDocument: "after" }
     );
     if (!updated) {
-      for (const done of deducted) {
-        await StoreInventory.findOneAndUpdate(done.filter, {
-          $inc: { stockCount: done.quantity },
-        });
+      for (const done of held) {
+        await pipelineUpdate(done.filter, { heldCount: decrementClamped("heldCount", done.quantity) });
       }
       const latest = await StoreInventory.findOne(filter);
       return {
@@ -85,12 +101,12 @@ async function takeStock(managerId, order) {
             sku: item.sku,
             name: item.name,
             needed: item.quantity,
-            available: latest?.stockCount || 0,
+            available: availableStock(latest),
           },
         ],
       };
     }
-    deducted.push({ filter: { _id: updated._id }, quantity: item.quantity });
+    held.push({ filter: { _id: updated._id }, quantity: item.quantity });
   }
 
   return { taken: true, shortages: [] };
@@ -102,16 +118,18 @@ async function takeStock(managerId, order) {
  */
 export async function reserveOrderStock(managerId, order) {
   if (order.stockReservedAt || order.stockDeductedAt) return { reserved: false, already: true };
-  const result = await takeStock(managerId, order);
+  const result = await holdStock(managerId, order);
   if (!result.taken) return { reserved: false, shortages: result.shortages || [] };
   order.stockReservedAt = new Date();
+  order.stockHeldAt = order.stockReservedAt;
   await order.save();
   return { reserved: true };
 }
 
 /**
- * Deduct this dark store's inventory for fulfilable order items at packing.
- * Reserved orders already hold their stock, so packing only confirms it.
+ * Confirm this dark store's stock for fulfilable order items at packing. Reserved orders
+ * already hold their units; others are held now. The physical stock drops only when the
+ * order goes out for delivery (shipOrderStock).
  */
 export async function deductOrderStock(managerId, order) {
   if (order.stockDeductedAt) {
@@ -119,7 +137,7 @@ export async function deductOrderStock(managerId, order) {
   }
 
   if (order.stockReservedAt) {
-    if (!(order.items || []).some((item) => !item.customerInformed)) {
+    if (!fulfilableItems(order).length) {
       return { deducted: false, alreadyDeducted: false, shortages: [], empty: true };
     }
     order.stockDeductedAt = new Date();
@@ -127,7 +145,7 @@ export async function deductOrderStock(managerId, order) {
     return { deducted: true, alreadyDeducted: false, shortages: [] };
   }
 
-  const result = await takeStock(managerId, order);
+  const result = await holdStock(managerId, order);
   if (result.empty) {
     return { deducted: false, alreadyDeducted: false, shortages: [], empty: true };
   }
@@ -136,22 +154,79 @@ export async function deductOrderStock(managerId, order) {
   }
 
   order.stockDeductedAt = new Date();
+  order.stockHeldAt = order.stockDeductedAt;
   await order.save();
   return { deducted: true, alreadyDeducted: false, shortages: [] };
 }
 
-/** Put reserved or deducted units back when an order is cancelled. */
+/**
+ * The order left the store (out for delivery, or delivered without that step): take its
+ * held units off the physical stock. Runs once per order.
+ */
+export async function shipOrderStock(order) {
+  if (!order?._id || order.stockShippedAt || !(order.stockReservedAt || order.stockDeductedAt)) {
+    return { shipped: false };
+  }
+  const now = new Date();
+  const claim = await StoreOrder.updateOne(
+    { _id: order._id, stockShippedAt: { $in: [null] } },
+    { $set: { stockShippedAt: now } },
+    { timestamps: false }
+  );
+  order.stockShippedAt = now;
+  if (!claim.modifiedCount || !order.stockHeldAt) return { shipped: false };
+
+  const stockMap = await getStockMap(order.managerId);
+  for (const item of fulfilableItems(order)) {
+    await pipelineUpdate(rowFilter(order.managerId, item, stockRowFor(item, stockMap)), {
+      stockCount: decrementClamped("stockCount", item.quantity),
+      heldCount: decrementClamped("heldCount", item.quantity),
+    });
+  }
+  return { shipped: true };
+}
+
+/** Fire-and-forget form of shipOrderStock for status transitions. */
+export function shipOrderStockOnDispatch(order) {
+  shipOrderStock(order).catch((err) =>
+    console.warn(`[storeStock] ship failed for ${order?.orderNumber || order?._id}:`, err.message)
+  );
+}
+
+/**
+ * A failed delivery came back for another attempt: its units are on the shelf again and
+ * still promised to this order, so they count as physical stock and stay held.
+ */
+export async function returnShippedStockToShelf(order) {
+  if (!order?.stockShippedAt) return { returned: false };
+  if (order.stockHeldAt) {
+    const stockMap = await getStockMap(order.managerId);
+    for (const item of fulfilableItems(order)) {
+      await StoreInventory.updateOne(rowFilter(order.managerId, item, stockRowFor(item, stockMap)), {
+        $inc: { stockCount: item.quantity, heldCount: item.quantity },
+      });
+    }
+  }
+  order.stockShippedAt = null;
+  return { returned: true };
+}
+
+/** Release held units, or put shipped units back, when an order is cancelled. */
 export async function restoreOrderStock(managerId, order) {
   if (!order?.stockDeductedAt && !order?.stockReservedAt) return { restored: false };
   const stockMap = await getStockMap(managerId);
-  const fulfilable = (order.items || []).filter((item) => !item.customerInformed);
-  for (const item of fulfilable) {
-    await StoreInventory.findOneAndUpdate(
-      rowFilter(managerId, item, stockRowFor(item, stockMap)),
-      { $inc: { stockCount: item.quantity } }
-    );
+  const releaseHold = Boolean(order.stockHeldAt) && !order.stockShippedAt;
+  for (const item of fulfilableItems(order)) {
+    const filter = rowFilter(managerId, item, stockRowFor(item, stockMap));
+    if (releaseHold) {
+      await pipelineUpdate(filter, { heldCount: decrementClamped("heldCount", item.quantity) });
+    } else {
+      await StoreInventory.updateOne(filter, { $inc: { stockCount: item.quantity } });
+    }
   }
   order.stockDeductedAt = null;
   order.stockReservedAt = null;
+  order.stockHeldAt = null;
+  order.stockShippedAt = null;
   return { restored: true };
 }

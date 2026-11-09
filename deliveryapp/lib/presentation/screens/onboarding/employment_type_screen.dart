@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/config/feature_flags.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/onboarding_nav.dart';
@@ -22,20 +23,20 @@ class _EmploymentTypeScreenState extends State<EmploymentTypeScreen> {
       ? _allOptions
       : _allOptions.where((o) => o.id != 'FULL_TIME').toList();
 
-  static const _allOptions = [
-    _EmploymentOption(
-      id: 'PART_TIME',
-      icon: Icons.access_time_outlined,
-      title: 'Part-Time',
-      subtitle: 'Flexible shifts — work when you want',
-    ),
-    _EmploymentOption(
-      id: 'FULL_TIME',
-      icon: Icons.work_outline,
-      title: 'Full-Time',
-      subtitle: 'Fixed shifts — stable monthly salary',
-    ),
-  ];
+  static List<_EmploymentOption> get _allOptions => [
+        _EmploymentOption(
+          id: 'PART_TIME',
+          icon: Icons.access_time_outlined,
+          title: appL10n.uiPartTime,
+          subtitle: appL10n.uiPartTimeSubtitle,
+        ),
+        _EmploymentOption(
+          id: 'FULL_TIME',
+          icon: Icons.work_outline,
+          title: appL10n.uiFullTime,
+          subtitle: appL10n.uiFullTimeSubtitle,
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +48,7 @@ class _EmploymentTypeScreenState extends State<EmploymentTypeScreen> {
         scrolledUnderElevation: 0,
         leading: const AppBackButton(fallbackRoute: AppRoutes.login),
         title: Text(
-          'Employment Type',
+          AppLocalizations.of(context).uiEmploymentType,
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,

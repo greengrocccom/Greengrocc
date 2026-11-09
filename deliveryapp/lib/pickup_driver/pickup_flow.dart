@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../core/l10n/app_l10n.dart';
+
 /// Pickup status flow, labels and QR payloads — mirrors the vendor web
 /// driver portal (`vendor/src/utils/driverFlow.js`, `orderQr.js`, `batchQr.js`,
 /// `components/pickup/PickupTimeline.jsx`) so both show the same thing.
@@ -25,30 +27,44 @@ const _statusAlias = <String, String>{
   'RECEIVED_AT_COLLECTION_CENTRE': 'COLLECTION_CENTRE_RECEIVED',
 };
 
-const pickupStatusLabels = <String, String>{
-  'READY_FOR_PICKUP': 'Ready for pickup',
-  'DRIVER_ASSIGNED': 'Assigned',
-  'PICKUP_SCHEDULED': 'Assigned',
-  'DISPATCHED': 'On the way to farm',
-  'DRIVER_ARRIVED': 'Reached the farm',
-  'ARRIVED': 'Reached the farm',
-  'ORDER_VERIFIED': 'Order checked',
-  'QR_VERIFIED': 'QR verified',
-  'PICKED_UP': 'Pickup confirmed',
-  'PICKUP_CONFIRMED': 'Pickup confirmed',
-  'IN_TRANSIT': 'On the way to centre',
-  'ARRIVED_AT_CENTRE': 'At collection centre',
-  'COLLECTION_CENTRE_RECEIVED': 'Received',
-  'RECEIVED_AT_COLLECTION_CENTRE': 'Received',
-};
+/// Display label for a pickup status code, in the rider's language.
+String? _statusLabelFor(String code) {
+  final l10n = appL10n;
+  return switch (code) {
+    'READY_FOR_PICKUP' => l10n.pkStatusReadyForPickup,
+    'DRIVER_ASSIGNED' || 'PICKUP_SCHEDULED' => l10n.timelineAssigned,
+    'DISPATCHED' => l10n.pkStatusOnTheWayToFarm,
+    'DRIVER_ARRIVED' || 'ARRIVED' => l10n.pkStatusReachedFarm,
+    'ORDER_VERIFIED' => l10n.pkStatusOrderChecked,
+    'QR_VERIFIED' => l10n.pkStatusQrVerified,
+    'PICKED_UP' || 'PICKUP_CONFIRMED' => l10n.pkStatusPickupConfirmed,
+    'IN_TRANSIT' => l10n.pkStatusOnTheWayToCentre,
+    'ARRIVED_AT_CENTRE' => l10n.pkStatusAtCollectionCentre,
+    'COLLECTION_CENTRE_RECEIVED' ||
+    'RECEIVED_AT_COLLECTION_CENTRE' =>
+      l10n.pkStatusReceived,
+    _ => null,
+  };
+}
 
-const _liveAliases = <String, String>{
-  'Assigned — waiting to leave': 'Assigned',
-  'Checking the order': 'Order checked',
-  'QR verified — confirm pickup': 'QR verified',
-  'On the way to collection centre': 'On the way to centre',
-  'Delivered at collection centre': 'Received',
-  'Incoming': 'On the way to centre',
+/// English live-status texts sent by the server → status code.
+const _liveStatusCodes = <String, String>{
+  'Ready for pickup': 'READY_FOR_PICKUP',
+  'Assigned': 'DRIVER_ASSIGNED',
+  'Assigned — waiting to leave': 'DRIVER_ASSIGNED',
+  'On the way to farm': 'DISPATCHED',
+  'Reached the farm': 'DRIVER_ARRIVED',
+  'Order checked': 'ORDER_VERIFIED',
+  'Checking the order': 'ORDER_VERIFIED',
+  'QR verified': 'QR_VERIFIED',
+  'QR verified — confirm pickup': 'QR_VERIFIED',
+  'Pickup confirmed': 'PICKED_UP',
+  'On the way to centre': 'IN_TRANSIT',
+  'On the way to collection centre': 'IN_TRANSIT',
+  'Incoming': 'IN_TRANSIT',
+  'At collection centre': 'ARRIVED_AT_CENTRE',
+  'Received': 'COLLECTION_CENTRE_RECEIVED',
+  'Delivered at collection centre': 'COLLECTION_CENTRE_RECEIVED',
 };
 
 const _afterTransitStatuses = <String>{
@@ -63,16 +79,17 @@ String str(dynamic v) => v == null ? '' : '$v'.trim();
 String pickupStatusLabel(dynamic status) {
   final key = str(status);
   if (key.isEmpty) return '';
-  if (pickupStatusLabels.containsKey(key)) return pickupStatusLabels[key]!;
-  if (_liveAliases.containsKey(key)) return _liveAliases[key]!;
-  if (pickupStatusLabels.values.contains(key)) return key;
+  final label =
+      _statusLabelFor(key) ?? _statusLabelFor(_liveStatusCodes[key] ?? '');
+  if (label != null) return label;
   return key.replaceAll('_', ' ');
 }
 
 String pickupLiveLabel(Map<String, dynamic>? pickup) {
   if (pickup == null) return '';
   final key = str(pickup['status']);
-  if (pickupStatusLabels.containsKey(key)) return pickupStatusLabels[key]!;
+  final label = _statusLabelFor(key);
+  if (label != null) return label;
   final live = str(pickup['liveStatus']);
   return pickupStatusLabel(live.isNotEmpty ? live : key);
 }
@@ -115,33 +132,34 @@ bool needsAcceptance(Map<String, dynamic>? p) {
 PickupStep? driverNextStep(Map<String, dynamic>? pickup) {
   if (pickup == null) return null;
   final status = str(pickup['status']);
+  final l10n = appL10n;
   if (needsAcceptance(pickup)) {
-    return const PickupStep(
-        'accept', 'Accept or reject', 'Open pickup to accept or reject');
+    return PickupStep(
+        'accept', l10n.pkStepAcceptOrReject, l10n.pkHintOpenToAcceptOrReject);
   }
   if (status == 'DRIVER_ASSIGNED' || status == 'PICKUP_SCHEDULED') {
-    return const PickupStep(
-        'start', 'Left for pickup', 'Status will become On the way to farm');
+    return PickupStep('start', l10n.pkStepLeftForPickup,
+        l10n.pkHintStatusWillBecome(l10n.pkStatusOnTheWayToFarm));
   }
   if (status == 'DISPATCHED') {
-    return const PickupStep(
-        'arrive', 'Reached the farm', 'Status will become Reached the farm');
+    return PickupStep('arrive', l10n.pkStatusReachedFarm,
+        l10n.pkHintStatusWillBecome(l10n.pkStatusReachedFarm));
   }
   if (status == 'DRIVER_ARRIVED') {
-    return const PickupStep(
-        'check', 'Check order', 'Open pickup to verify the order');
+    return PickupStep(
+        'check', l10n.pkStepCheckOrder, l10n.pkHintOpenToVerifyOrder);
   }
   if (status == 'ORDER_VERIFIED') {
-    return const PickupStep(
-        'scan', 'Scan Farmer QR', 'Open pickup to scan QR');
+    return PickupStep(
+        'scan', l10n.pkStepScanFarmerQr, l10n.pkHintOpenToScanQr);
   }
   if (status == 'QR_VERIFIED') {
-    return const PickupStep(
-        'confirm', 'Confirm pickup', 'Open pickup to confirm with photo');
+    return PickupStep(
+        'confirm', l10n.pkStepConfirmPickup, l10n.pkHintOpenToConfirmWithPhoto);
   }
   if (status == 'IN_TRANSIT') {
-    return const PickupStep('arriveCentre', 'Reached collection centre',
-        'Status will become At collection centre');
+    return PickupStep('arriveCentre', l10n.pkStepReachedCollectionCentre,
+        l10n.pkHintStatusWillBecome(l10n.pkStatusAtCollectionCentre));
   }
   if (status == 'PICKED_UP' ||
       status == 'PICKUP_CONFIRMED' ||
@@ -149,8 +167,8 @@ PickupStep? driverNextStep(Map<String, dynamic>? pickup) {
           status != 'IN_TRANSIT' &&
           status != 'ARRIVED_AT_CENTRE')) {
     if (_afterTransitStatuses.contains(status)) return null;
-    return const PickupStep('transit', 'On the way to centre',
-        'Status will become On the way to centre');
+    return PickupStep('transit', l10n.pkStatusOnTheWayToCentre,
+        l10n.pkHintStatusWillBecome(l10n.pkStatusOnTheWayToCentre));
   }
   return null;
 }
@@ -225,8 +243,28 @@ String pickupOrderId(Map<String, dynamic> p) {
   return order.isNotEmpty ? order : str(p['id']);
 }
 
+/// Common units in the rider's language; anything else is shown as sent.
+String pickupUnitText(String unit) {
+  final l10n = appL10n;
+  if (l10n.localeName.startsWith('en')) return unit;
+  return switch (unit.trim().toLowerCase()) {
+    'kg' || 'kgs' || 'kilo' || 'kilos' || 'kilogram' || 'kilograms' =>
+      l10n.pkUnitKg,
+    'g' || 'gm' || 'gms' || 'gram' || 'grams' => l10n.pkUnitGram,
+    'quintal' || 'quintals' || 'qtl' => l10n.pkUnitQuintal,
+    'ton' || 'tons' || 'tonne' || 'tonnes' => l10n.pkUnitTon,
+    'crate' || 'crates' => l10n.pkUnitCrate,
+    'box' || 'boxes' => l10n.pkUnitBox,
+    'bag' || 'bags' => l10n.pkUnitBag,
+    'piece' || 'pieces' || 'pc' || 'pcs' || 'nos' => l10n.pkUnitPiece,
+    'dozen' || 'dozens' => l10n.pkUnitDozen,
+    'bunch' || 'bunches' => l10n.pkUnitBunch,
+    _ => unit,
+  };
+}
+
 String pickupQuantity(Map<String, dynamic> p, {bool ordered = false}) {
-  final unit = str(p['unit']).isEmpty ? 'Kg' : str(p['unit']);
+  final unit = pickupUnitText(str(p['unit']).isEmpty ? 'Kg' : str(p['unit']));
   final raw = ordered
       ? p['orderedQuantity']
       : (_nonZero(p['packedQuantity']) ?? p['expectedQuantity']);
@@ -295,11 +333,12 @@ num _num(dynamic v) => v is num ? v : num.tryParse(str(v)) ?? 0;
 String _gradeText(dynamic v) {
   final s = str(v);
   if (s.isEmpty) return '';
-  return s.toLowerCase().startsWith('grade') ? s : 'Grade $s';
+  final grade = s.toLowerCase().startsWith('grade') ? s.substring(5).trim() : s;
+  return grade.isEmpty ? s : appL10n.pkGradeValue(grade);
 }
 
 List<PickupItem> pickupItems(Map<String, dynamic> p) {
-  final unit = str(p['unit']).isEmpty ? 'Kg' : str(p['unit']);
+  final unit = pickupUnitText(str(p['unit']).isEmpty ? 'Kg' : str(p['unit']));
   final productName = [str(p['productName']), str(p['variety'])]
       .where((s) => s.isNotEmpty)
       .join(' · ');
@@ -316,7 +355,7 @@ List<PickupItem> pickupItems(Map<String, dynamic> p) {
         name: str(row['name']).isNotEmpty ? str(row['name']) : productName,
         grade: _gradeText(row['grade']),
         quantity: qty,
-        unit: str(row['unit']).isEmpty ? unit : str(row['unit']),
+        unit: str(row['unit']).isEmpty ? unit : pickupUnitText(str(row['unit'])),
         price: price,
         total: total > 0 ? total : qty * price,
       ));
@@ -348,7 +387,7 @@ List<PickupItem> pickupItems(Map<String, dynamic> p) {
     final price = _num(p['price']);
     final value = _num(p['orderValue']);
     items.add(PickupItem(
-      name: productName.isEmpty ? 'Produce' : productName,
+      name: productName.isEmpty ? appL10n.pkProduce : productName,
       grade: _gradeText(p['grade']),
       quantity: qty,
       unit: unit,
@@ -680,7 +719,7 @@ String orderQrFacts(String payload) {
   final json = parseQrJson(payload);
   if (json == null || json['t'] == 'batch') return '';
   final qty = json['qty'] != null
-      ? '${json['qty']}${str(json['unit']).isNotEmpty ? ' ${json['unit']}' : ''}'
+      ? '${json['qty']}${str(json['unit']).isNotEmpty ? ' ${pickupUnitText(str(json['unit']))}' : ''}'
       : '';
   return [json['farmer'], json['product'], json['variety'], qty, json['centre']]
       .map(str)
@@ -695,7 +734,7 @@ String batchQrFacts(String payload) {
   return [
     joined(json['farmers']),
     joined(json['products']),
-    json['orders'] != null ? '${json['orders']} orders' : '',
+    json['orders'] != null ? appL10n.pkOrdersCount(str(json['orders'])) : '',
     str(json['driver']),
     str(json['vehicle']),
   ].where((s) => s.isNotEmpty).join(' · ');

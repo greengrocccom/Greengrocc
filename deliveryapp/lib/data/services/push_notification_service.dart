@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/l10n/app_l10n.dart';
 import '../../core/routes/app_routes.dart';
 import '../../presentation/shell/shell_navigation.dart';
 import 'auth_service.dart';
@@ -147,7 +148,7 @@ class PushNotificationService {
         final type = message.data['type']?.toString() ?? '';
         final title = message.notification?.title ??
             message.data['title']?.toString() ??
-            'GreenGroc Delivery';
+            appL10n.svcGreenGrocDelivery;
         final body = message.notification?.body ??
             message.data['body']?.toString() ??
             message.data['message']?.toString() ??

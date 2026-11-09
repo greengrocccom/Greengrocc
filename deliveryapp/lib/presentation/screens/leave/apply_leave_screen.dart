@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/leave_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/layout/custom_app_bar.dart';
 
 class ApplyLeaveScreen extends StatefulWidget {
@@ -72,12 +73,13 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context);
     if (_dates.isEmpty) {
-      setState(() => _error = 'Add at least one leave date');
+      setState(() => _error = l10n.ftAddAtLeastOneLeaveDate);
       return;
     }
     if (_reasonCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Reason is required');
+      setState(() => _error = l10n.ftReasonRequired);
       return;
     }
     setState(() {
@@ -95,7 +97,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _success = 'Leave request submitted';
+        _success = l10n.ftLeaveRequestSubmitted;
         _reasonCtrl.clear();
         _dates.clear();
         _leaveType = 'casual';
@@ -110,15 +112,31 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
     }
   }
 
+  static String _leaveTitle(AppLocalizations l10n, String type) => switch (type) {
+        'casual' => l10n.ftCasualLeave,
+        'sick' => l10n.ftSickLeave,
+        'earned' => l10n.ftEarnedLeave,
+        'unpaid' => l10n.ftUnpaidLeave,
+        _ => l10n.ftLeaveTypeGeneric(type.isEmpty ? type : '${type[0].toUpperCase()}${type.substring(1)}'),
+      };
+
+  static String _statusLabel(AppLocalizations l10n, String status) => switch (status) {
+        'pending' => l10n.pending,
+        'approved' => l10n.ftApproved,
+        'rejected' => l10n.ftRejected,
+        _ => status,
+      };
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const CustomAppBar(
-        title: 'Apply Leave',
-        subtitle: 'Request time off with one or more dates',
+      appBar: CustomAppBar(
+        title: l10n.ftApplyLeave,
+        subtitle: l10n.ftApplyLeaveSubtitle,
         showBackButton: true,
       ),
       body: ListView(
@@ -163,7 +181,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Type of leave',
+                  l10n.ftTypeOfLeave,
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 6),
@@ -182,11 +200,11 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                       borderSide: BorderSide(color: AppColors.primary),
                     ),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'casual', child: Text('🏖️ Casual')),
-                    DropdownMenuItem(value: 'sick', child: Text('🤒 Sick')),
-                    DropdownMenuItem(value: 'earned', child: Text('🏆 Earned')),
-                    DropdownMenuItem(value: 'unpaid', child: Text('📝 Unpaid')),
+                  items: [
+                    DropdownMenuItem(value: 'casual', child: Text('🏖️ ${l10n.ftLeaveTypeCasual}')),
+                    DropdownMenuItem(value: 'sick', child: Text('🤒 ${l10n.ftLeaveTypeSick}')),
+                    DropdownMenuItem(value: 'earned', child: Text('🏆 ${l10n.ftLeaveTypeEarned}')),
+                    DropdownMenuItem(value: 'unpaid', child: Text('📝 ${l10n.ftLeaveTypeUnpaid}')),
                   ],
                   onChanged: (value) {
                     if (value != null) setState(() => _leaveType = value);
@@ -194,7 +212,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Reason',
+                  l10n.ftReason,
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 6),
@@ -204,7 +222,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                   style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    hintText: 'Why do you need leave?',
+                    hintText: l10n.ftReasonHint,
                     hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 12),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -218,12 +236,12 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Leave dates',
+                  l10n.ftLeaveDates,
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Add one or more dates. Non-continuous days supported.',
+                  l10n.ftLeaveDatesHint,
                   style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                 ),
                 const SizedBox(height: 8),
@@ -232,7 +250,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _pickDate,
                     icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Add date', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    label: Text(l10n.ftAddDate, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -268,7 +286,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     child: Text(
-                      _saving ? 'Submitting…' : 'Submit leave request',
+                      _saving ? l10n.ftSubmitting : l10n.ftSubmitLeaveRequest,
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     ),
                   ),
@@ -278,7 +296,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
           ),
           const SizedBox(height: 18),
           Text(
-            'My leave requests',
+            l10n.ftMyLeaveRequests,
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 8),
@@ -288,7 +306,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (_rows.isEmpty)
-            Text('No leave requests yet.', style: TextStyle(color: AppColors.textMuted, fontSize: 12))
+            Text(l10n.ftNoLeaveRequestsYet, style: TextStyle(color: AppColors.textMuted, fontSize: 12))
           else
             ..._rows.map(
               (row) {
@@ -316,7 +334,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                           Text(typeEmoji, style: const TextStyle(fontSize: 14)),
                           const SizedBox(width: 6),
                           Text(
-                            '${row.leaveType[0].toUpperCase()}${row.leaveType.substring(1)} leave',
+                            _leaveTitle(l10n, row.leaveType),
                             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textPrimary),
                           ),
                           const Spacer(),
@@ -331,7 +349,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              row.status,
+                              _statusLabel(l10n, row.status),
                               style: TextStyle(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w800,
@@ -353,7 +371,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                       ],
                       if ((row.adminNotes ?? '').isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text('Admin note: ${row.adminNotes}', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        Text(l10n.ftAdminNote(row.adminNotes ?? ''), style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                       ],
                     ],
                   ),

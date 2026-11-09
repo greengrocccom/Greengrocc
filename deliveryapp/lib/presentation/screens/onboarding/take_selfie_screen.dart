@@ -215,7 +215,7 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
               else ...[
                 PrimaryButton(
                   label: _submitting
-                      ? 'Uploading…'
+                      ? l10n.uiUploading
                       : l10n.continueToVerification,
                   icon: Icons.verified_user_rounded,
                   onPressed: _submitting
@@ -239,7 +239,7 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
                               SnackBar(
                                 content: Text(e is AuthApiException
                                     ? e.message
-                                    : e.toString()),
+                                    : l10n.somethingWentWrong),
                                 backgroundColor: AppColors.error,
                               ),
                             );

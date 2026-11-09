@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 
 /**
  * Per-store (per delivery manager) inventory.
- * Stock is reduced when a dark-store order is confirmed/packed.
+ * `stockCount` is the physical stock on the shelf; it drops when an order goes out for
+ * delivery. Until then the order's units sit in `heldCount`, so customers can buy only
+ * stockCount − heldCount (see availableStock).
  * Restock happens when Product Manager approves an inventory request.
  */
 const storeInventorySchema = new mongoose.Schema(
@@ -56,6 +58,12 @@ const storeInventorySchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    /** Units promised to open orders that have not left the store yet. */
+    heldCount: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
     lowStockThreshold: {
       type: Number,
       default: 10,
@@ -88,6 +96,19 @@ storeInventorySchema.virtual("inStock").get(function inStock() {
   return this.stockCount > 0;
 });
 
+/** Units customers can still buy: physical stock minus units held for open orders. */
+export function availableStock(row) {
+  if (!row) return 0;
+  return Math.max(0, (Number(row.stockCount) || 0) - (Number(row.heldCount) || 0));
+}
+
+/** Mongo filter expression: at least `quantity` units are available to sell. */
+export function hasAvailableExpr(quantity) {
+  return {
+    $expr: { $gte: [{ $subtract: ["$stockCount", { $ifNull: ["$heldCount", 0] }] }, quantity] },
+  };
+}
+
 storeInventorySchema.methods.toSafeJSON = function toSafeJSON() {
   return {
     id: this._id.toString(),
@@ -100,6 +121,8 @@ storeInventorySchema.methods.toSafeJSON = function toSafeJSON() {
     price: this.price,
     mrp: this.mrp,
     stockCount: this.stockCount,
+    heldCount: this.heldCount || 0,
+    availableStock: availableStock(this),
     lowStockThreshold: this.lowStockThreshold,
     inStock: this.stockCount > 0,
     isLowStock: this.stockCount > 0 && this.stockCount <= this.lowStockThreshold,

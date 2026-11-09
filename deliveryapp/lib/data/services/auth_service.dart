@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/l10n/app_l10n.dart';
 import '../../core/l10n/locale_controller.dart';
 import '../../core/routes/app_routes.dart';
 import '../../live/live_storage.dart';
@@ -210,7 +211,7 @@ class AreaManagerInfo {
 
   factory AreaManagerInfo.fromJson(Map<String, dynamic> json) {
     return AreaManagerInfo(
-      name: json['name']?.toString() ?? 'Delivery Manager',
+      name: json['name']?.toString() ?? appL10n.verificationManagerLabel,
       phone: json['phone']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       storeName: json['storeName']?.toString() ?? '',
@@ -397,7 +398,7 @@ class AuthService {
         }),
       );
       if (res.statusCode != 200) {
-        String msg = 'Failed to send OTP (${res.statusCode})';
+        String msg = appL10n.svcFailedToSendOtp('${res.statusCode}');
         try {
           final data = jsonDecode(res.body) as Map<String, dynamic>;
           msg = data['message']?.toString() ?? msg;
@@ -503,7 +504,7 @@ class AuthService {
     Duration timeout = const Duration(seconds: 60),
   }) async {
     if (!isLoggedIn) {
-      throw AuthApiException('Please login again to continue onboarding');
+      throw AuthApiException(appL10n.svcLoginAgainForOnboarding);
     }
     final Map<String, dynamic> payload = {
       ...?data,
@@ -518,7 +519,7 @@ class AuthService {
       timeout: timeout,
     );
     if (res.statusCode != 200) {
-      String message = 'Could not save onboarding data (${res.statusCode})';
+      String message = appL10n.svcCouldNotSaveOnboarding('${res.statusCode}');
       try {
         final body = jsonDecode(res.body) as Map<String, dynamic>;
         message = body['message']?.toString() ?? message;
@@ -546,7 +547,7 @@ class AuthService {
         try {
           final body = jsonDecode(res.body) as Map<String, dynamic>;
           throw AuthApiException(
-            body['message']?.toString() ?? 'Could not update status',
+            body['message']?.toString() ?? appL10n.svcCouldNotUpdateStatus,
           );
         } on AuthApiException {
           rethrow;
@@ -565,7 +566,7 @@ class AuthService {
       rethrow;
     } catch (e) {
       throw AuthApiException(
-        'Cannot reach ${ApiConfig.baseUrl}\n$e',
+        '${appL10n.svcCannotReachServerAt(ApiConfig.baseUrl)}\n$e',
       );
     }
   }
@@ -631,7 +632,7 @@ class AuthService {
   }) async {
     final res = await apiGet(ApiConfig.activeHubs);
     if (res.statusCode != 200) {
-      throw AuthApiException('Could not load areas (${res.statusCode})');
+      throw AuthApiException(appL10n.svcCouldNotLoadAreas('${res.statusCode}'));
     }
     final body = jsonDecode(res.body) as Map<String, dynamic>;
     String norm(Object? v) =>
@@ -731,19 +732,19 @@ class AuthService {
     try {
       body = jsonDecode(res.body) as Map<String, dynamic>;
     } catch (_) {
-      throw AuthApiException('Unable to reach server');
+      throw AuthApiException(appL10n.svcUnableToReachServer);
     }
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw AuthApiException(
-        body['message']?.toString() ?? 'Authentication failed',
+        body['message']?.toString() ?? appL10n.svcAuthenticationFailed,
       );
     }
 
     final token = body['token']?.toString() ?? '';
     final boyJson = body['deliveryBoy'] as Map<String, dynamic>?;
     if (token.isEmpty || boyJson == null) {
-      throw AuthApiException('Invalid server response');
+      throw AuthApiException(appL10n.svcInvalidServerResponse);
     }
 
     final boy = DeliveryBoy.fromJson(boyJson);

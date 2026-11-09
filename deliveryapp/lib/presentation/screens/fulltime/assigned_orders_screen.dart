@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/fulltime_service.dart';
+import '../../../l10n/app_localizations.dart';
 import 'fulltime_widgets.dart';
 
 class AssignedOrdersScreen extends StatefulWidget {
@@ -46,7 +47,7 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e is FullTimeApiException ? e.message : 'Could not load assigned orders.';
+        _error = e is FullTimeApiException ? e.message : AppLocalizations.of(context).delCouldNotLoadAssignedOrders;
         _loading = false;
       });
     }
@@ -61,7 +62,7 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: fullTimeAppBar('Assigned Orders', onRefresh: _load),
+      appBar: fullTimeAppBar(AppLocalizations.of(context).delAssignedOrders, onRefresh: _load),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -72,6 +73,7 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
 
   Widget _content() {
     final startedAny = _active.any((o) => o['pickupQrScanned'] == true || o['status'] != 'assigned');
+    final l10n = AppLocalizations.of(context);
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -86,7 +88,9 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${_active.length} order${_active.length == 1 ? '' : 's'} assigned',
+                      _active.length == 1
+                          ? l10n.delOrderAssignedCountOne(_active.length.toString())
+                          : l10n.delOrdersAssignedCount(_active.length.toString()),
                       style: GoogleFonts.inter(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -94,7 +98,7 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
                       ),
                     ),
                     Text(
-                      '${_delivered.length} delivered today · Assigned by your Delivery Manager',
+                      l10n.delDeliveredTodayAssignedByManager(_delivered.length.toString()),
                       style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted),
                     ),
                   ],
@@ -110,7 +114,7 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
             child: FilledButton.icon(
               onPressed: _openDelivery,
               icon: const Icon(Icons.delivery_dining_rounded),
-              label: Text(startedAny ? 'Continue Delivery' : 'Start Delivery'),
+              label: Text(startedAny ? l10n.continueDelivery : l10n.delStartDelivery),
               style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
             ),
           ),
@@ -121,7 +125,7 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
             padding: const EdgeInsets.symmetric(vertical: 36),
             child: Center(
               child: Text(
-                'No orders assigned right now.\nYou will get a notification when your manager assigns one.',
+                l10n.delNoOrdersAssignedHint,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(fontSize: 14, color: AppColors.textMuted),
               ),
@@ -130,7 +134,7 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
         if (_delivered.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            'Delivered Today',
+            l10n.delDeliveredToday,
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -149,20 +153,22 @@ class _OrderTile extends StatelessWidget {
   const _OrderTile({required this.order});
   final Map<String, dynamic> order;
 
-  String get _statusLabel => switch (order['status']?.toString()) {
-        'assigned' => order['pickupQrScanned'] == true ? 'Picked up' : 'Ready for pickup',
-        'pickup_verified' => 'Pickup verified',
-        'out_for_delivery' => 'Out for delivery',
-        'delivered' => 'Delivered',
+  String _statusLabel(AppLocalizations l10n) => switch (order['status']?.toString()) {
+        'assigned' => order['pickupQrScanned'] == true ? l10n.pickedUp : l10n.delReadyForPickup,
+        'pickup_verified' => l10n.delPickupVerified,
+        'out_for_delivery' => l10n.outForDelivery,
+        'delivered' => l10n.delivered,
         final s => (s ?? '').replaceAll('_', ' '),
       };
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isPreOrder = order['isPreOrder'] == true;
     final address = order['customerAddress']?.toString() ?? '';
     final amount = (order['amountToCollect'] as num?) ?? 0;
-    final payment = order['paymentMethod']?.toString().toUpperCase() ?? '';
+    final rawPayment = order['paymentMethod']?.toString().toUpperCase() ?? '';
+    final payment = rawPayment == 'ONLINE' ? l10n.online : rawPayment;
     final delivered = order['status'] == 'delivered';
 
     return FtSectionCard(
@@ -183,7 +189,7 @@ class _OrderTile extends StatelessWidget {
                 ),
               ),
               Text(
-                _statusLabel,
+                _statusLabel(l10n),
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -199,10 +205,10 @@ class _OrderTile extends StatelessWidget {
             children: [
               if (isPreOrder)
                 _Tag(
-                  text: 'Pre-Order${(order['preOrderSlot'] ?? '').toString().isNotEmpty ? ' · ${order['preOrderSlot']}' : ''}',
+                  text: '${l10n.delPreOrder}${(order['preOrderSlot'] ?? '').toString().isNotEmpty ? ' · ${order['preOrderSlot']}' : ''}',
                   color: AppColors.warning,
                 ),
-              _Tag(text: '${order['itemCount'] ?? 0} items', color: AppColors.textMuted),
+              _Tag(text: l10n.itemsCount((order['itemCount'] as num?)?.toInt() ?? 0), color: AppColors.textMuted),
               if (amount > 0) _Tag(text: '${formatRupees(amount)} $payment', color: AppColors.textMuted),
             ],
           ),
@@ -212,7 +218,7 @@ class _OrderTile extends StatelessWidget {
                 ? address
                 : delivered
                     ? (order['area']?.toString() ?? '')
-                    : 'Customer address unlocks after pickup verification',
+                    : l10n.delAddressUnlocksAfterPickupVerification,
             style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
           ),
         ],

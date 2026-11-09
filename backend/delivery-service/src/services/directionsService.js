@@ -68,6 +68,31 @@ export function encodePolyline(points = []) {
   return out;
 }
 
+export function decodePolyline(encoded = "") {
+  const points = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+  const next = () => {
+    let result = 0;
+    let shift = 0;
+    let byte;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index < encoded.length);
+    return result & 1 ? ~(result >> 1) : result >> 1;
+  };
+  while (index < encoded.length) {
+    lat += next();
+    if (index >= encoded.length) break;
+    lng += next();
+    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return points;
+}
+
 function estimateRoute(origin, destination) {
   const km = haversineKm(origin.lat, origin.lng, destination.lat, destination.lng) * FALLBACK_ROAD_FACTOR;
   const seconds = Math.max(60, Math.round((km / FALLBACK_SPEED_KMPH) * 3600));
@@ -241,6 +266,28 @@ export async function getRouteAndEta({ cacheKey = "", origin, destination }) {
   return result;
 }
 
+/**
+ * Route origin → stop → destination (rider → dark store → customer): both legs' ETA and
+ * distance summed and their polylines joined. `stopEtaSeconds` is the first leg alone.
+ */
+export async function getRouteViaStop({ cacheKey = "", origin, stop, destination }) {
+  const [toStop, fromStop] = await Promise.all([
+    getRouteAndEta({ cacheKey: cacheKey && `${cacheKey}:to_stop`, origin, destination: stop }),
+    getRouteAndEta({ cacheKey: cacheKey && `${cacheKey}:from_stop`, origin: stop, destination }),
+  ]);
+  if (!toStop || !fromStop) return null;
+  const seconds = toStop.etaSeconds + fromStop.etaSeconds;
+  return {
+    polyline: encodePolyline([...decodePolyline(toStop.polyline), ...decodePolyline(fromStop.polyline)]),
+    distanceMeters: (toStop.distanceMeters || 0) + (fromStop.distanceMeters || 0),
+    etaSeconds: seconds,
+    etaText: formatEta(seconds),
+    stopEtaSeconds: toStop.etaSeconds,
+    source: toStop.source === fromStop.source ? toStop.source : `${toStop.source}+${fromStop.source}`,
+  };
+}
+
 export function clearRouteCache(cacheKey) {
-  if (cacheKey) cache.delete(cacheKey);
+  if (!cacheKey) return;
+  for (const key of [cacheKey, `${cacheKey}:to_stop`, `${cacheKey}:from_stop`]) cache.delete(key);
 }

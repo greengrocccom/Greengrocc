@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../pickup_driver_service.dart';
 import '../pickup_flow.dart';
 import '../widgets/pickup_ui.dart';
@@ -84,7 +85,9 @@ class _PickupBatchScreenState extends State<PickupBatchScreen> {
     try {
       await _svc.arriveCentre(str(pickup['id']));
       await _load();
-      if (mounted) showPickupSnack(context, 'At collection centre.');
+      if (mounted) {
+        showPickupSnack(context, AppLocalizations.of(context).pksAtCollectionCentre);
+      }
     } catch (e) {
       if (!mounted) return;
       if (await handlePickupAuthError(context, e)) return;
@@ -109,7 +112,7 @@ class _PickupBatchScreenState extends State<PickupBatchScreen> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
-        title: Text('Batch details',
+        title: Text(AppLocalizations.of(context).pksBatchDetails,
             style: pickupText(16, weight: FontWeight.w800)),
       ),
       body: data == null
@@ -135,6 +138,7 @@ class _PickupBatchScreenState extends State<PickupBatchScreen> {
   }
 
   List<Widget> _content(Map<String, dynamic> data) {
+    final l10n = AppLocalizations.of(context);
     final orders = _orders(data);
     final first = orders.isNotEmpty ? orders.first : <String, dynamic>{};
     final driver = first['driver'] is Map
@@ -180,7 +184,7 @@ class _PickupBatchScreenState extends State<PickupBatchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionTitle('Overview'),
+            SectionTitle(l10n.pksOverview),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -194,10 +198,10 @@ class _PickupBatchScreenState extends State<PickupBatchScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: qrPayload.isEmpty
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 120,
                             height: 120,
-                            child: Center(child: Text('No QR')),
+                            child: Center(child: Text(l10n.pksNoQr)),
                           )
                         : QrImageView(
                             data: qrPayload,
@@ -212,13 +216,13 @@ class _PickupBatchScreenState extends State<PickupBatchScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _idLabel('Lot / Batch ID'),
+                      _idLabel(l10n.pksLotBatchId),
                       CopyText(batchId, size: 13),
                       const SizedBox(height: 8),
-                      _idLabel('Driver ID'),
+                      _idLabel(l10n.pksDriverId),
                       CopyText(driverId, size: 11, color: PickupColors.text),
                       const SizedBox(height: 8),
-                      _idLabel('Vehicle ID'),
+                      _idLabel(l10n.pksVehicleId),
                       CopyText(vehicleId, size: 11, color: PickupColors.text),
                     ],
                   ),
@@ -226,21 +230,21 @@ class _PickupBatchScreenState extends State<PickupBatchScreen> {
               ],
             ),
             const SizedBox(height: 6),
-            Text('Tap the QR to enlarge',
+            Text(l10n.pksTapQrToEnlarge,
                 style: pickupText(11, color: PickupColors.faint)),
             const Divider(height: 24),
             InfoGrid([
-              InfoItem('Orders', '${orders.length}'),
-              InfoItem('Collection Centre',
+              InfoItem(l10n.orders, '${orders.length}'),
+              InfoItem(l10n.pksCollectionCentre,
                   pick([data['collectionCentreName'], first['collectionCentreName']])),
-              InfoItem('Driver',
+              InfoItem(l10n.pksDriver,
                   pick([data['driverName'], first['driverName'], driver['name']])),
-              InfoItem('Driver Mobile',
+              InfoItem(l10n.pksDriverMobile,
                   pick([data['driverMobile'], first['driverMobile'], driver['mobile']])),
-              InfoItem('Vehicle',
+              InfoItem(l10n.vehicle,
                   [vehicleNumber, vehicleType].where((s) => s.isNotEmpty).join(' · ')),
-              InfoItem('Farmers', farmers.join(', ')),
-              InfoItem('Products', products.join(', ')),
+              InfoItem(l10n.pksFarmers, farmers.join(', ')),
+              InfoItem(l10n.pksProducts, products.join(', ')),
             ]),
           ],
         ),
@@ -251,11 +255,11 @@ class _PickupBatchScreenState extends State<PickupBatchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionTitle('Orders in this batch (${orders.length})'),
+            SectionTitle(l10n.pksOrdersInBatchTitle(orders.length.toString())),
             if (orders.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text('No orders',
+                child: Text(l10n.pksNoOrders,
                     style: pickupText(13, color: PickupColors.faint)),
               ),
             for (final p in orders)
@@ -305,7 +309,7 @@ class _PickupBatchScreenState extends State<PickupBatchScreen> {
       if (arrivePickup != null) ...[
         const SizedBox(height: 16),
         PickupButton(
-          label: 'Reached collection centre',
+          label: l10n.pksReachedCollectionCentre,
           icon: Icons.warehouse_outlined,
           busy: _busy,
           onPressed: () => _markArrived(arrivePickup),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 String formatRupees(num? value) {
   final n = (value ?? 0).round().toString();
@@ -17,25 +19,29 @@ String formatMinutes(num? minutes) {
   final n = (minutes ?? 0).round();
   final h = n ~/ 60;
   final m = n % 60;
-  final parts = [if (h > 0) '${h}h', if (m > 0) '${m}m'];
-  return parts.isEmpty ? '0m' : parts.join(' ');
+  final parts = [
+    if (h > 0) appL10n.ftDurationHours(h.toString()),
+    if (m > 0) appL10n.ftDurationMinutes(m.toString()),
+  ];
+  return parts.isEmpty ? appL10n.ftDurationMinutes('0') : parts.join(' ');
 }
 
-const _weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/// 0 = Sunday … 6 = Saturday (1 Jan 2023 was a Sunday).
+String _weekDayShort(int d) => localizedDateFormat('EEE').format(DateTime(2023, 1, 1 + d));
 
 String formatWorkingDays(List<dynamic>? days) {
   final list = (days ?? const []).whereType<num>().map((d) => d.toInt()).toList();
   if (list.isEmpty) return '—';
-  if (list.length == 7) return 'Every day';
-  return list.where((d) => d >= 0 && d < 7).map((d) => _weekDays[d]).join(', ');
+  if (list.length == 7) return appL10n.ftEveryDay;
+  return list.where((d) => d >= 0 && d < 7).map(_weekDayShort).join(', ');
 }
 
 ({String label, Color color}) attendanceStyle(String status) => switch (status) {
-      'present' => (label: 'Present', color: AppColors.success),
-      'absent' => (label: 'Absent', color: AppColors.error),
-      'off_day' => (label: 'Off Day', color: AppColors.textMuted),
-      'not_required' => (label: 'Not Required', color: AppColors.textMuted),
-      _ => (label: 'Pending', color: AppColors.warning),
+      'present' => (label: appL10n.ftPresent, color: AppColors.success),
+      'absent' => (label: appL10n.ftAbsent, color: AppColors.error),
+      'off_day' => (label: appL10n.ftOffDay, color: AppColors.textMuted),
+      'not_required' => (label: appL10n.ftNotRequired, color: AppColors.textMuted),
+      _ => (label: appL10n.pending, color: AppColors.warning),
     };
 
 class AttendanceChip extends StatelessWidget {
@@ -155,7 +161,7 @@ class FtErrorView extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(AppLocalizations.of(context).ftRetry),
               style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
             ),
           ],
@@ -176,12 +182,13 @@ class PayPolicyCard extends StatelessWidget {
     final leaveOn = policy['leavePolicyEnabled'] == true;
     final paid = (policy['paidLeavesPerMonth'] as num?)?.toInt() ?? 0;
     final perDay = policy['unpaidLeaveDeductionPerDay'] as num?;
+    final l10n = AppLocalizations.of(context);
     return FtSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Salary & Leave Policy',
+            l10n.ftSalaryLeavePolicy,
             style: GoogleFonts.inter(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -191,25 +198,25 @@ class PayPolicyCard extends StatelessWidget {
           const SizedBox(height: 10),
           FtInfoRow(
             icon: Icons.payments_outlined,
-            label: 'Monthly Salary',
-            value: '${formatRupees(monthlySalary)} / month',
+            label: l10n.ftMonthlySalary,
+            value: l10n.ftAmountPerMonth(formatRupees(monthlySalary)),
           ),
           FtInfoRow(
             icon: Icons.beach_access_outlined,
-            label: 'Leave days before deduction',
-            value: leaveOn ? '$paid per month' : 'No leave policy',
+            label: l10n.ftLeaveDaysBeforeDeduction,
+            value: leaveOn ? l10n.ftCountPerMonth(paid.toString()) : l10n.ftNoLeavePolicy,
           ),
           if (leaveOn)
             FtInfoRow(
               icon: Icons.money_off_outlined,
-              label: 'Extra Leave',
+              label: l10n.ftExtraLeave,
               value: perDay != null
-                  ? '${formatRupees(perDay)} cut per unpaid leave'
-                  : '1 day salary cut per unpaid leave',
+                  ? l10n.ftAmountCutPerUnpaidLeave(formatRupees(perDay))
+                  : l10n.ftOneDaySalaryCutPerUnpaidLeave,
             ),
           if (leaveOn)
             Text(
-              'Not going online during a scheduled shift counts as a leave.',
+              l10n.ftOfflineDuringShiftCountsAsLeave,
               style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
             ),
         ],
@@ -220,12 +227,14 @@ class PayPolicyCard extends StatelessWidget {
 
 /// This month's salary: base, leave deductions and net.
 class PayrollCard extends StatelessWidget {
-  const PayrollCard({super.key, required this.payroll, this.title = 'This Month'});
+  const PayrollCard({super.key, required this.payroll, this.title});
   final Map payroll;
-  final String title;
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final heading = title ?? l10n.ftThisMonth;
     final leave = (payroll['leave'] as Map?) ?? const {};
     final leaveOn = leave['enabled'] == true;
     final leaveCut = (leave['deduction'] as num?) ?? 0;
@@ -239,7 +248,7 @@ class PayrollCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '$title · ${payroll['month'] ?? ''}',
+                  '$heading · ${payroll['month'] ?? ''}',
                   style: GoogleFonts.inter(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -249,7 +258,7 @@ class PayrollCard extends StatelessWidget {
               ),
               if (credited)
                 Text(
-                  'Credited',
+                  l10n.ftCredited,
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -259,31 +268,44 @@ class PayrollCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          _PayRow('Base salary', formatRupees(payroll['baseSalary'] as num?)),
+          _PayRow(l10n.ftBaseSalary, formatRupees(payroll['baseSalary'] as num?)),
           _PayRow(
-            'Present days',
-            '${payroll['presentDays'] ?? 0} of ${payroll['scheduledWorkingDays'] ?? 0} working days',
+            l10n.ftPresentDays,
+            l10n.ftPresentOfWorkingDays(
+              '${payroll['presentDays'] ?? 0}',
+              '${payroll['scheduledWorkingDays'] ?? 0}',
+            ),
           ),
           if (leaveOn) ...[
             _PayRow(
-              'Leaves taken',
-              '${leave['taken'] ?? 0}  (${leave['paid'] ?? 0} within allowance · ${leave['unpaid'] ?? 0} extra)',
+              l10n.ftLeavesTaken,
+              l10n.ftLeavesTakenBreakdown(
+                '${leave['taken'] ?? 0}',
+                '${leave['paid'] ?? 0}',
+                '${leave['unpaid'] ?? 0}',
+              ),
             ),
-            _PayRow('Leave allowance left', '${leave['paidRemaining'] ?? 0} of ${leave['allowedPaid'] ?? 0}'),
+            _PayRow(
+              l10n.ftLeaveAllowanceLeft,
+              l10n.ftCountOfTotal('${leave['paidRemaining'] ?? 0}', '${leave['allowedPaid'] ?? 0}'),
+            ),
             if (leaveCut > 0)
               _PayRow(
-                'Unpaid leave cut (${leave['unpaid']} × ${formatRupees(leave['deductionPerDay'] as num?)})',
+                l10n.ftUnpaidLeaveCut(
+                  '${leave['unpaid']}',
+                  formatRupees(leave['deductionPerDay'] as num?),
+                ),
                 '− ${formatRupees(leaveCut)}',
                 danger: true,
               ),
           ] else if (((payroll['absentDays'] as num?) ?? 0) > 0)
-            _PayRow('Absent days', '${payroll['absentDays']}'),
+            _PayRow(l10n.ftAbsentDays, '${payroll['absentDays']}'),
           const Divider(height: 18),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  credited ? 'Net salary' : 'Estimated net salary',
+                  credited ? l10n.ftNetSalary : l10n.ftEstimatedNetSalary,
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -305,7 +327,7 @@ class PayrollCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'Updates daily — ${payroll['remainingDays']} working days left this month.',
+                l10n.ftUpdatesDailyWorkingDaysLeft('${payroll['remainingDays']}'),
                 style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
               ),
             ),
@@ -369,7 +391,7 @@ AppBar fullTimeAppBar(String title, {VoidCallback? onRefresh}) {
           icon: const Icon(Icons.refresh),
           color: AppColors.textPrimary,
           onPressed: onRefresh,
-          tooltip: 'Refresh',
+          tooltip: appL10n.ftRefresh,
         ),
     ],
   );

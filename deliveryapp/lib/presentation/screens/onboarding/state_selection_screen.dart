@@ -5,6 +5,7 @@ import '../../../core/constants/service_locations.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/onboarding_nav.dart';
+import '../../../l10n/app_localizations.dart';
 
 class StateSelectionScreen extends StatefulWidget {
   const StateSelectionScreen({super.key});
@@ -34,6 +35,7 @@ class _StateSelectionScreenState extends State<StateSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final states = _filtered;
 
     return Scaffold(
@@ -54,7 +56,7 @@ class _StateSelectionScreenState extends State<StateSelectionScreen> {
                 children: [
                   const SizedBox(height: 8),
                   Text(
-                    'Select State',
+                    l10n.uiSelectState,
                     style: GoogleFonts.inter(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -63,7 +65,7 @@ class _StateSelectionScreenState extends State<StateSelectionScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Please select your state',
+                    l10n.uiSelectStateSubtitle,
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: AppColors.textSecondary,
@@ -77,7 +79,7 @@ class _StateSelectionScreenState extends State<StateSelectionScreen> {
                     onChanged: (v) => setState(() => _query = v),
                     style: GoogleFonts.inter(fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Search state',
+                      hintText: l10n.uiSearchState,
                       prefixIcon: const Icon(
                         Icons.search_rounded,
                         color: Color(0xFF9CA3AF),

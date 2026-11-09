@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../pickup_driver_service.dart';
 import '../pickup_flow.dart';
 import '../pickup_push_service.dart';
@@ -90,8 +91,9 @@ class _PickupHomeScreenState extends State<PickupHomeScreen> {
 
   /// At the farm: scan the Farmer QR and open the pickup it belongs to.
   Future<void> _scanAtFarm() async {
+    final l10n = AppLocalizations.of(context);
     final value = await Navigator.of(context).push(pickupRoute<String>(
-      const FarmerQrScanScreen(orderLabel: 'Scan the QR shown by the farmer'),
+      FarmerQrScanScreen(orderLabel: l10n.pksScanQrShownByFarmer),
     ));
     if (value == null || value.trim().isEmpty || !mounted) return;
     var match = matchPickupForQr(value, _data.pickups);
@@ -101,9 +103,7 @@ class _PickupHomeScreenState extends State<PickupHomeScreen> {
       match = matchPickupForQr(value, _data.pickups);
     }
     if (match == null) {
-      showPickupSnack(context,
-          'This QR does not match any of your open pickups.',
-          error: true);
+      showPickupSnack(context, l10n.pksQrNoMatch, error: true);
       return;
     }
     await _open(match, qr: value);
@@ -118,6 +118,7 @@ class _PickupHomeScreenState extends State<PickupHomeScreen> {
       final step = driverNextStep(p);
       return step != null;
     }).toList();
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: PickupColors.page,
@@ -135,7 +136,7 @@ class _PickupHomeScreenState extends State<PickupHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('PICKUP DRIVER',
+                        Text(l10n.pksPickupDriverUpper,
                             style: pickupText(11,
                                 weight: FontWeight.w800,
                                 color: PickupColors.brand)),
@@ -150,7 +151,7 @@ class _PickupHomeScreenState extends State<PickupHomeScreen> {
                     builder: (context, _) {
                       final unread = PickupPushService.instance.unread;
                       return IconButton(
-                        tooltip: 'Notifications',
+                        tooltip: l10n.notifications,
                         onPressed: _openNotifications,
                         icon: Badge(
                           isLabelVisible: unread > 0,
@@ -164,7 +165,7 @@ class _PickupHomeScreenState extends State<PickupHomeScreen> {
                 ],
               ),
               const SizedBox(height: 2),
-              Text('Farm pickups to the collection centre',
+              Text(l10n.pksHomeSubtitle,
                   style: pickupText(13, color: PickupColors.muted)),
               const SizedBox(height: 16),
               if (_loading)
@@ -195,7 +196,7 @@ class _PickupHomeScreenState extends State<PickupHomeScreen> {
                     (p) => farmScanStatuses.contains(str(p['status'])))) ...[
                   const SizedBox(height: 14),
                   PickupButton(
-                    label: 'Scan Farmer QR',
+                    label: l10n.pksScanFarmerQr,
                     icon: Icons.qr_code_scanner_rounded,
                     onPressed: _scanAtFarm,
                   ),
@@ -218,17 +219,17 @@ class _PickupHomeScreenState extends State<PickupHomeScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
                       child: Row(
                         children: [
-                          Text('Recent Orders',
+                          Text(l10n.recentOrders,
                               style: pickupText(14.5, weight: FontWeight.w800)),
                           const SizedBox(width: 8),
-                          Text('Latest 10',
+                          Text(l10n.pksLatestCount('10'),
                               style: pickupText(11.5,
                                   color: PickupColors.muted)),
                           const Spacer(),
                           TextButton(
                             onPressed: () => widget.onOpenFilter('history'),
-                            child: const Text('View all',
-                                style: TextStyle(color: PickupColors.brand)),
+                            child: Text(l10n.pksViewAll,
+                                style: const TextStyle(color: PickupColors.brand)),
                           ),
                         ],
                       ),
@@ -236,7 +237,7 @@ class _PickupHomeScreenState extends State<PickupHomeScreen> {
                     if (!_loading && latest.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 28),
-                        child: Text('No recent pickups',
+                        child: Text(l10n.pksNoRecentPickups,
                             style: pickupText(13, color: PickupColors.faint)),
                       ),
                     for (final p in latest)
@@ -304,13 +305,14 @@ class _NextUpCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final step = driverNextStep(pickup)!;
+    final l10n = AppLocalizations.of(context);
     return PickupCard(
       color: PickupColors.brandSoft,
       borderColor: PickupColors.brand,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('NEXT UP',
+          Text(l10n.pksNextUp,
               style: pickupText(10,
                   weight: FontWeight.w800, color: PickupColors.brand)),
           const SizedBox(height: 4),
@@ -325,7 +327,7 @@ class _NextUpCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           PickupButton(
-            label: 'Open pickup',
+            label: l10n.pksOpenPickup,
             icon: Icons.arrow_forward_rounded,
             onPressed: () => onOpen(pickup),
           ),
@@ -351,6 +353,7 @@ class _NewAssignmentBanner extends StatelessWidget {
     final farmer = str(pickup['farmerName']);
     final product = str(pickup['productName']);
     final when = pickupWhenText(pickup);
+    final l10n = AppLocalizations.of(context);
     return PickupCard(
       color: const Color(0xFFFFF7ED),
       borderColor: const Color(0xFFFB923C),
@@ -363,11 +366,11 @@ class _NewAssignmentBanner extends StatelessWidget {
                   color: Color(0xFFEA580C)),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('New pickup assigned',
+                child: Text(l10n.pksNewPickupAssigned,
                     style: pickupText(15, weight: FontWeight.w800)),
               ),
               IconButton(
-                tooltip: 'Dismiss',
+                tooltip: l10n.pksDismiss,
                 visualDensity: VisualDensity.compact,
                 onPressed: onDismiss,
                 icon: const Icon(Icons.close_rounded, size: 20),
@@ -385,12 +388,12 @@ class _NewAssignmentBanner extends StatelessWidget {
           ),
           if (when.isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text('Pickup $when',
+            Text(l10n.pksPickupWhen(when),
                 style: pickupText(12, color: PickupColors.muted)),
           ],
           const SizedBox(height: 10),
           PickupButton(
-            label: 'Open pickup',
+            label: l10n.pksOpenPickup,
             icon: Icons.arrow_forward_rounded,
             onPressed: onOpen,
           ),

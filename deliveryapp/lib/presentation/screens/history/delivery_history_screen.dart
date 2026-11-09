@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/config/cached_get.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/online_duration.dart';
 import '../../../core/utils/history_calendar.dart';
@@ -71,7 +72,7 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
       final future = date.isAfter(today);
       return _DayBox(
         date: key,
-        dayLabel: DateFormat.E().format(date),
+        dayLabel: localizedDateFormat('EEE').format(date),
         isToday: key == _loadedDate,
         isUpcoming: future,
         metrics: future
@@ -487,14 +488,11 @@ class _MetricChip extends StatelessWidget {
 }
 
 String _localDayLabel(BuildContext context, _DayBox d) {
-  final locale = Localizations.localeOf(context).toLanguageTag();
   final parts = d.date.split('-').map(int.tryParse).toList();
   if (parts.any((p) => p == null)) return d.dayLabel;
   try {
     if (parts.length == 3) {
-      return DateFormat.E(
-        locale,
-      ).format(DateTime(parts[0]!, parts[1]!, parts[2]!));
+      return localizedDateFormat('EEE').format(DateTime(parts[0]!, parts[1]!, parts[2]!));
     }
   } catch (_) {}
   return d.dayLabel;

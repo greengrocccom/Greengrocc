@@ -42,6 +42,7 @@ export function normalizeTracking(raw = {}) {
     orderType,
     trackingEnabled,
     liveTracking: raw.liveTracking === true,
+    riderPhase: raw.riderPhase || null,
     status: raw.status || "placed",
     timeline: (Array.isArray(raw.timeline) ? raw.timeline : []).map((step) => ({
       key: String(step?.key || ""),
@@ -88,7 +89,7 @@ export function showsLiveMap(tracking) {
 }
 
 /** Apply an `order_status` socket event before the full refetch lands. */
-export function withStatus(tracking, nextStatus, live) {
+export function withStatus(tracking, nextStatus, live, riderPhase) {
   const reached = TRACKING_STEP_KEYS.indexOf(nextStatus);
   const timeline =
     reached < 0
@@ -107,6 +108,7 @@ export function withStatus(tracking, nextStatus, live) {
     ...tracking,
     status: nextStatus,
     liveTracking: typeof live === "boolean" ? live : tracking.liveTracking,
+    riderPhase: riderPhase !== undefined ? riderPhase : tracking.riderPhase,
     timeline,
   };
 }
@@ -154,7 +156,33 @@ export function formatDistance(meters) {
   return `${Math.round(meters)} m away`;
 }
 
-function etaText(seconds) {
+/**
+ * The part of `route` still ahead of the rider. Matching only moves forward from
+ * `fromIndex`, so a route that loops back past the rider is not skipped ahead.
+ * Returns the matched index, the points from the rider onward and their length.
+ */
+export function routeAhead(route, rider, fromIndex = 0) {
+  if (!rider || route.length < 2) return null;
+  let index = Math.min(fromIndex, route.length - 1);
+  let best = metersBetween(rider, route[index]);
+  for (let i = index + 1; i < route.length; i += 1) {
+    const meters = metersBetween(rider, route[i]);
+    if (meters < best) {
+      best = meters;
+      index = i;
+    }
+  }
+  const points = [rider, ...route.slice(index + 1)];
+  return { index, points, meters: routeLength(points) };
+}
+
+export function routeLength(points) {
+  let meters = 0;
+  for (let i = 1; i < points.length; i += 1) meters += metersBetween(points[i - 1], points[i]);
+  return meters;
+}
+
+export function etaText(seconds) {
   const minutes = Math.min(180, Math.max(1, Math.round(seconds / 60)));
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);

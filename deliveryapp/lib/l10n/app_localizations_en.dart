@@ -2112,4 +2112,2510 @@ class AppLocalizationsEn extends AppLocalizations {
   String onlineDuration(String time) {
     return '$time online';
   }
+
+  @override
+  String get delQrScannedAddressUnlocked =>
+      'QR scanned! Customer address unlocked.';
+
+  @override
+  String get delQrScannedCaptureItemPhoto =>
+      'QR scanned! Now capture item photo for manager approval.';
+
+  @override
+  String get delItemProof => 'Item Proof';
+
+  @override
+  String get delItemProofSendSubtitle =>
+      'Send this photo to the manager for approval.';
+
+  @override
+  String get delSendToManager => 'Send to Manager';
+
+  @override
+  String get delItemPhotoSentWaiting =>
+      'Item photo sent. Waiting for manager approval.';
+
+  @override
+  String get delCameraOpenFailed => 'Could not open camera. Check permissions.';
+
+  @override
+  String get delDeliveryProof => 'Delivery Proof';
+
+  @override
+  String get delDeliveryProofSendSubtitle =>
+      'Send this photo, then enter the customer OTP.';
+
+  @override
+  String get delSendPhoto => 'Send Photo';
+
+  @override
+  String get delRetake => 'Retake';
+
+  @override
+  String get delPhotoSendFailed => 'Could not send photo. Try again.';
+
+  @override
+  String get delEmergencySent => 'Emergency sent to your Delivery Manager.';
+
+  @override
+  String get delMarkedFailedNotified =>
+      'Delivery marked as failed. Manager has been notified.';
+
+  @override
+  String get delCouldNotMarkFailed => 'Could not mark failed.';
+
+  @override
+  String get delDelaySent => 'Delay sent to your Delivery Manager.';
+
+  @override
+  String get delCouldNotSendDelay => 'Could not send the delay.';
+
+  @override
+  String get delIncorrectOtp => 'Incorrect OTP';
+
+  @override
+  String get delCashConfirmFailed => 'Cash confirmation failed';
+
+  @override
+  String get delPreviousQrExpired =>
+      'The previous QR expired. Tap Online again for a new QR.';
+
+  @override
+  String get delUnableToOpenPaymentQr => 'Unable to open payment QR.';
+
+  @override
+  String get delPleaseTryAgain => 'Please try again.';
+
+  @override
+  String get delScanToPayUpi => 'Scan to pay by UPI';
+
+  @override
+  String get delPaymentQrUnavailable => 'Payment QR is unavailable.';
+
+  @override
+  String delAskCustomerScanUpi(String amount) {
+    return 'Ask the customer to scan with any UPI app. The amount is fixed at ₹$amount.';
+  }
+
+  @override
+  String get delCloseQr => 'Close QR';
+
+  @override
+  String get delCheckPayment => 'Check payment';
+
+  @override
+  String get delCouldNotCompleteDelivery => 'Could not complete delivery.';
+
+  @override
+  String get delCouldNotOpenMaps =>
+      'Could not open Google Maps. Install Maps or try again.';
+
+  @override
+  String get delStorePhoneUnavailable => 'Store phone number not available.';
+
+  @override
+  String get delCustomerPhoneUnavailable =>
+      'Customer phone number not available.';
+
+  @override
+  String get delCouldNotOpenDialer => 'Could not open phone dialer.';
+
+  @override
+  String get delNoActiveDelivery => 'No Active Delivery';
+
+  @override
+  String get delNoActiveDeliveryHint =>
+      'Stay online on the home screen to receive automated round-robin order assignments.';
+
+  @override
+  String get delCheckForOrders => 'Check For Orders';
+
+  @override
+  String get delOutForDelivery => 'Out for Delivery';
+
+  @override
+  String get delAwaitingApproval => 'Awaiting Approval';
+
+  @override
+  String get delWaitingForPickup => 'Waiting for Pickup';
+
+  @override
+  String get delReportEmergency => 'Report emergency';
+
+  @override
+  String delPickupQrUnlocksIn(String countdown) {
+    return 'Pickup QR unlocks in $countdown — go to the dark store meanwhile.';
+  }
+
+  @override
+  String get delAddressUnlocksAfterPickup =>
+      'Address unlocks after dark store pickup QR is verified';
+
+  @override
+  String delDeliverOrderBy(String time) {
+    return 'Deliver this order by $time';
+  }
+
+  @override
+  String get delOrderDetails => 'Order Details';
+
+  @override
+  String get delPickupDarkStore => 'PICKUP DARK STORE';
+
+  @override
+  String get delCallStore => 'Call Store';
+
+  @override
+  String get delPickupVerifiedAddressUnlocked =>
+      'Pickup verified — customer address unlocked';
+
+  @override
+  String get delItemPhotoSentWaitingManager =>
+      'Item photo sent — waiting for manager';
+
+  @override
+  String get delQrScannedTakeItemProof => 'QR scanned — take item proof below';
+
+  @override
+  String get delScanQrAtStoreToStart => 'Scan QR at the store to start';
+
+  @override
+  String get delPickupQr => 'Pickup QR';
+
+  @override
+  String delSameRouteSearch(String countdown) {
+    return 'Same-route search · $countdown';
+  }
+
+  @override
+  String delOrderCustomerAddress(String orderNumber) {
+    return '#$orderNumber · Customer Address';
+  }
+
+  @override
+  String get delCustomerAddress => 'Customer Address';
+
+  @override
+  String get delViewOnMap => 'View on Map';
+
+  @override
+  String delMinutesShort(String minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String delHoursShort(String hours) {
+    return '$hours hr';
+  }
+
+  @override
+  String delHoursMinutesShort(String hours, String minutes) {
+    return '$hours hr $minutes min';
+  }
+
+  @override
+  String get delDelayPrompt => 'Stuck or running late? Let your manager know.';
+
+  @override
+  String delReportedLateCustomerUpdated(String duration) {
+    return 'Reported $duration late · manager updated the customer';
+  }
+
+  @override
+  String delReportedLateWaitingManager(String duration) {
+    return 'Reported $duration late · waiting for manager';
+  }
+
+  @override
+  String get delUpdate => 'Update';
+
+  @override
+  String get delReportDelay => 'Report delay';
+
+  @override
+  String get delOrderItems => 'Order Items';
+
+  @override
+  String get delGroceryPack => 'Grocery Pack';
+
+  @override
+  String delItemsAndTotal(String count, String amount) {
+    return '$count items • ₹$amount';
+  }
+
+  @override
+  String get delOrderTimeline => 'Order Timeline';
+
+  @override
+  String get delOrderAssigned => 'Order Assigned';
+
+  @override
+  String get delOrderAssignedSubtitle => 'You have been assigned a new order';
+
+  @override
+  String get delGoToStoreScanPickupQr =>
+      'Go to the store and scan the pickup QR.';
+
+  @override
+  String delSuggestedRoute(String count) {
+    return 'Suggested route · $count deliveries';
+  }
+
+  @override
+  String get delWaitingForManager => 'Waiting for Manager';
+
+  @override
+  String get delTakeItemProof => 'Take Item Proof';
+
+  @override
+  String get delCaptureDeliveryProof => 'Capture Delivery Proof';
+
+  @override
+  String get delEnterOtpAndComplete => 'Enter OTP & Complete';
+
+  @override
+  String get delCompleteDelivery => 'Complete Delivery';
+
+  @override
+  String get delDeliveryFailed => 'Delivery Failed';
+
+  @override
+  String get delEnterDeliveryOtp => 'Enter delivery OTP';
+
+  @override
+  String delAskCustomerOtpForOrder(String orderNumber) {
+    return 'Ask the customer for the 4-digit OTP shown on their order #$orderNumber.';
+  }
+
+  @override
+  String get delVerifyOtp => 'Verify OTP';
+
+  @override
+  String delCollectAmount(String amount) {
+    return 'Collect ₹$amount';
+  }
+
+  @override
+  String delPaymentBreakdownQuestion(String itemsTotal, String deliveryFee) {
+    return 'Items ₹$itemsTotal  ·  Delivery fee ₹$deliveryFee\nHow will the customer pay?';
+  }
+
+  @override
+  String get delOnlinePayment => 'Online payment';
+
+  @override
+  String get delOnlinePaymentSubtitle =>
+      'Show a UPI QR with the exact amount for the customer to scan';
+
+  @override
+  String get delCashOnDelivery => 'Cash on delivery';
+
+  @override
+  String get delCashOnDeliverySubtitle =>
+      'You collected cash from the customer';
+
+  @override
+  String get delCashCollected => 'Cash collected';
+
+  @override
+  String get delCashCollectedSubtitle =>
+      'Submit this cash to your dark store manager before the end of the day.';
+
+  @override
+  String get delItemTotal => 'Item total';
+
+  @override
+  String get delDeliveryFee => 'Delivery fee';
+
+  @override
+  String get delTotalToSubmit => 'Total to submit';
+
+  @override
+  String get delAddNoteOptional => 'Add a quick note for the store (optional).';
+
+  @override
+  String get delNoteHandedToCustomer => 'Handed to customer';
+
+  @override
+  String get delNoteLeftAtDoor => 'Left at the door';
+
+  @override
+  String get delNoteHandedToFamily => 'Handed to family member';
+
+  @override
+  String get delNoteHandedToSecurity => 'Handed to security';
+
+  @override
+  String get delAnythingElseOptional => 'Anything else? (optional)';
+
+  @override
+  String get delMarkAsDelivered => 'Mark as delivered';
+
+  @override
+  String get delNotYet => 'Not yet';
+
+  @override
+  String get delReasonHeavyTraffic => 'Heavy traffic';
+
+  @override
+  String get delReasonVehicleIssue => 'Vehicle issue';
+
+  @override
+  String get delReasonBadWeather => 'Bad weather';
+
+  @override
+  String get delReasonOtherDeliveriesFirst => 'Other deliveries first';
+
+  @override
+  String get delReasonOther => 'Other';
+
+  @override
+  String get delRunningLateTitle => 'Delivery running late?';
+
+  @override
+  String get delRunningLateSubtitle =>
+      'Tell your Delivery Manager how late you will be. They can update the customer.';
+
+  @override
+  String get delHours => 'Hours';
+
+  @override
+  String get delMinutes => 'Minutes';
+
+  @override
+  String get delAddDetailsOptional => 'Add details (optional)';
+
+  @override
+  String delSendDelayWithDuration(String duration) {
+    return 'Send delay · $duration';
+  }
+
+  @override
+  String get delPickADelay => 'Pick a delay';
+
+  @override
+  String get delReasonCustomerNotReachable => 'Customer not reachable';
+
+  @override
+  String get delReasonCustomerNotAvailable => 'Customer not available';
+
+  @override
+  String get delReasonWrongAddress => 'Wrong / incomplete address';
+
+  @override
+  String get delReasonCustomerRefused => 'Customer refused order';
+
+  @override
+  String get delReasonFlatTyre => 'Flat tyre';
+
+  @override
+  String get delReasonVehicleBreakdown => 'Vehicle breakdown';
+
+  @override
+  String get delReasonHealthEmergency => 'Health emergency';
+
+  @override
+  String get delReportAnEmergency => 'Report an emergency';
+
+  @override
+  String get delDeliveryFailedQuestion => 'Delivery failed?';
+
+  @override
+  String get delEmergencyWithParcelHint =>
+      'Your manager will be alerted. If you have the parcel, contact the store to arrange handover.';
+
+  @override
+  String get delEmergencyNoParcelHint =>
+      'Tell your manager why you can’t continue so they can assign another rider.';
+
+  @override
+  String get delFailedDeliveryHint =>
+      'Tell the store what happened. The manager and customer will be notified.';
+
+  @override
+  String get delDescribeReason => 'Describe the reason';
+
+  @override
+  String get delSubmitFailedDelivery => 'Submit failed delivery';
+
+  @override
+  String get delInvalidPickupQr =>
+      'Invalid pickup QR. Scan the code shown on the manager screen.';
+
+  @override
+  String get delScanPreOrderQrs => 'Scan pre-order QRs';
+
+  @override
+  String get delScanPickupQr => 'Scan Pickup QR';
+
+  @override
+  String delUnlockedCount(String count) {
+    return '$count unlocked';
+  }
+
+  @override
+  String get delCameraUnavailable => 'Camera unavailable';
+
+  @override
+  String get delUnableToStartCamera => 'Unable to start the camera.';
+
+  @override
+  String get delCameraPermissionNeeded => 'Camera permission needed';
+
+  @override
+  String get delAllowCameraToScanPickup =>
+      'Allow camera access to scan the Pickup QR from the manager screen.';
+
+  @override
+  String get delAllowCamera => 'Allow camera';
+
+  @override
+  String get delOpenAppSettings => 'Open app settings';
+
+  @override
+  String get delScannerNotReady => 'Scanner not ready';
+
+  @override
+  String get delCameraOpenError =>
+      'Something went wrong while opening the camera.';
+
+  @override
+  String get delVerifyingPickup => 'Verifying pickup…';
+
+  @override
+  String get delScanEachBagHint =>
+      'Scan the QR on each bag, one by one. Each scan shows that customer\'s address.';
+
+  @override
+  String get delAlignQrHint =>
+      'Align the QR inside the frame. The manager shows it under Show Pickup QR.';
+
+  @override
+  String delOrderNumberItems(String orderNumber, String count) {
+    return '#$orderNumber · $count items';
+  }
+
+  @override
+  String get delNoItemsInOrder => 'No items in this order';
+
+  @override
+  String get delItemFallback => 'Item';
+
+  @override
+  String delQty(String qty) {
+    return 'Qty: $qty';
+  }
+
+  @override
+  String delQtyWithUnit(String qty, String unit) {
+    return 'Qty: $qty $unit';
+  }
+
+  @override
+  String get delCouldNotSendItemPhoto =>
+      'Could not send item photo. Try again.';
+
+  @override
+  String get delItemProofHint =>
+      'Take a clear photo of the packed items. Manager will verify and unlock customer address.';
+
+  @override
+  String get delTapToCaptureItemPhoto => 'Tap to capture item photo';
+
+  @override
+  String get delCouldNotUploadDeliveryPhoto =>
+      'Could not upload delivery photo. Try again.';
+
+  @override
+  String get delDeliveryProofHint =>
+      'Take a photo at the customer door / handed package. Then enter the customer OTP to finish.';
+
+  @override
+  String get delTapToCaptureDeliveryPhoto => 'Tap to capture delivery photo';
+
+  @override
+  String get delUploadAndContinueToOtp => 'Upload & Continue to OTP';
+
+  @override
+  String get delCouldNotSendEmergency => 'Could not send emergency report.';
+
+  @override
+  String get delOrderOffer => 'Order offer';
+
+  @override
+  String get delNewDeliveryOffer => 'New delivery offer';
+
+  @override
+  String delSecondsToRespond(String seconds) {
+    return '${seconds}s to respond';
+  }
+
+  @override
+  String get delCouldNotLoadAssignedOrders => 'Could not load assigned orders.';
+
+  @override
+  String get delAssignedOrders => 'Assigned Orders';
+
+  @override
+  String delOrderAssignedCountOne(String count) {
+    return '$count order assigned';
+  }
+
+  @override
+  String delOrdersAssignedCount(String count) {
+    return '$count orders assigned';
+  }
+
+  @override
+  String delDeliveredTodayAssignedByManager(String count) {
+    return '$count delivered today · Assigned by your Delivery Manager';
+  }
+
+  @override
+  String get delStartDelivery => 'Start Delivery';
+
+  @override
+  String get delNoOrdersAssignedHint =>
+      'No orders assigned right now.\nYou will get a notification when your manager assigns one.';
+
+  @override
+  String get delDeliveredToday => 'Delivered Today';
+
+  @override
+  String get delReadyForPickup => 'Ready for pickup';
+
+  @override
+  String get delPickupVerified => 'Pickup verified';
+
+  @override
+  String get delPreOrder => 'Pre-Order';
+
+  @override
+  String get delAddressUnlocksAfterPickupVerification =>
+      'Customer address unlocks after pickup verification';
+
+  @override
+  String get delTurnOnLocationForTracking =>
+      'Turn on location to share live tracking';
+
+  @override
+  String get delLocationPermissionForTracking =>
+      'Location permission is needed to share live tracking';
+
+  @override
+  String get delTrackingNotificationTitle => 'Sharing live location';
+
+  @override
+  String get delTrackingNotificationText =>
+      'The customer can follow your delivery on the map';
+
+  @override
+  String get delTrackingChannelName => 'Live delivery tracking';
+
+  @override
+  String ftDurationHours(String hours) {
+    return '${hours}h';
+  }
+
+  @override
+  String ftDurationMinutes(String minutes) {
+    return '${minutes}m';
+  }
+
+  @override
+  String get ftEveryDay => 'Every day';
+
+  @override
+  String get ftPresent => 'Present';
+
+  @override
+  String get ftAbsent => 'Absent';
+
+  @override
+  String get ftOffDay => 'Off Day';
+
+  @override
+  String get ftNotRequired => 'Not Required';
+
+  @override
+  String get ftRetry => 'Retry';
+
+  @override
+  String get ftRefresh => 'Refresh';
+
+  @override
+  String get ftSalaryLeavePolicy => 'Salary & Leave Policy';
+
+  @override
+  String get ftMonthlySalary => 'Monthly Salary';
+
+  @override
+  String ftAmountPerMonth(String amount) {
+    return '$amount / month';
+  }
+
+  @override
+  String get ftLeaveDaysBeforeDeduction => 'Leave days before deduction';
+
+  @override
+  String ftCountPerMonth(String count) {
+    return '$count per month';
+  }
+
+  @override
+  String get ftNoLeavePolicy => 'No leave policy';
+
+  @override
+  String get ftExtraLeave => 'Extra Leave';
+
+  @override
+  String ftAmountCutPerUnpaidLeave(String amount) {
+    return '$amount cut per unpaid leave';
+  }
+
+  @override
+  String get ftOneDaySalaryCutPerUnpaidLeave =>
+      '1 day salary cut per unpaid leave';
+
+  @override
+  String get ftOfflineDuringShiftCountsAsLeave =>
+      'Not going online during a scheduled shift counts as a leave.';
+
+  @override
+  String get ftThisMonth => 'This Month';
+
+  @override
+  String get ftCredited => 'Credited';
+
+  @override
+  String get ftBaseSalary => 'Base salary';
+
+  @override
+  String get ftPresentDays => 'Present days';
+
+  @override
+  String ftPresentOfWorkingDays(String present, String total) {
+    return '$present of $total working days';
+  }
+
+  @override
+  String get ftLeavesTaken => 'Leaves taken';
+
+  @override
+  String ftLeavesTakenBreakdown(String taken, String paid, String unpaid) {
+    return '$taken  ($paid within allowance · $unpaid extra)';
+  }
+
+  @override
+  String get ftLeaveAllowanceLeft => 'Leave allowance left';
+
+  @override
+  String ftCountOfTotal(String count, String total) {
+    return '$count of $total';
+  }
+
+  @override
+  String ftUnpaidLeaveCut(String days, String rate) {
+    return 'Unpaid leave cut ($days × $rate)';
+  }
+
+  @override
+  String get ftAbsentDays => 'Absent days';
+
+  @override
+  String get ftNetSalary => 'Net salary';
+
+  @override
+  String get ftEstimatedNetSalary => 'Estimated net salary';
+
+  @override
+  String ftUpdatesDailyWorkingDaysLeft(String days) {
+    return 'Updates daily — $days working days left this month.';
+  }
+
+  @override
+  String ftFailedToLoadRules(String code) {
+    return 'Failed to load rules ($code)';
+  }
+
+  @override
+  String get ftCouldNotConnectServer =>
+      'Could not connect to server. Please try again.';
+
+  @override
+  String get ftFullTimeRulesPay => 'Full-Time Rules & Pay';
+
+  @override
+  String get ftFullTimePartnerBadge => 'FULL-TIME PARTNER';
+
+  @override
+  String get ftFixedBaseSalary => 'FIXED BASE SALARY';
+
+  @override
+  String get ftPerMonthSuffix => '/ month';
+
+  @override
+  String get ftDirectMonthlyPayout =>
+      'Direct monthly payout based on daily verified store attendance';
+
+  @override
+  String get ftGeoRadius => 'Geo-Radius';
+
+  @override
+  String ftMetersCompact(String meters) {
+    return '${meters}m';
+  }
+
+  @override
+  String ftMetersValue(String meters) {
+    return '$meters m';
+  }
+
+  @override
+  String get ftStorePunchIn => 'Store punch-in';
+
+  @override
+  String get ftPaidLeaves => 'Paid Leaves';
+
+  @override
+  String ftDaysCount(String count) {
+    return '$count Days';
+  }
+
+  @override
+  String get ftStandard => 'Standard';
+
+  @override
+  String get ftPerMonthLabel => 'Per month';
+
+  @override
+  String get ftDispatch => 'Dispatch';
+
+  @override
+  String get ftManager => 'Manager';
+
+  @override
+  String get ftDirectAssign => 'Direct assign';
+
+  @override
+  String get ftAssignedShift => 'Assigned Shift';
+
+  @override
+  String get ftAssignedRosterTiming => 'Assigned Roster & Timing';
+
+  @override
+  String get ftFixedShift => 'FIXED SHIFT';
+
+  @override
+  String ftWorkingDaysList(String days) {
+    return 'Working Days: $days';
+  }
+
+  @override
+  String get ftCurrentMonthPayroll => 'Current Month Payroll Breakdown';
+
+  @override
+  String get ftCreditedBadge => 'CREDITED';
+
+  @override
+  String get ftInProgressBadge => 'IN PROGRESS';
+
+  @override
+  String get ftCurrentCycle => 'Current Cycle';
+
+  @override
+  String get ftBaseMonthlySalary => 'Base Monthly Salary';
+
+  @override
+  String get ftPresentDaysTitle => 'Present Days';
+
+  @override
+  String ftPresentOfDays(String present, String total) {
+    return '$present of $total days';
+  }
+
+  @override
+  String get ftLeavesTakenTitle => 'Leaves Taken';
+
+  @override
+  String ftLeavesTakenDaysBreakdown(String taken, String paid, String unpaid) {
+    return '$taken days ($paid paid · $unpaid extra)';
+  }
+
+  @override
+  String get ftRemainingPaidLeaves => 'Remaining Paid Leaves';
+
+  @override
+  String ftCountOfTotalLeft(String count, String total) {
+    return '$count of $total left';
+  }
+
+  @override
+  String ftLeaveDeductionCalc(String days, String rate) {
+    return 'Leave Deduction ($days × $rate)';
+  }
+
+  @override
+  String get ftUnexcusedAbsentDays => 'Unexcused Absent Days';
+
+  @override
+  String get ftFinalCreditedAmount => 'Final Credited Amount';
+
+  @override
+  String get ftEstimatedNetPayout => 'Estimated Net Payout';
+
+  @override
+  String ftUpdatedDailyShiftsLeft(String count) {
+    return '• Updated daily. $count scheduled shifts left this month.';
+  }
+
+  @override
+  String get ftDailyAttendanceGeofencing => 'Daily Attendance & Geofencing';
+
+  @override
+  String get ftDarkStoreGeofenceCheck => 'Dark Store Geofence Check';
+
+  @override
+  String ftGeofenceCheckDesc(String meters) {
+    return 'You must be physically present within ${meters}m of your assigned dark store to punch in attendance.';
+  }
+
+  @override
+  String get ftGpsLocationVerification => 'GPS Location Verification';
+
+  @override
+  String get ftGpsVerificationDesc =>
+      'High-accuracy device location is verified automatically whenever you toggle online for your shift.';
+
+  @override
+  String get ftAutoCheckInOnline => 'Auto Check-in on Online';
+
+  @override
+  String get ftAutoCheckInDesc =>
+      'Attendance is logged instantly when you go online during your scheduled shift window at the store.';
+
+  @override
+  String get ftStoreAttendanceGuideline => 'Store Attendance Guideline';
+
+  @override
+  String get ftLeaveTermsAbsencePolicy => 'Leave Terms & Absence Policy';
+
+  @override
+  String get ftPaidLeaveAllowance => 'Paid Leave Allowance';
+
+  @override
+  String get ftLeavePolicy => 'Leave Policy';
+
+  @override
+  String ftPaidLeaveEntitlementDesc(String count) {
+    return 'You are entitled to $count paid leaves per calendar month without any salary deduction.';
+  }
+
+  @override
+  String get ftLeavesNeedApprovalDesc =>
+      'Leaves must be approved in advance by your Store Manager.';
+
+  @override
+  String get ftUnpaidAbsenceDeductions => 'Unpaid Absence Deductions';
+
+  @override
+  String ftAmountDeductedPerLeaveDay(String amount) {
+    return '$amount is deducted per unapproved or excess leave day.';
+  }
+
+  @override
+  String get ftProratedSalaryDeductedDesc =>
+      '1 day prorated salary is deducted for each day exceeding your monthly allowance.';
+
+  @override
+  String get ftUnapprovedAbsenceDeductedDesc =>
+      'Unapproved absence will be deducted from your monthly settlement.';
+
+  @override
+  String get ftShiftAttendanceRule => 'Shift Attendance Rule';
+
+  @override
+  String get ftShiftAttendanceRuleDesc =>
+      'Not going online during a scheduled shift is recorded as an absence unless approved prior.';
+
+  @override
+  String get ftOrderDispatchAssignment => 'Order Dispatch & Assignment';
+
+  @override
+  String get ftDedicatedManagerDispatch => 'Dedicated Store Manager Dispatch';
+
+  @override
+  String get ftManualAssignmentDesc =>
+      'Orders & pre-orders are assigned directly to you by your store manager. You do not need to hunt for open orders.';
+
+  @override
+  String ftAssignmentModeValue(String mode) {
+    return 'Assignment mode: $mode';
+  }
+
+  @override
+  String get ftStoreOperationalGuidelines => 'Store Operational Guidelines';
+
+  @override
+  String get ftStoreRule => 'Store Rule';
+
+  @override
+  String get ftNeedAssistanceRulesPay =>
+      'Need assistance with your rules or pay?';
+
+  @override
+  String ftReachOutStoreManagerAt(String store) {
+    return 'Reach out to your Store Manager at $store.';
+  }
+
+  @override
+  String get ftSpeakWithStoreManager =>
+      'Speak with your assigned Store Manager for inquiries.';
+
+  @override
+  String get ftCouldNotLoadAttendanceRetry =>
+      'Could not load attendance. Please try again.';
+
+  @override
+  String ftMarkedAt(String time) {
+    return 'Marked at $time';
+  }
+
+  @override
+  String ftMetersFromStore(String meters) {
+    return '${meters}m from store';
+  }
+
+  @override
+  String ftLateAfterCheckIn(String duration) {
+    return '$duration after check-in time';
+  }
+
+  @override
+  String get ftTodayNotWorkingDay => 'Today is not a working day.';
+
+  @override
+  String get ftAttendanceNotRequired =>
+      'Attendance is not required for your shift.';
+
+  @override
+  String get ftNoAttendanceRecorded =>
+      'No attendance was recorded for this day.';
+
+  @override
+  String ftAttendanceAutoWithinRadius(String meters) {
+    return 'Attendance is recorded automatically when you go online within ${meters}m of the dark store.';
+  }
+
+  @override
+  String get ftAttendanceAuto =>
+      'Attendance is recorded automatically when you go online.';
+
+  @override
+  String get ftTodaysAttendance => 'Today\'s Attendance';
+
+  @override
+  String get ftCheckIn => 'Check-in';
+
+  @override
+  String get ftStoreRadius => 'Store radius';
+
+  @override
+  String get ftFromStore => 'From store';
+
+  @override
+  String get ftLateBy => 'Late by';
+
+  @override
+  String get ftOnTime => 'On time';
+
+  @override
+  String get ftWorkRules => 'Work rules';
+
+  @override
+  String get ftDarkStore => 'Dark Store';
+
+  @override
+  String get ftLocation => 'Location';
+
+  @override
+  String ftWithinMetersOfStore(String meters) {
+    return 'Within ${meters}m of store';
+  }
+
+  @override
+  String ftDaysPresent(String count) {
+    return '$count days present';
+  }
+
+  @override
+  String get ftThisMonthLower => 'This month';
+
+  @override
+  String get ftMonthlyAttendanceSummary => 'Monthly attendance summary';
+
+  @override
+  String get ftLeave => 'Leave';
+
+  @override
+  String get ftRemaining => 'Remaining';
+
+  @override
+  String get ftLate => 'Late';
+
+  @override
+  String get ftOffDayLegend => 'Off day';
+
+  @override
+  String get ftCouldNotLoadPerformance =>
+      'Could not load performance. Pull to retry.';
+
+  @override
+  String get ftKeyRates => 'Key rates';
+
+  @override
+  String get ftSinceVerification => 'Since verification';
+
+  @override
+  String get ftDeclineRate => 'Decline rate';
+
+  @override
+  String get ftOrderOffers => 'Order offers';
+
+  @override
+  String get ftHowYouRespondedOffers => 'How you responded to offers';
+
+  @override
+  String get ftNoOrderOffersYet =>
+      'No order offers yet. Go online to start receiving orders.';
+
+  @override
+  String get ftOffersLower => 'offers';
+
+  @override
+  String get ftAccepted => 'Accepted';
+
+  @override
+  String get ftDeclined => 'Declined';
+
+  @override
+  String get ftMissed => 'Missed';
+
+  @override
+  String get ftTripOutcomes => 'Trip outcomes';
+
+  @override
+  String get ftDeliveredVsCancelledVsFailed =>
+      'Delivered vs cancelled vs failed';
+
+  @override
+  String get ftTripOutcomesEmpty =>
+      'Your trip outcomes will show here after your first delivery.';
+
+  @override
+  String get ftCancelled => 'Cancelled';
+
+  @override
+  String get ftOnTimeDeliveries => 'On-time deliveries';
+
+  @override
+  String get ftDeliveredWithin60Min =>
+      'Delivered within 60 minutes of assignment';
+
+  @override
+  String get ftTripsDelivered => 'Trips delivered';
+
+  @override
+  String get ftOffersReceived => 'Offers received';
+
+  @override
+  String get ftCancellationRate => 'Cancellation rate';
+
+  @override
+  String get ftMissedOffers => 'Missed offers';
+
+  @override
+  String get ftRatingsAppearAfter =>
+      'Customer ratings appear after customers rate your deliveries.';
+
+  @override
+  String get ftBasedOnDeliveriesSinceVerification =>
+      'Based on your deliveries since verification.';
+
+  @override
+  String ftRatingCountOne(String count) {
+    return '$count rating';
+  }
+
+  @override
+  String ftSinceDate(String date) {
+    return 'since $date';
+  }
+
+  @override
+  String get ftNoRatingsYet => 'No ratings yet';
+
+  @override
+  String get ftNoDataYet => 'No data yet';
+
+  @override
+  String get ftNotEnoughTrendData => 'Not enough data for a trend yet';
+
+  @override
+  String get ftCouldNotLoadAttendancePull =>
+      'Could not load attendance. Pull to retry.';
+
+  @override
+  String get ftOnlineTime => 'Online time';
+
+  @override
+  String get ftTotalTrips => 'Total trips';
+
+  @override
+  String get ftShiftsBooked => 'Shifts booked';
+
+  @override
+  String get ftTodaysProgress => 'Today’s progress';
+
+  @override
+  String get ftOnlineHours => 'Online hours';
+
+  @override
+  String get ftActiveDays => 'Active days';
+
+  @override
+  String get ftShiftsCompleted => 'Shifts completed';
+
+  @override
+  String get ftTripsPerDay => 'Trips per day';
+
+  @override
+  String get ftOnlineHoursPerDay => 'Online hours per day';
+
+  @override
+  String get ftTapBarForDetails => 'Tap a bar for day details';
+
+  @override
+  String get ftNoActivityThisWeek => 'No activity recorded this week';
+
+  @override
+  String ftTripCountOne(String count) {
+    return '$count trip';
+  }
+
+  @override
+  String ftTripCountMany(String count) {
+    return '$count trips';
+  }
+
+  @override
+  String get ftWeekCalendar => 'Week calendar';
+
+  @override
+  String get ftTapDayForDetails => 'Tap a day to see online time and trips';
+
+  @override
+  String get ftNoDaysYet => 'No days to show yet.';
+
+  @override
+  String get ftNoActivity => 'No activity';
+
+  @override
+  String get ftHours => 'Hours';
+
+  @override
+  String get ftAvgPerOrder => 'Avg / order';
+
+  @override
+  String get ftEarningPerKm => 'Earning per km';
+
+  @override
+  String ftAvgPerActiveDay(String amount) {
+    return '$amount avg / active day';
+  }
+
+  @override
+  String get ftNoEarningsYetLower => 'no earnings yet';
+
+  @override
+  String get ftWeeklyEarningsUnavailable =>
+      'Weekly earnings unavailable right now';
+
+  @override
+  String get ftTodaysEarningsTimeline => 'Today\'s earnings timeline';
+
+  @override
+  String get ftCumulativeEarningsDesc =>
+      'Cumulative earnings after each delivery';
+
+  @override
+  String ftAmountTotal(String amount) {
+    return '$amount total';
+  }
+
+  @override
+  String ftOrderCountOne(String count) {
+    return '$count order';
+  }
+
+  @override
+  String ftOrderCountMany(String count) {
+    return '$count orders';
+  }
+
+  @override
+  String get ftGigsNoBookingNeeded =>
+      'Gigs do not need booking. Go online when the gig is live to join automatically.';
+
+  @override
+  String get ftAddAtLeastOneLeaveDate => 'Add at least one leave date';
+
+  @override
+  String get ftReasonRequired => 'Reason is required';
+
+  @override
+  String get ftLeaveRequestSubmitted => 'Leave request submitted';
+
+  @override
+  String get ftCasualLeave => 'Casual leave';
+
+  @override
+  String get ftSickLeave => 'Sick leave';
+
+  @override
+  String get ftEarnedLeave => 'Earned leave';
+
+  @override
+  String get ftUnpaidLeave => 'Unpaid leave';
+
+  @override
+  String ftLeaveTypeGeneric(String type) {
+    return '$type leave';
+  }
+
+  @override
+  String get ftApproved => 'Approved';
+
+  @override
+  String get ftRejected => 'Rejected';
+
+  @override
+  String get ftApplyLeave => 'Apply Leave';
+
+  @override
+  String get ftApplyLeaveSubtitle => 'Request time off with one or more dates';
+
+  @override
+  String get ftTypeOfLeave => 'Type of leave';
+
+  @override
+  String get ftLeaveTypeCasual => 'Casual';
+
+  @override
+  String get ftLeaveTypeSick => 'Sick';
+
+  @override
+  String get ftLeaveTypeEarned => 'Earned';
+
+  @override
+  String get ftLeaveTypeUnpaid => 'Unpaid';
+
+  @override
+  String get ftReason => 'Reason';
+
+  @override
+  String get ftReasonHint => 'Why do you need leave?';
+
+  @override
+  String get ftLeaveDates => 'Leave dates';
+
+  @override
+  String get ftLeaveDatesHint =>
+      'Add one or more dates. Non-continuous days supported.';
+
+  @override
+  String get ftAddDate => 'Add date';
+
+  @override
+  String get ftSubmitting => 'Submitting…';
+
+  @override
+  String get ftSubmitLeaveRequest => 'Submit leave request';
+
+  @override
+  String get ftMyLeaveRequests => 'My leave requests';
+
+  @override
+  String get ftNoLeaveRequestsYet => 'No leave requests yet.';
+
+  @override
+  String ftAdminNote(String note) {
+    return 'Admin note: $note';
+  }
+
+  @override
+  String get ftCouldNotSubmitLeave => 'Could not submit leave';
+
+  @override
+  String ftRequestFailed(String code) {
+    return 'Request failed ($code)';
+  }
+
+  @override
+  String get ftCouldNotMarkAttendance => 'Could not mark attendance';
+
+  @override
+  String ftKmRange(String min, String max) {
+    return '$min – $max KM';
+  }
+
+  @override
+  String get pkStatusReadyForPickup => 'Ready for pickup';
+
+  @override
+  String get pkStatusOnTheWayToFarm => 'On the way to farm';
+
+  @override
+  String get pkStatusReachedFarm => 'Reached the farm';
+
+  @override
+  String get pkStatusOrderChecked => 'Order checked';
+
+  @override
+  String get pkStatusQrVerified => 'QR verified';
+
+  @override
+  String get pkStatusPickupConfirmed => 'Pickup confirmed';
+
+  @override
+  String get pkStatusOnTheWayToCentre => 'On the way to centre';
+
+  @override
+  String get pkStatusAtCollectionCentre => 'At collection centre';
+
+  @override
+  String get pkStatusReceived => 'Received';
+
+  @override
+  String get pkStepAcceptOrReject => 'Accept or reject';
+
+  @override
+  String get pkHintOpenToAcceptOrReject => 'Open pickup to accept or reject';
+
+  @override
+  String get pkStepLeftForPickup => 'Left for pickup';
+
+  @override
+  String pkHintStatusWillBecome(String status) {
+    return 'Status will become $status';
+  }
+
+  @override
+  String get pkStepCheckOrder => 'Check order';
+
+  @override
+  String get pkHintOpenToVerifyOrder => 'Open pickup to verify the order';
+
+  @override
+  String get pkStepScanFarmerQr => 'Scan Farmer QR';
+
+  @override
+  String get pkHintOpenToScanQr => 'Open pickup to scan QR';
+
+  @override
+  String get pkStepConfirmPickup => 'Confirm pickup';
+
+  @override
+  String get pkHintOpenToConfirmWithPhoto =>
+      'Open pickup to confirm with photo';
+
+  @override
+  String get pkStepReachedCollectionCentre => 'Reached collection centre';
+
+  @override
+  String get pkUnitKg => 'Kg';
+
+  @override
+  String get pkUnitGram => 'g';
+
+  @override
+  String get pkUnitQuintal => 'Quintal';
+
+  @override
+  String get pkUnitTon => 'Ton';
+
+  @override
+  String get pkUnitCrate => 'Crate';
+
+  @override
+  String get pkUnitBox => 'Box';
+
+  @override
+  String get pkUnitBag => 'Bag';
+
+  @override
+  String get pkUnitPiece => 'Piece';
+
+  @override
+  String get pkUnitDozen => 'Dozen';
+
+  @override
+  String get pkUnitBunch => 'Bunch';
+
+  @override
+  String pkGradeValue(String grade) {
+    return 'Grade $grade';
+  }
+
+  @override
+  String get pkProduce => 'Produce';
+
+  @override
+  String pkOrdersCount(String count) {
+    return '$count orders';
+  }
+
+  @override
+  String get pkDriver => 'Driver';
+
+  @override
+  String get pkLoginFailed => 'Login failed';
+
+  @override
+  String get pkSessionExpired => 'Session expired';
+
+  @override
+  String pkRequestFailed(String code) {
+    return 'Request failed ($code)';
+  }
+
+  @override
+  String get pkNewPickupAssigned => 'New pickup assigned';
+
+  @override
+  String pkCopiedValue(String value) {
+    return 'Copied $value';
+  }
+
+  @override
+  String get pkTotal => 'Total';
+
+  @override
+  String get pkClose => 'Close';
+
+  @override
+  String get pkNoQr => 'No QR';
+
+  @override
+  String get pkOrderQr => 'Order QR';
+
+  @override
+  String get pkScanToViewOrderDetails => 'Scan to view order details';
+
+  @override
+  String get pkBatchQr => 'Batch QR';
+
+  @override
+  String get pkScanToViewBatchDetails => 'Scan to view all batch details';
+
+  @override
+  String get pkTotalWeightOrdered => 'Total weight (ordered)';
+
+  @override
+  String get pkPackedWeight => 'Packed weight';
+
+  @override
+  String get pkPackages => 'Packages';
+
+  @override
+  String get pkOrderValue => 'Order value';
+
+  @override
+  String get pkPickups => 'Pickups';
+
+  @override
+  String get pkLeave => 'Leave';
+
+  @override
+  String get pkJustNow => 'Just now';
+
+  @override
+  String pkMinutesAgo(String minutes) {
+    return '$minutes min ago';
+  }
+
+  @override
+  String pkHoursAgo(String hours) {
+    return '$hours h ago';
+  }
+
+  @override
+  String get pkNotificationsEmpty =>
+      'No notifications yet.\nNew pickups assigned by your vendor will appear here.';
+
+  @override
+  String get pksRejectPickupTitle => 'Reject this pickup?';
+
+  @override
+  String get pksRejectPickupBody =>
+      'It will go back to the vendor to assign another driver.';
+
+  @override
+  String get pksReasonOptional => 'Reason (optional)';
+
+  @override
+  String get pksPickupRejectedSent =>
+      'Pickup rejected and sent back to the vendor.';
+
+  @override
+  String get pksPickupAccepted => 'Pickup accepted.';
+
+  @override
+  String get pksPickupAcceptedHint =>
+      'Pickup accepted. Tap \"Left for pickup\" when you leave.';
+
+  @override
+  String get pksLeftForPickup => 'Left for pickup.';
+
+  @override
+  String get pksLeftForPickupOnTheWay => 'Left for pickup — On the way';
+
+  @override
+  String get pksLeftForPickupStatus =>
+      'Left for pickup. Status is On the way to farm.';
+
+  @override
+  String get pksReachedFarmDone => 'Reached the farm.';
+
+  @override
+  String get pksReachedFarmButton => 'Reached the farm';
+
+  @override
+  String get pksOrderChecked => 'Order checked.';
+
+  @override
+  String get pksQrVerifiedSuccess => 'QR Verified Successfully';
+
+  @override
+  String get pksQrVerifiedCheckItems => 'QR verified — check the items';
+
+  @override
+  String get pksMatchItemsBeforeConfirm =>
+      'Match every item, grade and weight with the farmer before confirming.';
+
+  @override
+  String get pksItemsMatchConfirm => 'Items match — confirm pickup';
+
+  @override
+  String get pksLater => 'Later';
+
+  @override
+  String get pksPickupConfirmedStatus =>
+      'Pickup confirmed. Status is PICKED UP.';
+
+  @override
+  String get pksCouldNotOpenDialer => 'Could not open dialer';
+
+  @override
+  String get pksCouldNotOpenMap => 'Could not open map';
+
+  @override
+  String pksOrderTitle(String id) {
+    return 'Order $id';
+  }
+
+  @override
+  String get pksNewPickupAssignedToYou => 'New pickup assigned to you';
+
+  @override
+  String get pksAcceptOrRejectHint =>
+      'Check the details and items below, then accept to start this pickup or reject to send it back to the vendor.';
+
+  @override
+  String get pksYourCurrentStatus => 'YOUR CURRENT STATUS';
+
+  @override
+  String pksNextStep(String step) {
+    return 'Next: $step';
+  }
+
+  @override
+  String get pksUpdateStepHint =>
+      'Update the step below so farmer, manager and vendor can see what you are doing.';
+
+  @override
+  String get pksLotBatchId => 'Lot / Batch ID';
+
+  @override
+  String get pksShowBatchQr => 'Show batch QR';
+
+  @override
+  String get pksShowOrderQr => 'Show order QR';
+
+  @override
+  String get pksPickupProgress => 'Pickup progress';
+
+  @override
+  String get pksPickupDetails => 'Pickup details';
+
+  @override
+  String get pksOrderId => 'Order ID';
+
+  @override
+  String get pksFarmerName => 'Farmer Name';
+
+  @override
+  String get pksFarmerLocation => 'Farmer Location';
+
+  @override
+  String get pksProduct => 'Product';
+
+  @override
+  String get pksQuantity => 'Quantity';
+
+  @override
+  String get pksPackageCount => 'Package Count';
+
+  @override
+  String get pksPickupDateTime => 'Pickup Date/Time';
+
+  @override
+  String get pksPickupInstructions => 'Pickup Instructions';
+
+  @override
+  String get pksDefaultPickupInstructions =>
+      'Follow farm access and packing notes.';
+
+  @override
+  String get pksCallFarmer => 'Call Farmer';
+
+  @override
+  String get pksViewLocation => 'View Location';
+
+  @override
+  String get pksItemsToCollect => 'Items to collect';
+
+  @override
+  String get pksCheckItemsThenScan =>
+      'Check each item, grade and weight with the farmer, then scan the Farmer QR.';
+
+  @override
+  String get pksDriverArrivedAtPickup =>
+      'Driver has arrived at pickup location.';
+
+  @override
+  String get pksOrderVerification => 'Order verification';
+
+  @override
+  String get pksProductName => 'Product Name';
+
+  @override
+  String get pksVariety => 'Variety';
+
+  @override
+  String get pksGrade => 'Grade';
+
+  @override
+  String get pksOrderedQuantity => 'Ordered Quantity';
+
+  @override
+  String get pksPackedQuantity => 'Packed Quantity';
+
+  @override
+  String get pksPickupLocation => 'Pickup Location';
+
+  @override
+  String get pksCheckOrder => 'Check Order';
+
+  @override
+  String get pksOrderCheckedScanNext => 'Order checked. Scan Farmer QR next.';
+
+  @override
+  String get pksScanFarmerQr => 'Scan Farmer QR';
+
+  @override
+  String get pksScanQrToVerifyOrder =>
+      'Scan the QR shown by the farmer to verify this order.';
+
+  @override
+  String get pksAtFarmScanHint =>
+      'At the farm? Scanning the Farmer QR marks you as reached, checks the order and verifies the QR in one step.';
+
+  @override
+  String get pksOpenCameraAndScan => 'Open camera & scan';
+
+  @override
+  String get pksOrPasteFarmerQr => 'Or paste the scanned Farmer QR value:';
+
+  @override
+  String get pksPasteFarmerQr => 'Paste Farmer QR';
+
+  @override
+  String get pksVerify => 'Verify';
+
+  @override
+  String get pksOrderSummary => 'Order summary';
+
+  @override
+  String get pksFarmer => 'Farmer';
+
+  @override
+  String get pksDriver => 'Driver';
+
+  @override
+  String get pksVehicleNumber => 'Vehicle Number';
+
+  @override
+  String get pksConfirmOrderPickup => 'Confirm order pickup';
+
+  @override
+  String get pksPickupConfirmedFromFarmer => 'Pickup confirmed from farmer.';
+
+  @override
+  String get pksOnTheWayToCentre => 'On the way to centre';
+
+  @override
+  String get pksOnTheWayToCentreDone => 'On the way to centre.';
+
+  @override
+  String get pksReachedCollectionCentre => 'Reached collection centre';
+
+  @override
+  String get pksAtCollectionCentre => 'At collection centre.';
+
+  @override
+  String get pksWaitingForCentreReceiving =>
+      'At collection centre. Waiting for centre receiving.';
+
+  @override
+  String get pksReceivedAtCentre => 'Received at collection centre.';
+
+  @override
+  String pksCopiedValue(String value) {
+    return 'Copied $value';
+  }
+
+  @override
+  String get pksPhotoTooLarge => 'Photo is too large. Try again.';
+
+  @override
+  String pksCouldNotGetPhoto(String error) {
+    return 'Could not get photo: $error';
+  }
+
+  @override
+  String get pksConfirmPickup => 'Confirm Pickup';
+
+  @override
+  String get pksConfirmReceivedQuestion =>
+      'Confirm that you have received this order from the farmer?';
+
+  @override
+  String pksPickupPhotosCount(String count, String max) {
+    return 'Pickup photos ($count/$max)';
+  }
+
+  @override
+  String get pksTakeLivePhotoHint =>
+      'Take a live photo of the goods (at least 1, up to 4).';
+
+  @override
+  String get pksGallery => 'Gallery';
+
+  @override
+  String get pksPickupOrders => 'Pickup Orders';
+
+  @override
+  String get pksAssignedSubtitle =>
+      'Update status when you leave for the farm.';
+
+  @override
+  String get pksNoAssignedPickups => 'No assigned pickups.';
+
+  @override
+  String get pksProgressSubtitle =>
+      'On the way, at farm, confirming, or returning to the centre.';
+
+  @override
+  String get pksNoPickupsInProgress => 'No pickups in progress.';
+
+  @override
+  String get pksCompletedSubtitle => 'Received at the collection centre.';
+
+  @override
+  String get pksNoCompletedPickups => 'No completed pickups.';
+
+  @override
+  String get pksHistorySubtitle => 'Finished pickups at the collection centre.';
+
+  @override
+  String get pksNoPickupHistory => 'No pickup history yet.';
+
+  @override
+  String pksPackagesCount(String count) {
+    return '$count pkgs';
+  }
+
+  @override
+  String get pksShowQr => 'Show QR';
+
+  @override
+  String pksOrdersInBatchOne(String count) {
+    return '$count order in this batch';
+  }
+
+  @override
+  String pksOrdersInBatchMany(String count) {
+    return '$count orders in this batch';
+  }
+
+  @override
+  String get pksDriverId => 'Driver ID';
+
+  @override
+  String get pksVehicleId => 'Vehicle ID';
+
+  @override
+  String get pksBatchDetails => 'Batch details';
+
+  @override
+  String get pksOverview => 'Overview';
+
+  @override
+  String get pksNoQr => 'No QR';
+
+  @override
+  String get pksTapQrToEnlarge => 'Tap the QR to enlarge';
+
+  @override
+  String get pksCollectionCentre => 'Collection Centre';
+
+  @override
+  String get pksDriverMobile => 'Driver Mobile';
+
+  @override
+  String get pksFarmers => 'Farmers';
+
+  @override
+  String get pksProducts => 'Products';
+
+  @override
+  String pksOrdersInBatchTitle(String count) {
+    return 'Orders in this batch ($count)';
+  }
+
+  @override
+  String get pksNoOrders => 'No orders';
+
+  @override
+  String get pksLeaveCasual => 'Casual';
+
+  @override
+  String get pksLeaveSick => 'Sick';
+
+  @override
+  String get pksLeaveEarned => 'Earned';
+
+  @override
+  String get pksLeaveUnpaid => 'Unpaid';
+
+  @override
+  String pksLeaveTypeTitle(String type) {
+    return '$type leave';
+  }
+
+  @override
+  String get pksAddLeaveDateError => 'Add at least one leave date';
+
+  @override
+  String get pksEnterReasonError => 'Please enter a reason';
+
+  @override
+  String get pksLeaveSubmitted => 'Leave request submitted';
+
+  @override
+  String get pksApplyForLeave => 'Apply for leave';
+
+  @override
+  String get pksLeaveIntro =>
+      'Pickup drivers can request leave with one or more dates.';
+
+  @override
+  String get pksTypeOfLeave => 'Type of leave';
+
+  @override
+  String get pksReason => 'Reason';
+
+  @override
+  String get pksLeaveReasonHint => 'Why do you need leave?';
+
+  @override
+  String get pksLeaveDates => 'Leave dates';
+
+  @override
+  String get pksLeaveDatesHint =>
+      'Add one or more dates. Non-continuous days are supported.';
+
+  @override
+  String get pksAddDate => 'Add date';
+
+  @override
+  String get pksSubmitLeaveRequest => 'Submit leave request';
+
+  @override
+  String get pksMyLeaveRequests => 'My leave requests';
+
+  @override
+  String get pksNoLeaveRequests => 'No leave requests yet.';
+
+  @override
+  String get pksLeaveApproved => 'Approved';
+
+  @override
+  String get pksLeaveRejected => 'Rejected';
+
+  @override
+  String pksAdminNote(String note) {
+    return 'Admin note: $note';
+  }
+
+  @override
+  String get pksScanQrShownByFarmer => 'Scan the QR shown by the farmer';
+
+  @override
+  String get pksQrNoMatch => 'This QR does not match any of your open pickups.';
+
+  @override
+  String get pksPickupDriverUpper => 'PICKUP DRIVER';
+
+  @override
+  String get pksHomeSubtitle => 'Farm pickups to the collection centre';
+
+  @override
+  String pksLatestCount(String count) {
+    return 'Latest $count';
+  }
+
+  @override
+  String get pksViewAll => 'View all';
+
+  @override
+  String get pksNoRecentPickups => 'No recent pickups';
+
+  @override
+  String get pksNextUp => 'NEXT UP';
+
+  @override
+  String get pksOpenPickup => 'Open pickup';
+
+  @override
+  String get pksNewPickupAssigned => 'New pickup assigned';
+
+  @override
+  String get pksDismiss => 'Dismiss';
+
+  @override
+  String pksPickupWhen(String when) {
+    return 'Pickup $when';
+  }
+
+  @override
+  String get pksLogOutTitle => 'Log out?';
+
+  @override
+  String get pksLogOutBody =>
+      'You will need your mobile and password to log in again.';
+
+  @override
+  String get pksLogOut => 'Log out';
+
+  @override
+  String get pksProfileRole => 'Pickup Driver · Farm → Collection centre';
+
+  @override
+  String get pksMobile => 'Mobile';
+
+  @override
+  String get pksArea => 'Area';
+
+  @override
+  String get pksPolicies => 'Policies';
+
+  @override
+  String get pksNoPolicies => 'No policies published yet.';
+
+  @override
+  String get pksPolicy => 'Policy';
+
+  @override
+  String get pksStatusInactive => 'Inactive';
+
+  @override
+  String get pksTryAgain => 'Try again';
+
+  @override
+  String get pksCameraUnavailable => 'Camera unavailable';
+
+  @override
+  String get pksCameraStartFailed =>
+      'Unable to start the camera. Go back and paste the QR value instead.';
+
+  @override
+  String get pksCameraPermissionNeeded => 'Camera permission needed';
+
+  @override
+  String get pksAllowCameraToScan =>
+      'Allow camera access to scan the Farmer QR.';
+
+  @override
+  String get pksOpenAppSettings => 'Open app settings';
+
+  @override
+  String get pksPointCameraHint =>
+      'Point the camera at the Farmer QR shown by the farmer.';
+
+  @override
+  String get svcDarkStore => 'Dark Store';
+
+  @override
+  String get svcNearby => 'nearby';
+
+  @override
+  String get svcScanStoreQrToUnlock => 'Scan Store QR to Unlock';
+
+  @override
+  String get svcPreOrder => 'Pre-order';
+
+  @override
+  String get svcNotPickupQr => 'This is not a pickup QR';
+
+  @override
+  String get svcOrderUnlocked => 'Order unlocked';
+
+  @override
+  String get svcCouldNotVerifyQr => 'Could not verify this QR';
+
+  @override
+  String get svcNetworkErrorTryAgain => 'Network error — try again';
+
+  @override
+  String get svcNetworkError => 'Network error. Please try again.';
+
+  @override
+  String get svcIncorrectOtp =>
+      'Incorrect OTP. Ask the customer for their order OTP.';
+
+  @override
+  String get svcCouldNotMarkFailed => 'Could not mark delivery as failed.';
+
+  @override
+  String get svcCouldNotSendDelay => 'Could not send the delay.';
+
+  @override
+  String get svcCouldNotUploadDeliveryPhoto =>
+      'Could not upload delivery photo.';
+
+  @override
+  String get svcOtpVerificationFailed => 'OTP verification failed';
+
+  @override
+  String get svcCashConfirmationFailed => 'Cash confirmation failed';
+
+  @override
+  String get svcCouldNotCheckRazorpay =>
+      'Could not check Razorpay. Please try again.';
+
+  @override
+  String get svcInvalidReturnQr => 'Invalid return QR';
+
+  @override
+  String get svcPhotoUploadFailed => 'Photo upload failed';
+
+  @override
+  String get svcCouldNotMarkReturnedToStore =>
+      'Could not mark returned to store';
+
+  @override
+  String svcFailedToSendOtp(String code) {
+    return 'Failed to send OTP ($code)';
+  }
+
+  @override
+  String get svcLoginAgainForOnboarding =>
+      'Please login again to continue onboarding';
+
+  @override
+  String svcCouldNotSaveOnboarding(String code) {
+    return 'Could not save onboarding data ($code)';
+  }
+
+  @override
+  String get svcCouldNotUpdateStatus => 'Could not update status';
+
+  @override
+  String svcCannotReachServerAt(String url) {
+    return 'Cannot reach $url';
+  }
+
+  @override
+  String svcCouldNotLoadAreas(String code) {
+    return 'Could not load areas ($code)';
+  }
+
+  @override
+  String get svcUnableToReachServer => 'Unable to reach server';
+
+  @override
+  String get svcAuthenticationFailed => 'Authentication failed';
+
+  @override
+  String get svcInvalidServerResponse => 'Invalid server response';
+
+  @override
+  String get svcLocationVerificationComplete =>
+      'Location verification complete';
+
+  @override
+  String get svcCannotVerifyLocation =>
+      'Cannot verify location. Please check server connection.';
+
+  @override
+  String get svcStoreGig => 'Store Gig';
+
+  @override
+  String get svcNewDeliveryOffer => 'New Delivery Offer!';
+
+  @override
+  String svcEarnAmount(String amount) {
+    return 'Earn ₹$amount';
+  }
+
+  @override
+  String svcOfferForOrder(String number) {
+    return 'New delivery offer for Order #$number. Tap to review and accept!';
+  }
+
+  @override
+  String get svcOfferAvailable =>
+      'New delivery offer available. Tap to review and accept!';
+
+  @override
+  String get svcProfileVerifiedBody =>
+      'Your profile has been verified! You can now go online and receive orders.';
+
+  @override
+  String get svcVerificationStatusUpdate => 'Verification Status Update';
+
+  @override
+  String get svcReviewVerificationDetails =>
+      'Please review your verification details in the app.';
+
+  @override
+  String get svcGreenGrocAlert => 'GreenGroc Alert';
+
+  @override
+  String get svcGreenGrocDelivery => 'GreenGroc Delivery';
+
+  @override
+  String svcDurationMinutes(String minutes) {
+    return '$minutes minute';
+  }
+
+  @override
+  String svcDurationHours(String hours) {
+    return '$hours hr';
+  }
+
+  @override
+  String svcDurationHoursMinutes(String hours, String minutes) {
+    return '$hours hr $minutes minute';
+  }
+
+  @override
+  String get uiAssignedOrders => 'Assigned Orders';
+
+  @override
+  String get uiMyRules => 'My Rules';
+
+  @override
+  String get uiApplyLeave => 'Apply Leave';
+
+  @override
+  String get uiRetry => 'Retry';
+
+  @override
+  String get uiUnread => 'Unread';
+
+  @override
+  String get uiWelcomeTitle => 'Welcome to\nDelivery Partner';
+
+  @override
+  String get uiWelcomeSubtitle =>
+      'Deliver orders. Earn on your time.\nBe your own boss.';
+
+  @override
+  String get uiByContinuingAgreePrefix => 'By continuing, you agree to our\n';
+
+  @override
+  String get uiByContinuingAgreeSuffix => '.';
+
+  @override
+  String get uiRegistrationSuccessful => 'Registration Successful!';
+
+  @override
+  String get uiRegistrationSuccessBody =>
+      'Your application has been submitted\nsuccessfully. We will verify your\ndocuments and notify you soon.';
+
+  @override
+  String get uiSelectState => 'Select State';
+
+  @override
+  String get uiSelectStateSubtitle => 'Please select your state';
+
+  @override
+  String get uiSearchState => 'Search state';
+
+  @override
+  String uiSelectCityIn(String state) {
+    return 'Please select your city in $state';
+  }
+
+  @override
+  String get uiSelectCitySubtitle => 'Please select your city';
+
+  @override
+  String get uiNoCitiesFound => 'No cities found';
+
+  @override
+  String uiSelectAreaIn(String city) {
+    return 'Please select your area in $city';
+  }
+
+  @override
+  String get uiSelectAreaSubtitle => 'Please select your area';
+
+  @override
+  String get uiFetchingDarkStore => 'Fetching Dark Store location details...';
+
+  @override
+  String get uiCouldNotCheckDarkStores => 'Could not check dark stores';
+
+  @override
+  String get uiCheckConnectionTryAgain =>
+      'Check your connection and try again.';
+
+  @override
+  String get uiActiveHub => 'ACTIVE HUB';
+
+  @override
+  String uiPinCode(String pincode) {
+    return 'PIN $pincode';
+  }
+
+  @override
+  String uiStoreManagerContact(String phone) {
+    return 'Store Manager Contact: $phone';
+  }
+
+  @override
+  String get uiNoDarkStoreRegistered => 'No Dark Store Registered';
+
+  @override
+  String get uiNoHubRegistered => 'NO HUB REGISTERED';
+
+  @override
+  String uiNoDarkStoreInArea(String area) {
+    return 'No delivery manager has registered a dark store hub in $area yet.';
+  }
+
+  @override
+  String get uiEmploymentType => 'Employment Type';
+
+  @override
+  String get uiPartTime => 'Part-Time';
+
+  @override
+  String get uiPartTimeSubtitle => 'Flexible shifts — work when you want';
+
+  @override
+  String get uiFullTime => 'Full-Time';
+
+  @override
+  String get uiFullTimeSubtitle => 'Fixed shifts — stable monthly salary';
+
+  @override
+  String get uiProfileDetails => 'Profile Details';
+
+  @override
+  String get uiProfileDetailsSubtitle => 'Tell us more about yourself';
+
+  @override
+  String get uiEmailOptional => 'Email (Optional)';
+
+  @override
+  String get uiEmailAddress => 'Email Address';
+
+  @override
+  String get uiDateOfBirth => 'Date of Birth';
+
+  @override
+  String get uiDateHint => 'DD/MM/YYYY';
+
+  @override
+  String get uiEmergencyContact => 'Emergency Contact';
+
+  @override
+  String get uiEmergencyContactMobile => 'Emergency Contact Mobile';
+
+  @override
+  String get uiReviewSubmit => 'Review & Submit';
+
+  @override
+  String get uiReviewSubmitSubtitle =>
+      'Please review your details before\nsubmitting';
+
+  @override
+  String get uiLocation => 'Location';
+
+  @override
+  String get uiDocDl => 'DL';
+
+  @override
+  String get uiDocRc => 'RC';
+
+  @override
+  String get uiConfirmDetailsCorrect =>
+      'I confirm that all the above details\nare correct.';
+
+  @override
+  String get uiSubmit => 'Submit';
+
+  @override
+  String get uiDocsSafeSecure => 'Your documents are safe and secure with us.';
+
+  @override
+  String get uiUploading => 'Uploading…';
+
+  @override
+  String get uiUploaded => 'Uploaded';
+
+  @override
+  String get uiDocsTapToView => 'Tap a photo to view full size';
+
+  @override
+  String get uiDocsViewOnly =>
+      'Documents are view-only. Contact your Delivery Manager to update them.';
+
+  @override
+  String get uiUploadedDocuments => 'Uploaded documents';
+
+  @override
+  String get uiNotUploaded => 'Not uploaded';
+
+  @override
+  String get uiDocPassport => 'Passport';
+
+  @override
+  String get uiDocStatusApproved => 'Approved';
+
+  @override
+  String get uiDocStatusRejected => 'Rejected';
+
+  @override
+  String get uiUnderReview => 'Under Review';
+
+  @override
+  String get uiVehicleScreenSubtitle =>
+      'Vehicle information & registered documents';
+
+  @override
+  String get uiVehicleTypeMotorcycle => 'Motorcycle / Bike';
+
+  @override
+  String get uiVehicleTypeElectric => 'Electric Vehicle (EV)';
+
+  @override
+  String get uiVehicleTypeBicycle => 'Bicycle / Cycle';
+
+  @override
+  String get uiVehicleTypeVan => 'Delivery Van / Auto';
+
+  @override
+  String get uiVehicleTypeOnFoot => 'Walker / On Foot';
+
+  @override
+  String get uiNotSpecified => 'Not Specified';
+
+  @override
+  String get uiNoPlateNumber => 'NO PLATE NUMBER';
+
+  @override
+  String get uiAssignedPartnerVehicle => 'Assigned Delivery Partner Vehicle';
+
+  @override
+  String get uiVehicleSpecifications => 'Vehicle Specifications';
+
+  @override
+  String get uiVehicleType => 'Vehicle Type';
+
+  @override
+  String get uiNotAssigned => 'Not Assigned';
+
+  @override
+  String get uiPropulsionCategory => 'Propulsion / Category';
+
+  @override
+  String get uiPropulsionElectric => 'Electric (EV)';
+
+  @override
+  String get uiPropulsionPedal => 'Manual Pedal';
+
+  @override
+  String get uiPropulsionPetrol => 'Motorized / Petrol';
+
+  @override
+  String get uiRegistrationStatus => 'Registration Status';
+
+  @override
+  String get uiDocumentsSubmitted => 'Documents Submitted';
+
+  @override
+  String get uiPendingDocuments => 'Pending Documents';
+
+  @override
+  String get uiVehicleDocsSubtitle =>
+      'Government & vehicle verification documents submitted for this vehicle.';
+
+  @override
+  String get uiVehicleRcFull => 'Vehicle RC (Registration Certificate)';
+
+  @override
+  String get uiVehicleRcFullSubtitle =>
+      'Official certificate of vehicle registration';
+
+  @override
+  String get uiVehicleInsurance => 'Vehicle Insurance';
+
+  @override
+  String get uiVehicleInsuranceSubtitle =>
+      'Valid motor insurance policy certificate';
+
+  @override
+  String get uiDrivingLicenceFull => 'Driving Licence (DL)';
+
+  @override
+  String get uiDrivingLicenceFullSubtitle =>
+      'Authorized motor vehicle driving permit';
+
+  @override
+  String get uiVehicleManagedByManager =>
+      'Vehicle details and verification documents are managed by your Dark Store Delivery Manager. Contact your manager to update or change vehicles.';
+
+  @override
+  String uiDocNumber(String number) {
+    return 'Number: $number';
+  }
+
+  @override
+  String get uiTapToPreview => 'Tap to preview';
 }

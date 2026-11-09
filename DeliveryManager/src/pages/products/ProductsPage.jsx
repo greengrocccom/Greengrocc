@@ -102,6 +102,14 @@ function StockCell({ product, onSaved }) {
       >
         {stock > 0 ? `${stock} in stock` : "Out of stock"}
       </span>
+      {Number(product.heldStock) > 0 ? (
+        <span
+          className="text-[10px] font-semibold text-slate-500"
+          title="Packed or ordered, not out for delivery yet — customers can't buy these units"
+        >
+          {product.heldStock} held for open orders
+        </span>
+      ) : null}
       <button
         type="button"
         onClick={() => {

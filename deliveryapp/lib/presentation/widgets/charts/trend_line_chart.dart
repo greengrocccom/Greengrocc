@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import 'chart_utils.dart';
 
 class TrendLineChart extends StatelessWidget {
@@ -15,7 +16,7 @@ class TrendLineChart extends StatelessWidget {
     this.color,
     this.height = 190,
     this.labelEvery = 1,
-    this.emptyMessage = 'Not enough data for a trend yet',
+    this.emptyMessage,
   });
 
   final List<double> values;
@@ -25,7 +26,7 @@ class TrendLineChart extends StatelessWidget {
   final Color? color;
   final double height;
   final int labelEvery;
-  final String emptyMessage;
+  final String? emptyMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +36,7 @@ class TrendLineChart extends StatelessWidget {
         height: height,
         child: Center(
           child: Text(
-            emptyMessage,
+            emptyMessage ?? AppLocalizations.of(context).ftNotEnoughTrendData,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted),
           ),

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/routes/app_routes.dart';
+import '../../l10n/app_localizations.dart';
 import '../pickup_driver_service.dart';
 import '../pickup_flow.dart';
 import '../pickup_push_service.dart';
@@ -175,7 +176,8 @@ class CopyText extends StatelessWidget {
       borderRadius: BorderRadius.circular(6),
       onTap: () {
         Clipboard.setData(ClipboardData(text: value));
-        showPickupSnack(context, 'Copied $value');
+        showPickupSnack(
+            context, AppLocalizations.of(context).pkCopiedValue(value));
       },
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -258,12 +260,13 @@ class PickupStatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final tiles = [
-      ('Assigned', _n(stats['assigned'] ?? stats['pending']), 'assigned',
-          PickupColors.text),
-      ('In Progress', _n(stats['inProgress']), 'progress', PickupColors.blue),
-      ('Completed', _n(stats['completed']), 'completed', PickupColors.brand),
-      ('Total', _n(stats['totalAssigned']), 'history', PickupColors.text),
+      (l10n.timelineAssigned, _n(stats['assigned'] ?? stats['pending']),
+          'assigned', PickupColors.text),
+      (l10n.inProgress, _n(stats['inProgress']), 'progress', PickupColors.blue),
+      (l10n.completed, _n(stats['completed']), 'completed', PickupColors.brand),
+      (l10n.pkTotal, _n(stats['totalAssigned']), 'history', PickupColors.text),
     ];
     return GridView.count(
       crossAxisCount: 2,
@@ -532,7 +535,7 @@ Future<void> showPickupQrSheet(
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
+                  child: Text(AppLocalizations.of(ctx).pkClose),
                 ),
               ],
             ),
@@ -543,7 +546,7 @@ Future<void> showPickupQrSheet(
                 height: 220,
                 alignment: Alignment.center,
                 color: PickupColors.page,
-                child: Text('No QR',
+                child: Text(AppLocalizations.of(ctx).pkNoQr,
                     style: pickupText(12, color: PickupColors.faint)),
               )
             else
@@ -591,14 +594,15 @@ Future<void> showPickupQrSheet(
 }
 
 void showOrderQr(BuildContext context, Map<String, dynamic> pickup) {
+  final l10n = AppLocalizations.of(context);
   final payload = buildOrderQrPayload(pickup);
   showPickupQrSheet(
     context,
-    title: 'Order QR',
+    title: l10n.pkOrderQr,
     payload: payload,
     caption: orderQrLabel(payload),
     facts: orderQrFacts(payload),
-    footer: 'Scan to view order details',
+    footer: l10n.pkScanToViewOrderDetails,
   );
 }
 
@@ -607,13 +611,14 @@ void showBatchQr(
   required String batchId,
   required Map<String, dynamic> record,
 }) {
+  final l10n = AppLocalizations.of(context);
   final payload = buildBatchQrPayload(record, batchId);
   showPickupQrSheet(
     context,
-    title: 'Batch QR',
+    title: l10n.pkBatchQr,
     payload: payload,
     caption: batchQrLabel(payload.isNotEmpty ? payload : batchId),
     facts: batchQrFacts(payload),
-    footer: 'Scan to view all batch details',
+    footer: l10n.pkScanToViewBatchDetails,
   );
 }

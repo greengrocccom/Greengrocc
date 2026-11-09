@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/fulltime_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/charts/progress_ring.dart';
 import '../../widgets/common/app_panel.dart';
 import 'fulltime_widgets.dart';
@@ -40,7 +42,7 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e is FullTimeApiException ? e.message : 'Could not load attendance. Please try again.';
+        _error = e is FullTimeApiException ? e.message : appL10n.ftCouldNotLoadAttendanceRetry;
         _loading = false;
       });
     }
@@ -50,7 +52,7 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: fullTimeAppBar('Attendance', onRefresh: _load),
+      appBar: fullTimeAppBar(AppLocalizations.of(context).attendance, onRefresh: _load),
       body: _loading
           ? const PageSkeleton()
           : _error != null
@@ -63,13 +65,10 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
     );
   }
 
-  static String _clock(DateTime t) {
-    final hh = t.hour % 12 == 0 ? 12 : t.hour % 12;
-    final mm = t.minute.toString().padLeft(2, '0');
-    return '$hh:$mm ${t.hour >= 12 ? 'PM' : 'AM'}';
-  }
+  static String _clock(DateTime t) => localizedDateFormat('h:mm a').format(t);
 
   Widget _content() {
+    final l10n = AppLocalizations.of(context);
     final attendance = (_data['attendance'] as Map?) ?? const {};
     final requirement = _data['requirement'] as Map?;
     final darkStore = _data['darkStore'] as Map?;
@@ -82,19 +81,21 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
 
     String hint = '';
     if (status == 'present' && markedAt != null) {
-      hint = 'Marked at ${_clock(markedAt)}'
-          '${distance != null ? ' · ${distance.round()}m from store' : ''}'
-          '${lateMinutes > 0 ? ' · ${formatMinutes(lateMinutes)} after check-in time' : ''}';
+      hint = [
+        l10n.ftMarkedAt(_clock(markedAt)),
+        if (distance != null) l10n.ftMetersFromStore('${distance.round()}'),
+        if (lateMinutes > 0) l10n.ftLateAfterCheckIn(formatMinutes(lateMinutes)),
+      ].join(' · ');
     } else if (status == 'off_day') {
-      hint = 'Today is not a working day.';
+      hint = l10n.ftTodayNotWorkingDay;
     } else if (status == 'not_required') {
-      hint = 'Attendance is not required for your shift.';
+      hint = l10n.ftAttendanceNotRequired;
     } else if (status == 'absent') {
-      hint = 'No attendance was recorded for this day.';
+      hint = l10n.ftNoAttendanceRecorded;
     } else if (status == 'pending' && requirement?['requireLocationValidation'] == true) {
-      hint = 'Attendance is recorded automatically when you go online within ${requirement?['attendanceRadiusMeters'] ?? 200}m of the dark store.';
+      hint = l10n.ftAttendanceAutoWithinRadius('${requirement?['attendanceRadiusMeters'] ?? 200}');
     } else if (status == 'pending') {
-      hint = 'Attendance is recorded automatically when you go online.';
+      hint = l10n.ftAttendanceAuto;
     }
     final style = attendanceStyle(status);
     final statusIcon = switch (status) {
@@ -130,7 +131,7 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Today's Attendance",
+                          l10n.ftTodaysAttendance,
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -154,7 +155,7 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                   Expanded(
                     child: _CheckTile(
                       icon: Icons.login_rounded,
-                      label: 'Check-in',
+                      label: l10n.ftCheckIn,
                       value: markedAt != null ? _clock(markedAt) : '—',
                       accent: AppColors.primary,
                     ),
@@ -163,10 +164,10 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                   Expanded(
                     child: _CheckTile(
                       icon: Icons.location_on_outlined,
-                      label: 'Store radius',
+                      label: l10n.ftStoreRadius,
                       value: requirement == null
                           ? '—'
-                          : '${requirement['attendanceRadiusMeters'] ?? 200} m',
+                          : l10n.ftMetersValue('${requirement['attendanceRadiusMeters'] ?? 200}'),
                       accent: AppColors.info,
                     ),
                   ),
@@ -179,8 +180,8 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                     Expanded(
                       child: _CheckTile(
                         icon: Icons.near_me_outlined,
-                        label: 'From store',
-                        value: distance != null ? '${distance.round()} m' : '—',
+                        label: l10n.ftFromStore,
+                        value: distance != null ? l10n.ftMetersValue('${distance.round()}') : '—',
                         accent: const Color(0xFF8B5CF6),
                       ),
                     ),
@@ -188,8 +189,8 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
                     Expanded(
                       child: _CheckTile(
                         icon: Icons.timer_outlined,
-                        label: 'Late by',
-                        value: lateMinutes > 0 ? formatMinutes(lateMinutes) : 'On time',
+                        label: l10n.ftLateBy,
+                        value: lateMinutes > 0 ? formatMinutes(lateMinutes) : l10n.ftOnTime,
                         accent: AppColors.warning,
                       ),
                     ),
@@ -233,26 +234,26 @@ class _FullTimeAttendanceScreenState extends State<FullTimeAttendanceScreen> {
             todayStatus: status,
           ),
         AppPanel(
-          title: 'Work rules',
+          title: l10n.ftWorkRules,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               FtInfoRow(
                 icon: Icons.storefront_outlined,
-                label: 'Dark Store',
+                label: l10n.ftDarkStore,
                 value: darkStore?['name']?.toString() ?? '—',
               ),
               if (requirement?['requireLocationValidation'] == true)
                 FtInfoRow(
                   icon: Icons.location_on_outlined,
-                  label: 'Location',
-                  value: 'Within ${requirement?['attendanceRadiusMeters'] ?? 200}m of store',
+                  label: l10n.ftLocation,
+                  value: l10n.ftWithinMetersOfStore('${requirement?['attendanceRadiusMeters'] ?? 200}'),
                 ),
               if (month != null)
                 FtInfoRow(
                   icon: Icons.calendar_month_outlined,
-                  label: 'This Month',
-                  value: '${month['presentDays'] ?? 0} days present',
+                  label: l10n.ftThisMonth,
+                  value: l10n.ftDaysPresent('${month['presentDays'] ?? 0}'),
                 ),
             ],
           ),
@@ -336,16 +337,12 @@ class _MonthSummary extends StatelessWidget {
   final String today;
   final String todayStatus;
 
-  static const _monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-
   static String _iso(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final p = payroll;
     final present = ((p?['presentDays'] ?? month?['presentDays']) as num?)?.toInt() ?? 0;
     final absent = (p?['absentDays'] as num?)?.toInt() ?? 0;
@@ -364,8 +361,8 @@ class _MonthSummary extends StatelessWidget {
     final validMonth = year != null && mon != null && mon >= 1 && mon <= 12;
 
     return AppPanel(
-      title: validMonth ? '${_monthNames[mon - 1]} $year' : 'This month',
-      subtitle: 'Monthly attendance summary',
+      title: validMonth ? localizedDateFormat('MMMM y').format(DateTime(year, mon)) : l10n.ftThisMonthLower,
+      subtitle: l10n.ftMonthlyAttendanceSummary,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -373,7 +370,7 @@ class _MonthSummary extends StatelessWidget {
             children: [
               ProgressRing(
                 percent: percent,
-                label: 'Present',
+                label: l10n.ftPresent,
                 centerText: '$present/$scheduled',
                 size: 96,
                 caption: null,
@@ -384,8 +381,8 @@ class _MonthSummary extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: _MiniStat(label: 'Present', value: present, color: AppColors.success)),
-                        Expanded(child: _MiniStat(label: 'Absent', value: absent, color: AppColors.error)),
+                        Expanded(child: _MiniStat(label: l10n.ftPresent, value: present, color: AppColors.success)),
+                        Expanded(child: _MiniStat(label: l10n.ftAbsent, value: absent, color: AppColors.error)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -393,12 +390,12 @@ class _MonthSummary extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _MiniStat(
-                            label: 'Leave',
+                            label: l10n.ftLeave,
                             value: leaveCount,
                             color: AppColors.warning,
                           ),
                         ),
-                        Expanded(child: _MiniStat(label: 'Remaining', value: remaining, color: AppColors.info)),
+                        Expanded(child: _MiniStat(label: l10n.ftRemaining, value: remaining, color: AppColors.info)),
                       ],
                     ),
                   ],
@@ -418,14 +415,14 @@ class _MonthSummary extends StatelessWidget {
           ],
           if (validMonth) ...[
             const SizedBox(height: 18),
-            _calendar(year, mon),
+            _calendar(l10n, year, mon),
           ],
         ],
       ),
     );
   }
 
-  Widget _calendar(int year, int mon) {
+  Widget _calendar(AppLocalizations l10n, int year, int mon) {
     final p = payroll;
     final workingDays = (requirement?['workingDays'] as List? ?? const [])
         .whereType<num>()
@@ -473,7 +470,15 @@ class _MonthSummary extends StatelessWidget {
       for (final d in dates) _CalendarCell(day: d.day, state: stateFor(d), isToday: _iso(d) == today),
     ];
 
-    const headers = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    final headers = [
+      l10n.daySun,
+      l10n.dayMon,
+      l10n.dayTue,
+      l10n.dayWed,
+      l10n.dayThu,
+      l10n.dayFri,
+      l10n.daySat,
+    ];
     return Column(
       children: [
         Row(
@@ -507,10 +512,10 @@ class _MonthSummary extends StatelessWidget {
           spacing: 14,
           runSpacing: 6,
           children: [
-            LegendDot(color: AppColors.success, label: 'Present'),
-            LegendDot(color: AppColors.warning, label: 'Late'),
-            LegendDot(color: AppColors.error, label: 'Absent'),
-            LegendDot(color: AppColors.border, label: 'Off day'),
+            LegendDot(color: AppColors.success, label: l10n.ftPresent),
+            LegendDot(color: AppColors.warning, label: l10n.ftLate),
+            LegendDot(color: AppColors.error, label: l10n.ftAbsent),
+            LegendDot(color: AppColors.border, label: l10n.ftOffDayLegend),
           ],
         ),
       ],

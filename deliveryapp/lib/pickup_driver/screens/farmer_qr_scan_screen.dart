@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../widgets/pickup_ui.dart';
 
 /// Scans the Farmer QR and pops with the raw value (verification happens
@@ -108,10 +109,11 @@ class _FarmerQrScanScreenState extends State<FarmerQrScanScreen> {
   Widget build(BuildContext context) {
     final scanSize =
         (MediaQuery.sizeOf(context).width * 0.72).clamp(220.0, 300.0);
+    final l10n = AppLocalizations.of(context);
     final retry = FilledButton(
       onPressed: _initCamera,
       style: FilledButton.styleFrom(backgroundColor: PickupColors.brand),
-      child: const Text('Try again'),
+      child: Text(l10n.pksTryAgain),
     );
 
     return Scaffold(
@@ -122,10 +124,10 @@ class _FarmerQrScanScreenState extends State<FarmerQrScanScreen> {
         centerTitle: true,
         title: Column(
           children: [
-            Text('Scan Farmer QR',
+            Text(l10n.pksScanFarmerQr,
                 style: GoogleFonts.inter(
                     fontWeight: FontWeight.w700, fontSize: 16)),
-            Text('Order ${widget.orderLabel}',
+            Text(l10n.pksOrderTitle(widget.orderLabel),
                 style: GoogleFonts.inter(fontSize: 12, color: Colors.white70)),
           ],
         ),
@@ -152,9 +154,8 @@ class _FarmerQrScanScreenState extends State<FarmerQrScanScreen> {
               controller: _controller!,
               onDetect: _onDetect,
               errorBuilder: (context, error) => _message(
-                'Camera unavailable',
-                error.errorDetails?.message ??
-                    'Unable to start the camera. Go back and paste the QR value instead.',
+                l10n.pksCameraUnavailable,
+                error.errorDetails?.message ?? l10n.pksCameraStartFailed,
                 retry,
               ),
             )
@@ -163,15 +164,15 @@ class _FarmerQrScanScreenState extends State<FarmerQrScanScreen> {
                 child: CircularProgressIndicator(color: PickupColors.brand))
           else if (_permissionDenied)
             _message(
-              'Camera permission needed',
-              'Allow camera access to scan the Farmer QR.',
+              l10n.pksCameraPermissionNeeded,
+              l10n.pksAllowCameraToScan,
               Column(
                 children: [
                   retry,
                   TextButton(
                     onPressed: openAppSettings,
-                    child: const Text('Open app settings',
-                        style: TextStyle(color: Colors.white70)),
+                    child: Text(l10n.pksOpenAppSettings,
+                        style: const TextStyle(color: Colors.white70)),
                   ),
                 ],
               ),
@@ -206,7 +207,7 @@ class _FarmerQrScanScreenState extends State<FarmerQrScanScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Point the camera at the Farmer QR shown by the farmer.',
+                      l10n.pksPointCameraHint,
                       style: pickupText(13, weight: FontWeight.w600),
                     ),
                   ),

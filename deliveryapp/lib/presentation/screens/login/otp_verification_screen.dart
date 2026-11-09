@@ -128,7 +128,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          content: Text(AppLocalizations.of(context).authError),
           backgroundColor: Colors.red.shade700,
         ),
       );
@@ -156,7 +156,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          content: Text(
+            e is AuthApiException ? e.message : AppLocalizations.of(context).authError,
+          ),
           backgroundColor: Colors.red.shade700,
         ),
       );

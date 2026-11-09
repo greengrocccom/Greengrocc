@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/services/secure_screen.dart';
 import '../../../core/utils/image_upload_utils.dart';
@@ -118,12 +120,13 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     );
     if (verified == true && mounted) {
       final isPreOrder = _delivery!.isPreOrder;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             isPreOrder
-                ? 'QR scanned! Customer address unlocked.'
-                : 'QR scanned! Now capture item photo for manager approval.',
+                ? l10n.delQrScannedAddressUnlocked
+                : l10n.delQrScannedCaptureItemPhoto,
           ),
           backgroundColor: const Color(0xFF059669),
         ),
@@ -137,18 +140,19 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     final photo = await _pickCameraPhoto();
     if (photo == null || !mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final sent = await _showPhotoSendSheet(
       photo: photo,
-      title: 'Item Proof',
-      subtitle: 'Send this photo to the manager for approval.',
-      sendLabel: 'Send to Manager',
+      title: l10n.delItemProof,
+      subtitle: l10n.delItemProofSendSubtitle,
+      sendLabel: l10n.delSendToManager,
       onSend: (dataUrl) => OrderService.instance.submitPickupProof(_delivery!.id, dataUrl),
     );
     if (sent == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Item photo sent. Waiting for manager approval.'),
-          backgroundColor: Color(0xFF059669),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).delItemPhotoSentWaiting),
+          backgroundColor: const Color(0xFF059669),
         ),
       );
       await _loadDelivery();
@@ -207,7 +211,7 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open camera. Check permissions.')),
+          SnackBar(content: Text(AppLocalizations.of(context).delCameraOpenFailed)),
         );
       }
       return null;
@@ -219,11 +223,12 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     final photo = await _pickCameraPhoto();
     if (photo == null || !mounted) return false;
 
+    final l10n = AppLocalizations.of(context);
     return _showPhotoSendSheet(
       photo: photo,
-      title: 'Delivery Proof',
-      subtitle: 'Send this photo, then enter the customer OTP.',
-      sendLabel: 'Send Photo',
+      title: l10n.delDeliveryProof,
+      subtitle: l10n.delDeliveryProofSendSubtitle,
+      sendLabel: l10n.delSendPhoto,
       onSend: (dataUrl) async {
         final result = await OrderService.instance.uploadDeliveryProof(_delivery!.id, dataUrl);
         return result.success;
@@ -296,7 +301,7 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
                                     final next = await _pickCameraPhoto();
                                     if (next != null) setModal(() => current = next);
                                   },
-                            child: const Text('Retake'),
+                            child: Text(AppLocalizations.of(context).delRetake),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -315,8 +320,8 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
                                     } else {
                                       setModal(() => submitting = false);
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Could not send photo. Try again.'),
+                                        SnackBar(
+                                          content: Text(AppLocalizations.of(context).delPhotoSendFailed),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
@@ -368,10 +373,11 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
       emergency: emergency,
     );
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     if (result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(emergency ? 'Emergency sent to your Delivery Manager.' : 'Delivery marked as failed. Manager has been notified.'),
+          content: Text(emergency ? l10n.delEmergencySent : l10n.delMarkedFailedNotified),
           backgroundColor: const Color(0xFFB45309),
         ),
       );
@@ -384,7 +390,7 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.error ?? 'Could not mark failed.'),
+          content: Text(result.error ?? l10n.delCouldNotMarkFailed),
           backgroundColor: Colors.red,
         ),
       );
@@ -408,8 +414,8 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
       SnackBar(
         content: Text(
           result.success
-              ? 'Delay sent to your Delivery Manager.'
-              : (result.error ?? 'Could not send the delay.'),
+              ? AppLocalizations.of(context).delDelaySent
+              : (result.error ?? AppLocalizations.of(context).delCouldNotSendDelay),
         ),
         backgroundColor: result.success ? const Color(0xFFB45309) : Colors.red,
       ),
@@ -419,12 +425,13 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
 
   Future<bool> _askCustomerOtp() async {
     final d = _delivery!;
+    final incorrectOtp = AppLocalizations.of(context).delIncorrectOtp;
     return showCustomerOtpSheet(
       context,
       orderNumber: d.orderNumber,
       onVerify: (otp) async {
         final result = await OrderService.instance.verifyCustomerOtp(d.id, otp);
-        return result.success ? null : (result.error ?? 'Incorrect OTP');
+        return result.success ? null : (result.error ?? incorrectOtp);
       },
     );
   }
@@ -451,7 +458,10 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     if (!cash.success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(cash.error ?? 'Cash confirmation failed'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(cash.error ?? AppLocalizations.of(context).delCashConfirmFailed),
+            backgroundColor: Colors.red,
+          ),
         );
       }
       return;
@@ -475,22 +485,24 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     final result = await service.deliveryPaymentQr(orderId, 'create');
     if (!mounted) return false;
     if (result['paymentStatus'] == 'paid_online') return true;
+    final l10n = AppLocalizations.of(context);
 
-    final imageUrl = result['imageUrl'] as String?;
-    if (imageUrl == null && result['closed'] != true) {
+    if (result['closed'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(result['message'] as String? ?? 'Unable to open payment QR.'),
+        content: Text(l10n.delPreviousQrExpired),
       ));
       return false;
     }
-    if (imageUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('The previous QR expired. Tap Online again for a new QR.'),
+    if (result['amount'] is! num) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result['message'] as String? ?? l10n.delUnableToOpenPaymentQr),
       ));
       return false;
     }
 
     final amount = (result['amount'] as num).toStringAsFixed(2);
+    final qrContent = (result['qrContent'] as String?) ?? '';
+    final notice = result['notice'] as String?;
     var busy = false;
     String? message;
     return await showDialog<bool>(
@@ -512,24 +524,48 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
             } else {
               setDialogState(() {
                 busy = false;
-                message = updated['message'] as String? ?? 'Please try again.';
+                message = updated['message'] as String? ?? l10n.delPleaseTryAgain;
               });
             }
           }
 
           return AlertDialog(
-            title: Text('Pay ₹$amount by UPI'),
+            title: Text(l10n.delScanToPayUpi, textAlign: TextAlign.center),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.network(
-                    imageUrl,
-                    width: 230,
-                    height: 230,
-                    errorBuilder: (_, __, ___) => const Text('Unable to load the QR image.'),
+                  Text(
+                    '₹$amount',
+                    style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
                   ),
-                  const Text('Ask the customer to scan this QR with their UPI app.'),
+                  const SizedBox(height: 12),
+                  if (qrContent.isNotEmpty)
+                    Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(8),
+                      child: QrImageView(
+                        data: qrContent,
+                        size: 240,
+                        backgroundColor: Colors.white,
+                        errorCorrectionLevel: QrErrorCorrectLevel.M,
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        border: Border.all(color: Colors.amber.shade300),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(notice ?? l10n.delPaymentQrUnavailable, textAlign: TextAlign.center),
+                    ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.delAskCustomerScanUpi(amount),
+                    textAlign: TextAlign.center,
+                  ),
                   if (busy) const LinearProgressIndicator(),
                   if (message != null) Text(message!),
                 ],
@@ -538,11 +574,11 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
             actions: [
               TextButton(
                 onPressed: busy ? null : () => updatePayment('close'),
-                child: const Text('Close QR'),
+                child: Text(l10n.delCloseQr),
               ),
               FilledButton(
                 onPressed: busy ? null : () => updatePayment('check'),
-                child: const Text('Check payment'),
+                child: Text(l10n.delCheckPayment),
               ),
             ],
           );
@@ -591,7 +627,7 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     } else {
       messenger.showSnackBar(
         SnackBar(
-          content: Text(result.error ?? 'Could not complete delivery.'),
+          content: Text(result.error ?? l10n.delCouldNotCompleteDelivery),
           backgroundColor: Colors.red,
         ),
       );
@@ -607,17 +643,18 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     );
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open Google Maps. Install Maps or try again.')),
+        SnackBar(content: Text(AppLocalizations.of(context).delCouldNotOpenMaps)),
       );
     }
   }
 
-  Future<void> _callStore(String? phone) => _callNumber(phone, 'Store');
+  Future<void> _callStore(String? phone) =>
+      _callNumber(phone, AppLocalizations.of(context).delStorePhoneUnavailable);
 
-  Future<void> _callNumber(String? phone, String who) async {
+  Future<void> _callNumber(String? phone, String unavailableMessage) async {
     if (phone == null || phone.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$who phone number not available.')),
+        SnackBar(content: Text(unavailableMessage)),
       );
       return;
     }
@@ -625,7 +662,7 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     if (!await launchUrl(uri)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open phone dialer.')),
+          SnackBar(content: Text(AppLocalizations.of(context).delCouldNotOpenDialer)),
         );
       }
     }
@@ -649,14 +686,12 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
 
   String _fmtClock([DateTime? t]) {
     final local = (t ?? DateTime.now()).toLocal();
-    final h = local.hour % 12 == 0 ? 12 : local.hour % 12;
-    final m = local.minute.toString().padLeft(2, '0');
-    final ap = local.hour >= 12 ? 'PM' : 'AM';
-    return '$h:$m $ap';
+    return localizedDateFormat('h:mm a').format(local);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: _kPageBg,
@@ -676,18 +711,18 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
                 const Icon(Icons.local_shipping_outlined, size: 64, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
-                  'No Active Delivery',
+                  l10n.delNoActiveDelivery,
                   style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Stay online on the home screen to receive automated round-robin order assignments.',
+                  l10n.delNoActiveDeliveryHint,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(color: Colors.grey),
                 ),
                 const SizedBox(height: 24),
                 PrimaryButton(
-                  label: 'Check For Orders',
+                  label: l10n.delCheckForOrders,
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -718,15 +753,15 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
 
     String headerStatus;
     if (isUnlocked) {
-      headerStatus = 'Out for Delivery';
+      headerStatus = l10n.delOutForDelivery;
     } else if (proofPending) {
-      headerStatus = 'Awaiting Approval';
+      headerStatus = l10n.delAwaitingApproval;
     } else if (qrScanned) {
-      headerStatus = 'Item Proof';
+      headerStatus = l10n.delItemProof;
     } else if (searching) {
-      headerStatus = 'Waiting for Pickup';
+      headerStatus = l10n.delWaitingForPickup;
     } else {
-      headerStatus = 'Waiting for Pickup';
+      headerStatus = l10n.delWaitingForPickup;
     }
 
     return SecureScreen(
@@ -766,7 +801,7 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
                       child: OutlinedButton.icon(
                         onPressed: () => _markDeliveryFailed(emergency: true),
                         icon: const Icon(Icons.report_problem_outlined, size: 19),
-                        label: const Text('Report emergency'),
+                        label: Text(l10n.delReportEmergency),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF9A3412),
                           backgroundColor: const Color(0xFFFFF7ED),
@@ -790,9 +825,7 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
                         if (!pickupQrReady || searching) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(
-                                'Pickup QR unlocks in $countdown — go to the dark store meanwhile.',
-                              ),
+                              content: Text(l10n.delPickupQrUnlocksIn(countdown)),
                             ),
                           );
                           return;
@@ -807,11 +840,11 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
                         customerName: item.customerName,
                         address: item.customerAddressUnlocked
                             ? item.customerAddress
-                            : 'Address unlocks after dark store pickup QR is verified',
+                            : l10n.delAddressUnlocksAfterPickup,
                         phone: item.customerAddressUnlocked ? item.customerPhone : '',
                         isUnlocked: item.customerAddressUnlocked,
                         onViewMap: () => _navigateToCustomer(item),
-                        onCall: () => _callNumber(item.customerPhone, 'Customer'),
+                        onCall: () => _callNumber(item.customerPhone, l10n.delCustomerPhoneUnavailable),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -888,7 +921,7 @@ class _DeliveryEtaCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Deliver this order by $time',
+              AppLocalizations.of(context).delDeliverOrderBy(time),
               style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF14532D)),
             ),
           ),
@@ -934,7 +967,7 @@ class _OrderDetailsHeader extends StatelessWidget {
               children: [
                 const SizedBox(height: 10),
                 Text(
-                  'Order Details',
+                  AppLocalizations.of(context).delOrderDetails,
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -1012,7 +1045,7 @@ class _StoreInfoCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'PICKUP DARK STORE',
+                    AppLocalizations.of(context).delPickupDarkStore,
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -1071,7 +1104,7 @@ class _StoreInfoCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Call Store',
+                  AppLocalizations.of(context).delCallStore,
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -1106,13 +1139,14 @@ class _OrderQrCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final pickupStatus = isUnlocked
-        ? 'Pickup verified — customer address unlocked'
+        ? l10n.delPickupVerifiedAddressUnlocked
         : proofPending
-            ? 'Item photo sent — waiting for manager'
+            ? l10n.delItemPhotoSentWaitingManager
             : qrScanned
-                ? 'QR scanned — take item proof below'
-                : 'Scan QR at the store to start';
+                ? l10n.delQrScannedTakeItemProof
+                : l10n.delScanQrAtStoreToStart;
 
     return _WhiteCard(
       child: Row(
@@ -1144,7 +1178,7 @@ class _OrderQrCard extends StatelessWidget {
                   runSpacing: 4,
                   children: [
                     Text(
-                      'Pickup QR',
+                      l10n.delPickupQr,
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
@@ -1164,7 +1198,7 @@ class _OrderQrCard extends StatelessWidget {
                             const Icon(Icons.search_rounded, size: 12, color: Color(0xFF7C3AED)),
                             const SizedBox(width: 3),
                             Text(
-                              'Same-route search · $countdown',
+                              l10n.delSameRouteSearch(countdown),
                               style: GoogleFonts.inter(
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w700,
@@ -1221,7 +1255,7 @@ class _ScanQrPillButton extends StatelessWidget {
               const Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 18),
               const SizedBox(width: 6),
               Text(
-                'Scan QR',
+                AppLocalizations.of(context).scanQr,
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -1308,6 +1342,7 @@ class _CustomerAddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (!isUnlocked) {
       return _WhiteCard(
         child: Row(
@@ -1328,7 +1363,9 @@ class _CustomerAddressCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    orderNumber.isNotEmpty ? '#$orderNumber · Customer Address' : 'Customer Address',
+                    orderNumber.isNotEmpty
+                        ? l10n.delOrderCustomerAddress(orderNumber)
+                        : l10n.delCustomerAddress,
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -1358,7 +1395,7 @@ class _CustomerAddressCard extends StatelessWidget {
               ),
               icon: const Icon(Icons.map_outlined, size: 16),
               label: Text(
-                'View on Map',
+                l10n.delViewOnMap,
                 style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700),
               ),
             ),
@@ -1372,7 +1409,7 @@ class _CustomerAddressCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '#$orderNumber  •  ${customerName.isNotEmpty ? customerName : "Customer"}',
+            '#$orderNumber  •  ${customerName.isNotEmpty ? customerName : l10n.customer}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
@@ -1406,7 +1443,7 @@ class _CustomerAddressCard extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                 ),
                 child: Text(
-                  'View on Map',
+                  l10n.delViewOnMap,
                   style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700),
                 ),
               ),
@@ -1421,7 +1458,7 @@ class _CustomerAddressCard extends StatelessWidget {
                   ),
                   icon: const Icon(Icons.call_rounded, size: 14),
                   label: Text(
-                    'Call',
+                    l10n.callAction,
                     style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -1441,22 +1478,25 @@ class _DelayCard extends StatelessWidget {
   final ActiveDeliveryData delivery;
   final VoidCallback onReport;
 
-  static String _late(int total) {
+  static String _late(AppLocalizations l10n, int total) {
     final h = total ~/ 60;
     final m = total % 60;
-    if (h == 0) return '$m min';
-    return m == 0 ? '$h hr' : '$h hr $m min';
+    if (h == 0) return l10n.delMinutesShort(m.toString());
+    return m == 0
+        ? l10n.delHoursShort(h.toString())
+        : l10n.delHoursMinutesShort(h.toString(), m.toString());
   }
 
   @override
   Widget build(BuildContext context) {
     const amber = Color(0xFFB45309);
+    final l10n = AppLocalizations.of(context);
     final reported = delivery.delayMinutes > 0;
     final status = !reported
-        ? 'Stuck or running late? Let your manager know.'
+        ? l10n.delDelayPrompt
         : delivery.delayCustomerNotifiedAt != null
-            ? 'Reported ${_late(delivery.delayMinutes)} late · manager updated the customer'
-            : 'Reported ${_late(delivery.delayMinutes)} late · waiting for manager';
+            ? l10n.delReportedLateCustomerUpdated(_late(l10n, delivery.delayMinutes))
+            : l10n.delReportedLateWaitingManager(_late(l10n, delivery.delayMinutes));
     return _WhiteCard(
       child: Row(
         children: [
@@ -1478,7 +1518,7 @@ class _DelayCard extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
             ),
             child: Text(
-              reported ? 'Update' : 'Report delay',
+              reported ? l10n.delUpdate : l10n.delReportDelay,
               style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
             ),
           ),
@@ -1501,6 +1541,7 @@ class _OrderItemsSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1514,7 +1555,7 @@ class _OrderItemsSummaryCard extends StatelessWidget {
                   const Icon(Icons.format_list_bulleted_rounded, size: 18, color: Color(0xFF126B43)),
                   const SizedBox(width: 8),
                   Text(
-                    'Order Items',
+                    l10n.delOrderItems,
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -1523,7 +1564,7 @@ class _OrderItemsSummaryCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    '$totalItems Items',
+                    l10n.itemsCount(totalItems),
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -1550,7 +1591,7 @@ class _OrderItemsSummaryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Grocery Pack',
+                          l10n.delGroceryPack,
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -1559,7 +1600,7 @@ class _OrderItemsSummaryCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '$totalItems items • ₹$itemsTotal',
+                          l10n.delItemsAndTotal(totalItems.toString(), itemsTotal.toString()),
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             color: const Color(0xFF6B7280),
@@ -1594,6 +1635,7 @@ class _OrderTimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return _WhiteCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1603,7 +1645,7 @@ class _OrderTimelineCard extends StatelessWidget {
               const Icon(Icons.schedule_rounded, size: 18, color: Color(0xFF126B43)),
               const SizedBox(width: 8),
               Text(
-                'Order Timeline',
+                l10n.delOrderTimeline,
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
@@ -1614,34 +1656,34 @@ class _OrderTimelineCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _TimelineStep(
-            title: 'Order Assigned',
-            subtitle: 'You have been assigned a new order',
+            title: l10n.delOrderAssigned,
+            subtitle: l10n.delOrderAssignedSubtitle,
             trailing: assignedTime,
             done: true,
             active: false,
             isLast: false,
           ),
           _TimelineStep(
-            title: 'Waiting for Pickup',
-            subtitle: 'Go to the store and scan the pickup QR.',
+            title: l10n.delWaitingForPickup,
+            subtitle: l10n.delGoToStoreScanPickupQr,
             trailing: waitingTime,
             done: pickedUp,
             active: !pickedUp,
             isLast: false,
           ),
           _TimelineStep(
-            title: 'Picked Up',
+            title: l10n.pickedUp,
             subtitle: null,
-            trailing: pickedUp ? waitingTime : 'Pending',
+            trailing: pickedUp ? waitingTime : l10n.pending,
             done: false,
             active: false,
             isLast: false,
             pending: !pickedUp,
           ),
           _TimelineStep(
-            title: 'Delivered',
+            title: l10n.delivered,
             subtitle: null,
-            trailing: 'Pending',
+            trailing: l10n.pending,
             done: delivered,
             active: false,
             isLast: true,
@@ -1772,12 +1814,13 @@ class _MultiStopBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return _WhiteCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Suggested route · ${stops.length} deliveries',
+            l10n.delSuggestedRoute(stops.length.toString()),
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -1789,7 +1832,7 @@ class _MultiStopBanner extends StatelessWidget {
             final s = stops[i];
             final selected = s.id == selectedId;
             final dist = s.distanceKm != null
-                ? '${s.distanceKm!.toStringAsFixed(1)} km'
+                ? l10n.distanceKmValue(s.distanceKm!.toStringAsFixed(1))
                 : '—';
             return Padding(
               padding: EdgeInsets.only(bottom: i == stops.length - 1 ? 0 : 8),
@@ -1891,29 +1934,30 @@ class _BottomActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.paddingOf(context).bottom;
+    final l10n = AppLocalizations.of(context);
     String label;
     IconData icon;
     VoidCallback? onTap;
     if (!isUnlocked) {
       if (proofPending) {
-        label = 'Waiting for Manager';
+        label = l10n.delWaitingForManager;
         icon = Icons.hourglass_top_rounded;
         onTap = null;
       } else {
-        label = 'Take Item Proof';
+        label = l10n.delTakeItemProof;
         icon = Icons.camera_alt_rounded;
         onTap = onItemProof;
       }
     } else if (!hasDeliveryProof) {
-      label = 'Capture Delivery Proof';
+      label = l10n.delCaptureDeliveryProof;
       icon = Icons.photo_camera_outlined;
       onTap = onCaptureProof;
     } else if (!otpVerified) {
-      label = 'Enter OTP & Complete';
+      label = l10n.delEnterOtpAndComplete;
       icon = Icons.pin_outlined;
       onTap = onComplete;
     } else {
-      label = 'Complete Delivery';
+      label = l10n.delCompleteDelivery;
       icon = Icons.check_circle_outline_rounded;
       onTap = onComplete;
     }
@@ -1943,7 +1987,7 @@ class _BottomActions extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: Text(
-                  'Delivery Failed',
+                  l10n.delDeliveryFailed,
                   style: GoogleFonts.inter(fontWeight: FontWeight.w800),
                 ),
               ),

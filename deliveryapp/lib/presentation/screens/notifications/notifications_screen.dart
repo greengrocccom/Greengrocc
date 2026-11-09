@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/notification_inbox_service.dart';
@@ -44,11 +45,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final day = DateTime(local.year, local.month, local.day);
-    final time = TimeOfDay.fromDateTime(local);
-    final hh = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
-    final mm = time.minute.toString().padLeft(2, '0');
-    final ampm = time.period == DayPeriod.am ? 'AM' : 'PM';
-    final clock = '$hh:$mm $ampm';
+    final clock = localizedDateFormat('h:mm a').format(local);
     if (day == today) return clock;
     if (day == today.subtract(const Duration(days: 1))) return AppLocalizations.of(context).yesterday;
     return '${local.day}/${local.month}/${local.year}';

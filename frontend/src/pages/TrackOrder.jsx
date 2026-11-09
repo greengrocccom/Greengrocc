@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -36,9 +36,12 @@ import { formatOrderPrice, formatPreOrderSlot, getOrderDisplayCode, getPrimaryPr
 import {
   ORDER_TYPE_LABELS,
   decodePolyline,
+  etaText as formatEtaText,
   fetchRoadRoute,
   isTrackingClosed,
   normalizeTracking,
+  routeAhead,
+  routeLength,
   showsLiveMap,
   withStatus,
 } from "../utils/orderTracking";
@@ -71,7 +74,8 @@ function headerSubtitle(tracking) {
   if (!tracking) return "Fetching live status";
   if (tracking.status === "delivered") return "Your order has been delivered";
   if (tracking.status === "cancelled") return "This order was cancelled";
-  if (tracking.liveTracking || tracking.status === "out_for_delivery") return "Your order is on the way";
+  if (tracking.riderPhase === "to_store") return "Your delivery partner is heading to the store";
+  if (tracking.riderPhase === "to_customer" || tracking.status === "out_for_delivery") return "Your order is on the way";
   if (tracking.status === "packed") return "Packed and waiting for pickup";
   if (tracking.status === "confirmed") return "Your order has been confirmed";
   return "We're preparing your order";
@@ -138,7 +142,12 @@ function SummaryCard({ order, tracking, etaText }) {
   );
 }
 
-function DriverCard({ driver, live }) {
+const DRIVER_PHASE_TEXT = {
+  to_store: "Picking up your order from the store",
+  to_customer: "Your delivery partner",
+};
+
+function DriverCard({ driver, phase }) {
   const tel = driver.phone.replace(/[^0-9+]/g, "");
   return (
     <Card className="flex items-center gap-3 p-3.5">
@@ -148,7 +157,7 @@ function DriverCard({ driver, live }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-[14px] font-bold text-slate-900">{driver.name}</p>
         <p className="mt-0.5 text-[12px] text-slate-500">
-          {live ? "Your delivery partner" : "Assigned delivery partner"}
+          {DRIVER_PHASE_TEXT[phase] || "Assigned delivery partner"}
           {driver.vehicleType ? ` · ${driver.vehicleType}` : ""}
         </p>
       </div>
@@ -459,10 +468,16 @@ function TrackOrder() {
       const status = payload?.status ? String(payload.status) : "";
       const storeOrderId = payload?.storeOrderId ? String(payload.storeOrderId) : "";
       const samePart = !storeOrderId || !current.storeOrderId || storeOrderId === current.storeOrderId;
-      if (status && samePart && status !== current.status) {
-        const next = withStatus(current, status, payload.liveTracking === true);
-        setTracking(next);
-        if (isTrackingClosed(next)) setDriver(null);
+      if (status && samePart) {
+        const next = withStatus(current, status, payload.liveTracking === true, payload.riderPhase ?? null);
+        if (
+          next.status !== current.status ||
+          next.liveTracking !== current.liveTracking ||
+          next.riderPhase !== current.riderPhase
+        ) {
+          setTracking(next);
+          if (isTrackingClosed(next) || !next.liveTracking) setDriver(null);
+        }
       }
       clearTimeout(statusTimerRef.current);
       statusTimerRef.current = setTimeout(() => {
@@ -556,8 +571,20 @@ function TrackOrder() {
     }
   };
 
-  const etaText = tracking?.eta?.text || roadEta?.text || "";
-  const etaMeters = tracking?.eta?.distanceMeters || roadEta?.distanceMeters || 0;
+  // Between server refreshes, shrink the route and ETA as the rider moves along it.
+  const progressRef = useRef({ route: null, index: 0 });
+  const ahead = useMemo(() => {
+    if (progressRef.current.route !== route) progressRef.current = { route, index: 0 };
+    const result = routeAhead(route, driver, progressRef.current.index);
+    if (result) progressRef.current.index = result.index;
+    return result;
+  }, [route, driver]);
+  const routeMeters = useMemo(() => routeLength(route), [route]);
+  const baseEta = tracking?.eta || roadEta;
+  const liveEtaSeconds =
+    ahead && baseEta?.seconds && routeMeters > 0 ? baseEta.seconds * Math.min(1, ahead.meters / routeMeters) : null;
+  const etaText = liveEtaSeconds != null ? formatEtaText(liveEtaSeconds) : baseEta?.text || "";
+  const etaMeters = ahead ? ahead.meters : baseEta?.distanceMeters || 0;
   const closed = tracking ? isTrackingClosed(tracking) : false;
   const otp = String(order?.deliveryOtp || "").trim();
   const outForDelivery = order?.status === "shipping" || tracking?.status === "out_for_delivery";
@@ -621,7 +648,7 @@ function TrackOrder() {
               driver={driver}
               store={tracking.storeLocation}
               destination={destination}
-              route={route}
+              route={ahead?.points || route}
               etaText={etaText}
               distanceMeters={etaMeters}
               className="h-[270px] lg:h-[560px]"
@@ -652,7 +679,7 @@ function TrackOrder() {
             </p>
           ) : null}
 
-          {tracking.driver && !closed ? <DriverCard driver={tracking.driver} live={tracking.liveTracking} /> : null}
+          {tracking.driver && !closed ? <DriverCard driver={tracking.driver} phase={tracking.riderPhase} /> : null}
 
           {!showsLiveMap(tracking) ? <ScheduledCard tracking={tracking} order={order} /> : null}
 

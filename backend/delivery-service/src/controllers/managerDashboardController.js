@@ -1,7 +1,7 @@
 import { visibleStoreOrderScope } from '../services/visibleStoreOrders.js';
 import DeliveryBoy from "../models/DeliveryBoy.js";
 import DeliveryManager from "../models/DeliveryManager.js";
-import StoreInventory from "../models/StoreInventory.js";
+import StoreInventory, { availableStock } from "../models/StoreInventory.js";
 import StoreOrder from "../models/StoreOrder.js";
 import Shift from "../models/Shift.js";
 import CashSettlement from "../models/CashSettlement.js";
@@ -1137,7 +1137,7 @@ export const informCustomer = async (req, res, next) => {
 
     const stockMap = await stockMapForManager(manager._id);
     const stock = stockRowFor(item, stockMap);
-    const available = stock ? stock.stockCount : 0;
+    const available = availableStock(stock);
     if (available >= item.quantity) {
       return res.status(400).json({
         success: false,

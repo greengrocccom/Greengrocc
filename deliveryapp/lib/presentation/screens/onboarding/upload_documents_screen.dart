@@ -167,7 +167,9 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      final msg = e is AuthApiException ? e.message : e.toString();
+      final msg = e is AuthApiException
+          ? e.message
+          : AppLocalizations.of(context).somethingWentWrong;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: AppColors.error),
       );
@@ -332,7 +334,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Your documents are safe and secure with us.',
+                        l10n.uiDocsSafeSecure,
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: const Color(0xFF6B7280),
@@ -347,7 +349,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
             Padding(
               padding: const EdgeInsets.all(24),
               child: PrimaryButton(
-                label: _submitting ? 'Uploading…' : l10n.next,
+                label: _submitting ? l10n.uiUploading : l10n.next,
                 onPressed: _canContinue && !_submitting
                     ? _uploadAndContinue
                     : null,
@@ -529,7 +531,7 @@ class _DocumentUploadCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                uploaded ? 'Uploaded' : 'Upload',
+                uploaded ? l10n.uiUploaded : l10n.upload,
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,

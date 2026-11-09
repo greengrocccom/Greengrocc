@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 const _forest = Color(0xFF126B43);
 const _ink = Color(0xFF111827);
 const _muted = Color(0xFF6B7280);
@@ -141,11 +143,19 @@ class _GhostButton extends StatelessWidget {
 }
 
 class _ChoiceChips extends StatelessWidget {
-  const _ChoiceChips({required this.options, required this.selected, required this.onSelected, this.color = _forest});
+  const _ChoiceChips({
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+    required this.labelOf,
+    this.color = _forest,
+  });
 
+  /// Stable English values (sent to the backend); [labelOf] gives the on-screen text.
   final List<String> options;
   final String? selected;
   final ValueChanged<String> onSelected;
+  final String Function(String option) labelOf;
   final Color color;
 
   @override
@@ -156,7 +166,7 @@ class _ChoiceChips extends StatelessWidget {
       children: [
         for (final option in options)
           ChoiceChip(
-            label: Text(option),
+            label: Text(labelOf(option)),
             selected: selected == option,
             onSelected: (_) => onSelected(option),
             labelStyle: GoogleFonts.inter(
@@ -248,11 +258,12 @@ class _OtpSheetState extends State<_OtpSheet> {
   @override
   Widget build(BuildContext context) {
     final digits = _controller.text;
+    final l10n = AppLocalizations.of(context);
     return _SheetFrame(
       icon: Icons.lock_person_rounded,
       iconColor: _forest,
-      title: 'Enter delivery OTP',
-      subtitle: 'Ask the customer for the 4-digit OTP shown on their order #${widget.orderNumber}.',
+      title: l10n.delEnterDeliveryOtp,
+      subtitle: l10n.delAskCustomerOtpForOrder(widget.orderNumber),
       children: [
         GestureDetector(
           onTap: () => _focus.requestFocus(),
@@ -331,12 +342,12 @@ class _OtpSheetState extends State<_OtpSheet> {
         ),
         const SizedBox(height: 16),
         _SheetButton(
-          label: 'Verify OTP',
+          label: l10n.delVerifyOtp,
           icon: Icons.verified_rounded,
           loading: _verifying,
           onPressed: digits.length == _length ? _submit : null,
         ),
-        _GhostButton(label: 'Cancel', onPressed: _verifying ? null : () => Navigator.pop(context, false)),
+        _GhostButton(label: l10n.cancel, onPressed: _verifying ? null : () => Navigator.pop(context, false)),
       ],
     );
   }
@@ -353,31 +364,34 @@ Future<String?> showPaymentMethodSheet(
 }) {
   return _showSheet<String>(
     context,
-    (ctx) => _SheetFrame(
-      icon: Icons.account_balance_wallet_rounded,
-      iconColor: const Color(0xFFB45309),
-      title: 'Collect ₹$amount',
-      subtitle: 'Items ₹$itemsTotal  ·  Delivery fee ₹$deliveryFee\nHow will the customer pay?',
-      children: [
-        _PaymentOption(
-          icon: Icons.qr_code_2_rounded,
-          color: _forest,
-          title: 'Online payment',
-          subtitle: 'Show a Razorpay QR for the customer to scan',
-          onTap: () => Navigator.pop(ctx, 'online'),
-        ),
-        const SizedBox(height: 10),
-        _PaymentOption(
-          icon: Icons.payments_rounded,
-          color: const Color(0xFFB45309),
-          title: 'Cash on delivery',
-          subtitle: 'You collected cash from the customer',
-          onTap: () => Navigator.pop(ctx, 'cash'),
-        ),
-        const SizedBox(height: 6),
-        _GhostButton(label: 'Cancel', onPressed: () => Navigator.pop(ctx)),
-      ],
-    ),
+    (ctx) {
+      final l10n = AppLocalizations.of(ctx);
+      return _SheetFrame(
+        icon: Icons.account_balance_wallet_rounded,
+        iconColor: const Color(0xFFB45309),
+        title: l10n.delCollectAmount(amount.toString()),
+        subtitle: l10n.delPaymentBreakdownQuestion(itemsTotal.toString(), deliveryFee.toString()),
+        children: [
+          _PaymentOption(
+            icon: Icons.qr_code_2_rounded,
+            color: _forest,
+            title: l10n.delOnlinePayment,
+            subtitle: l10n.delOnlinePaymentSubtitle,
+            onTap: () => Navigator.pop(ctx, 'online'),
+          ),
+          const SizedBox(height: 10),
+          _PaymentOption(
+            icon: Icons.payments_rounded,
+            color: const Color(0xFFB45309),
+            title: l10n.delCashOnDelivery,
+            subtitle: l10n.delCashOnDeliverySubtitle,
+            onTap: () => Navigator.pop(ctx, 'cash'),
+          ),
+          const SizedBox(height: 6),
+          _GhostButton(label: l10n.cancel, onPressed: () => Navigator.pop(ctx)),
+        ],
+      );
+    },
   );
 }
 
@@ -447,37 +461,40 @@ Future<bool> showCashCollectedSheet(
   final ok = await _showSheet<bool>(
     context,
     dismissible: false,
-    (ctx) => _SheetFrame(
-      icon: Icons.payments_rounded,
-      iconColor: const Color(0xFFB45309),
-      title: 'Cash collected',
-      subtitle: 'Submit this cash to your dark store manager before the end of the day.',
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF7ED),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFFED7AA)),
+    (ctx) {
+      final l10n = AppLocalizations.of(ctx);
+      return _SheetFrame(
+        icon: Icons.payments_rounded,
+        iconColor: const Color(0xFFB45309),
+        title: l10n.delCashCollected,
+        subtitle: l10n.delCashCollectedSubtitle,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7ED),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFED7AA)),
+            ),
+            child: Column(
+              children: [
+                _AmountRow(label: l10n.delItemTotal, value: '₹$itemsTotal'),
+                const SizedBox(height: 6),
+                _AmountRow(label: l10n.delDeliveryFee, value: '₹$deliveryFee'),
+                const Divider(height: 22, color: Color(0xFFFED7AA)),
+                _AmountRow(label: l10n.delTotalToSubmit, value: '₹$amount', bold: true),
+              ],
+            ),
           ),
-          child: Column(
-            children: [
-              _AmountRow(label: 'Item total', value: '₹$itemsTotal'),
-              const SizedBox(height: 6),
-              _AmountRow(label: 'Delivery fee', value: '₹$deliveryFee'),
-              const Divider(height: 22, color: Color(0xFFFED7AA)),
-              _AmountRow(label: 'Total to submit', value: '₹$amount', bold: true),
-            ],
+          const SizedBox(height: 18),
+          _SheetButton(
+            label: l10n.continueButton,
+            icon: Icons.arrow_forward_rounded,
+            onPressed: () => Navigator.pop(ctx, true),
           ),
-        ),
-        const SizedBox(height: 18),
-        _SheetButton(
-          label: 'Continue',
-          icon: Icons.arrow_forward_rounded,
-          onPressed: () => Navigator.pop(ctx, true),
-        ),
-      ],
-    ),
+        ],
+      );
+    },
   );
   return ok == true;
 }
@@ -535,17 +552,27 @@ class _NoteSheetState extends State<_NoteSheet> {
     return [?_selected, if (typed.isNotEmpty) typed].join(' · ');
   }
 
+  static String _quickLabel(AppLocalizations l10n, String option) => switch (option) {
+        'Handed to customer' => l10n.delNoteHandedToCustomer,
+        'Left at the door' => l10n.delNoteLeftAtDoor,
+        'Handed to family member' => l10n.delNoteHandedToFamily,
+        'Handed to security' => l10n.delNoteHandedToSecurity,
+        _ => option,
+      };
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return _SheetFrame(
       icon: Icons.task_alt_rounded,
       iconColor: _forest,
-      title: 'Complete delivery',
-      subtitle: 'Add a quick note for the store (optional).',
+      title: l10n.delCompleteDelivery,
+      subtitle: l10n.delAddNoteOptional,
       children: [
         _ChoiceChips(
           options: _quick,
           selected: _selected,
+          labelOf: (option) => _quickLabel(l10n, option),
           onSelected: (value) => setState(() => _selected = _selected == value ? null : value),
         ),
         const SizedBox(height: 14),
@@ -554,15 +581,15 @@ class _NoteSheetState extends State<_NoteSheet> {
           maxLines: 2,
           maxLength: 300,
           style: GoogleFonts.inter(fontSize: 14),
-          decoration: _fieldDecoration('Anything else? (optional)'),
+          decoration: _fieldDecoration(l10n.delAnythingElseOptional),
         ),
         const SizedBox(height: 8),
         _SheetButton(
-          label: 'Mark as delivered',
+          label: l10n.delMarkAsDelivered,
           icon: Icons.check_circle_rounded,
           onPressed: () => Navigator.pop(context, _note),
         ),
-        _GhostButton(label: 'Not yet', onPressed: () => Navigator.pop(context)),
+        _GhostButton(label: l10n.delNotYet, onPressed: () => Navigator.pop(context)),
       ],
     );
   }
@@ -611,27 +638,39 @@ class _DelaySheetState extends State<_DelaySheet> {
         _minutes = total % 60;
       });
 
-  String _label(int total) {
+  String _label(AppLocalizations l10n, int total) {
     final h = total ~/ 60;
     final m = total % 60;
-    if (h == 0) return '$m min';
-    return m == 0 ? '$h hr' : '$h hr $m min';
+    if (h == 0) return l10n.delMinutesShort(m.toString());
+    return m == 0
+        ? l10n.delHoursShort(h.toString())
+        : l10n.delHoursMinutesShort(h.toString(), m.toString());
   }
+
+  static String _reasonLabel(AppLocalizations l10n, String option) => switch (option) {
+        'Heavy traffic' => l10n.delReasonHeavyTraffic,
+        'Vehicle issue' => l10n.delReasonVehicleIssue,
+        'Bad weather' => l10n.delReasonBadWeather,
+        'Other deliveries first' => l10n.delReasonOtherDeliveriesFirst,
+        'Other' => l10n.delReasonOther,
+        _ => option,
+      };
 
   @override
   Widget build(BuildContext context) {
     final valid = _total >= 1 && _total <= 12 * 60;
+    final l10n = AppLocalizations.of(context);
     return _SheetFrame(
       icon: Icons.schedule_rounded,
       iconColor: _amber,
-      title: 'Delivery running late?',
-      subtitle: 'Tell your Delivery Manager how late you will be. They can update the customer.',
+      title: l10n.delRunningLateTitle,
+      subtitle: l10n.delRunningLateSubtitle,
       children: [
         Row(
           children: [
             Expanded(
               child: _Stepper(
-                label: 'Hours',
+                label: l10n.delHours,
                 value: _hours,
                 onChanged: (v) => setState(() => _hours = v.clamp(0, 12)),
               ),
@@ -639,7 +678,7 @@ class _DelaySheetState extends State<_DelaySheet> {
             const SizedBox(width: 12),
             Expanded(
               child: _Stepper(
-                label: 'Minutes',
+                label: l10n.delMinutes,
                 value: _minutes,
                 step: 5,
                 onChanged: (v) => setState(() => _minutes = v.clamp(0, 55)),
@@ -654,7 +693,7 @@ class _DelaySheetState extends State<_DelaySheet> {
           children: [
             for (final p in _presets)
               ActionChip(
-                label: Text(_label(p)),
+                label: Text(_label(l10n, p)),
                 onPressed: () => _setTotal(p),
                 labelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: _ink),
                 backgroundColor: _total == p ? _amber.withValues(alpha: 0.18) : const Color(0xFFF3F4F6),
@@ -668,6 +707,7 @@ class _DelaySheetState extends State<_DelaySheet> {
           options: _reasons,
           selected: _selected,
           color: _amber,
+          labelOf: (option) => _reasonLabel(l10n, option),
           onSelected: (value) => setState(() => _selected = value),
         ),
         const SizedBox(height: 12),
@@ -677,18 +717,18 @@ class _DelaySheetState extends State<_DelaySheet> {
           maxLength: 200,
           onChanged: (_) => setState(() {}),
           style: GoogleFonts.inter(fontSize: 14),
-          decoration: _fieldDecoration('Add details (optional)'),
+          decoration: _fieldDecoration(l10n.delAddDetailsOptional),
         ),
         const SizedBox(height: 8),
         _SheetButton(
-          label: valid ? 'Send delay · ${_label(_total)}' : 'Pick a delay',
+          label: valid ? l10n.delSendDelayWithDuration(_label(l10n, _total)) : l10n.delPickADelay,
           color: _amber,
           icon: Icons.send_rounded,
           onPressed: valid
               ? () => Navigator.pop(context, (hours: _hours, minutes: _minutes, reason: _reason))
               : null,
         ),
-        _GhostButton(label: 'Cancel', onPressed: () => Navigator.pop(context)),
+        _GhostButton(label: l10n.cancel, onPressed: () => Navigator.pop(context)),
       ],
     );
   }
@@ -777,23 +817,37 @@ class _FailedSheetState extends State<_FailedSheet> {
     return typed.isEmpty ? _selected! : '$_selected · $typed';
   }
 
+  static String _reasonLabel(AppLocalizations l10n, String option) => switch (option) {
+        'Customer not reachable' => l10n.delReasonCustomerNotReachable,
+        'Customer not available' => l10n.delReasonCustomerNotAvailable,
+        'Wrong / incomplete address' => l10n.delReasonWrongAddress,
+        'Customer refused order' => l10n.delReasonCustomerRefused,
+        'Flat tyre' => l10n.delReasonFlatTyre,
+        'Vehicle breakdown' => l10n.delReasonVehicleBreakdown,
+        'Health emergency' => l10n.delReasonHealthEmergency,
+        'Other' => l10n.delReasonOther,
+        _ => option,
+      };
+
   @override
   Widget build(BuildContext context) {
     final canSubmit = _reason.isNotEmpty;
+    final l10n = AppLocalizations.of(context);
     return _SheetFrame(
       icon: Icons.report_problem_rounded,
       iconColor: _danger,
-      title: widget.emergency ? 'Report an emergency' : 'Delivery failed?',
+      title: widget.emergency ? l10n.delReportAnEmergency : l10n.delDeliveryFailedQuestion,
       subtitle: widget.emergency
           ? widget.pickupStarted
-              ? 'Your manager will be alerted. If you have the parcel, contact the store to arrange handover.'
-              : 'Tell your manager why you can’t continue so they can assign another rider.'
-          : 'Tell the store what happened. The manager and customer will be notified.',
+              ? l10n.delEmergencyWithParcelHint
+              : l10n.delEmergencyNoParcelHint
+          : l10n.delFailedDeliveryHint,
       children: [
         _ChoiceChips(
           options: widget.emergency ? _emergencyReasons : _reasons,
           selected: _selected,
           color: _danger,
+          labelOf: (option) => _reasonLabel(l10n, option),
           onSelected: (value) => setState(() => _selected = value),
         ),
         const SizedBox(height: 14),
@@ -803,15 +857,17 @@ class _FailedSheetState extends State<_FailedSheet> {
           maxLength: 800,
           onChanged: (_) => setState(() {}),
           style: GoogleFonts.inter(fontSize: 14),
-          decoration: _fieldDecoration(_selected == 'Other' || _selected == null ? 'Describe the reason' : 'Add details (optional)'),
+          decoration: _fieldDecoration(
+            _selected == 'Other' || _selected == null ? l10n.delDescribeReason : l10n.delAddDetailsOptional,
+          ),
         ),
         const SizedBox(height: 8),
         _SheetButton(
-          label: widget.emergency ? 'Send to manager' : 'Submit failed delivery',
+          label: widget.emergency ? l10n.delSendToManager : l10n.delSubmitFailedDelivery,
           color: _danger,
           onPressed: canSubmit ? () => Navigator.pop(context, _reason) : null,
         ),
-        _GhostButton(label: 'Cancel', onPressed: () => Navigator.pop(context)),
+        _GhostButton(label: l10n.cancel, onPressed: () => Navigator.pop(context)),
       ],
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/location_service.dart';
@@ -167,22 +168,7 @@ class _MyShiftsScreenState extends State<MyShiftsScreen> {
   String _dateLabel(String dateString) {
     final d = DateTime.tryParse(dateString);
     if (d == null) return dateString;
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${days[d.weekday - 1]}, ${d.day} ${months[d.month - 1]}';
+    return localizedDateFormat('EEE, d MMM').format(d);
   }
 
   Widget _sectionTitle(String text) => Padding(

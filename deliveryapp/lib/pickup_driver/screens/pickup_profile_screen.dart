@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/routes/app_routes.dart';
+import '../../l10n/app_localizations.dart';
 import '../pickup_driver_service.dart';
 import '../pickup_flow.dart';
 import '../pickup_push_service.dart';
@@ -43,19 +44,20 @@ class _PickupProfileScreenState extends State<PickupProfileScreen> {
   }
 
   Future<void> _logout() async {
+    final l10n = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Log out?'),
-        content: const Text('You will need your mobile and password to log in again.'),
+        title: Text(l10n.pksLogOutTitle),
+        content: Text(l10n.pksLogOutBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.cancel)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: PickupColors.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Log out'),
+            child: Text(l10n.pksLogOut),
           ),
         ],
       ),
@@ -75,6 +77,13 @@ class _PickupProfileScreenState extends State<PickupProfileScreen> {
     final vehicle = [str(d['vehicleNumber']), str(d['vehicleType'])]
         .where((s) => s.isNotEmpty)
         .join(' · ');
+    final l10n = AppLocalizations.of(context);
+    final status = str(d['status']);
+    final statusLabel = switch (status.toLowerCase()) {
+      'active' => l10n.active,
+      'inactive' => l10n.pksStatusInactive,
+      _ => status,
+    };
 
     return Scaffold(
       backgroundColor: PickupColors.page,
@@ -82,7 +91,7 @@ class _PickupProfileScreenState extends State<PickupProfileScreen> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
-        title: Text('Profile', style: pickupText(17, weight: FontWeight.w800)),
+        title: Text(l10n.profile, style: pickupText(17, weight: FontWeight.w800)),
       ),
       body: RefreshIndicator(
         color: PickupColors.brand,
@@ -111,12 +120,12 @@ class _PickupProfileScreenState extends State<PickupProfileScreen> {
                         Text(name,
                             style: pickupText(17, weight: FontWeight.w800)),
                         const SizedBox(height: 2),
-                        Text('Pickup Driver · Farm → Collection centre',
+                        Text(l10n.pksProfileRole,
                             style:
                                 pickupText(12.5, color: PickupColors.muted)),
-                        if (str(d['status']).isNotEmpty) ...[
+                        if (status.isNotEmpty) ...[
                           const SizedBox(height: 6),
-                          StatusChip(str(d['status'])),
+                          StatusChip(statusLabel),
                         ],
                       ],
                     ),
@@ -129,21 +138,21 @@ class _PickupProfileScreenState extends State<PickupProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SectionTitle('Details'),
+                  SectionTitle(l10n.detailsAction),
                   InfoGrid([
-                    InfoItem('Mobile', str(d['mobile'])),
-                    InfoItem('Driver ID',
+                    InfoItem(l10n.pksMobile, str(d['mobile'])),
+                    InfoItem(l10n.pksDriverId,
                         str(d['driverId']).isNotEmpty ? str(d['driverId']) : str(d['id']),
                         copy: true),
-                    InfoItem('Vehicle', vehicle),
+                    InfoItem(l10n.vehicle, vehicle),
                     InfoItem(
-                        'Vehicle ID',
+                        l10n.pksVehicleId,
                         formatVehicleId(d['vehicleId'], d['vehicleNumber']),
                         copy: true),
                     if (str(d['licenseNumber']).isNotEmpty)
-                      InfoItem('License', str(d['licenseNumber'])),
+                      InfoItem(l10n.license, str(d['licenseNumber'])),
                     if (str(d['assignedArea']).isNotEmpty)
-                      InfoItem('Area', str(d['assignedArea'])),
+                      InfoItem(l10n.pksArea, str(d['assignedArea'])),
                   ]),
                 ],
               ),
@@ -153,7 +162,7 @@ class _PickupProfileScreenState extends State<PickupProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SectionTitle('Policies'),
+                  SectionTitle(l10n.pksPolicies),
                   if (_loadingPolicies)
                     const Center(
                       child: Padding(
@@ -163,7 +172,7 @@ class _PickupProfileScreenState extends State<PickupProfileScreen> {
                       ),
                     )
                   else if (_policies.isEmpty)
-                    Text('No policies published yet.',
+                    Text(l10n.pksNoPolicies,
                         style: pickupText(13, color: PickupColors.faint))
                   else
                     for (final p in _policies)
@@ -175,7 +184,7 @@ class _PickupProfileScreenState extends State<PickupProfileScreen> {
                           childrenPadding:
                               const EdgeInsets.only(bottom: 12),
                           title: Text(
-                            str(p['title']).isEmpty ? 'Policy' : str(p['title']),
+                            str(p['title']).isEmpty ? l10n.pksPolicy : str(p['title']),
                             style: pickupText(14, weight: FontWeight.w700),
                           ),
                           expandedCrossAxisAlignment:
@@ -194,7 +203,7 @@ class _PickupProfileScreenState extends State<PickupProfileScreen> {
             OutlinedButton.icon(
               onPressed: _logout,
               icon: const Icon(Icons.logout_rounded),
-              label: const Text('Log out'),
+              label: Text(l10n.pksLogOut),
               style: OutlinedButton.styleFrom(
                 foregroundColor: PickupColors.error,
                 side: const BorderSide(color: PickupColors.error),

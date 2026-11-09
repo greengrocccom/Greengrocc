@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import mongoose from "mongoose";
+import { availableStock } from "./StoreInventory.js";
 import { ORDER_TYPES, deriveOrderType } from "../../../legacy/utils/departmentHelpers.js";
 import {
   isVendorConfirmed,
@@ -189,6 +190,10 @@ const storeOrderSchema = new mongoose.Schema(
     otpCode: { type: String, default: () => randomDeliveryOtp() },
     packedAt: { type: Date },
     stockDeductedAt: { type: Date },
+    /** Units moved into StoreInventory.heldCount (reservation / packing). */
+    stockHeldAt: { type: Date },
+    /** Units left the store (out for delivery) and came off the physical stock. */
+    stockShippedAt: { type: Date },
     /** Stock was taken from the store when the order arrived; packing confirms it. */
     stockReservedAt: { type: Date, default: null },
     assignedAt: { type: Date },
@@ -220,6 +225,8 @@ const storeOrderSchema = new mongoose.Schema(
       token: String,
       id: String,
       imageUrl: String,
+      /** Raw UPI string (`upi://pay?…&am=…`) the app draws as a plain QR. */
+      content: String,
       amount: Number,
       paymentId: String,
       reservedAt: Date,
@@ -493,7 +500,7 @@ storeOrderSchema.methods.toSafeJSON = function toSafeJSON(stockMap = null) {
     if (stockMap) {
       const stock =
         (item.productId && stockMap.get(`pid:${item.productId}`)) || stockMap.get(item.sku);
-      const available = stock ? stock.stockCount : 0;
+      const available = availableStock(stock);
       const held = Boolean(this.stockReservedAt || this.stockDeductedAt);
       base.availableStock = available;
       base.stockStatus = held || available >= item.quantity ? "available" : "out_of_stock";

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/l10n/app_l10n.dart';
 import 'auth_service.dart';
 
 class ShiftSlotInfo {
@@ -35,7 +36,7 @@ class ShiftSlotInfo {
     return ShiftSlotInfo(
       id: json['id']?.toString() ?? '',
       shiftId: json['shiftId']?.toString() ?? '',
-      shiftName: json['shiftName']?.toString() ?? 'Shift',
+      shiftName: json['shiftName']?.toString() ?? appL10n.kindShift,
       shiftType: json['shiftType']?.toString() ?? 'morning',
       startTime: json['startTime']?.toString() ?? '',
       endTime: json['endTime']?.toString() ?? '',
@@ -146,7 +147,7 @@ class ShiftBookingInfo {
       startTime: json['startTime']?.toString() ?? '',
       endTime: json['endTime']?.toString() ?? '',
       status: json['status']?.toString() ?? 'UPCOMING',
-      storeName: json['storeName']?.toString() ?? 'Dark Store',
+      storeName: json['storeName']?.toString() ?? appL10n.svcDarkStore,
       storeAddress: json['storeAddress']?.toString() ?? '',
       notificationEnabled: json['notificationEnabled'] == true,
       notificationTimeMinutes:
@@ -247,7 +248,7 @@ class ShiftService {
         serverTimeIST: body['serverTimeIST']?.toString() ?? '',
         serverDateString: body['serverDateString']?.toString() ?? '',
         date: body['date']?.toString() ?? date,
-        storeName: body['storeName']?.toString() ?? 'Dark Store',
+        storeName: body['storeName']?.toString() ?? appL10n.svcDarkStore,
         storeAddress: body['storeAddress']?.toString() ?? '',
         slots: slotsList,
         userHasBookingForDate: body['userHasBookingForDate'] == true,
@@ -354,7 +355,7 @@ class ShiftService {
       return GoOnlineResult(
         success: isSuccess,
         message:
-            body['message']?.toString() ?? 'Location verification complete',
+            body['message']?.toString() ?? appL10n.svcLocationVerificationComplete,
         code: body['code']?.toString(),
         distanceMeters: (body['distanceMeters'] as num?)?.toInt(),
         allowedRadius: (body['allowedRadius'] as num?)?.toInt(),
@@ -365,7 +366,7 @@ class ShiftService {
     } catch (e) {
       return GoOnlineResult(
         success: false,
-        message: 'Cannot verify location. Please check server connection.',
+        message: appL10n.svcCannotVerifyLocation,
       );
     }
   }
@@ -447,7 +448,7 @@ class GigInfo {
 
     return GigInfo(
       id: json['id']?.toString() ?? '',
-      title: json['title']?.toString() ?? 'Store Gig',
+      title: json['title']?.toString() ?? appL10n.svcStoreGig,
       type: json['type']?.toString() ?? 'hours_bonus',
       dateString: json['dateString']?.toString() ?? '',
       startTime: json['startTime']?.toString() ?? '06:00 PM',

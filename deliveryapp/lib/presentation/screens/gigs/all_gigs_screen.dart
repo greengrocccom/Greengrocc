@@ -40,7 +40,7 @@ class _AllGigsScreenState extends State<AllGigsScreen> {
             res.success
                 ? res.message
                 : (res.code == 'SHIFT_REQUIRED' || res.code == 'NO_SHIFT_BOOKED')
-                    ? 'Gigs do not need booking. Go online when the gig is live to join automatically.'
+                    ? AppLocalizations.of(context).ftGigsNoBookingNeeded
                     : res.message,
           ),
         ),

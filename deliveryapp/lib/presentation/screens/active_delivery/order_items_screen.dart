@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class OrderItemsScreen extends StatelessWidget {
   const OrderItemsScreen({
     super.key,
@@ -17,6 +19,7 @@ class OrderItemsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
+    final l10n = AppLocalizations.of(context);
     final totalQty = items.fold<int>(0, (sum, raw) {
       final item = raw is Map ? raw : <String, dynamic>{};
       return sum + ((item['quantity'] as num?)?.toInt() ?? 0);
@@ -44,7 +47,7 @@ class OrderItemsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Order Items',
+                        l10n.delOrderItems,
                         style: GoogleFonts.inter(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -52,7 +55,7 @@ class OrderItemsScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '#$orderNumber · $totalQty items',
+                        l10n.delOrderNumberItems(orderNumber, totalQty.toString()),
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -69,7 +72,7 @@ class OrderItemsScreen extends StatelessWidget {
             child: items.isEmpty
                 ? Center(
                     child: Text(
-                      'No items in this order',
+                      l10n.delNoItemsInOrder,
                       style: GoogleFonts.inter(color: const Color(0xFF6B7280)),
                     ),
                   )
@@ -80,7 +83,7 @@ class OrderItemsScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final raw = items[index];
                       final item = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
-                      final name = (item['name'] ?? item['productName'] ?? 'Item').toString();
+                      final name = (item['name'] ?? item['productName'] ?? l10n.delItemFallback).toString();
                       final qty = (item['quantity'] as num?)?.toInt() ?? 0;
                       final unit = (item['unit'] ?? '').toString().trim();
                       final price = (item['price'] as num?)?.toInt() ?? 0;
@@ -130,7 +133,9 @@ class OrderItemsScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    unit.isEmpty ? 'Qty: $qty' : 'Qty: $qty $unit',
+                                    unit.isEmpty
+                                        ? l10n.delQty(qty.toString())
+                                        : l10n.delQtyWithUnit(qty.toString(), unit),
                                     style: GoogleFonts.inter(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,

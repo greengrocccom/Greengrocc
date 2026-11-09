@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import '../cards/dashboard_card.dart';
 
 enum NotificationType {
@@ -114,6 +115,7 @@ class NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return DashboardCard(
       onTap: onTap,
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -147,10 +149,10 @@ class NotificationTile extends StatelessWidget {
                       ),
                     ),
                     if (badge == 'online')
-                      _Pill(label: 'Online', color: const Color(0xFF059669))
+                      _Pill(label: l10n.online, color: const Color(0xFF059669))
                     else if (badge == 'new' || isUnread)
                       _Pill(
-                        label: badge == 'new' ? 'New' : 'Unread',
+                        label: badge == 'new' ? l10n.statusNew : l10n.uiUnread,
                         color: AppColors.primary,
                       ),
                   ],

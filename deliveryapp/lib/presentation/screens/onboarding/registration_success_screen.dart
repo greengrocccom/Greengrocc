@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/buttons/primary_button.dart';
 
 class RegistrationSuccessScreen extends StatelessWidget {
@@ -10,6 +11,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -77,7 +79,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
               const SizedBox(height: 36),
 
               Text(
-                'Registration Successful!',
+                l10n.uiRegistrationSuccessful,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 24,
@@ -87,7 +89,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Your application has been submitted\nsuccessfully. We will verify your\ndocuments and notify you soon.',
+                l10n.uiRegistrationSuccessBody,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 14,
@@ -99,7 +101,7 @@ class RegistrationSuccessScreen extends StatelessWidget {
 
               // Go to Home Button
               PrimaryButton(
-                label: 'Go to Home',
+                label: l10n.goToHome,
                 onPressed: () {
                   Navigator.pushNamedAndRemoveUntil(
                     context,

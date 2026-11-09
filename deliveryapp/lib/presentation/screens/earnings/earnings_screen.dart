@@ -71,6 +71,13 @@ class _EarningsScreenState extends State<EarningsScreen> {
 
   String _rupee(num n) => rupeeAmount(n);
 
+  static String _dayLabel(Map<String, dynamic> day) =>
+      chartDayLabel(day['date']?.toString(), fallback: day['dayLabel']?.toString() ?? '');
+
+  static String _orderCountText(AppLocalizations l10n, int count) => count == 1
+      ? l10n.ftOrderCountOne(count.toString())
+      : l10n.ftOrderCountMany(count.toString());
+
   static DateTime? _deliveredAt(Map<String, dynamic> d) =>
       d['deliveredAt'] != null ? DateTime.tryParse(d['deliveredAt'].toString())?.toLocal() : null;
 
@@ -186,10 +193,15 @@ class _EarningsScreenState extends State<EarningsScreen> {
                 child: Row(
                   children: [
                     Expanded(child: HeroStat(label: l10n.todayTrips, value: '$_orderCount')),
-                    Expanded(child: HeroStat(label: 'Distance', value: '${totalKm.toStringAsFixed(1)} km')),
                     Expanded(
                       child: HeroStat(
-                        label: 'Avg / order',
+                        label: l10n.distance,
+                        value: l10n.distanceKmValue(totalKm.toStringAsFixed(1)),
+                      ),
+                    ),
+                    Expanded(
+                      child: HeroStat(
+                        label: l10n.ftAvgPerOrder,
                         value: avgPerOrder == null ? '—' : _rupee(avgPerOrder),
                       ),
                     ),
@@ -209,19 +221,19 @@ class _EarningsScreenState extends State<EarningsScreen> {
               accent: AppColors.info,
             ),
             KpiTile(
-              label: 'Earning per km',
+              label: l10n.ftEarningPerKm,
               value: perKm == null ? '—' : _rupee(perKm),
               icon: Icons.route_outlined,
               accent: const Color(0xFF8B5CF6),
-              caption: 'Today',
+              caption: l10n.today,
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.lg),
         AppPanel(
-          title: 'Last 7 days',
-          subtitle: '$_weekOrders order${_weekOrders == 1 ? '' : 's'} · '
-              '${activeWeekDays > 0 ? '${_rupee(_weekTotal / activeWeekDays)} avg / active day' : 'no earnings yet'}',
+          title: l10n.last7Days,
+          subtitle: '${_orderCountText(l10n, _weekOrders)} · '
+              '${activeWeekDays > 0 ? l10n.ftAvgPerActiveDay(_rupee(_weekTotal / activeWeekDays)) : l10n.ftNoEarningsYetLower}',
           trailing: Text(
             _rupee(_weekTotal),
             style: GoogleFonts.inter(
@@ -231,11 +243,11 @@ class _EarningsScreenState extends State<EarningsScreen> {
             ),
           ),
           child: WeeklyBarChart(
-            emptyMessage: 'Weekly earnings unavailable right now',
+            emptyMessage: l10n.ftWeeklyEarningsUnavailable,
             bars: [
               for (final d in _weekDays)
                 ChartBar(
-                  label: d['dayLabel']?.toString() ?? '',
+                  label: _dayLabel(d),
                   value: (d['totalEarnings'] as num?)?.toDouble() ?? 0,
                   highlight: d['isToday'] == true,
                 ),
@@ -244,21 +256,21 @@ class _EarningsScreenState extends State<EarningsScreen> {
             tooltipLabel: (i) {
               final d = _weekDays[i];
               final count = (d['orderCount'] as num?)?.toInt() ?? 0;
-              return '${d['dayLabel'] ?? ''} · ${d['date'] ?? ''}\n'
-                  '${_rupee((d['totalEarnings'] as num?) ?? 0)} · $count order${count == 1 ? '' : 's'}';
+              return '${l10n.dayWithDate(_dayLabel(d), d['date']?.toString() ?? '')}\n'
+                  '${_rupee((d['totalEarnings'] as num?) ?? 0)} · ${_orderCountText(l10n, count)}';
             },
           ),
         ),
         if (cumulative.length >= 2)
           AppPanel(
-            title: "Today's earnings timeline",
-            subtitle: 'Cumulative earnings after each delivery',
+            title: l10n.ftTodaysEarningsTimeline,
+            subtitle: l10n.ftCumulativeEarningsDesc,
             child: TrendLineChart(
               values: cumulative,
               labels: timelineLabels,
               labelEvery: (cumulative.length / 4).ceil(),
               axisLabel: (v) => '₹${compactNumber(v)}',
-              tooltipLabel: (i) => '${timelineLabels[i]}\n${_rupee(cumulative[i])} total',
+              tooltipLabel: (i) => '${timelineLabels[i]}\n${l10n.ftAmountTotal(_rupee(cumulative[i]))}',
             ),
           ),
         SectionLabel(

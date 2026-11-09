@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/l10n/app_l10n.dart';
 import 'auth_service.dart';
 import 'live_tracking_service.dart';
 
@@ -34,14 +35,14 @@ class OrderOffer {
   factory OrderOffer.fromJson(Map<String, dynamic> json) => OrderOffer(
         orderId: json['orderId'] as String? ?? '',
         orderNumber: json['orderNumber'] as String? ?? '',
-        darkStoreName: json['darkStoreName'] as String? ?? 'Dark Store',
+        darkStoreName: json['darkStoreName'] as String? ?? appL10n.svcDarkStore,
         darkStoreAddress: json['darkStoreAddress'] as String? ?? '',
         itemCount: json['itemCount'] as int? ?? 1,
         itemsSummary: json['itemsSummary'] as String? ?? '',
         estimatedEarnings: (json['estimatedEarnings'] as num?)?.toInt() ??
             (json['earnUpTo'] as num?)?.toInt() ??
             50,
-        distanceKm: json['distanceKm'] as String? ?? 'nearby',
+        distanceKm: json['distanceKm'] as String? ?? appL10n.svcNearby,
         remainingSeconds: (json['remainingSeconds'] as num?)?.toInt() ?? 20,
         timeoutSeconds: (json['timeoutSeconds'] as num?)?.toInt() ?? 20,
       );
@@ -158,7 +159,7 @@ class ActiveDeliveryData {
 
   /// "Pre-order · 2026-10-08 · 09:00 - 11:00" (empty for other order types).
   String get preOrderTag => isPreOrder
-      ? ['Pre-order', preOrderDate, preOrderSlot].where((s) => s.isNotEmpty).join(' · ')
+      ? [appL10n.svcPreOrder, preOrderDate, preOrderSlot].where((s) => s.isNotEmpty).join(' · ')
       : '';
 
   bool get canReportDelay =>
@@ -172,7 +173,7 @@ class ActiveDeliveryData {
   bool get shouldStreamLocation =>
       trackingEnabled &&
       !isPreOrder &&
-      (status == 'pickup_verified' || status == 'out_for_delivery');
+      (status == 'assigned' || status == 'pickup_verified' || status == 'out_for_delivery');
 
   /// True if payment is already settled online — rider must NOT collect cash
   bool get isPaidOnline => paymentStatus == 'paid_online';
@@ -187,7 +188,7 @@ class ActiveDeliveryData {
         id: json['id'] as String? ?? '',
         orderNumber: json['orderNumber'] as String? ?? '',
         status: json['status'] as String? ?? 'assigned',
-        darkStoreName: json['darkStoreName'] as String? ?? 'Dark Store',
+        darkStoreName: json['darkStoreName'] as String? ?? appL10n.svcDarkStore,
         darkStoreAddress: json['darkStoreAddress'] as String? ?? '',
         darkStorePhone: json['darkStorePhone'] as String?,
         darkStoreQrCode: json['darkStoreQrCode'] as String? ?? '',
@@ -196,9 +197,9 @@ class ActiveDeliveryData {
         customerAddressUnlocked: json['customerAddressUnlocked'] as bool? ?? false,
         pickupQrScanned: json['pickupQrScanned'] as bool? ?? false,
         pickupProofStatus: json['pickupProofStatus'] as String? ?? 'none',
-        customerName: json['customerName'] as String? ?? 'Customer',
+        customerName: json['customerName'] as String? ?? appL10n.customer,
         customerPhone: json['customerPhone'] as String? ?? '',
-        customerAddress: json['customerAddress'] as String? ?? 'Scan Store QR to Unlock',
+        customerAddress: json['customerAddress'] as String? ?? appL10n.svcScanStoreQrToUnlock,
         pickupQrPayload: json['pickupQrPayload'] as String?,
         darkStoreLat: json['darkStoreLat'] != null ? (json['darkStoreLat'] as num).toDouble() : null,
         darkStoreLng: json['darkStoreLng'] != null ? (json['darkStoreLng'] as num).toDouble() : null,
@@ -461,7 +462,7 @@ class OrderService extends ChangeNotifier {
     final parts = qrPayload.split(':');
     final orderId = parts.length > 1 ? parts[1] : '';
     if (orderId.isEmpty) {
-      return (success: false, message: 'This is not a pickup QR');
+      return (success: false, message: appL10n.svcNotPickupQr);
     }
     try {
       final res = await apiPost(
@@ -473,11 +474,11 @@ class OrderService extends ChangeNotifier {
       final message = body['message'] as String? ?? '';
       if (res.statusCode == 200) {
         unawaited(fetchActiveDelivery());
-        return (success: true, message: message.isEmpty ? 'Order unlocked' : message);
+        return (success: true, message: message.isEmpty ? appL10n.svcOrderUnlocked : message);
       }
-      return (success: false, message: message.isEmpty ? 'Could not verify this QR' : message);
+      return (success: false, message: message.isEmpty ? appL10n.svcCouldNotVerifyQr : message);
     } catch (_) {
-      return (success: false, message: 'Network error — try again');
+      return (success: false, message: appL10n.svcNetworkErrorTryAgain);
     }
   }
 
@@ -541,10 +542,10 @@ class OrderService extends ChangeNotifier {
       }
       return (
         success: false,
-        error: body['message'] as String? ?? 'Incorrect OTP. Ask the customer for their order OTP.',
+        error: body['message'] as String? ?? appL10n.svcIncorrectOtp,
       );
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.');
+      return (success: false, error: appL10n.svcNetworkError);
     }
   }
 
@@ -567,10 +568,10 @@ class OrderService extends ChangeNotifier {
       }
       return (
         success: false,
-        error: body['message'] as String? ?? 'Could not mark delivery as failed.',
+        error: body['message'] as String? ?? appL10n.svcCouldNotMarkFailed,
       );
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.');
+      return (success: false, error: appL10n.svcNetworkError);
     }
   }
 
@@ -594,10 +595,10 @@ class OrderService extends ChangeNotifier {
       }
       return (
         success: false,
-        error: body['message'] as String? ?? 'Could not send the delay.',
+        error: body['message'] as String? ?? appL10n.svcCouldNotSendDelay,
       );
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.');
+      return (success: false, error: appL10n.svcNetworkError);
     }
   }
 
@@ -620,10 +621,10 @@ class OrderService extends ChangeNotifier {
       }
       return (
         success: false,
-        error: body['message'] as String? ?? 'Could not upload delivery photo.',
+        error: body['message'] as String? ?? appL10n.svcCouldNotUploadDeliveryPhoto,
       );
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.');
+      return (success: false, error: appL10n.svcNetworkError);
     }
   }
 
@@ -645,9 +646,9 @@ class OrderService extends ChangeNotifier {
         notifyListeners();
         return (success: true, error: null);
       }
-      return (success: false, error: body['message'] as String? ?? 'OTP verification failed');
+      return (success: false, error: body['message'] as String? ?? appL10n.svcOtpVerificationFailed);
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.');
+      return (success: false, error: appL10n.svcNetworkError);
     }
   }
 
@@ -671,11 +672,11 @@ class OrderService extends ChangeNotifier {
       }
       return (
         success: false,
-        error: body['message'] as String? ?? 'Cash confirmation failed',
+        error: body['message'] as String? ?? appL10n.svcCashConfirmationFailed,
         amountCollected: null,
       );
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.', amountCollected: null);
+      return (success: false, error: appL10n.svcNetworkError, amountCollected: null);
     }
   }
 
@@ -694,7 +695,7 @@ class OrderService extends ChangeNotifier {
       }
       return body;
     } catch (_) {
-      return {'message': 'Could not check Razorpay. Please try again.'};
+      return {'message': appL10n.svcCouldNotCheckRazorpay};
     }
   }
 
@@ -778,10 +779,10 @@ class OrderService extends ChangeNotifier {
       }
       return (
         success: false,
-        error: body['message'] as String? ?? 'Invalid return QR',
+        error: body['message'] as String? ?? appL10n.svcInvalidReturnQr,
       );
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.');
+      return (success: false, error: appL10n.svcNetworkError);
     }
   }
 
@@ -801,10 +802,10 @@ class OrderService extends ChangeNotifier {
       }
       return (
         success: false,
-        error: body['message'] as String? ?? 'Photo upload failed',
+        error: body['message'] as String? ?? appL10n.svcPhotoUploadFailed,
       );
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.');
+      return (success: false, error: appL10n.svcNetworkError);
     }
   }
 
@@ -823,10 +824,10 @@ class OrderService extends ChangeNotifier {
       }
       return (
         success: false,
-        error: body['message'] as String? ?? 'Could not mark returned to store',
+        error: body['message'] as String? ?? appL10n.svcCouldNotMarkReturnedToStore,
       );
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.');
+      return (success: false, error: appL10n.svcNetworkError);
     }
   }
 }

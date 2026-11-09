@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/config/api_config.dart';
+import '../core/l10n/app_l10n.dart';
 import '../live/live_cache.dart';
 
 /// Error from the vendor pickup-driver API (farmer → collection centre).
@@ -61,11 +62,15 @@ class PickupDriverService {
   bool get isLoggedIn => _token != null && _token!.isNotEmpty;
 
   String get driverName {
+    final name = _nameOrMobile;
+    return name.isNotEmpty ? name : appL10n.pkDriver;
+  }
+
+  String get _nameOrMobile {
     final d = _driver ?? const {};
     final name = '${d['name'] ?? ''}'.trim();
     if (name.isNotEmpty) return name;
-    final mobile = '${d['mobile'] ?? ''}'.trim();
-    return mobile.isNotEmpty ? mobile : 'Driver';
+    return '${d['mobile'] ?? ''}'.trim();
   }
 
   Map<String, String> get _headers => {
@@ -120,7 +125,8 @@ class PickupDriverService {
     final data = _decodeMap(res);
     final token = '${data['token'] ?? ''}';
     if (token.isEmpty) {
-      throw PickupDriverException('Login failed', statusCode: res.statusCode);
+      throw PickupDriverException(appL10n.pkLoginFailed,
+          statusCode: res.statusCode);
     }
     _token = token;
     final driver = data['driver'];
@@ -289,7 +295,7 @@ class PickupDriverService {
         'leaveType': leaveType,
         'reason': reason,
         'dates': dates,
-        'name': driverName,
+        'name': _nameOrMobile.isNotEmpty ? _nameOrMobile : 'Driver',
       }),
     );
     _decodeMap(res);
@@ -312,7 +318,9 @@ class PickupDriverService {
       body = await _live.get(path);
     } on LiveCacheException catch (e) {
       throw PickupDriverException(
-        e.status == 401 ? 'Session expired' : 'Request failed (${e.status})',
+        e.status == 401
+            ? appL10n.pkSessionExpired
+            : appL10n.pkRequestFailed('${e.status}'),
         statusCode: e.status,
       );
     }
@@ -331,7 +339,7 @@ class PickupDriverService {
     if (res.statusCode >= 400) {
       final msg = body is Map ? '${body['message'] ?? body['error'] ?? ''}' : '';
       throw PickupDriverException(
-        msg.isNotEmpty ? msg : 'Request failed (${res.statusCode})',
+        msg.isNotEmpty ? msg : appL10n.pkRequestFailed('${res.statusCode}'),
         statusCode: res.statusCode,
       );
     }

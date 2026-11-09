@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../pickup_driver_service.dart';
 import '../pickup_flow.dart';
 import '../pickup_push_service.dart';
@@ -10,24 +11,35 @@ import 'pickup_batch_screen.dart';
 import 'pickup_detail_screen.dart';
 
 class PickupListMode {
-  const PickupListMode(this.filter, this.title, this.subtitle, this.empty);
+  const PickupListMode(this.filter);
 
   final String filter;
-  final String title;
-  final String subtitle;
-  final String empty;
 
-  static const assigned = PickupListMode('assigned', 'Assigned',
-      'Update status when you leave for the farm.', 'No assigned pickups.');
-  static const progress = PickupListMode(
-      'progress',
-      'In Progress',
-      'On the way, at farm, confirming, or returning to the centre.',
-      'No pickups in progress.');
-  static const completed = PickupListMode('completed', 'Completed',
-      'Received at the collection centre.', 'No completed pickups.');
-  static const history = PickupListMode('history', 'History',
-      'Finished pickups at the collection centre.', 'No pickup history yet.');
+  String title(AppLocalizations l10n) => switch (filter) {
+        'assigned' => l10n.timelineAssigned,
+        'progress' => l10n.inProgress,
+        'completed' => l10n.completed,
+        _ => l10n.history,
+      };
+
+  String subtitle(AppLocalizations l10n) => switch (filter) {
+        'assigned' => l10n.pksAssignedSubtitle,
+        'progress' => l10n.pksProgressSubtitle,
+        'completed' => l10n.pksCompletedSubtitle,
+        _ => l10n.pksHistorySubtitle,
+      };
+
+  String empty(AppLocalizations l10n) => switch (filter) {
+        'assigned' => l10n.pksNoAssignedPickups,
+        'progress' => l10n.pksNoPickupsInProgress,
+        'completed' => l10n.pksNoCompletedPickups,
+        _ => l10n.pksNoPickupHistory,
+      };
+
+  static const assigned = PickupListMode('assigned');
+  static const progress = PickupListMode('progress');
+  static const completed = PickupListMode('completed');
+  static const history = PickupListMode('history');
 
   static const all = [assigned, progress, completed, history];
 }
@@ -71,13 +83,14 @@ class PickupListScreenState extends State<PickupListScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: PickupColors.page,
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
-        title: Text('Pickup Orders',
+        title: Text(l10n.pksPickupOrders,
             style: pickupText(17, weight: FontWeight.w800)),
         bottom: TabBar(
           controller: _tabs,
@@ -87,7 +100,7 @@ class PickupListScreenState extends State<PickupListScreen>
           unselectedLabelColor: PickupColors.muted,
           indicatorColor: PickupColors.brand,
           labelStyle: pickupText(13.5, weight: FontWeight.w700),
-          tabs: [for (final m in PickupListMode.all) Tab(text: m.title)],
+          tabs: [for (final m in PickupListMode.all) Tab(text: m.title(l10n))],
         ),
       ),
       body: TabBarView(
@@ -201,6 +214,7 @@ class _PickupTabState extends State<_PickupTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final l10n = AppLocalizations.of(context);
     final rows = _data.pickups;
     final cards = groupPickupCards(rows,
         byBatch: widget.mode.filter != PickupListMode.assigned.filter);
@@ -212,7 +226,7 @@ class _PickupTabState extends State<_PickupTab>
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         children: [
-          Text(widget.mode.subtitle,
+          Text(widget.mode.subtitle(l10n),
               style: pickupText(13, color: PickupColors.muted)),
           const SizedBox(height: 12),
           PickupStatsGrid(stats: _data.stats),
@@ -228,7 +242,7 @@ class _PickupTabState extends State<_PickupTab>
                   child: CircularProgressIndicator(color: PickupColors.brand)),
             )
           else if (rows.isEmpty)
-            EmptyState(widget.mode.empty)
+            EmptyState(widget.mode.empty(l10n))
           else
             for (final card in cards) ...[
               if (card.batchId != null)
@@ -316,6 +330,7 @@ class OrderPickupCard extends StatelessWidget {
     final batchId = str(p['collectionBatchId']);
     final location = str(p['farmerLocation']);
     final pkgs = str(p['packageCount']).isEmpty ? '0' : str(p['packageCount']);
+    final l10n = AppLocalizations.of(context);
 
     return PickupCard(
       padding: EdgeInsets.zero,
@@ -344,7 +359,7 @@ class OrderPickupCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${str(p['productName'])} · ${pickupQuantity(p)} · $pkgs pkgs',
+                    '${str(p['productName'])} · ${pickupQuantity(p)} · ${l10n.pksPackagesCount(pkgs)}',
                     style: pickupText(12.5, color: PickupColors.muted),
                   ),
                   if (batchId.isNotEmpty) ...[
@@ -368,7 +383,7 @@ class OrderPickupCard extends StatelessWidget {
                 if (batchId.isNotEmpty) ...[
                   Expanded(
                     child: PickupButton(
-                      label: 'Show QR',
+                      label: l10n.pksShowQr,
                       icon: Icons.qr_code_2_rounded,
                       onPressed: () => showBatchQr(context,
                           batchId: batchId,
@@ -389,7 +404,7 @@ class OrderPickupCard extends StatelessWidget {
                           onPressed: () => onStep(step),
                         )
                       : PickupButton(
-                          label: 'Open',
+                          label: l10n.openAction,
                           outlined: true,
                           onPressed: onOpen,
                         ),
@@ -439,6 +454,7 @@ class BatchPickupCard extends StatelessWidget {
           ? first['vehicleNumber']
           : driver['vehicleNumber'],
     );
+    final l10n = AppLocalizations.of(context);
 
     return PickupCard(
       padding: EdgeInsets.zero,
@@ -459,13 +475,15 @@ class BatchPickupCard extends StatelessWidget {
                       Flexible(child: StatusChip(pickupLiveLabel(first))),
                       const Spacer(),
                       Text(
-                        '${orders.length} order${orders.length == 1 ? '' : 's'} in this batch',
+                        orders.length == 1
+                            ? l10n.pksOrdersInBatchOne(orders.length.toString())
+                            : l10n.pksOrdersInBatchMany(orders.length.toString()),
                         style: pickupText(12, color: PickupColors.muted),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text('LOT / BATCH ID',
+                  Text(l10n.pksLotBatchId.toUpperCase(),
                       style: pickupText(10,
                           weight: FontWeight.w700,
                           color: PickupColors.faint)),
@@ -473,8 +491,8 @@ class BatchPickupCard extends StatelessWidget {
                   CopyText(batchId, size: 14.5),
                   const SizedBox(height: 10),
                   InfoGrid([
-                    InfoItem('Driver ID', driverId, copy: true),
-                    InfoItem('Vehicle ID', vehicleId, copy: true),
+                    InfoItem(l10n.pksDriverId, driverId, copy: true),
+                    InfoItem(l10n.pksVehicleId, vehicleId, copy: true),
                   ]),
                 ],
               ),
@@ -494,7 +512,7 @@ class BatchPickupCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: PickupButton(
-                        label: 'Show QR',
+                        label: l10n.pksShowQr,
                         icon: Icons.qr_code_2_rounded,
                         onPressed: () => showBatchQr(context,
                             batchId: batchId,
@@ -504,7 +522,7 @@ class BatchPickupCard extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: PickupButton(
-                        label: 'View details',
+                        label: l10n.viewDetails,
                         outlined: true,
                         onPressed: onOpen,
                       ),

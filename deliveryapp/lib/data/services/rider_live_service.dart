@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../core/config/api_config.dart';
+import '../../core/l10n/app_l10n.dart';
 import '../services/auth_service.dart';
 
 class ShiftSlot {
@@ -79,9 +80,9 @@ class RiderLiveService {
   String get formattedOnlineToday {
     final h = _todayOnlineMinutes ~/ 60;
     final m = _todayOnlineMinutes % 60;
-    if (h == 0) return '$m minute';
-    if (m == 0) return '$h hr';
-    return '$h hr $m minute';
+    if (h == 0) return appL10n.svcDurationMinutes('$m');
+    if (m == 0) return appL10n.svcDurationHours('$h');
+    return appL10n.svcDurationHoursMinutes('$h', '$m');
   }
 
   String get loginHoursToday {

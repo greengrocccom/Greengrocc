@@ -1,6 +1,6 @@
 import express from "express";
 import DeliveryManager from "../models/DeliveryManager.js";
-import StoreInventory from "../models/StoreInventory.js";
+import StoreInventory, { hasAvailableExpr } from "../models/StoreInventory.js";
 import { loadNearestStoreCatalog, storePublicPayload } from "../services/nearestStoreCatalog.js";
 
 const router = express.Router();
@@ -13,7 +13,7 @@ router.get("/all", async (req, res, next) => {
         const inStockCount = await StoreInventory.countDocuments({
           managerId: m._id,
           isActive: true,
-          stockCount: { $gt: 0 },
+          ...hasAvailableExpr(1),
         });
         return storePublicPayload(m, { inStockCount });
       })

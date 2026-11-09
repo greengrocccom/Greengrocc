@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../widgets/buttons/primary_button.dart';
 import '../../widgets/buttons/secondary_button.dart';
 
@@ -11,6 +12,7 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -37,7 +39,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               Text(
-                'Welcome to\nDelivery Partner',
+                l10n.uiWelcomeTitle,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 26,
@@ -48,7 +50,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Deliver orders. Earn on your time.\nBe your own boss.',
+                l10n.uiWelcomeSubtitle,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 15,
@@ -58,7 +60,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const Spacer(),
               PrimaryButton(
-                label: 'Register',
+                label: l10n.register,
                 onPressed: () {
                   Navigator.pushNamed(
                     context,
@@ -69,7 +71,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               SecondaryButton(
-                label: 'Login',
+                label: l10n.login,
                 onPressed: () {
                   Navigator.pushNamed(
                     context,
@@ -88,22 +90,23 @@ class WelcomeScreen extends StatelessWidget {
                     height: 1.4,
                   ),
                   children: [
-                    const TextSpan(text: 'By continuing, you agree to our\n'),
+                    TextSpan(text: l10n.uiByContinuingAgreePrefix),
                     TextSpan(
-                      text: 'Terms & Conditions',
+                      text: l10n.termsAndConditions,
                       style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const TextSpan(text: ' and '),
+                    TextSpan(text: l10n.andWord),
                     TextSpan(
-                      text: 'Privacy Policy',
+                      text: l10n.privacyPolicy,
                       style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    TextSpan(text: l10n.uiByContinuingAgreeSuffix),
                   ],
                 ),
               ),

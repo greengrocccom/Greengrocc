@@ -1,7 +1,12 @@
 import StoreOrder from "../models/StoreOrder.js";
 import DeliveryBoy from "../models/DeliveryBoy.js";
 import { completeDelivery } from "./DeliveryCompletionService.js";
-import { restoreOrderStock } from "./storeStockService.js";
+import {
+  restoreOrderStock,
+  returnShippedStockToShelf,
+  shipOrderStock,
+  shipOrderStockOnDispatch,
+} from "./storeStockService.js";
 import { syncCustomerOrderFromStore } from "./syncCustomerOrderFromStore.js";
 import { sendDeliveryOtpSmsOnDispatch } from "./deliveryOtpSmsService.js";
 import { getIO } from "../../../socket.js";
@@ -115,8 +120,10 @@ export async function resolveFailedDelivery({ orderId, managerId, action, note =
   order.batchPrimaryOrderId = null;
   order.deliveryProofImageUrl = "";
   order.customerOtpVerified = false;
+  order.customerOtpSmsSentAt = undefined;
   order.otpAttempts = 0;
   order.otpLockedUntil = undefined;
+  await returnShippedStockToShelf(order);
   order.onlinePaymentClaim = { status: "", riderId: null, claimedAt: null, reviewedAt: null, reviewedByName: "", note: "" };
   order.excludedDriverIds = failedRider ? [failedRider] : [];
   order.roundRobinRidersAttempted = [];
@@ -260,6 +267,7 @@ export async function applyStoreOrderStatus({
     if (!closed) {
       return { success: false, statusCode: 409, message: "Order was already closed" };
     }
+    await shipOrderStock(closed);
     if (audit) {
       closed.notes = [closed.notes, `Marked delivered by ${audit.byName || audit.byRole}: ${why}`]
         .filter(Boolean)
@@ -298,7 +306,10 @@ export async function applyStoreOrderStatus({
   if (status === "out_for_delivery") order.customerAddressUnlocked = true;
   await order.save();
   await syncCustomerOrderFromStore(order, status);
-  if (status === "out_for_delivery") sendDeliveryOtpSmsOnDispatch(order);
+  if (status === "out_for_delivery") {
+    sendDeliveryOtpSmsOnDispatch(order);
+    shipOrderStockOnDispatch(order);
+  }
   emitStoreStatus(order);
   return { success: true, message: "Order status updated", order };
 }

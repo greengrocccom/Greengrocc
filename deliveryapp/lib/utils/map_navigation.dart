@@ -1,5 +1,7 @@
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/l10n/app_l10n.dart';
+
 Future<bool> _tryLaunchExternal(Uri uri) async {
   try {
     return await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -58,6 +60,10 @@ Future<bool> openGoogleMapsToAddress(String address) async {
 
 bool _isPlaceholderAddress(String address) {
   final lower = address.toLowerCase();
+  final l10n = appL10n;
+  if (address == l10n.svcScanStoreQrToUnlock || address == l10n.delAddressUnlocksAfterPickup) {
+    return true;
+  }
   return lower.contains('locked') ||
       lower.contains('scan store qr') ||
       lower.contains('scan pickup') ||

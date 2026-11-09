@@ -648,7 +648,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
           _scheduleShiftEndAutoOffline(res.endTime);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(res.message),
+              content: Text(AppLocalizations.of(context).youAreOnline),
               backgroundColor: AppColors.success,
             ),
           );
@@ -921,7 +921,7 @@ class _TopHeaderSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final displayName = name.isNotEmpty ? name : 'Driver1';
+    final displayName = name.isNotEmpty ? name : AppLocalizations.of(context).deliveryPartner;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

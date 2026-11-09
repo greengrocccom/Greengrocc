@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/config/api_config.dart';
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/auth_service.dart';
+import '../../../l10n/app_localizations.dart';
 import 'fulltime_widgets.dart';
 
 class FullTimeRulesScreen extends StatefulWidget {
@@ -64,13 +66,13 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
           body = jsonDecode(res.body) as Map<String, dynamic>;
         } catch (_) {}
         setState(() {
-          _error = body['message']?.toString() ?? 'Failed to load rules (${res.statusCode})';
+          _error = body['message']?.toString() ?? appL10n.ftFailedToLoadRules('${res.statusCode}');
           _loading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'Could not connect to server. Please try again.';
+        _error = appL10n.ftCouldNotConnectServer;
         _loading = false;
       });
     }
@@ -80,7 +82,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: fullTimeAppBar('Full-Time Rules & Pay', onRefresh: _fetch),
+      appBar: fullTimeAppBar(AppLocalizations.of(context).ftFullTimeRulesPay, onRefresh: _fetch),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -143,6 +145,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
   // --- WIDGET BUILDERS ---
 
   Widget _buildSalaryHero() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -189,7 +192,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      'FULL-TIME PARTNER',
+                      l10n.ftFullTimePartnerBadge,
                       style: GoogleFonts.inter(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
@@ -236,7 +239,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
           ),
           const SizedBox(height: 18),
           Text(
-            'FIXED BASE SALARY',
+            l10n.ftFixedBaseSalary,
             style: GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -260,7 +263,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
               ),
               const SizedBox(width: 6),
               Text(
-                '/ month',
+                l10n.ftPerMonthSuffix,
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -286,7 +289,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Direct monthly payout based on daily verified store attendance',
+                    l10n.ftDirectMonthlyPayout,
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
@@ -306,6 +309,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
     final radius = _requirement?['attendanceRadiusMeters'] ?? 200;
     final leaveOn = _payPolicy?['leavePolicyEnabled'] == true;
     final paidLeaves = (_payPolicy?['paidLeavesPerMonth'] as num?)?.toInt() ?? 0;
+    final l10n = AppLocalizations.of(context);
 
     return Row(
       children: [
@@ -314,9 +318,9 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
             icon: Icons.my_location_rounded,
             iconColor: const Color(0xFF0F5A32),
             iconBg: const Color(0xFFE8F5E9),
-            label: 'Geo-Radius',
-            value: '${radius}m',
-            sub: 'Store punch-in',
+            label: l10n.ftGeoRadius,
+            value: l10n.ftMetersCompact('$radius'),
+            sub: l10n.ftStorePunchIn,
           ),
         ),
         const SizedBox(width: 10),
@@ -325,9 +329,9 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
             icon: Icons.beach_access_rounded,
             iconColor: const Color(0xFF2563EB),
             iconBg: const Color(0xFFEFF6FF),
-            label: 'Paid Leaves',
-            value: leaveOn ? '$paidLeaves Days' : 'Standard',
-            sub: 'Per month',
+            label: l10n.ftPaidLeaves,
+            value: leaveOn ? l10n.ftDaysCount(paidLeaves.toString()) : l10n.ftStandard,
+            sub: l10n.ftPerMonthLabel,
           ),
         ),
         const SizedBox(width: 10),
@@ -336,9 +340,9 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
             icon: Icons.assignment_turned_in_rounded,
             iconColor: const Color(0xFFD97706),
             iconBg: const Color(0xFFFFFBEB),
-            label: 'Dispatch',
-            value: 'Manager',
-            sub: 'Direct assign',
+            label: l10n.ftDispatch,
+            value: l10n.ftManager,
+            sub: l10n.ftDirectAssign,
           ),
         ),
       ],
@@ -410,13 +414,14 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
   }
 
   Widget _buildShiftCard() {
-    final shiftName = _shift!['name']?.toString() ?? _shift!['slotName']?.toString() ?? 'Assigned Shift';
+    final l10n = AppLocalizations.of(context);
+    final shiftName = _shift!['name']?.toString() ?? _shift!['slotName']?.toString() ?? l10n.ftAssignedShift;
     final startTime = _shift!['startTime']?.toString() ?? '';
     final endTime = _shift!['endTime']?.toString() ?? '';
     final workingDays = _shift!['workingDays'] as List<dynamic>?;
 
     return _cardWrapper(
-      title: 'Assigned Roster & Timing',
+      title: l10n.ftAssignedRosterTiming,
       icon: Icons.schedule_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,7 +468,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
                   border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
                 ),
                 child: Text(
-                  'FIXED SHIFT',
+                  l10n.ftFixedShift,
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -476,7 +481,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
           if (workingDays != null && workingDays.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              'Working Days: ${formatWorkingDays(workingDays)}',
+              l10n.ftWorkingDaysList(formatWorkingDays(workingDays)),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -495,9 +500,10 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
     final leaveOn = leave['enabled'] == true;
     final leaveCut = (leave['deduction'] as num?) ?? 0;
     final credited = payroll['credited'] is Map;
+    final l10n = AppLocalizations.of(context);
 
     return _cardWrapper(
-      title: 'Current Month Payroll Breakdown',
+      title: l10n.ftCurrentMonthPayroll,
       icon: Icons.payments_rounded,
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -513,7 +519,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
           ),
         ),
         child: Text(
-          credited ? 'CREDITED' : 'IN PROGRESS',
+          credited ? l10n.ftCreditedBadge : l10n.ftInProgressBadge,
           style: GoogleFonts.inter(
             fontSize: 10,
             fontWeight: FontWeight.w800,
@@ -525,7 +531,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            payroll['month']?.toString() ?? 'Current Cycle',
+            payroll['month']?.toString() ?? l10n.ftCurrentCycle,
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -534,30 +540,40 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
           ),
           const SizedBox(height: 12),
           _detailRow(
-            'Base Monthly Salary',
+            l10n.ftBaseMonthlySalary,
             formatRupees(payroll['baseSalary'] as num? ?? _monthlySalary),
           ),
           _detailRow(
-            'Present Days',
-            '${payroll['presentDays'] ?? 0} of ${payroll['scheduledWorkingDays'] ?? 0} days',
+            l10n.ftPresentDaysTitle,
+            l10n.ftPresentOfDays(
+              '${payroll['presentDays'] ?? 0}',
+              '${payroll['scheduledWorkingDays'] ?? 0}',
+            ),
           ),
           if (leaveOn) ...[
             _detailRow(
-              'Leaves Taken',
-              '${leave['taken'] ?? 0} days (${leave['paid'] ?? 0} paid · ${leave['unpaid'] ?? 0} extra)',
+              l10n.ftLeavesTakenTitle,
+              l10n.ftLeavesTakenDaysBreakdown(
+                '${leave['taken'] ?? 0}',
+                '${leave['paid'] ?? 0}',
+                '${leave['unpaid'] ?? 0}',
+              ),
             ),
             _detailRow(
-              'Remaining Paid Leaves',
-              '${leave['paidRemaining'] ?? 0} of ${leave['allowedPaid'] ?? 0} left',
+              l10n.ftRemainingPaidLeaves,
+              l10n.ftCountOfTotalLeft('${leave['paidRemaining'] ?? 0}', '${leave['allowedPaid'] ?? 0}'),
             ),
             if (leaveCut > 0)
               _detailRow(
-                'Leave Deduction (${leave['unpaid']} × ${formatRupees(leave['deductionPerDay'] as num?)})',
+                l10n.ftLeaveDeductionCalc(
+                  '${leave['unpaid']}',
+                  formatRupees(leave['deductionPerDay'] as num?),
+                ),
                 '− ${formatRupees(leaveCut)}',
                 isNegative: true,
               ),
           ] else if (((payroll['absentDays'] as num?) ?? 0) > 0)
-            _detailRow('Unexcused Absent Days', '${payroll['absentDays']}'),
+            _detailRow(l10n.ftUnexcusedAbsentDays, '${payroll['absentDays']}'),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Divider(height: 1),
@@ -566,7 +582,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                credited ? 'Final Credited Amount' : 'Estimated Net Payout',
+                credited ? l10n.ftFinalCreditedAmount : l10n.ftEstimatedNetPayout,
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -586,7 +602,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
           if (!credited && ((payroll['remainingDays'] as num?) ?? 0) > 0) ...[
             const SizedBox(height: 6),
             Text(
-              '• Updated daily. ${payroll['remainingDays']} scheduled shifts left this month.',
+              l10n.ftUpdatedDailyShiftsLeft('${payroll['remainingDays']}'),
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: AppColors.textMuted,
@@ -600,32 +616,30 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
 
   Widget _buildAttendanceRulesCard() {
     final radius = _requirement?['attendanceRadiusMeters'] ?? 200;
+    final l10n = AppLocalizations.of(context);
 
     return _cardWrapper(
-      title: 'Daily Attendance & Geofencing',
+      title: l10n.ftDailyAttendanceGeofencing,
       icon: Icons.fingerprint_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _policyPoint(
             number: '1',
-            title: 'Dark Store Geofence Check',
-            description:
-                'You must be physically present within ${radius}m of your assigned dark store to punch in attendance.',
+            title: l10n.ftDarkStoreGeofenceCheck,
+            description: l10n.ftGeofenceCheckDesc('$radius'),
           ),
           const SizedBox(height: 12),
           _policyPoint(
             number: '2',
-            title: 'GPS Location Verification',
-            description:
-                'High-accuracy device location is verified automatically whenever you toggle online for your shift.',
+            title: l10n.ftGpsLocationVerification,
+            description: l10n.ftGpsVerificationDesc,
           ),
           const SizedBox(height: 12),
           _policyPoint(
             number: '3',
-            title: 'Auto Check-in on Online',
-            description:
-                'Attendance is logged instantly when you go online during your scheduled shift window at the store.',
+            title: l10n.ftAutoCheckInOnline,
+            description: l10n.ftAutoCheckInDesc,
           ),
           if (_rules.isNotEmpty) ...[
             for (int i = 0; i < _rules.length; i++) ...[
@@ -633,7 +647,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
                 const SizedBox(height: 12),
                 _policyPoint(
                   number: '${i + 4}',
-                  title: _rules[i]['ruleName']?.toString() ?? 'Store Attendance Guideline',
+                  title: _rules[i]['ruleName']?.toString() ?? l10n.ftStoreAttendanceGuideline,
                   description: _rules[i]['notes'].toString(),
                 ),
               ],
@@ -649,36 +663,36 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
     final leaveOn = policy['leavePolicyEnabled'] == true;
     final paid = (policy['paidLeavesPerMonth'] as num?)?.toInt() ?? 0;
     final perDay = policy['unpaidLeaveDeductionPerDay'] as num?;
+    final l10n = AppLocalizations.of(context);
 
     return _cardWrapper(
-      title: 'Leave Terms & Absence Policy',
+      title: l10n.ftLeaveTermsAbsencePolicy,
       icon: Icons.beach_access_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _policyPoint(
             number: 'A',
-            title: leaveOn ? 'Paid Leave Allowance' : 'Leave Policy',
+            title: leaveOn ? l10n.ftPaidLeaveAllowance : l10n.ftLeavePolicy,
             description: leaveOn
-                ? 'You are entitled to $paid paid leaves per calendar month without any salary deduction.'
-                : 'Leaves must be approved in advance by your Store Manager.',
+                ? l10n.ftPaidLeaveEntitlementDesc(paid.toString())
+                : l10n.ftLeavesNeedApprovalDesc,
           ),
           const SizedBox(height: 12),
           _policyPoint(
             number: 'B',
-            title: 'Unpaid Absence Deductions',
+            title: l10n.ftUnpaidAbsenceDeductions,
             description: leaveOn
                 ? (perDay != null
-                    ? '${formatRupees(perDay)} is deducted per unapproved or excess leave day.'
-                    : '1 day prorated salary is deducted for each day exceeding your monthly allowance.')
-                : 'Unapproved absence will be deducted from your monthly settlement.',
+                    ? l10n.ftAmountDeductedPerLeaveDay(formatRupees(perDay))
+                    : l10n.ftProratedSalaryDeductedDesc)
+                : l10n.ftUnapprovedAbsenceDeductedDesc,
           ),
           const SizedBox(height: 12),
           _policyPoint(
             number: 'C',
-            title: 'Shift Attendance Rule',
-            description:
-                'Not going online during a scheduled shift is recorded as an absence unless approved prior.',
+            title: l10n.ftShiftAttendanceRule,
+            description: l10n.ftShiftAttendanceRuleDesc,
           ),
         ],
       ),
@@ -686,8 +700,9 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
   }
 
   Widget _buildAssignmentCard() {
+    final l10n = AppLocalizations.of(context);
     return _cardWrapper(
-      title: 'Order Dispatch & Assignment',
+      title: l10n.ftOrderDispatchAssignment,
       icon: Icons.local_shipping_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -712,7 +727,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Dedicated Store Manager Dispatch',
+                      l10n.ftDedicatedManagerDispatch,
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -722,8 +737,8 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
                     const SizedBox(height: 2),
                     Text(
                       _assignmentMode == 'manual'
-                          ? 'Orders & pre-orders are assigned directly to you by your store manager. You do not need to hunt for open orders.'
-                          : 'Assignment mode: $_assignmentMode',
+                          ? l10n.ftManualAssignmentDesc
+                          : l10n.ftAssignmentModeValue(_assignmentMode),
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -741,14 +756,15 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
   }
 
   Widget _buildCustomRulesCard() {
+    final l10n = AppLocalizations.of(context);
     return _cardWrapper(
-      title: 'Store Operational Guidelines',
+      title: l10n.ftStoreOperationalGuidelines,
       icon: Icons.checklist_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ..._customRules.whereType<Map>().map((c) {
-            final title = c['title']?.toString() ?? 'Store Rule';
+            final title = c['title']?.toString() ?? l10n.ftStoreRule;
             final desc = c['description']?.toString() ?? '';
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -800,6 +816,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
   }
 
   Widget _buildSupportBanner() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -827,7 +844,7 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Need assistance with your rules or pay?',
+                  l10n.ftNeedAssistanceRulesPay,
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -837,8 +854,8 @@ class _FullTimeRulesScreenState extends State<FullTimeRulesScreen> {
                 const SizedBox(height: 2),
                 Text(
                   _darkStoreName.isNotEmpty
-                      ? 'Reach out to your Store Manager at $_darkStoreName.'
-                      : 'Speak with your assigned Store Manager for inquiries.',
+                      ? l10n.ftReachOutStoreManagerAt(_darkStoreName)
+                      : l10n.ftSpeakWithStoreManager,
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     color: AppColors.textMuted,

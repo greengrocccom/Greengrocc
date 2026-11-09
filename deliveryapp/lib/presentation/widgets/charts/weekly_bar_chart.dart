@@ -2,8 +2,16 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import 'chart_utils.dart';
+
+/// Short weekday name in the rider's language for a `yyyy-MM-dd` date; [fallback] if unparseable.
+String chartDayLabel(String? isoDate, {String fallback = ''}) {
+  final d = DateTime.tryParse(isoDate ?? '');
+  return d == null ? fallback : localizedDateFormat('EEE').format(d);
+}
 
 class ChartBar {
   const ChartBar({
@@ -28,7 +36,7 @@ class WeeklyBarChart extends StatelessWidget {
     this.color,
     this.height = 190,
     this.onBarTap,
-    this.emptyMessage = 'No data yet',
+    this.emptyMessage,
     this.labelEvery = 1,
   });
 
@@ -38,7 +46,7 @@ class WeeklyBarChart extends StatelessWidget {
   final Color? color;
   final double height;
   final ValueChanged<int>? onBarTap;
-  final String emptyMessage;
+  final String? emptyMessage;
   final int labelEvery;
 
   @override
@@ -49,7 +57,7 @@ class WeeklyBarChart extends StatelessWidget {
         height: height,
         child: Center(
           child: Text(
-            emptyMessage,
+            emptyMessage ?? AppLocalizations.of(context).ftNoDataYet,
             style: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted),
           ),
         ),

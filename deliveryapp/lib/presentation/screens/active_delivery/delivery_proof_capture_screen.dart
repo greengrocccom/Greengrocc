@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/image_upload_utils.dart';
 import '../../../data/services/order_service.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Capture delivery proof photo at customer location before OTP.
 class DeliveryProofCaptureScreen extends StatefulWidget {
@@ -60,7 +61,7 @@ class _DeliveryProofCaptureScreenState extends State<DeliveryProofCaptureScreen>
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(result.error ?? 'Could not upload delivery photo. Try again.'),
+        content: Text(result.error ?? AppLocalizations.of(context).delCouldNotUploadDeliveryPhoto),
         backgroundColor: Colors.red,
       ),
     );
@@ -68,6 +69,7 @@ class _DeliveryProofCaptureScreenState extends State<DeliveryProofCaptureScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6F4),
       appBar: AppBar(
@@ -77,11 +79,11 @@ class _DeliveryProofCaptureScreenState extends State<DeliveryProofCaptureScreen>
         title: Column(
           children: [
             Text(
-              'Delivery Proof',
+              l10n.delDeliveryProof,
               style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 16),
             ),
             Text(
-              'Order #${widget.orderNumber}',
+              l10n.orderNumberHash(widget.orderNumber),
               style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary),
             ),
           ],
@@ -106,7 +108,7 @@ class _DeliveryProofCaptureScreenState extends State<DeliveryProofCaptureScreen>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Take a photo at the customer door / handed package. Then enter the customer OTP to finish.',
+                      l10n.delDeliveryProofHint,
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         height: 1.35,
@@ -144,7 +146,7 @@ class _DeliveryProofCaptureScreenState extends State<DeliveryProofCaptureScreen>
                             ),
                             const SizedBox(height: 14),
                             Text(
-                              'Tap to capture delivery photo',
+                              l10n.delTapToCaptureDeliveryPhoto,
                               style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -170,7 +172,7 @@ class _DeliveryProofCaptureScreenState extends State<DeliveryProofCaptureScreen>
               TextButton.icon(
                 onPressed: _submitting ? null : _capturePhoto,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Retake photo'),
+                label: Text(l10n.retakePhoto),
               ),
             ],
             const SizedBox(height: 8),
@@ -190,7 +192,7 @@ class _DeliveryProofCaptureScreenState extends State<DeliveryProofCaptureScreen>
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
                     : Text(
-                        'Upload & Continue to OTP',
+                        l10n.delUploadAndContinueToOtp,
                         style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14),
                       ),
               ),

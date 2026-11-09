@@ -44,6 +44,10 @@ const ICONS = {
 const validPoint = (p) =>
   p && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng));
 
+const RIDER_MOVE_MS = 1000;
+/** Farther than this the rider jumps instead of gliding (GPS gap, reassignment). */
+const RIDER_GLIDE_MAX_METERS = 2000;
+
 /**
  * Store, customer and live rider on one OpenStreetMap map, with the route line.
  * The rider marker moves in place on every GPS update without re-fitting the view.
@@ -53,6 +57,7 @@ export default function DeliveryTrackingMap({ store, destination, rider, polylin
   const mapRef = useRef(null);
   const layersRef = useRef({});
   const fittedRef = useRef(false);
+  const glideRef = useRef(0);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return undefined;
@@ -64,6 +69,7 @@ export default function DeliveryTrackingMap({ store, destination, rider, polylin
     map.setView([18.52, 73.85], 12);
     mapRef.current = map;
     return () => {
+      cancelAnimationFrame(glideRef.current);
       map.remove();
       mapRef.current = null;
       layersRef.current = {};
@@ -91,7 +97,22 @@ export default function DeliveryTrackingMap({ store, destination, rider, polylin
 
     placeMarker("store", store, store?.name || "Dark store");
     placeMarker("customer", destination, "Customer");
-    placeMarker("rider", rider, "Delivery partner");
+
+    cancelAnimationFrame(glideRef.current);
+    const from = layers.rider?.getLatLng();
+    if (validPoint(rider) && from && from.distanceTo([Number(rider.lat), Number(rider.lng)]) <= RIDER_GLIDE_MAX_METERS) {
+      const to = L.latLng(Number(rider.lat), Number(rider.lng));
+      const start = performance.now();
+      const step = (now) => {
+        const t = Math.min(1, (now - start) / RIDER_MOVE_MS);
+        layers.rider?.setLatLng([from.lat + (to.lat - from.lat) * t, from.lng + (to.lng - from.lng) * t]);
+        if (t < 1) glideRef.current = requestAnimationFrame(step);
+        else if (fittedRef.current && !map.getBounds().contains(to)) map.panTo(to);
+      };
+      glideRef.current = requestAnimationFrame(step);
+    } else {
+      placeMarker("rider", rider, "Delivery partner");
+    }
 
     if (layers.route) {
       layers.route.remove();

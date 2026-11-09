@@ -22,6 +22,24 @@ async function razorpayQr(path = "", method = "GET", body) {
   return response.json();
 }
 
+/**
+ * What the rider app needs to show the QR: the raw UPI string to draw as a plain QR
+ * (Razorpay's image_url is a branded poster page). Razorpay sends image_content only for
+ * live keys; with test keys the QR can't be paid from a real UPI app, so say so.
+ */
+function qrDisplay(content, amountPaise) {
+  const qrContent = String(content || "").trim();
+  if (!qrContent.startsWith("upi://")) {
+    return {
+      amount: amountPaise / 100,
+      qrContent: "",
+      testMode: true,
+      notice: "Razorpay is in test mode, so this QR can't be paid from a UPI app. Use live Razorpay keys.",
+    };
+  }
+  return { amount: amountPaise / 100, qrContent };
+}
+
 export async function processDeliveryQr(order, action, allowedStatuses) {
   const eligible = {
     _id: order._id,
@@ -62,14 +80,14 @@ export async function processDeliveryQr(order, action, allowedStatuses) {
         close_by: Math.floor(Date.now() / 1000) + 900,
         notes: { store_order_id: String(order._id) },
       });
-      qr = { token, amount, id: created.id, imageUrl: created.image_url };
-      if (!qr.id || !qr.imageUrl) throw new Error("Incomplete Razorpay QR response");
+      qr = { token, amount, id: created.id, imageUrl: created.image_url, content: created.image_content || "" };
+      if (!qr.id) throw new Error("Incomplete Razorpay QR response");
       const saved = await StoreOrder.updateOne(
         { ...eligible, "deliveryPaymentQr.token": token },
         { $set: { deliveryPaymentQr: qr } },
       );
       if (!saved.matchedCount) throw new Error("Order changed while creating QR");
-      return { imageUrl: qr.imageUrl, amount: amount / 100 };
+      return qrDisplay(qr.content, amount);
     } catch (error) {
       // A QR whose details were never saved was never shown to the customer.
       await StoreOrder.updateOne(
@@ -119,7 +137,7 @@ export async function processDeliveryQr(order, action, allowedStatuses) {
     return { closed: true };
   }
   if (action === "create" && remote.status === "active") {
-    return { imageUrl: qr.imageUrl, amount: qr.amount / 100 };
+    return qrDisplay(qr.content || remote.image_content, qr.amount);
   }
   return { message: "Razorpay has not confirmed the payment yet. Check again before collecting cash." };
 }

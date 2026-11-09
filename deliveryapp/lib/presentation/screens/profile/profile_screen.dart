@@ -63,14 +63,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await AuthService.instance.fetchMe();
       if (mounted) setState(() {});
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
-        );
-      }
+      if (mounted) _showError(e);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showError(Object e) {
+    final msg = e is AuthApiException
+        ? e.message
+        : AppLocalizations.of(context).somethingWentWrong;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+    );
+  }
+
+  String _vehicleLabel(AppLocalizations l10n, String raw) {
+    return switch (raw.toLowerCase().trim()) {
+      'motorcycle' => l10n.vehicleMotorcycle,
+      'bicycle' => l10n.vehicleBicycle,
+      'electric' => l10n.vehicleElectricScooter,
+      'van' => l10n.vehicleVan,
+      'no_vehicle' => l10n.noVehicle,
+      _ => raw,
+    };
   }
 
   Future<void> _changeAvatar() async {
@@ -102,11 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
-        );
-      }
+      if (mounted) _showError(e);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -121,7 +133,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final hasRating = (boy?.totalRatingsCount ?? 0) > 0;
     final empLower = (boy?.employmentType ?? '').toLowerCase().trim();
     final isFullTime = empLower == 'full_time' || (boy?.isFullTime ?? false);
-    final employmentTag = isFullTime ? 'Full Time' : 'Part Time';
+    final employmentTag = isFullTime ? l10n.uiFullTime : l10n.uiPartTime;
+    final vehicleLabel = _vehicleLabel(l10n, boy?.vehicleType ?? '');
 
     final body = ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -331,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        boy?.vehicleType.isNotEmpty == true ? boy!.vehicleType : l10n.vehicle,
+                        vehicleLabel.isNotEmpty ? vehicleLabel : l10n.vehicle,
                         style: GoogleFonts.inter(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
@@ -388,11 +401,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ProfileTile(
                 title: l10n.vehicleInformation,
                 subtitle: [
-                  if (boy?.vehicleType.isNotEmpty == true) boy!.vehicleType,
+                  if (boy?.vehicleType.isNotEmpty == true) vehicleLabel,
                   if (boy?.vehicleNumber.isNotEmpty == true) boy!.vehicleNumber,
                 ].isNotEmpty
                     ? [
-                        if (boy?.vehicleType.isNotEmpty == true) boy!.vehicleType,
+                        if (boy?.vehicleType.isNotEmpty == true) vehicleLabel,
                         if (boy?.vehicleNumber.isNotEmpty == true) boy!.vehicleNumber,
                       ].join(' · ')
                     : l10n.bikeDetails,

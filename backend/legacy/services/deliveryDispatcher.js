@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import StoreOrder from "../../delivery-service/src/models/StoreOrder.js";
-import StoreInventory from "../../delivery-service/src/models/StoreInventory.js";
+import StoreInventory, { availableStock } from "../../delivery-service/src/models/StoreInventory.js";
 import {
   readCoords,
   resolveDarkStoreForOrder,
@@ -95,7 +95,7 @@ export async function findStoreShortages({ managerId, items = [], itemDepartment
     if (line.department === "preorder") continue;
     const row = stockRowFor(line, stockMap);
     const key = row ? String(row._id) : `missing:${line.productId || line.sku}`;
-    const entry = needed.get(key) || { name: line.name, quantity: 0, available: row ? Number(row.stockCount) || 0 : 0 };
+    const entry = needed.get(key) || { name: line.name, quantity: 0, available: availableStock(row) };
     entry.quantity += Number(line.quantity) || 0;
     needed.set(key, entry);
   }

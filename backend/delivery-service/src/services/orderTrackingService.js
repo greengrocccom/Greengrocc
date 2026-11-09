@@ -9,11 +9,20 @@ import {
   isTrackableOrderType,
 } from "../../../legacy/utils/departmentHelpers.js";
 import { getIO } from "../../../socket.js";
-import { clearRouteCache, getRouteAndEta, toPoint } from "./directionsService.js";
+import { clearRouteCache, getRouteAndEta, getRouteViaStop, toPoint } from "./directionsService.js";
 import { isVendorConfirmed, preOrderProgressInfo, buildPreOrderTimeline } from "./preOrderProgress.js";
 
-/** Rider has the parcel: GPS is streamed to the customer only in these statuses. */
+/** Rider has the parcel. */
 export const LIVE_TRACKING_STATUSES = ["pickup_verified", "out_for_delivery"];
+/** Rider's GPS is streamed and shown from assignment (riding to the store) until delivery. */
+export const RIDER_EN_ROUTE_STATUSES = ["assigned", ...LIVE_TRACKING_STATUSES];
+
+/** "to_store" while the rider rides to the dark store, "to_customer" once it has the parcel. */
+export function riderPhaseOf(status) {
+  if (LIVE_TRACKING_STATUSES.includes(status)) return "to_customer";
+  if (RIDER_EN_ROUTE_STATUSES.includes(status)) return "to_store";
+  return null;
+}
 export const CLOSED_STATUSES = ["delivered", "cancelled", "delivery_failed"];
 export const ROUTE_REFRESH_SECONDS = 45;
 
@@ -206,7 +215,7 @@ export async function recordDriverLocation({ storeOrder, rider, lat, lng, headin
   try {
     await Promise.all([
       StoreOrder.updateOne(
-        { _id: storeOrderId, status: { $in: LIVE_TRACKING_STATUSES } },
+        { _id: storeOrderId, status: { $in: RIDER_EN_ROUTE_STATUSES } },
         {
           $set: {
             driverLocation: {
@@ -304,7 +313,8 @@ export function buildStatusPayload(storeOrder, storeStatus = storeOrder?.status)
         }
       : {}),
     trackingEnabled,
-    liveTracking: trackingEnabled && LIVE_TRACKING_STATUSES.includes(storeStatus),
+    liveTracking: trackingEnabled && RIDER_EN_ROUTE_STATUSES.includes(storeStatus),
+    riderPhase: trackingEnabled ? riderPhaseOf(storeStatus) : null,
     at: new Date().toISOString(),
   };
 }
@@ -408,8 +418,8 @@ export async function authorizeDriverForOrder({ riderId, orderId }) {
     markOrderClosed(storeOrder);
     return { ok: false, code: "ORDER_CLOSED", message: "Order is already closed" };
   }
-  if (!LIVE_TRACKING_STATUSES.includes(storeOrder.status)) {
-    return { ok: false, code: "NOT_PICKED_UP", message: "Tracking starts after pickup" };
+  if (!RIDER_EN_ROUTE_STATUSES.includes(storeOrder.status)) {
+    return { ok: false, code: "NOT_PICKED_UP", message: "Tracking starts once the order is assigned to you" };
   }
   return { ok: true, storeOrder };
 }
@@ -497,8 +507,9 @@ export async function buildTrackingSnapshot({ customerOrder, storeOrders = [], p
     : timelineKeyForCustomerStatus(customerOrder?.status);
   const closed = statusKey === "delivered" || statusKey === "cancelled";
   const liveTracking = Boolean(
-    trackingEnabled && primary?.assignedRiderId && LIVE_TRACKING_STATUSES.includes(primary.status)
+    trackingEnabled && primary?.assignedRiderId && RIDER_EN_ROUTE_STATUSES.includes(primary.status)
   );
+  const riderPhase = liveTracking ? riderPhaseOf(primary.status) : null;
 
   const contactOpen = !closed && primary?.status !== "delivery_failed";
   const [rider, manager] = await Promise.all([
@@ -522,23 +533,24 @@ export async function buildTrackingSnapshot({ customerOrder, storeOrders = [], p
   let eta = null;
   let route = null;
   if (trackingEnabled && !closed && destination) {
+    const cacheKey = `order:${idOf(primary) || idOf(customerOrder)}`;
+    const viaStore = riderPhase === "to_store" && lastLocation && storePoint;
     const origin = lastLocation || storePoint;
-    if (origin) {
-      const result = await getRouteAndEta({
-        cacheKey: `order:${idOf(primary) || idOf(customerOrder)}`,
-        origin,
-        destination,
-      });
-      if (result) {
-        eta = {
-          seconds: result.etaSeconds,
-          text: result.etaText,
-          distanceMeters: result.distanceMeters,
-          source: result.source,
-          fromStore: !lastLocation,
-        };
-        route = { polyline: result.polyline, source: result.source };
-      }
+    const result = viaStore
+      ? await getRouteViaStop({ cacheKey, origin: lastLocation, stop: storePoint, destination })
+      : origin
+        ? await getRouteAndEta({ cacheKey, origin, destination })
+        : null;
+    if (result) {
+      eta = {
+        seconds: result.etaSeconds,
+        text: result.etaText,
+        distanceMeters: result.distanceMeters,
+        source: result.source,
+        fromStore: !lastLocation,
+        ...(viaStore ? { toStoreSeconds: result.stopEtaSeconds } : {}),
+      };
+      route = { polyline: result.polyline, source: result.source };
     }
   }
 
@@ -565,6 +577,7 @@ export async function buildTrackingSnapshot({ customerOrder, storeOrders = [], p
     orderType,
     trackingEnabled,
     liveTracking,
+    riderPhase,
     status: statusKey,
     storeStatus: primary?.status || null,
     customerStatus: customerOrder?.status || null,

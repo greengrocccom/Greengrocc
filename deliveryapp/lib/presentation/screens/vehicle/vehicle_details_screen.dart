@@ -54,17 +54,17 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
     );
   }
 
-  String _formatVehicleType(String type) {
+  String _formatVehicleType(AppLocalizations l10n, String type) {
     final t = type.toLowerCase().trim();
-    if (t == 'motorcycle') return 'Motorcycle / Bike';
-    if (t == 'electric') return 'Electric Vehicle (EV)';
-    if (t == 'bicycle') return 'Bicycle / Cycle';
-    if (t == 'van') return 'Delivery Van / Auto';
-    if (t == 'no_vehicle') return 'Walker / On Foot';
+    if (t == 'motorcycle') return l10n.uiVehicleTypeMotorcycle;
+    if (t == 'electric') return l10n.uiVehicleTypeElectric;
+    if (t == 'bicycle') return l10n.uiVehicleTypeBicycle;
+    if (t == 'van') return l10n.uiVehicleTypeVan;
+    if (t == 'no_vehicle') return l10n.uiVehicleTypeOnFoot;
     if (type.isNotEmpty) {
       return type[0].toUpperCase() + type.substring(1);
     }
-    return 'Not Specified';
+    return l10n.uiNotSpecified;
   }
 
   String _getVehicleEmoji(String type) {
@@ -75,18 +75,22 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
     return '🛵';
   }
 
-  ({String label, StatusType type}) _docStatus(Map<String, dynamic> map, ImageProvider? image) {
+  ({String label, StatusType type}) _docStatus(
+    AppLocalizations l10n,
+    Map<String, dynamic> map,
+    ImageProvider? image,
+  ) {
     if (image == null) {
-      return (label: 'Not Uploaded', type: StatusType.pending);
+      return (label: l10n.uiNotUploaded, type: StatusType.pending);
     }
     final status = map['status']?.toString().toLowerCase() ?? '';
     if (status == 'approved' || status == 'verified') {
-      return (label: 'Verified', type: StatusType.success);
+      return (label: l10n.verified, type: StatusType.success);
     }
     if (status == 'rejected') {
-      return (label: 'Rejected', type: StatusType.error);
+      return (label: l10n.uiDocStatusRejected, type: StatusType.error);
     }
-    return (label: 'Under Review', type: StatusType.warning);
+    return (label: l10n.uiUnderReview, type: StatusType.warning);
   }
 
   @override
@@ -96,7 +100,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final rawType = boy?.vehicleType ?? '';
-    final vehicleType = _formatVehicleType(rawType);
+    final vehicleType = _formatVehicleType(l10n, rawType);
     final vehicleNumber = boy?.vehicleNumber.trim() ?? '';
     final emoji = _getVehicleEmoji(rawType);
 
@@ -113,7 +117,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
       backgroundColor: AppColors.background,
       appBar: CustomAppBar(
         title: l10n.vehicleDetails,
-        subtitle: 'Vehicle information & registered documents',
+        subtitle: l10n.uiVehicleScreenSubtitle,
         showBackButton: true,
       ),
       body: Stack(
@@ -214,7 +218,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          vehicleNumber.isNotEmpty ? vehicleNumber.toUpperCase() : 'NO PLATE NUMBER',
+                          vehicleNumber.isNotEmpty ? vehicleNumber.toUpperCase() : l10n.uiNoPlateNumber,
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -234,7 +238,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Assigned Delivery Partner Vehicle',
+                      l10n.uiAssignedPartnerVehicle,
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
@@ -278,7 +282,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Vehicle Specifications',
+                        l10n.uiVehicleSpecifications,
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
@@ -288,19 +292,19 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _specRow('Vehicle Type', vehicleType),
-                  _specRow('Registration Number', vehicleNumber.isNotEmpty ? vehicleNumber.toUpperCase() : 'Not Assigned'),
+                  _specRow(l10n.uiVehicleType, vehicleType),
+                  _specRow(l10n.registrationNumber, vehicleNumber.isNotEmpty ? vehicleNumber.toUpperCase() : l10n.uiNotAssigned),
                   _specRow(
-                    'Propulsion / Category',
+                    l10n.uiPropulsionCategory,
                     rawType.toLowerCase().contains('electric')
-                        ? 'Electric (EV)'
+                        ? l10n.uiPropulsionElectric
                         : rawType.toLowerCase().contains('bicycle')
-                            ? 'Manual Pedal'
-                            : 'Motorized / Petrol',
+                            ? l10n.uiPropulsionPedal
+                            : l10n.uiPropulsionPetrol,
                   ),
                   _specRow(
-                    'Registration Status',
-                    rcImage != null ? 'Documents Submitted' : 'Pending Documents',
+                    l10n.uiRegistrationStatus,
+                    rcImage != null ? l10n.uiDocumentsSubmitted : l10n.uiPendingDocuments,
                     isHighlight: true,
                   ),
                 ],
@@ -322,7 +326,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Vehicle Documents',
+                  l10n.vehicleDocuments,
                   style: GoogleFonts.inter(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -333,7 +337,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Government & vehicle verification documents submitted for this vehicle.',
+              l10n.uiVehicleDocsSubtitle,
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: AppColors.textSecondary,
@@ -343,33 +347,33 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
 
             // Document 1: Vehicle RC
             _buildDocCard(
-              title: 'Vehicle RC (Registration Certificate)',
-              subtitle: 'Official certificate of vehicle registration',
+              title: l10n.uiVehicleRcFull,
+              subtitle: l10n.uiVehicleRcFullSubtitle,
               icon: Icons.description_outlined,
               image: rcImage,
-              status: _docStatus(rcMap, rcImage),
+              status: _docStatus(l10n, rcMap, rcImage),
               docNumber: rcMap['number']?.toString() ?? vehicleNumber,
             ),
             const SizedBox(height: 12),
 
             // Document 2: Vehicle Insurance
             _buildDocCard(
-              title: 'Vehicle Insurance',
-              subtitle: 'Valid motor insurance policy certificate',
+              title: l10n.uiVehicleInsurance,
+              subtitle: l10n.uiVehicleInsuranceSubtitle,
               icon: Icons.security_outlined,
               image: insuranceImage,
-              status: _docStatus(insuranceMap, insuranceImage),
+              status: _docStatus(l10n, insuranceMap, insuranceImage),
               docNumber: insuranceMap['number']?.toString(),
             ),
             const SizedBox(height: 12),
 
             // Document 3: Driving Licence
             _buildDocCard(
-              title: 'Driving Licence (DL)',
-              subtitle: 'Authorized motor vehicle driving permit',
+              title: l10n.uiDrivingLicenceFull,
+              subtitle: l10n.uiDrivingLicenceFullSubtitle,
               icon: Icons.badge_outlined,
               image: licenseImage,
-              status: _docStatus(licenseMap, licenseImage),
+              status: _docStatus(l10n, licenseMap, licenseImage),
               docNumber: licenseMap['number']?.toString(),
             ),
 
@@ -394,7 +398,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Vehicle details and verification documents are managed by your Dark Store Delivery Manager. Contact your manager to update or change vehicles.',
+                      l10n.uiVehicleManagedByManager,
                       style: GoogleFonts.inter(
                         fontSize: 11.5,
                         color: AppColors.textSecondary,
@@ -519,7 +523,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                           if (docNumber != null && docNumber.trim().isNotEmpty) ...[
                             const SizedBox(height: 3),
                             Text(
-                              'Number: ${docNumber.trim().toUpperCase()}',
+                              AppLocalizations.of(context).uiDocNumber(docNumber.trim().toUpperCase()),
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -571,7 +575,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                                   const Icon(Icons.fullscreen_rounded, size: 14, color: Colors.white),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Tap to preview',
+                                    AppLocalizations.of(context).uiTapToPreview,
                                     style: GoogleFonts.inter(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,

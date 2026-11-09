@@ -1051,5 +1051,1503 @@
         "type": "String"
       }
     }
-  }
+  },
+  "delQrScannedAddressUnlocked": "QR scanned! Customer address unlocked.",
+  "delQrScannedCaptureItemPhoto": "QR scanned! Now capture item photo for manager approval.",
+  "delItemProof": "Item Proof",
+  "delItemProofSendSubtitle": "Send this photo to the manager for approval.",
+  "delSendToManager": "Send to Manager",
+  "delItemPhotoSentWaiting": "Item photo sent. Waiting for manager approval.",
+  "delCameraOpenFailed": "Could not open camera. Check permissions.",
+  "delDeliveryProof": "Delivery Proof",
+  "delDeliveryProofSendSubtitle": "Send this photo, then enter the customer OTP.",
+  "delSendPhoto": "Send Photo",
+  "delRetake": "Retake",
+  "delPhotoSendFailed": "Could not send photo. Try again.",
+  "delEmergencySent": "Emergency sent to your Delivery Manager.",
+  "delMarkedFailedNotified": "Delivery marked as failed. Manager has been notified.",
+  "delCouldNotMarkFailed": "Could not mark failed.",
+  "delDelaySent": "Delay sent to your Delivery Manager.",
+  "delCouldNotSendDelay": "Could not send the delay.",
+  "delIncorrectOtp": "Incorrect OTP",
+  "delCashConfirmFailed": "Cash confirmation failed",
+  "delPreviousQrExpired": "The previous QR expired. Tap Online again for a new QR.",
+  "delUnableToOpenPaymentQr": "Unable to open payment QR.",
+  "delPleaseTryAgain": "Please try again.",
+  "delScanToPayUpi": "Scan to pay by UPI",
+  "delPaymentQrUnavailable": "Payment QR is unavailable.",
+  "delAskCustomerScanUpi": "Ask the customer to scan with any UPI app. The amount is fixed at ₹{amount}.",
+  "@delAskCustomerScanUpi": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "delCloseQr": "Close QR",
+  "delCheckPayment": "Check payment",
+  "delCouldNotCompleteDelivery": "Could not complete delivery.",
+  "delCouldNotOpenMaps": "Could not open Google Maps. Install Maps or try again.",
+  "delStorePhoneUnavailable": "Store phone number not available.",
+  "delCustomerPhoneUnavailable": "Customer phone number not available.",
+  "delCouldNotOpenDialer": "Could not open phone dialer.",
+  "delNoActiveDelivery": "No Active Delivery",
+  "delNoActiveDeliveryHint": "Stay online on the home screen to receive automated round-robin order assignments.",
+  "delCheckForOrders": "Check For Orders",
+  "delOutForDelivery": "Out for Delivery",
+  "delAwaitingApproval": "Awaiting Approval",
+  "delWaitingForPickup": "Waiting for Pickup",
+  "delReportEmergency": "Report emergency",
+  "delPickupQrUnlocksIn": "Pickup QR unlocks in {countdown} — go to the dark store meanwhile.",
+  "@delPickupQrUnlocksIn": {
+    "placeholders": {
+      "countdown": {
+        "type": "String"
+      }
+    }
+  },
+  "delAddressUnlocksAfterPickup": "Address unlocks after dark store pickup QR is verified",
+  "delDeliverOrderBy": "Deliver this order by {time}",
+  "@delDeliverOrderBy": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "delOrderDetails": "Order Details",
+  "delPickupDarkStore": "PICKUP DARK STORE",
+  "delCallStore": "Call Store",
+  "delPickupVerifiedAddressUnlocked": "Pickup verified — customer address unlocked",
+  "delItemPhotoSentWaitingManager": "Item photo sent — waiting for manager",
+  "delQrScannedTakeItemProof": "QR scanned — take item proof below",
+  "delScanQrAtStoreToStart": "Scan QR at the store to start",
+  "delPickupQr": "Pickup QR",
+  "delSameRouteSearch": "Same-route search · {countdown}",
+  "@delSameRouteSearch": {
+    "placeholders": {
+      "countdown": {
+        "type": "String"
+      }
+    }
+  },
+  "delOrderCustomerAddress": "#{orderNumber} · Customer Address",
+  "@delOrderCustomerAddress": {
+    "placeholders": {
+      "orderNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "delCustomerAddress": "Customer Address",
+  "delViewOnMap": "View on Map",
+  "delMinutesShort": "{minutes} min",
+  "@delMinutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "delHoursShort": "{hours} hr",
+  "@delHoursShort": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "delHoursMinutesShort": "{hours} hr {minutes} min",
+  "@delHoursMinutesShort": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "delDelayPrompt": "Stuck or running late? Let your manager know.",
+  "delReportedLateCustomerUpdated": "Reported {duration} late · manager updated the customer",
+  "@delReportedLateCustomerUpdated": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "delReportedLateWaitingManager": "Reported {duration} late · waiting for manager",
+  "@delReportedLateWaitingManager": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "delUpdate": "Update",
+  "delReportDelay": "Report delay",
+  "delOrderItems": "Order Items",
+  "delGroceryPack": "Grocery Pack",
+  "delItemsAndTotal": "{count} items • ₹{amount}",
+  "@delItemsAndTotal": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "delOrderTimeline": "Order Timeline",
+  "delOrderAssigned": "Order Assigned",
+  "delOrderAssignedSubtitle": "You have been assigned a new order",
+  "delGoToStoreScanPickupQr": "Go to the store and scan the pickup QR.",
+  "delSuggestedRoute": "Suggested route · {count} deliveries",
+  "@delSuggestedRoute": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "delWaitingForManager": "Waiting for Manager",
+  "delTakeItemProof": "Take Item Proof",
+  "delCaptureDeliveryProof": "Capture Delivery Proof",
+  "delEnterOtpAndComplete": "Enter OTP & Complete",
+  "delCompleteDelivery": "Complete Delivery",
+  "delDeliveryFailed": "Delivery Failed",
+  "delEnterDeliveryOtp": "Enter delivery OTP",
+  "delAskCustomerOtpForOrder": "Ask the customer for the 4-digit OTP shown on their order #{orderNumber}.",
+  "@delAskCustomerOtpForOrder": {
+    "placeholders": {
+      "orderNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "delVerifyOtp": "Verify OTP",
+  "delCollectAmount": "Collect ₹{amount}",
+  "@delCollectAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "delPaymentBreakdownQuestion": "Items ₹{itemsTotal}  ·  Delivery fee ₹{deliveryFee}\nHow will the customer pay?",
+  "@delPaymentBreakdownQuestion": {
+    "placeholders": {
+      "itemsTotal": {
+        "type": "String"
+      },
+      "deliveryFee": {
+        "type": "String"
+      }
+    }
+  },
+  "delOnlinePayment": "Online payment",
+  "delOnlinePaymentSubtitle": "Show a UPI QR with the exact amount for the customer to scan",
+  "delCashOnDelivery": "Cash on delivery",
+  "delCashOnDeliverySubtitle": "You collected cash from the customer",
+  "delCashCollected": "Cash collected",
+  "delCashCollectedSubtitle": "Submit this cash to your dark store manager before the end of the day.",
+  "delItemTotal": "Item total",
+  "delDeliveryFee": "Delivery fee",
+  "delTotalToSubmit": "Total to submit",
+  "delAddNoteOptional": "Add a quick note for the store (optional).",
+  "delNoteHandedToCustomer": "Handed to customer",
+  "delNoteLeftAtDoor": "Left at the door",
+  "delNoteHandedToFamily": "Handed to family member",
+  "delNoteHandedToSecurity": "Handed to security",
+  "delAnythingElseOptional": "Anything else? (optional)",
+  "delMarkAsDelivered": "Mark as delivered",
+  "delNotYet": "Not yet",
+  "delReasonHeavyTraffic": "Heavy traffic",
+  "delReasonVehicleIssue": "Vehicle issue",
+  "delReasonBadWeather": "Bad weather",
+  "delReasonOtherDeliveriesFirst": "Other deliveries first",
+  "delReasonOther": "Other",
+  "delRunningLateTitle": "Delivery running late?",
+  "delRunningLateSubtitle": "Tell your Delivery Manager how late you will be. They can update the customer.",
+  "delHours": "Hours",
+  "delMinutes": "Minutes",
+  "delAddDetailsOptional": "Add details (optional)",
+  "delSendDelayWithDuration": "Send delay · {duration}",
+  "@delSendDelayWithDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "delPickADelay": "Pick a delay",
+  "delReasonCustomerNotReachable": "Customer not reachable",
+  "delReasonCustomerNotAvailable": "Customer not available",
+  "delReasonWrongAddress": "Wrong / incomplete address",
+  "delReasonCustomerRefused": "Customer refused order",
+  "delReasonFlatTyre": "Flat tyre",
+  "delReasonVehicleBreakdown": "Vehicle breakdown",
+  "delReasonHealthEmergency": "Health emergency",
+  "delReportAnEmergency": "Report an emergency",
+  "delDeliveryFailedQuestion": "Delivery failed?",
+  "delEmergencyWithParcelHint": "Your manager will be alerted. If you have the parcel, contact the store to arrange handover.",
+  "delEmergencyNoParcelHint": "Tell your manager why you can’t continue so they can assign another rider.",
+  "delFailedDeliveryHint": "Tell the store what happened. The manager and customer will be notified.",
+  "delDescribeReason": "Describe the reason",
+  "delSubmitFailedDelivery": "Submit failed delivery",
+  "delInvalidPickupQr": "Invalid pickup QR. Scan the code shown on the manager screen.",
+  "delScanPreOrderQrs": "Scan pre-order QRs",
+  "delScanPickupQr": "Scan Pickup QR",
+  "delUnlockedCount": "{count} unlocked",
+  "@delUnlockedCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "delCameraUnavailable": "Camera unavailable",
+  "delUnableToStartCamera": "Unable to start the camera.",
+  "delCameraPermissionNeeded": "Camera permission needed",
+  "delAllowCameraToScanPickup": "Allow camera access to scan the Pickup QR from the manager screen.",
+  "delAllowCamera": "Allow camera",
+  "delOpenAppSettings": "Open app settings",
+  "delScannerNotReady": "Scanner not ready",
+  "delCameraOpenError": "Something went wrong while opening the camera.",
+  "delVerifyingPickup": "Verifying pickup…",
+  "delScanEachBagHint": "Scan the QR on each bag, one by one. Each scan shows that customer's address.",
+  "delAlignQrHint": "Align the QR inside the frame. The manager shows it under Show Pickup QR.",
+  "delOrderNumberItems": "#{orderNumber} · {count} items",
+  "@delOrderNumberItems": {
+    "placeholders": {
+      "orderNumber": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "delNoItemsInOrder": "No items in this order",
+  "delItemFallback": "Item",
+  "delQty": "Qty: {qty}",
+  "@delQty": {
+    "placeholders": {
+      "qty": {
+        "type": "String"
+      }
+    }
+  },
+  "delQtyWithUnit": "Qty: {qty} {unit}",
+  "@delQtyWithUnit": {
+    "placeholders": {
+      "qty": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "delCouldNotSendItemPhoto": "Could not send item photo. Try again.",
+  "delItemProofHint": "Take a clear photo of the packed items. Manager will verify and unlock customer address.",
+  "delTapToCaptureItemPhoto": "Tap to capture item photo",
+  "delCouldNotUploadDeliveryPhoto": "Could not upload delivery photo. Try again.",
+  "delDeliveryProofHint": "Take a photo at the customer door / handed package. Then enter the customer OTP to finish.",
+  "delTapToCaptureDeliveryPhoto": "Tap to capture delivery photo",
+  "delUploadAndContinueToOtp": "Upload & Continue to OTP",
+  "delCouldNotSendEmergency": "Could not send emergency report.",
+  "delOrderOffer": "Order offer",
+  "delNewDeliveryOffer": "New delivery offer",
+  "delSecondsToRespond": "{seconds}s to respond",
+  "@delSecondsToRespond": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "delCouldNotLoadAssignedOrders": "Could not load assigned orders.",
+  "delAssignedOrders": "Assigned Orders",
+  "delOrderAssignedCountOne": "{count} order assigned",
+  "@delOrderAssignedCountOne": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "delOrdersAssignedCount": "{count} orders assigned",
+  "@delOrdersAssignedCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "delDeliveredTodayAssignedByManager": "{count} delivered today · Assigned by your Delivery Manager",
+  "@delDeliveredTodayAssignedByManager": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "delStartDelivery": "Start Delivery",
+  "delNoOrdersAssignedHint": "No orders assigned right now.\nYou will get a notification when your manager assigns one.",
+  "delDeliveredToday": "Delivered Today",
+  "delReadyForPickup": "Ready for pickup",
+  "delPickupVerified": "Pickup verified",
+  "delPreOrder": "Pre-Order",
+  "delAddressUnlocksAfterPickupVerification": "Customer address unlocks after pickup verification",
+  "delTurnOnLocationForTracking": "Turn on location to share live tracking",
+  "delLocationPermissionForTracking": "Location permission is needed to share live tracking",
+  "delTrackingNotificationTitle": "Sharing live location",
+  "delTrackingNotificationText": "The customer can follow your delivery on the map",
+  "delTrackingChannelName": "Live delivery tracking",
+  "ftDurationHours": "{hours}h",
+  "@ftDurationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "ftDurationMinutes": "{minutes}m",
+  "@ftDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "ftEveryDay": "Every day",
+  "ftPresent": "Present",
+  "ftAbsent": "Absent",
+  "ftOffDay": "Off Day",
+  "ftNotRequired": "Not Required",
+  "ftRetry": "Retry",
+  "ftRefresh": "Refresh",
+  "ftSalaryLeavePolicy": "Salary & Leave Policy",
+  "ftMonthlySalary": "Monthly Salary",
+  "ftAmountPerMonth": "{amount} / month",
+  "@ftAmountPerMonth": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ftLeaveDaysBeforeDeduction": "Leave days before deduction",
+  "ftCountPerMonth": "{count} per month",
+  "@ftCountPerMonth": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftNoLeavePolicy": "No leave policy",
+  "ftExtraLeave": "Extra Leave",
+  "ftAmountCutPerUnpaidLeave": "{amount} cut per unpaid leave",
+  "@ftAmountCutPerUnpaidLeave": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ftOneDaySalaryCutPerUnpaidLeave": "1 day salary cut per unpaid leave",
+  "ftOfflineDuringShiftCountsAsLeave": "Not going online during a scheduled shift counts as a leave.",
+  "ftThisMonth": "This Month",
+  "ftCredited": "Credited",
+  "ftBaseSalary": "Base salary",
+  "ftPresentDays": "Present days",
+  "ftPresentOfWorkingDays": "{present} of {total} working days",
+  "@ftPresentOfWorkingDays": {
+    "placeholders": {
+      "present": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "ftLeavesTaken": "Leaves taken",
+  "ftLeavesTakenBreakdown": "{taken}  ({paid} within allowance · {unpaid} extra)",
+  "@ftLeavesTakenBreakdown": {
+    "placeholders": {
+      "taken": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      },
+      "unpaid": {
+        "type": "String"
+      }
+    }
+  },
+  "ftLeaveAllowanceLeft": "Leave allowance left",
+  "ftCountOfTotal": "{count} of {total}",
+  "@ftCountOfTotal": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "ftUnpaidLeaveCut": "Unpaid leave cut ({days} × {rate})",
+  "@ftUnpaidLeaveCut": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "ftAbsentDays": "Absent days",
+  "ftNetSalary": "Net salary",
+  "ftEstimatedNetSalary": "Estimated net salary",
+  "ftUpdatesDailyWorkingDaysLeft": "Updates daily — {days} working days left this month.",
+  "@ftUpdatesDailyWorkingDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "ftFailedToLoadRules": "Failed to load rules ({code})",
+  "@ftFailedToLoadRules": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "ftCouldNotConnectServer": "Could not connect to server. Please try again.",
+  "ftFullTimeRulesPay": "Full-Time Rules & Pay",
+  "ftFullTimePartnerBadge": "FULL-TIME PARTNER",
+  "ftFixedBaseSalary": "FIXED BASE SALARY",
+  "ftPerMonthSuffix": "/ month",
+  "ftDirectMonthlyPayout": "Direct monthly payout based on daily verified store attendance",
+  "ftGeoRadius": "Geo-Radius",
+  "ftMetersCompact": "{meters}m",
+  "@ftMetersCompact": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "ftMetersValue": "{meters} m",
+  "@ftMetersValue": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "ftStorePunchIn": "Store punch-in",
+  "ftPaidLeaves": "Paid Leaves",
+  "ftDaysCount": "{count} Days",
+  "@ftDaysCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftStandard": "Standard",
+  "ftPerMonthLabel": "Per month",
+  "ftDispatch": "Dispatch",
+  "ftManager": "Manager",
+  "ftDirectAssign": "Direct assign",
+  "ftAssignedShift": "Assigned Shift",
+  "ftAssignedRosterTiming": "Assigned Roster & Timing",
+  "ftFixedShift": "FIXED SHIFT",
+  "ftWorkingDaysList": "Working Days: {days}",
+  "@ftWorkingDaysList": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "ftCurrentMonthPayroll": "Current Month Payroll Breakdown",
+  "ftCreditedBadge": "CREDITED",
+  "ftInProgressBadge": "IN PROGRESS",
+  "ftCurrentCycle": "Current Cycle",
+  "ftBaseMonthlySalary": "Base Monthly Salary",
+  "ftPresentDaysTitle": "Present Days",
+  "ftPresentOfDays": "{present} of {total} days",
+  "@ftPresentOfDays": {
+    "placeholders": {
+      "present": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "ftLeavesTakenTitle": "Leaves Taken",
+  "ftLeavesTakenDaysBreakdown": "{taken} days ({paid} paid · {unpaid} extra)",
+  "@ftLeavesTakenDaysBreakdown": {
+    "placeholders": {
+      "taken": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      },
+      "unpaid": {
+        "type": "String"
+      }
+    }
+  },
+  "ftRemainingPaidLeaves": "Remaining Paid Leaves",
+  "ftCountOfTotalLeft": "{count} of {total} left",
+  "@ftCountOfTotalLeft": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "ftLeaveDeductionCalc": "Leave Deduction ({days} × {rate})",
+  "@ftLeaveDeductionCalc": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "ftUnexcusedAbsentDays": "Unexcused Absent Days",
+  "ftFinalCreditedAmount": "Final Credited Amount",
+  "ftEstimatedNetPayout": "Estimated Net Payout",
+  "ftUpdatedDailyShiftsLeft": "• Updated daily. {count} scheduled shifts left this month.",
+  "@ftUpdatedDailyShiftsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftDailyAttendanceGeofencing": "Daily Attendance & Geofencing",
+  "ftDarkStoreGeofenceCheck": "Dark Store Geofence Check",
+  "ftGeofenceCheckDesc": "You must be physically present within {meters}m of your assigned dark store to punch in attendance.",
+  "@ftGeofenceCheckDesc": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "ftGpsLocationVerification": "GPS Location Verification",
+  "ftGpsVerificationDesc": "High-accuracy device location is verified automatically whenever you toggle online for your shift.",
+  "ftAutoCheckInOnline": "Auto Check-in on Online",
+  "ftAutoCheckInDesc": "Attendance is logged instantly when you go online during your scheduled shift window at the store.",
+  "ftStoreAttendanceGuideline": "Store Attendance Guideline",
+  "ftLeaveTermsAbsencePolicy": "Leave Terms & Absence Policy",
+  "ftPaidLeaveAllowance": "Paid Leave Allowance",
+  "ftLeavePolicy": "Leave Policy",
+  "ftPaidLeaveEntitlementDesc": "You are entitled to {count} paid leaves per calendar month without any salary deduction.",
+  "@ftPaidLeaveEntitlementDesc": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftLeavesNeedApprovalDesc": "Leaves must be approved in advance by your Store Manager.",
+  "ftUnpaidAbsenceDeductions": "Unpaid Absence Deductions",
+  "ftAmountDeductedPerLeaveDay": "{amount} is deducted per unapproved or excess leave day.",
+  "@ftAmountDeductedPerLeaveDay": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ftProratedSalaryDeductedDesc": "1 day prorated salary is deducted for each day exceeding your monthly allowance.",
+  "ftUnapprovedAbsenceDeductedDesc": "Unapproved absence will be deducted from your monthly settlement.",
+  "ftShiftAttendanceRule": "Shift Attendance Rule",
+  "ftShiftAttendanceRuleDesc": "Not going online during a scheduled shift is recorded as an absence unless approved prior.",
+  "ftOrderDispatchAssignment": "Order Dispatch & Assignment",
+  "ftDedicatedManagerDispatch": "Dedicated Store Manager Dispatch",
+  "ftManualAssignmentDesc": "Orders & pre-orders are assigned directly to you by your store manager. You do not need to hunt for open orders.",
+  "ftAssignmentModeValue": "Assignment mode: {mode}",
+  "@ftAssignmentModeValue": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "ftStoreOperationalGuidelines": "Store Operational Guidelines",
+  "ftStoreRule": "Store Rule",
+  "ftNeedAssistanceRulesPay": "Need assistance with your rules or pay?",
+  "ftReachOutStoreManagerAt": "Reach out to your Store Manager at {store}.",
+  "@ftReachOutStoreManagerAt": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "ftSpeakWithStoreManager": "Speak with your assigned Store Manager for inquiries.",
+  "ftCouldNotLoadAttendanceRetry": "Could not load attendance. Please try again.",
+  "ftMarkedAt": "Marked at {time}",
+  "@ftMarkedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "ftMetersFromStore": "{meters}m from store",
+  "@ftMetersFromStore": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "ftLateAfterCheckIn": "{duration} after check-in time",
+  "@ftLateAfterCheckIn": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "ftTodayNotWorkingDay": "Today is not a working day.",
+  "ftAttendanceNotRequired": "Attendance is not required for your shift.",
+  "ftNoAttendanceRecorded": "No attendance was recorded for this day.",
+  "ftAttendanceAutoWithinRadius": "Attendance is recorded automatically when you go online within {meters}m of the dark store.",
+  "@ftAttendanceAutoWithinRadius": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "ftAttendanceAuto": "Attendance is recorded automatically when you go online.",
+  "ftTodaysAttendance": "Today's Attendance",
+  "ftCheckIn": "Check-in",
+  "ftStoreRadius": "Store radius",
+  "ftFromStore": "From store",
+  "ftLateBy": "Late by",
+  "ftOnTime": "On time",
+  "ftWorkRules": "Work rules",
+  "ftDarkStore": "Dark Store",
+  "ftLocation": "Location",
+  "ftWithinMetersOfStore": "Within {meters}m of store",
+  "@ftWithinMetersOfStore": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "ftDaysPresent": "{count} days present",
+  "@ftDaysPresent": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftThisMonthLower": "This month",
+  "ftMonthlyAttendanceSummary": "Monthly attendance summary",
+  "ftLeave": "Leave",
+  "ftRemaining": "Remaining",
+  "ftLate": "Late",
+  "ftOffDayLegend": "Off day",
+  "ftCouldNotLoadPerformance": "Could not load performance. Pull to retry.",
+  "ftKeyRates": "Key rates",
+  "ftSinceVerification": "Since verification",
+  "ftDeclineRate": "Decline rate",
+  "ftOrderOffers": "Order offers",
+  "ftHowYouRespondedOffers": "How you responded to offers",
+  "ftNoOrderOffersYet": "No order offers yet. Go online to start receiving orders.",
+  "ftOffersLower": "offers",
+  "ftAccepted": "Accepted",
+  "ftDeclined": "Declined",
+  "ftMissed": "Missed",
+  "ftTripOutcomes": "Trip outcomes",
+  "ftDeliveredVsCancelledVsFailed": "Delivered vs cancelled vs failed",
+  "ftTripOutcomesEmpty": "Your trip outcomes will show here after your first delivery.",
+  "ftCancelled": "Cancelled",
+  "ftOnTimeDeliveries": "On-time deliveries",
+  "ftDeliveredWithin60Min": "Delivered within 60 minutes of assignment",
+  "ftTripsDelivered": "Trips delivered",
+  "ftOffersReceived": "Offers received",
+  "ftCancellationRate": "Cancellation rate",
+  "ftMissedOffers": "Missed offers",
+  "ftRatingsAppearAfter": "Customer ratings appear after customers rate your deliveries.",
+  "ftBasedOnDeliveriesSinceVerification": "Based on your deliveries since verification.",
+  "ftRatingCountOne": "{count} rating",
+  "@ftRatingCountOne": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftSinceDate": "since {date}",
+  "@ftSinceDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ftNoRatingsYet": "No ratings yet",
+  "ftNoDataYet": "No data yet",
+  "ftNotEnoughTrendData": "Not enough data for a trend yet",
+  "ftCouldNotLoadAttendancePull": "Could not load attendance. Pull to retry.",
+  "ftOnlineTime": "Online time",
+  "ftTotalTrips": "Total trips",
+  "ftShiftsBooked": "Shifts booked",
+  "ftTodaysProgress": "Today’s progress",
+  "ftOnlineHours": "Online hours",
+  "ftActiveDays": "Active days",
+  "ftShiftsCompleted": "Shifts completed",
+  "ftTripsPerDay": "Trips per day",
+  "ftOnlineHoursPerDay": "Online hours per day",
+  "ftTapBarForDetails": "Tap a bar for day details",
+  "ftNoActivityThisWeek": "No activity recorded this week",
+  "ftTripCountOne": "{count} trip",
+  "@ftTripCountOne": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftTripCountMany": "{count} trips",
+  "@ftTripCountMany": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftWeekCalendar": "Week calendar",
+  "ftTapDayForDetails": "Tap a day to see online time and trips",
+  "ftNoDaysYet": "No days to show yet.",
+  "ftNoActivity": "No activity",
+  "ftHours": "Hours",
+  "ftAvgPerOrder": "Avg / order",
+  "ftEarningPerKm": "Earning per km",
+  "ftAvgPerActiveDay": "{amount} avg / active day",
+  "@ftAvgPerActiveDay": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ftNoEarningsYetLower": "no earnings yet",
+  "ftWeeklyEarningsUnavailable": "Weekly earnings unavailable right now",
+  "ftTodaysEarningsTimeline": "Today's earnings timeline",
+  "ftCumulativeEarningsDesc": "Cumulative earnings after each delivery",
+  "ftAmountTotal": "{amount} total",
+  "@ftAmountTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ftOrderCountOne": "{count} order",
+  "@ftOrderCountOne": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftOrderCountMany": "{count} orders",
+  "@ftOrderCountMany": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "ftGigsNoBookingNeeded": "Gigs do not need booking. Go online when the gig is live to join automatically.",
+  "ftAddAtLeastOneLeaveDate": "Add at least one leave date",
+  "ftReasonRequired": "Reason is required",
+  "ftLeaveRequestSubmitted": "Leave request submitted",
+  "ftCasualLeave": "Casual leave",
+  "ftSickLeave": "Sick leave",
+  "ftEarnedLeave": "Earned leave",
+  "ftUnpaidLeave": "Unpaid leave",
+  "ftLeaveTypeGeneric": "{type} leave",
+  "@ftLeaveTypeGeneric": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "ftApproved": "Approved",
+  "ftRejected": "Rejected",
+  "ftApplyLeave": "Apply Leave",
+  "ftApplyLeaveSubtitle": "Request time off with one or more dates",
+  "ftTypeOfLeave": "Type of leave",
+  "ftLeaveTypeCasual": "Casual",
+  "ftLeaveTypeSick": "Sick",
+  "ftLeaveTypeEarned": "Earned",
+  "ftLeaveTypeUnpaid": "Unpaid",
+  "ftReason": "Reason",
+  "ftReasonHint": "Why do you need leave?",
+  "ftLeaveDates": "Leave dates",
+  "ftLeaveDatesHint": "Add one or more dates. Non-continuous days supported.",
+  "ftAddDate": "Add date",
+  "ftSubmitting": "Submitting…",
+  "ftSubmitLeaveRequest": "Submit leave request",
+  "ftMyLeaveRequests": "My leave requests",
+  "ftNoLeaveRequestsYet": "No leave requests yet.",
+  "ftAdminNote": "Admin note: {note}",
+  "@ftAdminNote": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "ftCouldNotSubmitLeave": "Could not submit leave",
+  "ftRequestFailed": "Request failed ({code})",
+  "@ftRequestFailed": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "ftCouldNotMarkAttendance": "Could not mark attendance",
+  "ftKmRange": "{min} – {max} KM",
+  "@ftKmRange": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "pkStatusReadyForPickup": "Ready for pickup",
+  "pkStatusOnTheWayToFarm": "On the way to farm",
+  "pkStatusReachedFarm": "Reached the farm",
+  "pkStatusOrderChecked": "Order checked",
+  "pkStatusQrVerified": "QR verified",
+  "pkStatusPickupConfirmed": "Pickup confirmed",
+  "pkStatusOnTheWayToCentre": "On the way to centre",
+  "pkStatusAtCollectionCentre": "At collection centre",
+  "pkStatusReceived": "Received",
+  "pkStepAcceptOrReject": "Accept or reject",
+  "pkHintOpenToAcceptOrReject": "Open pickup to accept or reject",
+  "pkStepLeftForPickup": "Left for pickup",
+  "pkHintStatusWillBecome": "Status will become {status}",
+  "@pkHintStatusWillBecome": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "pkStepCheckOrder": "Check order",
+  "pkHintOpenToVerifyOrder": "Open pickup to verify the order",
+  "pkStepScanFarmerQr": "Scan Farmer QR",
+  "pkHintOpenToScanQr": "Open pickup to scan QR",
+  "pkStepConfirmPickup": "Confirm pickup",
+  "pkHintOpenToConfirmWithPhoto": "Open pickup to confirm with photo",
+  "pkStepReachedCollectionCentre": "Reached collection centre",
+  "pkUnitKg": "Kg",
+  "pkUnitGram": "g",
+  "pkUnitQuintal": "Quintal",
+  "pkUnitTon": "Ton",
+  "pkUnitCrate": "Crate",
+  "pkUnitBox": "Box",
+  "pkUnitBag": "Bag",
+  "pkUnitPiece": "Piece",
+  "pkUnitDozen": "Dozen",
+  "pkUnitBunch": "Bunch",
+  "pkGradeValue": "Grade {grade}",
+  "@pkGradeValue": {
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      }
+    }
+  },
+  "pkProduce": "Produce",
+  "pkOrdersCount": "{count} orders",
+  "@pkOrdersCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "pkDriver": "Driver",
+  "pkLoginFailed": "Login failed",
+  "pkSessionExpired": "Session expired",
+  "pkRequestFailed": "Request failed ({code})",
+  "@pkRequestFailed": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "pkNewPickupAssigned": "New pickup assigned",
+  "pkCopiedValue": "Copied {value}",
+  "@pkCopiedValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pkTotal": "Total",
+  "pkClose": "Close",
+  "pkNoQr": "No QR",
+  "pkOrderQr": "Order QR",
+  "pkScanToViewOrderDetails": "Scan to view order details",
+  "pkBatchQr": "Batch QR",
+  "pkScanToViewBatchDetails": "Scan to view all batch details",
+  "pkTotalWeightOrdered": "Total weight (ordered)",
+  "pkPackedWeight": "Packed weight",
+  "pkPackages": "Packages",
+  "pkOrderValue": "Order value",
+  "pkPickups": "Pickups",
+  "pkLeave": "Leave",
+  "pkJustNow": "Just now",
+  "pkMinutesAgo": "{minutes} min ago",
+  "@pkMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "pkHoursAgo": "{hours} h ago",
+  "@pkHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "pkNotificationsEmpty": "No notifications yet.\nNew pickups assigned by your vendor will appear here.",
+  "pksRejectPickupTitle": "Reject this pickup?",
+  "pksRejectPickupBody": "It will go back to the vendor to assign another driver.",
+  "pksReasonOptional": "Reason (optional)",
+  "pksPickupRejectedSent": "Pickup rejected and sent back to the vendor.",
+  "pksPickupAccepted": "Pickup accepted.",
+  "pksPickupAcceptedHint": "Pickup accepted. Tap \"Left for pickup\" when you leave.",
+  "pksLeftForPickup": "Left for pickup.",
+  "pksLeftForPickupOnTheWay": "Left for pickup — On the way",
+  "pksLeftForPickupStatus": "Left for pickup. Status is On the way to farm.",
+  "pksReachedFarmDone": "Reached the farm.",
+  "pksReachedFarmButton": "Reached the farm",
+  "pksOrderChecked": "Order checked.",
+  "pksQrVerifiedSuccess": "QR Verified Successfully",
+  "pksQrVerifiedCheckItems": "QR verified — check the items",
+  "pksMatchItemsBeforeConfirm": "Match every item, grade and weight with the farmer before confirming.",
+  "pksItemsMatchConfirm": "Items match — confirm pickup",
+  "pksLater": "Later",
+  "pksPickupConfirmedStatus": "Pickup confirmed. Status is PICKED UP.",
+  "pksCouldNotOpenDialer": "Could not open dialer",
+  "pksCouldNotOpenMap": "Could not open map",
+  "pksOrderTitle": "Order {id}",
+  "@pksOrderTitle": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "pksNewPickupAssignedToYou": "New pickup assigned to you",
+  "pksAcceptOrRejectHint": "Check the details and items below, then accept to start this pickup or reject to send it back to the vendor.",
+  "pksYourCurrentStatus": "YOUR CURRENT STATUS",
+  "pksNextStep": "Next: {step}",
+  "@pksNextStep": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "pksUpdateStepHint": "Update the step below so farmer, manager and vendor can see what you are doing.",
+  "pksLotBatchId": "Lot / Batch ID",
+  "pksShowBatchQr": "Show batch QR",
+  "pksShowOrderQr": "Show order QR",
+  "pksPickupProgress": "Pickup progress",
+  "pksPickupDetails": "Pickup details",
+  "pksOrderId": "Order ID",
+  "pksFarmerName": "Farmer Name",
+  "pksFarmerLocation": "Farmer Location",
+  "pksProduct": "Product",
+  "pksQuantity": "Quantity",
+  "pksPackageCount": "Package Count",
+  "pksPickupDateTime": "Pickup Date/Time",
+  "pksPickupInstructions": "Pickup Instructions",
+  "pksDefaultPickupInstructions": "Follow farm access and packing notes.",
+  "pksCallFarmer": "Call Farmer",
+  "pksViewLocation": "View Location",
+  "pksItemsToCollect": "Items to collect",
+  "pksCheckItemsThenScan": "Check each item, grade and weight with the farmer, then scan the Farmer QR.",
+  "pksDriverArrivedAtPickup": "Driver has arrived at pickup location.",
+  "pksOrderVerification": "Order verification",
+  "pksProductName": "Product Name",
+  "pksVariety": "Variety",
+  "pksGrade": "Grade",
+  "pksOrderedQuantity": "Ordered Quantity",
+  "pksPackedQuantity": "Packed Quantity",
+  "pksPickupLocation": "Pickup Location",
+  "pksCheckOrder": "Check Order",
+  "pksOrderCheckedScanNext": "Order checked. Scan Farmer QR next.",
+  "pksScanFarmerQr": "Scan Farmer QR",
+  "pksScanQrToVerifyOrder": "Scan the QR shown by the farmer to verify this order.",
+  "pksAtFarmScanHint": "At the farm? Scanning the Farmer QR marks you as reached, checks the order and verifies the QR in one step.",
+  "pksOpenCameraAndScan": "Open camera & scan",
+  "pksOrPasteFarmerQr": "Or paste the scanned Farmer QR value:",
+  "pksPasteFarmerQr": "Paste Farmer QR",
+  "pksVerify": "Verify",
+  "pksOrderSummary": "Order summary",
+  "pksFarmer": "Farmer",
+  "pksDriver": "Driver",
+  "pksVehicleNumber": "Vehicle Number",
+  "pksConfirmOrderPickup": "Confirm order pickup",
+  "pksPickupConfirmedFromFarmer": "Pickup confirmed from farmer.",
+  "pksOnTheWayToCentre": "On the way to centre",
+  "pksOnTheWayToCentreDone": "On the way to centre.",
+  "pksReachedCollectionCentre": "Reached collection centre",
+  "pksAtCollectionCentre": "At collection centre.",
+  "pksWaitingForCentreReceiving": "At collection centre. Waiting for centre receiving.",
+  "pksReceivedAtCentre": "Received at collection centre.",
+  "pksCopiedValue": "Copied {value}",
+  "@pksCopiedValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pksPhotoTooLarge": "Photo is too large. Try again.",
+  "pksCouldNotGetPhoto": "Could not get photo: {error}",
+  "@pksCouldNotGetPhoto": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pksConfirmPickup": "Confirm Pickup",
+  "pksConfirmReceivedQuestion": "Confirm that you have received this order from the farmer?",
+  "pksPickupPhotosCount": "Pickup photos ({count}/{max})",
+  "@pksPickupPhotosCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "pksTakeLivePhotoHint": "Take a live photo of the goods (at least 1, up to 4).",
+  "pksGallery": "Gallery",
+  "pksPickupOrders": "Pickup Orders",
+  "pksAssignedSubtitle": "Update status when you leave for the farm.",
+  "pksNoAssignedPickups": "No assigned pickups.",
+  "pksProgressSubtitle": "On the way, at farm, confirming, or returning to the centre.",
+  "pksNoPickupsInProgress": "No pickups in progress.",
+  "pksCompletedSubtitle": "Received at the collection centre.",
+  "pksNoCompletedPickups": "No completed pickups.",
+  "pksHistorySubtitle": "Finished pickups at the collection centre.",
+  "pksNoPickupHistory": "No pickup history yet.",
+  "pksPackagesCount": "{count} pkgs",
+  "@pksPackagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "pksShowQr": "Show QR",
+  "pksOrdersInBatchOne": "{count} order in this batch",
+  "@pksOrdersInBatchOne": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "pksOrdersInBatchMany": "{count} orders in this batch",
+  "@pksOrdersInBatchMany": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "pksDriverId": "Driver ID",
+  "pksVehicleId": "Vehicle ID",
+  "pksBatchDetails": "Batch details",
+  "pksOverview": "Overview",
+  "pksNoQr": "No QR",
+  "pksTapQrToEnlarge": "Tap the QR to enlarge",
+  "pksCollectionCentre": "Collection Centre",
+  "pksDriverMobile": "Driver Mobile",
+  "pksFarmers": "Farmers",
+  "pksProducts": "Products",
+  "pksOrdersInBatchTitle": "Orders in this batch ({count})",
+  "@pksOrdersInBatchTitle": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "pksNoOrders": "No orders",
+  "pksLeaveCasual": "Casual",
+  "pksLeaveSick": "Sick",
+  "pksLeaveEarned": "Earned",
+  "pksLeaveUnpaid": "Unpaid",
+  "pksLeaveTypeTitle": "{type} leave",
+  "@pksLeaveTypeTitle": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "pksAddLeaveDateError": "Add at least one leave date",
+  "pksEnterReasonError": "Please enter a reason",
+  "pksLeaveSubmitted": "Leave request submitted",
+  "pksApplyForLeave": "Apply for leave",
+  "pksLeaveIntro": "Pickup drivers can request leave with one or more dates.",
+  "pksTypeOfLeave": "Type of leave",
+  "pksReason": "Reason",
+  "pksLeaveReasonHint": "Why do you need leave?",
+  "pksLeaveDates": "Leave dates",
+  "pksLeaveDatesHint": "Add one or more dates. Non-continuous days are supported.",
+  "pksAddDate": "Add date",
+  "pksSubmitLeaveRequest": "Submit leave request",
+  "pksMyLeaveRequests": "My leave requests",
+  "pksNoLeaveRequests": "No leave requests yet.",
+  "pksLeaveApproved": "Approved",
+  "pksLeaveRejected": "Rejected",
+  "pksAdminNote": "Admin note: {note}",
+  "@pksAdminNote": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "pksScanQrShownByFarmer": "Scan the QR shown by the farmer",
+  "pksQrNoMatch": "This QR does not match any of your open pickups.",
+  "pksPickupDriverUpper": "PICKUP DRIVER",
+  "pksHomeSubtitle": "Farm pickups to the collection centre",
+  "pksLatestCount": "Latest {count}",
+  "@pksLatestCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "pksViewAll": "View all",
+  "pksNoRecentPickups": "No recent pickups",
+  "pksNextUp": "NEXT UP",
+  "pksOpenPickup": "Open pickup",
+  "pksNewPickupAssigned": "New pickup assigned",
+  "pksDismiss": "Dismiss",
+  "pksPickupWhen": "Pickup {when}",
+  "@pksPickupWhen": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "pksLogOutTitle": "Log out?",
+  "pksLogOutBody": "You will need your mobile and password to log in again.",
+  "pksLogOut": "Log out",
+  "pksProfileRole": "Pickup Driver · Farm → Collection centre",
+  "pksMobile": "Mobile",
+  "pksArea": "Area",
+  "pksPolicies": "Policies",
+  "pksNoPolicies": "No policies published yet.",
+  "pksPolicy": "Policy",
+  "pksStatusInactive": "Inactive",
+  "pksTryAgain": "Try again",
+  "pksCameraUnavailable": "Camera unavailable",
+  "pksCameraStartFailed": "Unable to start the camera. Go back and paste the QR value instead.",
+  "pksCameraPermissionNeeded": "Camera permission needed",
+  "pksAllowCameraToScan": "Allow camera access to scan the Farmer QR.",
+  "pksOpenAppSettings": "Open app settings",
+  "pksPointCameraHint": "Point the camera at the Farmer QR shown by the farmer.",
+  "svcDarkStore": "Dark Store",
+  "svcNearby": "nearby",
+  "svcScanStoreQrToUnlock": "Scan Store QR to Unlock",
+  "svcPreOrder": "Pre-order",
+  "svcNotPickupQr": "This is not a pickup QR",
+  "svcOrderUnlocked": "Order unlocked",
+  "svcCouldNotVerifyQr": "Could not verify this QR",
+  "svcNetworkErrorTryAgain": "Network error — try again",
+  "svcNetworkError": "Network error. Please try again.",
+  "svcIncorrectOtp": "Incorrect OTP. Ask the customer for their order OTP.",
+  "svcCouldNotMarkFailed": "Could not mark delivery as failed.",
+  "svcCouldNotSendDelay": "Could not send the delay.",
+  "svcCouldNotUploadDeliveryPhoto": "Could not upload delivery photo.",
+  "svcOtpVerificationFailed": "OTP verification failed",
+  "svcCashConfirmationFailed": "Cash confirmation failed",
+  "svcCouldNotCheckRazorpay": "Could not check Razorpay. Please try again.",
+  "svcInvalidReturnQr": "Invalid return QR",
+  "svcPhotoUploadFailed": "Photo upload failed",
+  "svcCouldNotMarkReturnedToStore": "Could not mark returned to store",
+  "svcFailedToSendOtp": "Failed to send OTP ({code})",
+  "@svcFailedToSendOtp": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "svcLoginAgainForOnboarding": "Please login again to continue onboarding",
+  "svcCouldNotSaveOnboarding": "Could not save onboarding data ({code})",
+  "@svcCouldNotSaveOnboarding": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "svcCouldNotUpdateStatus": "Could not update status",
+  "svcCannotReachServerAt": "Cannot reach {url}",
+  "@svcCannotReachServerAt": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "svcCouldNotLoadAreas": "Could not load areas ({code})",
+  "@svcCouldNotLoadAreas": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "svcUnableToReachServer": "Unable to reach server",
+  "svcAuthenticationFailed": "Authentication failed",
+  "svcInvalidServerResponse": "Invalid server response",
+  "svcLocationVerificationComplete": "Location verification complete",
+  "svcCannotVerifyLocation": "Cannot verify location. Please check server connection.",
+  "svcStoreGig": "Store Gig",
+  "svcNewDeliveryOffer": "New Delivery Offer!",
+  "svcEarnAmount": "Earn ₹{amount}",
+  "@svcEarnAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "svcOfferForOrder": "New delivery offer for Order #{number}. Tap to review and accept!",
+  "@svcOfferForOrder": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "svcOfferAvailable": "New delivery offer available. Tap to review and accept!",
+  "svcProfileVerifiedBody": "Your profile has been verified! You can now go online and receive orders.",
+  "svcVerificationStatusUpdate": "Verification Status Update",
+  "svcReviewVerificationDetails": "Please review your verification details in the app.",
+  "svcGreenGrocAlert": "GreenGroc Alert",
+  "svcGreenGrocDelivery": "GreenGroc Delivery",
+  "svcDurationMinutes": "{minutes} minute",
+  "@svcDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "svcDurationHours": "{hours} hr",
+  "@svcDurationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "svcDurationHoursMinutes": "{hours} hr {minutes} minute",
+  "@svcDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "uiAssignedOrders": "Assigned Orders",
+  "uiMyRules": "My Rules",
+  "uiApplyLeave": "Apply Leave",
+  "uiRetry": "Retry",
+  "uiUnread": "Unread",
+  "uiWelcomeTitle": "Welcome to\nDelivery Partner",
+  "uiWelcomeSubtitle": "Deliver orders. Earn on your time.\nBe your own boss.",
+  "uiByContinuingAgreePrefix": "By continuing, you agree to our\n",
+  "uiByContinuingAgreeSuffix": ".",
+  "uiRegistrationSuccessful": "Registration Successful!",
+  "uiRegistrationSuccessBody": "Your application has been submitted\nsuccessfully. We will verify your\ndocuments and notify you soon.",
+  "uiSelectState": "Select State",
+  "uiSelectStateSubtitle": "Please select your state",
+  "uiSearchState": "Search state",
+  "uiSelectCityIn": "Please select your city in {state}",
+  "@uiSelectCityIn": {
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "uiSelectCitySubtitle": "Please select your city",
+  "uiNoCitiesFound": "No cities found",
+  "uiSelectAreaIn": "Please select your area in {city}",
+  "@uiSelectAreaIn": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "uiSelectAreaSubtitle": "Please select your area",
+  "uiFetchingDarkStore": "Fetching Dark Store location details...",
+  "uiCouldNotCheckDarkStores": "Could not check dark stores",
+  "uiCheckConnectionTryAgain": "Check your connection and try again.",
+  "uiActiveHub": "ACTIVE HUB",
+  "uiPinCode": "PIN {pincode}",
+  "@uiPinCode": {
+    "placeholders": {
+      "pincode": {
+        "type": "String"
+      }
+    }
+  },
+  "uiStoreManagerContact": "Store Manager Contact: {phone}",
+  "@uiStoreManagerContact": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "uiNoDarkStoreRegistered": "No Dark Store Registered",
+  "uiNoHubRegistered": "NO HUB REGISTERED",
+  "uiNoDarkStoreInArea": "No delivery manager has registered a dark store hub in {area} yet.",
+  "@uiNoDarkStoreInArea": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "uiEmploymentType": "Employment Type",
+  "uiPartTime": "Part-Time",
+  "uiPartTimeSubtitle": "Flexible shifts — work when you want",
+  "uiFullTime": "Full-Time",
+  "uiFullTimeSubtitle": "Fixed shifts — stable monthly salary",
+  "uiProfileDetails": "Profile Details",
+  "uiProfileDetailsSubtitle": "Tell us more about yourself",
+  "uiEmailOptional": "Email (Optional)",
+  "uiEmailAddress": "Email Address",
+  "uiDateOfBirth": "Date of Birth",
+  "uiDateHint": "DD/MM/YYYY",
+  "uiEmergencyContact": "Emergency Contact",
+  "uiEmergencyContactMobile": "Emergency Contact Mobile",
+  "uiReviewSubmit": "Review & Submit",
+  "uiReviewSubmitSubtitle": "Please review your details before\nsubmitting",
+  "uiLocation": "Location",
+  "uiDocDl": "DL",
+  "uiDocRc": "RC",
+  "uiConfirmDetailsCorrect": "I confirm that all the above details\nare correct.",
+  "uiSubmit": "Submit",
+  "uiDocsSafeSecure": "Your documents are safe and secure with us.",
+  "uiUploading": "Uploading…",
+  "uiUploaded": "Uploaded",
+  "uiDocsTapToView": "Tap a photo to view full size",
+  "uiDocsViewOnly": "Documents are view-only. Contact your Delivery Manager to update them.",
+  "uiUploadedDocuments": "Uploaded documents",
+  "uiNotUploaded": "Not uploaded",
+  "uiDocPassport": "Passport",
+  "uiDocStatusApproved": "Approved",
+  "uiDocStatusRejected": "Rejected",
+  "uiUnderReview": "Under Review",
+  "uiVehicleScreenSubtitle": "Vehicle information & registered documents",
+  "uiVehicleTypeMotorcycle": "Motorcycle / Bike",
+  "uiVehicleTypeElectric": "Electric Vehicle (EV)",
+  "uiVehicleTypeBicycle": "Bicycle / Cycle",
+  "uiVehicleTypeVan": "Delivery Van / Auto",
+  "uiVehicleTypeOnFoot": "Walker / On Foot",
+  "uiNotSpecified": "Not Specified",
+  "uiNoPlateNumber": "NO PLATE NUMBER",
+  "uiAssignedPartnerVehicle": "Assigned Delivery Partner Vehicle",
+  "uiVehicleSpecifications": "Vehicle Specifications",
+  "uiVehicleType": "Vehicle Type",
+  "uiNotAssigned": "Not Assigned",
+  "uiPropulsionCategory": "Propulsion / Category",
+  "uiPropulsionElectric": "Electric (EV)",
+  "uiPropulsionPedal": "Manual Pedal",
+  "uiPropulsionPetrol": "Motorized / Petrol",
+  "uiRegistrationStatus": "Registration Status",
+  "uiDocumentsSubmitted": "Documents Submitted",
+  "uiPendingDocuments": "Pending Documents",
+  "uiVehicleDocsSubtitle": "Government & vehicle verification documents submitted for this vehicle.",
+  "uiVehicleRcFull": "Vehicle RC (Registration Certificate)",
+  "uiVehicleRcFullSubtitle": "Official certificate of vehicle registration",
+  "uiVehicleInsurance": "Vehicle Insurance",
+  "uiVehicleInsuranceSubtitle": "Valid motor insurance policy certificate",
+  "uiDrivingLicenceFull": "Driving Licence (DL)",
+  "uiDrivingLicenceFullSubtitle": "Authorized motor vehicle driving permit",
+  "uiVehicleManagedByManager": "Vehicle details and verification documents are managed by your Dark Store Delivery Manager. Contact your manager to update or change vehicles.",
+  "uiDocNumber": "Number: {number}",
+  "@uiDocNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "uiTapToPreview": "Tap to preview"
 }

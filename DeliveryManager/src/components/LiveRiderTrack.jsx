@@ -1,7 +1,12 @@
-import { mapsLink, osmEmbedUrl } from "../hooks/useRiderLiveLocations";
+import { Suspense, lazy } from "react";
+import { useAuth } from "../context/AuthContext";
+import { mapsLink } from "../hooks/useRiderLiveLocations";
+
+const DeliveryTrackingMap = lazy(() => import("./tracking/DeliveryTrackingMap"));
 
 /**
- * Live tracking card — only while order is in progress (not delivered).
+ * Live tracking card — only while order is in progress (not delivered): the dark store,
+ * the customer's drop pin and the rider moving on one map.
  */
 export default function LiveRiderTrack({
   riderName,
@@ -11,10 +16,15 @@ export default function LiveRiderTrack({
   customerLng,
   statusLabel,
 }) {
+  const { manager } = useAuth();
   const lat = location?.lat;
   const lng = location?.lng;
   const hasRider = Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
-  const embed = hasRider ? osmEmbedUrl(Number(lat), Number(lng)) : null;
+  const store =
+    manager?.latitude != null && manager?.longitude != null
+      ? { lat: manager.latitude, lng: manager.longitude, name: manager.storeName }
+      : null;
+  const destination = customerLat != null && customerLng != null ? { lat: customerLat, lng: customerLng } : null;
   const riderMaps = hasRider ? mapsLink(Number(lat), Number(lng)) : null;
   const customerMaps =
     customerLat != null && customerLng != null
@@ -43,7 +53,7 @@ export default function LiveRiderTrack({
             ) : null}
           </p>
           <p className="mt-0.5 text-xs font-semibold text-sky-800">
-            {statusLabel || "In progress"} · updates only when rider GPS moves
+            {statusLabel || "In progress"} · rider moves live on the map
           </p>
         </div>
         {updated ? (
@@ -57,15 +67,16 @@ export default function LiveRiderTrack({
         )}
       </div>
 
-      {embed ? (
-        <div className="mt-4 overflow-hidden rounded-xl border border-sky-200 bg-white">
-          <iframe
-            title="Rider live map"
-            src={embed}
-            className="h-56 w-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+      {hasRider || store || destination ? (
+        <div className="mt-4">
+          <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-sky-100" />}>
+            <DeliveryTrackingMap store={store} destination={destination} rider={hasRider ? location : null} className="h-64" />
+          </Suspense>
+          <div className="mt-2 flex flex-wrap gap-3 text-[11px] font-semibold text-slate-500">
+            <span>🏪 Store</span>
+            <span>🏠 Customer</span>
+            <span>🛵 Rider {hasRider ? "(live)" : "(waiting for GPS)"}</span>
+          </div>
         </div>
       ) : (
         <p className="mt-3 text-xs text-slate-600">

@@ -134,7 +134,7 @@ function LiveTrackingMap({ driver, store, destination, route = [], etaText, dist
   useEffect(() => {
     if (!ready) return;
     const maps = mapsRef.current;
-    setMarker("store", shownRef.current || driver ? null : store, STORE_ICON, 32, 1);
+    setMarker("store", store, STORE_ICON, 32, 1);
     setMarker("destination", destination, HOME_ICON, 36, 2);
 
     overlaysRef.current.halo?.setMap(null);
@@ -151,32 +151,39 @@ function LiveTrackingMap({ driver, store, destination, route = [], etaText, dist
         })
       : null;
 
-    (overlaysRef.current.route || []).forEach((line) => line.setMap(null));
     const origin = shownRef.current || driver || store;
     const path = route.length > 1 ? [...route] : [];
     if (path.length && origin && metersBetween(origin, path[0]) > 10) path.unshift(origin);
     if (path.length && destination && metersBetween(destination, path[path.length - 1]) > 10) path.push(destination);
-    overlaysRef.current.route = path.length > 1
-      ? [
-          { color: GREEN_LIGHT, opacity: 0.25, weight: 12 },
-          { color: GREEN_DARK, opacity: 1, weight: 7 },
-          { color: GREEN_LIGHT, opacity: 1, weight: 3.5 },
-        ].map(
-          (style, index) =>
-            new maps.Polyline({
-              map: mapRef.current,
-              path,
-              strokeColor: style.color,
-              strokeOpacity: style.opacity,
-              strokeWeight: style.weight,
-              zIndex: index,
-              clickable: false,
-            })
-        )
-      : [];
-
-    fitCamera();
+    const lines = overlaysRef.current.route || [];
+    if (path.length > 1 && lines.length) {
+      lines.forEach((line) => line.setPath(path));
+    } else {
+      lines.forEach((line) => line.setMap(null));
+      overlaysRef.current.route = path.length > 1
+        ? [
+            { color: GREEN_LIGHT, opacity: 0.25, weight: 12 },
+            { color: GREEN_DARK, opacity: 1, weight: 7 },
+            { color: GREEN_LIGHT, opacity: 1, weight: 3.5 },
+          ].map(
+            (style, index) =>
+              new maps.Polyline({
+                map: mapRef.current,
+                path,
+                strokeColor: style.color,
+                strokeOpacity: style.opacity,
+                strokeWeight: style.weight,
+                zIndex: index,
+                clickable: false,
+              })
+          )
+        : [];
+    }
   }, [ready, store, destination, route]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (ready) fitCamera();
+  }, [ready, store, destination, route.length > 1]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!ready) return;
@@ -186,10 +193,8 @@ function LiveTrackingMap({ driver, store, destination, route = [], etaText, dist
     if (!driver) {
       shownRef.current = null;
       setMarker("rider", null);
-      setMarker("store", store, STORE_ICON, 32, 1);
       return;
     }
-    setMarker("store", null);
 
     if (!from || metersBetween(from, driver) > 2000) {
       shownRef.current = driver;
@@ -208,6 +213,7 @@ function LiveTrackingMap({ driver, store, destination, route = [], etaText, dist
       shownRef.current = position;
       setMarker("rider", position, RIDER_ICON, 44, 3);
       if (t < 1) animationRef.current = requestAnimationFrame(step);
+      else if (!mapRef.current.getBounds()?.contains(position)) fitCamera();
     };
     animationRef.current = requestAnimationFrame(step);
   }, [ready, driver?.lat, driver?.lng]); // eslint-disable-line react-hooks/exhaustive-deps

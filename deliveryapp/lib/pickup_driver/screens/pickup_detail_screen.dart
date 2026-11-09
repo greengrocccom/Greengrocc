@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../pickup_driver_service.dart';
 import '../pickup_flow.dart';
 import '../pickup_push_service.dart';
@@ -113,18 +114,19 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
       : widget.pickupId;
 
   Future<void> _reject() async {
+    final l10n = AppLocalizations.of(context);
     final reasonCtrl = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        title: const Text('Reject this pickup?'),
+        title: Text(l10n.pksRejectPickupTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'It will go back to the vendor to assign another driver.',
+              l10n.pksRejectPickupBody,
               style: pickupText(13, color: PickupColors.muted),
             ),
             const SizedBox(height: 12),
@@ -133,7 +135,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
               maxLength: 300,
               maxLines: 2,
               decoration: InputDecoration(
-                hintText: 'Reason (optional)',
+                hintText: l10n.pksReasonOptional,
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
@@ -143,12 +145,12 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reject',
-                style: TextStyle(color: Color(0xFFDC2626))),
+            child: Text(l10n.reject,
+                style: const TextStyle(color: Color(0xFFDC2626))),
           ),
         ],
       ),
@@ -163,7 +165,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
     try {
       await _svc.reject(_id, reason: reason);
       if (!mounted) return;
-      showPickupSnack(context, 'Pickup rejected and sent back to the vendor.');
+      showPickupSnack(context, l10n.pksPickupRejectedSent);
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -178,15 +180,16 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
   Future<void> _verifyQr(String value) async {
     final v = value.trim();
     if (v.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
     if (needsAcceptance(_pickup)) {
-      final ok = await _run(() => _svc.accept(_id), 'Pickup accepted.');
+      final ok = await _run(() => _svc.accept(_id), l10n.pksPickupAccepted);
       if (!ok || !mounted) return;
     }
-    const steps = <String, (String, String)>{
-      'DRIVER_ASSIGNED': ('start', 'Left for pickup.'),
-      'PICKUP_SCHEDULED': ('start', 'Left for pickup.'),
-      'DISPATCHED': ('arrive', 'Reached the farm.'),
-      'DRIVER_ARRIVED': ('check', 'Order checked.'),
+    final steps = <String, (String, String)>{
+      'DRIVER_ASSIGNED': ('start', l10n.pksLeftForPickup),
+      'PICKUP_SCHEDULED': ('start', l10n.pksLeftForPickup),
+      'DISPATCHED': ('arrive', l10n.pksReachedFarmDone),
+      'DRIVER_ARRIVED': ('check', l10n.pksOrderChecked),
     };
     for (var i = 0; i < 3; i++) {
       final before = str(_pickup?['status']);
@@ -204,7 +207,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
       if (str(_pickup?['status']) == before) break;
     }
     final ok = await _run(
-        () => _svc.verifyQr(_id, v), 'QR Verified Successfully');
+        () => _svc.verifyQr(_id, v), l10n.pksQrVerifiedSuccess);
     if (!ok || !mounted) return;
     _qrController.clear();
     await _showVerifiedItems();
@@ -213,6 +216,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
   Future<void> _showVerifiedItems() async {
     final p = _pickup;
     if (p == null) return;
+    final l10n = AppLocalizations.of(context);
     final confirm = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -236,27 +240,27 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
                         color: PickupColors.brand, size: 28),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text('QR verified — check the items',
+                      child: Text(l10n.pksQrVerifiedCheckItems,
                           style: pickupText(17, weight: FontWeight.w800)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${pickupOrderId(p)} · ${str(p['farmerName'])}\nMatch every item, grade and weight with the farmer before confirming.',
+                  '${pickupOrderId(p)} · ${str(p['farmerName'])}\n${l10n.pksMatchItemsBeforeConfirm}',
                   style: pickupText(12.5, color: PickupColors.muted),
                 ),
                 const SizedBox(height: 12),
                 PickupItemsTable(pickup: p),
                 const SizedBox(height: 16),
                 PickupButton(
-                  label: 'Items match — confirm pickup',
+                  label: l10n.pksItemsMatchConfirm,
                   icon: Icons.photo_camera_outlined,
                   onPressed: () => Navigator.pop(ctx, true),
                 ),
                 const SizedBox(height: 8),
                 PickupButton(
-                  label: 'Later',
+                  label: l10n.pksLater,
                   outlined: true,
                   onPressed: () => Navigator.pop(ctx, false),
                 ),
@@ -278,6 +282,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
 
   Future<void> _openConfirm() async {
     final p = _pickup!;
+    final l10n = AppLocalizations.of(context);
     final photos = await showModalBottomSheet<List<String>>(
       context: context,
       isScrollControlled: true,
@@ -288,14 +293,14 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
       builder: (_) => _ConfirmPickupSheet(pickup: p),
     );
     if (photos == null || photos.isEmpty || !mounted) return;
-    await _run(() => _svc.confirm(_id, photos),
-        'Pickup confirmed. Status is PICKED UP.');
+    await _run(() => _svc.confirm(_id, photos), l10n.pksPickupConfirmedStatus);
   }
 
   Future<void> _call(String mobile) async {
     final uri = Uri(scheme: 'tel', path: mobile);
     if (!await launchUrl(uri) && mounted) {
-      showPickupSnack(context, 'Could not open dialer', error: true);
+      showPickupSnack(context, AppLocalizations.of(context).pksCouldNotOpenDialer,
+          error: true);
     }
   }
 
@@ -303,13 +308,17 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
     final uri = Uri.tryParse(url);
     if (uri == null ||
         !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (mounted) showPickupSnack(context, 'Could not open map', error: true);
+      if (mounted) {
+        showPickupSnack(context, AppLocalizations.of(context).pksCouldNotOpenMap,
+            error: true);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final p = _pickup;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: PickupColors.page,
       appBar: AppBar(
@@ -317,7 +326,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
         surfaceTintColor: Colors.white,
         elevation: 0,
         title: Text(
-          p == null ? 'Pickup' : 'Order ${pickupOrderId(p)}',
+          p == null ? l10n.pickup : l10n.pksOrderTitle(pickupOrderId(p)),
           style: pickupText(16, weight: FontWeight.w800),
         ),
       ),
@@ -344,6 +353,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
   }
 
   List<Widget> _content(Map<String, dynamic> p) {
+    final l10n = AppLocalizations.of(context);
     final status = str(p['status']);
     final mustDecide = needsAcceptance(p);
     final canStart = !mustDecide &&
@@ -383,11 +393,11 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('New pickup assigned to you',
+              Text(l10n.pksNewPickupAssignedToYou,
                   style: pickupText(16, weight: FontWeight.w800)),
               const SizedBox(height: 4),
               Text(
-                'Check the details and items below, then accept to start this pickup or reject to send it back to the vendor.',
+                l10n.pksAcceptOrRejectHint,
                 style: pickupText(12.5, color: PickupColors.muted),
               ),
               const SizedBox(height: 12),
@@ -395,7 +405,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
                 children: [
                   Expanded(
                     child: PickupButton(
-                      label: 'Reject',
+                      label: l10n.reject,
                       icon: Icons.close_rounded,
                       outlined: true,
                       onPressed: _busy ? null : _reject,
@@ -404,11 +414,11 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: PickupButton(
-                      label: 'Accept',
+                      label: l10n.accept,
                       icon: Icons.check_rounded,
                       busy: _busy,
                       onPressed: () => _run(() => _svc.accept(_id),
-                          'Pickup accepted. Tap "Left for pickup" when you leave.'),
+                          l10n.pksPickupAcceptedHint),
                     ),
                   ),
                 ],
@@ -424,27 +434,27 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('YOUR CURRENT STATUS',
+            Text(l10n.pksYourCurrentStatus,
                 style: pickupText(10,
                     weight: FontWeight.w800, color: PickupColors.brand)),
             const SizedBox(height: 4),
             Text(live, style: pickupText(17, weight: FontWeight.w800)),
             if (next != null) ...[
               const SizedBox(height: 4),
-              Text('Next: ${next.label}',
+              Text(l10n.pksNextStep(next.label),
                   style: pickupText(12.5,
                       weight: FontWeight.w700, color: PickupColors.brand)),
             ],
             const SizedBox(height: 4),
             Text(
-              'Update the step below so farmer, manager and vendor can see what you are doing.',
+              l10n.pksUpdateStepHint,
               style: pickupText(12, color: PickupColors.muted),
             ),
             const SizedBox(height: 12),
             if (batchId.isNotEmpty) ...[
               Row(
                 children: [
-                  Text('Lot / Batch ID  ',
+                  Text('${l10n.pksLotBatchId}  ',
                       style: pickupText(11.5, color: PickupColors.muted)),
                   Expanded(
                     child: InkWell(
@@ -470,7 +480,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
               ),
               const SizedBox(height: 8),
               PickupButton(
-                label: 'Show batch QR',
+                label: l10n.pksShowBatchQr,
                 icon: Icons.qr_code_2_rounded,
                 onPressed: () =>
                     showBatchQr(context, batchId: batchId, record: p),
@@ -478,7 +488,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
               const SizedBox(height: 8),
             ],
             PickupButton(
-              label: 'Show order QR',
+              label: l10n.pksShowOrderQr,
               icon: Icons.qr_code_rounded,
               outlined: true,
               onPressed: () => showOrderQr(context, p),
@@ -491,7 +501,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionTitle('Pickup progress'),
+            SectionTitle(l10n.pksPickupProgress),
             PickupTimelineView(status: status),
           ],
         ),
@@ -501,20 +511,20 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionTitle('Pickup details'),
+            SectionTitle(l10n.pksPickupDetails),
             InfoGrid([
-              InfoItem('Order ID', pickupOrderId(p), copy: true),
-              InfoItem('Farmer Name', str(p['farmerName'])),
-              InfoItem('Farmer Location', str(p['farmerLocation'])),
-              InfoItem('Product', str(p['productName'])),
-              InfoItem('Quantity', pickupQuantity(p)),
-              InfoItem('Package Count', str(p['packageCount'])),
-              InfoItem('Pickup Date/Time', pickupWhenText(p)),
+              InfoItem(l10n.pksOrderId, pickupOrderId(p), copy: true),
+              InfoItem(l10n.pksFarmerName, str(p['farmerName'])),
+              InfoItem(l10n.pksFarmerLocation, str(p['farmerLocation'])),
+              InfoItem(l10n.pksProduct, str(p['productName'])),
+              InfoItem(l10n.pksQuantity, pickupQuantity(p)),
+              InfoItem(l10n.pksPackageCount, str(p['packageCount'])),
+              InfoItem(l10n.pksPickupDateTime, pickupWhenText(p)),
               InfoItem(
-                'Pickup Instructions',
+                l10n.pksPickupInstructions,
                 str(p['pickupInstructions']).isNotEmpty
                     ? str(p['pickupInstructions'])
-                    : 'Follow farm access and packing notes.',
+                    : l10n.pksDefaultPickupInstructions,
               ),
             ]),
             if (mobile.isNotEmpty || mapsUrl.isNotEmpty) ...[
@@ -524,7 +534,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
                   if (mobile.isNotEmpty)
                     Expanded(
                       child: PickupButton(
-                        label: 'Call Farmer',
+                        label: l10n.pksCallFarmer,
                         icon: Icons.call_rounded,
                         outlined: true,
                         onPressed: () => _call(mobile),
@@ -535,7 +545,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
                   if (mapsUrl.isNotEmpty)
                     Expanded(
                       child: PickupButton(
-                        label: 'View Location',
+                        label: l10n.pksViewLocation,
                         icon: Icons.map_outlined,
                         outlined: true,
                         onPressed: () => _openMap(mapsUrl),
@@ -552,10 +562,10 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionTitle('Items to collect'),
+            SectionTitle(l10n.pksItemsToCollect),
             if (canScan) ...[
               Text(
-                'Check each item, grade and weight with the farmer, then scan the Farmer QR.',
+                l10n.pksCheckItemsThenScan,
                 style: pickupText(12, color: PickupColors.muted),
               ),
               const SizedBox(height: 8),
@@ -567,28 +577,28 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
       if (canStart) ...[
         gap,
         PickupButton(
-          label: 'Left for pickup — On the way',
+          label: l10n.pksLeftForPickupOnTheWay,
           icon: Icons.local_shipping_outlined,
           busy: _busy,
           onPressed: () => _run(() => _svc.start(_id),
-              'Left for pickup. Status is On the way to farm.'),
+              l10n.pksLeftForPickupStatus),
         ),
       ],
       if (canArrive) ...[
         gap,
         PickupButton(
-          label: 'Reached the farm',
+          label: l10n.pksReachedFarmButton,
           icon: Icons.agriculture_outlined,
           busy: _busy,
           onPressed: () =>
-              _run(() => _svc.arrive(_id), 'Reached the farm.'),
+              _run(() => _svc.arrive(_id), l10n.pksReachedFarmDone),
         ),
       ],
       if (status == 'DRIVER_ARRIVED' ||
           status == 'ORDER_VERIFIED' ||
           status == 'QR_VERIFIED') ...[
         gap,
-        Text('Driver has arrived at pickup location.',
+        Text(l10n.pksDriverArrivedAtPickup,
             style: pickupText(13.5,
                 weight: FontWeight.w700, color: PickupColors.brand)),
       ],
@@ -605,28 +615,28 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SectionTitle('Order verification'),
+              SectionTitle(l10n.pksOrderVerification),
               InfoGrid([
-                InfoItem('Order ID', pickupOrderId(p), copy: true),
-                InfoItem('Farmer Name', str(p['farmerName'])),
-                InfoItem('Product Name', str(p['productName'])),
-                InfoItem('Variety', str(p['variety'])),
-                InfoItem('Grade', str(p['grade'])),
-                InfoItem('Ordered Quantity',
+                InfoItem(l10n.pksOrderId, pickupOrderId(p), copy: true),
+                InfoItem(l10n.pksFarmerName, str(p['farmerName'])),
+                InfoItem(l10n.pksProductName, str(p['productName'])),
+                InfoItem(l10n.pksVariety, str(p['variety'])),
+                InfoItem(l10n.pksGrade, str(p['grade'])),
+                InfoItem(l10n.pksOrderedQuantity,
                     '${str(p['orderedQuantity'])} $unit'.trim()),
-                InfoItem('Packed Quantity',
+                InfoItem(l10n.pksPackedQuantity,
                     '${str(p['packedQuantity'])} $unit'.trim()),
-                InfoItem('Package Count', str(p['packageCount'])),
-                InfoItem('Pickup Location', str(p['farmerLocation'])),
+                InfoItem(l10n.pksPackageCount, str(p['packageCount'])),
+                InfoItem(l10n.pksPickupLocation, str(p['farmerLocation'])),
               ]),
               if (canCheck) ...[
                 const SizedBox(height: 14),
                 PickupButton(
-                  label: 'Check Order',
+                  label: l10n.pksCheckOrder,
                   icon: Icons.fact_check_outlined,
                   busy: _busy,
                   onPressed: () => _run(() => _svc.checkOrder(_id),
-                      'Order checked. Scan Farmer QR next.'),
+                      l10n.pksOrderCheckedScanNext),
                 ),
               ],
             ],
@@ -639,22 +649,22 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SectionTitle('Scan Farmer QR'),
+              SectionTitle(l10n.pksScanFarmerQr),
               Text(
                 status == 'ORDER_VERIFIED'
-                    ? 'Scan the QR shown by the farmer to verify this order.'
-                    : 'At the farm? Scanning the Farmer QR marks you as reached, checks the order and verifies the QR in one step.',
+                    ? l10n.pksScanQrToVerifyOrder
+                    : l10n.pksAtFarmScanHint,
                 style: pickupText(12, color: PickupColors.muted),
               ),
               const SizedBox(height: 10),
               PickupButton(
-                label: 'Open camera & scan',
+                label: l10n.pksOpenCameraAndScan,
                 icon: Icons.qr_code_scanner_rounded,
                 busy: _busy,
                 onPressed: _scanQr,
               ),
               const SizedBox(height: 12),
-              Text('Or paste the scanned Farmer QR value:',
+              Text(l10n.pksOrPasteFarmerQr,
                   style: pickupText(12, color: PickupColors.muted)),
               const SizedBox(height: 6),
               Row(
@@ -665,7 +675,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
                       enabled: !_busy,
                       decoration: InputDecoration(
                         isDense: true,
-                        hintText: 'Paste Farmer QR',
+                        hintText: l10n.pksPasteFarmerQr,
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10)),
                       ),
@@ -675,7 +685,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
                   SizedBox(
                     width: 100,
                     child: PickupButton(
-                      label: 'Verify',
+                      label: l10n.pksVerify,
                       busy: _busy,
                       onPressed: () => _verifyQr(_qrController.text),
                     ),
@@ -693,22 +703,22 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SectionTitle('Order summary'),
+              SectionTitle(l10n.pksOrderSummary),
               InfoGrid([
-                InfoItem('Order ID', pickupOrderId(p), copy: true),
-                InfoItem('Farmer', str(p['farmerName'])),
-                InfoItem('Product', str(p['productName'])),
-                InfoItem('Quantity', pickupQuantity(p)),
-                InfoItem('Package Count', str(p['packageCount'])),
-                InfoItem('Driver', str(p['driverName'])),
-                InfoItem('Vehicle Number', str(p['vehicleNumber'])),
+                InfoItem(l10n.pksOrderId, pickupOrderId(p), copy: true),
+                InfoItem(l10n.pksFarmer, str(p['farmerName'])),
+                InfoItem(l10n.pksProduct, str(p['productName'])),
+                InfoItem(l10n.pksQuantity, pickupQuantity(p)),
+                InfoItem(l10n.pksPackageCount, str(p['packageCount'])),
+                InfoItem(l10n.pksDriver, str(p['driverName'])),
+                InfoItem(l10n.pksVehicleNumber, str(p['vehicleNumber'])),
                 if (batchId.isNotEmpty)
-                  InfoItem('Lot / Batch ID', batchId, copy: true),
+                  InfoItem(l10n.pksLotBatchId, batchId, copy: true),
               ]),
               if (canConfirm) ...[
                 const SizedBox(height: 14),
                 PickupButton(
-                  label: 'Confirm order pickup',
+                  label: l10n.pksConfirmOrderPickup,
                   icon: Icons.photo_camera_outlined,
                   busy: _busy,
                   onPressed: _openConfirm,
@@ -716,7 +726,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
               ],
               if (p['pickupConfirmed'] == true) ...[
                 const SizedBox(height: 12),
-                Text('Pickup confirmed from farmer.',
+                Text(l10n.pksPickupConfirmedFromFarmer,
                     style: pickupText(13.5,
                         weight: FontWeight.w700, color: PickupColors.brand)),
               ],
@@ -738,32 +748,32 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
       if (transit) ...[
         gap,
         PickupButton(
-          label: 'On the way to centre',
+          label: l10n.pksOnTheWayToCentre,
           icon: Icons.local_shipping_outlined,
           busy: _busy,
           onPressed: () =>
-              _run(() => _svc.transit(_id), 'On the way to centre.'),
+              _run(() => _svc.transit(_id), l10n.pksOnTheWayToCentreDone),
         ),
       ],
       if (canArriveCentre) ...[
         gap,
         PickupButton(
-          label: 'Reached collection centre',
+          label: l10n.pksReachedCollectionCentre,
           icon: Icons.warehouse_outlined,
           busy: _busy,
           onPressed: () =>
-              _run(() => _svc.arriveCentre(_id), 'At collection centre.'),
+              _run(() => _svc.arriveCentre(_id), l10n.pksAtCollectionCentre),
         ),
       ],
       if (status == 'ARRIVED_AT_CENTRE') ...[
         gap,
-        Text('At collection centre. Waiting for centre receiving.',
+        Text(l10n.pksWaitingForCentreReceiving,
             style: pickupText(13.5,
                 weight: FontWeight.w700, color: PickupColors.brand)),
       ],
       if (isPickupFinished(p)) ...[
         gap,
-        Text('Received at collection centre.',
+        Text(l10n.pksReceivedAtCentre,
             style: pickupText(13.5,
                 weight: FontWeight.w700, color: PickupColors.brand)),
       ],
@@ -772,7 +782,7 @@ class _PickupDetailScreenState extends State<PickupDetailScreen> {
 
   void _copy(String value) {
     Clipboard.setData(ClipboardData(text: value));
-    showPickupSnack(context, 'Copied $value');
+    showPickupSnack(context, AppLocalizations.of(context).pksCopiedValue(value));
   }
 }
 
@@ -863,7 +873,7 @@ class _ConfirmPickupSheetState extends State<_ConfirmPickupSheet> {
       final dataUrl = 'data:$mime;base64,${base64Encode(bytes)}';
       if (dataUrl.length >= _maxPhotoChars) {
         if (mounted) {
-          showPickupSnack(context, 'Photo is too large. Try again.',
+          showPickupSnack(context, AppLocalizations.of(context).pksPhotoTooLarge,
               error: true);
         }
         return;
@@ -871,7 +881,8 @@ class _ConfirmPickupSheetState extends State<_ConfirmPickupSheet> {
       if (mounted) setState(() => _photos.add(dataUrl));
     } catch (e) {
       if (mounted) {
-        showPickupSnack(context, 'Could not get photo: ${pickupErrorText(e)}',
+        showPickupSnack(context,
+            AppLocalizations.of(context).pksCouldNotGetPhoto(pickupErrorText(e)),
             error: true);
       }
     } finally {
@@ -883,6 +894,7 @@ class _ConfirmPickupSheetState extends State<_ConfirmPickupSheet> {
   Widget build(BuildContext context) {
     final p = widget.pickup;
     final full = _photos.length >= _maxPhotos;
+    final l10n = AppLocalizations.of(context);
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -892,27 +904,29 @@ class _ConfirmPickupSheetState extends State<_ConfirmPickupSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Confirm Pickup',
+              Text(l10n.pksConfirmPickup,
                   style: pickupText(17, weight: FontWeight.w800)),
               const SizedBox(height: 6),
-              Text('Confirm that you have received this order from the farmer?',
+              Text(l10n.pksConfirmReceivedQuestion,
                   style: pickupText(13, color: PickupColors.muted)),
               const SizedBox(height: 14),
               InfoGrid([
-                InfoItem('Order ID', pickupOrderId(p)),
-                InfoItem('Farmer', str(p['farmerName'])),
-                InfoItem('Product', str(p['productName'])),
-                InfoItem('Quantity',
+                InfoItem(l10n.pksOrderId, pickupOrderId(p)),
+                InfoItem(l10n.pksFarmer, str(p['farmerName'])),
+                InfoItem(l10n.pksProduct, str(p['productName'])),
+                InfoItem(l10n.pksQuantity,
                     '${str(p['packedQuantity'])} ${str(p['unit'])}'.trim()),
-                InfoItem('Package Count', str(p['packageCount'])),
-                InfoItem('Driver', str(p['driverName'])),
-                InfoItem('Vehicle Number', str(p['vehicleNumber'])),
+                InfoItem(l10n.pksPackageCount, str(p['packageCount'])),
+                InfoItem(l10n.pksDriver, str(p['driverName'])),
+                InfoItem(l10n.pksVehicleNumber, str(p['vehicleNumber'])),
               ]),
               const SizedBox(height: 16),
-              Text('Pickup photos (${_photos.length}/$_maxPhotos)',
+              Text(
+                  l10n.pksPickupPhotosCount(
+                      _photos.length.toString(), _maxPhotos.toString()),
                   style: pickupText(13, weight: FontWeight.w700)),
               const SizedBox(height: 4),
-              Text('Take a live photo of the goods (at least 1, up to 4).',
+              Text(l10n.pksTakeLivePhotoHint,
                   style: pickupText(12, color: PickupColors.muted)),
               const SizedBox(height: 10),
               if (_photos.isNotEmpty) ...[
@@ -936,7 +950,7 @@ class _ConfirmPickupSheetState extends State<_ConfirmPickupSheet> {
                 children: [
                   Expanded(
                     child: PickupButton(
-                      label: 'Take photo',
+                      label: l10n.takePhoto,
                       icon: Icons.photo_camera_outlined,
                       outlined: true,
                       busy: _picking,
@@ -946,7 +960,7 @@ class _ConfirmPickupSheetState extends State<_ConfirmPickupSheet> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: PickupButton(
-                      label: 'Gallery',
+                      label: l10n.pksGallery,
                       icon: Icons.photo_library_outlined,
                       outlined: true,
                       onPressed: full || _picking
@@ -961,7 +975,7 @@ class _ConfirmPickupSheetState extends State<_ConfirmPickupSheet> {
                 children: [
                   Expanded(
                     child: PickupButton(
-                      label: 'Cancel',
+                      label: l10n.cancel,
                       outlined: true,
                       onPressed: () => Navigator.pop(context),
                     ),
@@ -969,7 +983,7 @@ class _ConfirmPickupSheetState extends State<_ConfirmPickupSheet> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: PickupButton(
-                      label: 'Confirm Pickup',
+                      label: l10n.pksConfirmPickup,
                       onPressed: _photos.isEmpty
                           ? null
                           : () => Navigator.pop(context, List<String>.from(_photos)),

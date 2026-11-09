@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/image_upload_utils.dart';
 import '../../../data/services/order_service.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ItemProofCaptureScreen extends StatefulWidget {
   const ItemProofCaptureScreen({
@@ -54,8 +55,8 @@ class _ItemProofCaptureScreenState extends State<ItemProofCaptureScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Could not send item photo. Try again.'),
+      SnackBar(
+        content: Text(AppLocalizations.of(context).delCouldNotSendItemPhoto),
         backgroundColor: Colors.red,
       ),
     );
@@ -63,6 +64,7 @@ class _ItemProofCaptureScreenState extends State<ItemProofCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6F4),
       appBar: AppBar(
@@ -72,11 +74,11 @@ class _ItemProofCaptureScreenState extends State<ItemProofCaptureScreen> {
         title: Column(
           children: [
             Text(
-              'Item Proof',
+              l10n.delItemProof,
               style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 16),
             ),
             Text(
-              'Order #${widget.orderNumber}',
+              l10n.orderNumberHash(widget.orderNumber),
               style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary),
             ),
           ],
@@ -101,7 +103,7 @@ class _ItemProofCaptureScreenState extends State<ItemProofCaptureScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Take a clear photo of the packed items. Manager will verify and unlock customer address.',
+                      l10n.delItemProofHint,
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         height: 1.35,
@@ -139,7 +141,7 @@ class _ItemProofCaptureScreenState extends State<ItemProofCaptureScreen> {
                             ),
                             const SizedBox(height: 14),
                             Text(
-                              'Tap to capture item photo',
+                              l10n.delTapToCaptureItemPhoto,
                               style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -165,7 +167,7 @@ class _ItemProofCaptureScreenState extends State<ItemProofCaptureScreen> {
               TextButton.icon(
                 onPressed: _submitting ? null : _capturePhoto,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Retake photo'),
+                label: Text(l10n.retakePhoto),
               ),
             ],
             const SizedBox(height: 8),
@@ -185,7 +187,7 @@ class _ItemProofCaptureScreenState extends State<ItemProofCaptureScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
                     : Text(
-                        'Send to Manager',
+                        l10n.delSendToManager,
                         style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14),
                       ),
               ),

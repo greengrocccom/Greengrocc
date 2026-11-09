@@ -1,4 +1,4 @@
-import StoreInventory from "../models/StoreInventory.js";
+import StoreInventory, { availableStock } from "../models/StoreInventory.js";
 import DeliveryManager from "../models/DeliveryManager.js";
 import Product from "../../../legacy/models/Product.js";
 import { createMemoryCache } from "../../../shared/cache/memoryCache.js";
@@ -179,7 +179,7 @@ function applyStoreStock(doc, item, catalog) {
     };
   }
 
-  const storeStock = item ? Number(item.stockCount) || 0 : 0;
+  const storeStock = availableStock(item);
   const inStock = storeStock > 0;
   const variants = Array.isArray(doc.variants)
     ? doc.variants.map((variant) => ({
@@ -302,7 +302,7 @@ export async function loadNearestStoreCatalog(query = {}) {
 
   const inventory = await loadStoreInventory(manager._id);
 
-  const inStockItems = inventory.filter((item) => Number(item.stockCount) > 0);
+  const inStockItems = inventory.filter((item) => availableStock(item) > 0);
 
   return {
     requested: true,

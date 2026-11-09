@@ -192,6 +192,7 @@ class OrderTracking {
     required this.timeline,
     required this.otherParts,
     required this.refreshRouteSeconds,
+    this.riderPhase,
     this.preOrder,
     this.driver,
     this.storeName,
@@ -209,8 +210,10 @@ class OrderTracking {
   final String orderType;
   /// Order type allows the live map (ready_to_cook / instant home delivery).
   final bool trackingEnabled;
-  /// Rider has picked up and is streaming GPS right now.
+  /// A rider is assigned and streaming GPS right now.
   final bool liveTracking;
+  /// `to_store` while the rider rides to the dark store, `to_customer` once it has the parcel.
+  final String? riderPhase;
   /// placed | confirmed | packed | out_for_delivery | delivered | cancelled
   final String status;
   final List<TrackingStep> timeline;
@@ -227,6 +230,7 @@ class OrderTracking {
   /// Delay the store forwarded to the customer (null when on time).
   final TrackingDelay? delay;
 
+  bool get riderToStore => liveTracking && riderPhase == 'to_store';
   bool get isDelivered => status == 'delivered';
   bool get isCancelled => status == 'cancelled';
   bool get isClosed => isDelivered || isCancelled;
@@ -243,6 +247,7 @@ class OrderTracking {
       orderType: orderType,
       trackingEnabled: json['trackingEnabled'] == true && OrderTypes.isTrackable(orderType),
       liveTracking: json['liveTracking'] == true,
+      riderPhase: json['riderPhase']?.toString(),
       status: json['status']?.toString() ?? 'placed',
       timeline: (json['timeline'] as List? ?? const [])
           .whereType<Map>()
@@ -268,7 +273,7 @@ class OrderTracking {
   }
 
   /// Apply an `order_status` socket event before the full refetch completes.
-  OrderTracking withStatus(String nextStatus, {bool? live}) {
+  OrderTracking withStatus(String nextStatus, {bool? live, String? phase}) {
     final reached = trackingStepKeys.indexOf(nextStatus);
     final steps = reached < 0
         ? timeline
@@ -291,6 +296,7 @@ class OrderTracking {
       orderType: orderType,
       trackingEnabled: trackingEnabled,
       liveTracking: live ?? liveTracking,
+      riderPhase: live == null ? riderPhase : phase,
       status: nextStatus,
       timeline: steps,
       otherParts: otherParts,
@@ -319,6 +325,7 @@ class OrderTracking {
       orderType: orderType,
       trackingEnabled: trackingEnabled,
       liveTracking: liveTracking,
+      riderPhase: riderPhase,
       status: status,
       timeline: timeline,
       otherParts: otherParts,

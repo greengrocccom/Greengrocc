@@ -12,6 +12,7 @@ import {
 import { dispatchNextRider } from "../services/dispatchService.js";
 import { calculateDeliveryDistanceKm } from "../services/ShiftEarningService.js";
 import { getIO } from "../../../socket.js";
+import { RIDER_EN_ROUTE_STATUSES } from "../services/orderTrackingService.js";
 import {
   applyGigStatusChange,
   buildStatusResponseExtras,
@@ -1054,6 +1055,7 @@ export const heartbeat = async (req, res, next) => {
     }
 
     try {
+      if (updates.currentLocation) await broadcastRiderLocationToStore(deliveryBoy, lat, lng, now);
       if (
         deliveryBoy.status === "online" &&
         !deliveryBoy.activeOrderId &&
@@ -1097,6 +1099,33 @@ export const updateFcmToken = async (req, res, next) => {
   }
 };
 
+/**
+ * Push a rider's GPS to its dark store's live map while the rider is working (online, on a
+ * trip, or carrying assigned orders — pre-orders never set activeOrderId). Idle offline GPS
+ * is not sent.
+ */
+async function broadcastRiderLocationToStore(deliveryBoy, lat, lng, at) {
+  if (!deliveryBoy?.managerId || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  const working =
+    deliveryBoy.status === "online" ||
+    deliveryBoy.status === "on_delivery" ||
+    Boolean(deliveryBoy.activeOrderId) ||
+    Boolean(
+      await StoreOrder.exists({
+        assignedRiderId: deliveryBoy._id,
+        status: { $in: RIDER_EN_ROUTE_STATUSES },
+      })
+    );
+  if (!working) return;
+  getIO().to(`store_${deliveryBoy.managerId}`).emit("rider_location_updated", {
+    riderId: deliveryBoy._id.toString(),
+    name: deliveryBoy.name || deliveryBoy.phone,
+    status: deliveryBoy.status,
+    activeOrderId: deliveryBoy.activeOrderId ? String(deliveryBoy.activeOrderId) : null,
+    location: { lat, lng, updatedAt: at.toISOString() },
+  });
+}
+
 /** Updates live GPS coordinates of rider */
 export const updateLocation = async (req, res, next) => {
   try {
@@ -1124,33 +1153,7 @@ export const updateLocation = async (req, res, next) => {
     }
 
     try {
-      if (deliveryBoy.managerId) {
-        // Push live GPS to store only when rider is working (online / on trip).
-        // Idle offline GPS does not spam the Delivery Manager UI.
-        // Pre-orders are assigned directly and never set activeOrderId, so an
-        // "offline" rider can still be carrying orders.
-        const tracking =
-          deliveryBoy.status === "online" ||
-          deliveryBoy.status === "on_delivery" ||
-          Boolean(deliveryBoy.activeOrderId) ||
-          Boolean(
-            await StoreOrder.exists({
-              assignedRiderId: deliveryBoy._id,
-              status: { $in: ["assigned", "pickup_verified", "out_for_delivery"] },
-            })
-          );
-        if (tracking) {
-          getIO().to(`store_${deliveryBoy.managerId}`).emit("rider_location_updated", {
-            riderId: deliveryBoy._id.toString(),
-            name: deliveryBoy.name || deliveryBoy.phone,
-            status: deliveryBoy.status,
-            activeOrderId: deliveryBoy.activeOrderId
-              ? String(deliveryBoy.activeOrderId)
-              : null,
-            location: { lat, lng, updatedAt: now.toISOString() },
-          });
-        }
-      }
+      await broadcastRiderLocationToStore(deliveryBoy, lat, lng, now);
       if (
         deliveryBoy.status === "online" &&
         !deliveryBoy.activeOrderId &&

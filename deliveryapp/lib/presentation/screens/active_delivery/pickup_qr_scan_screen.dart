@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../data/services/order_service.dart';
+import '../../../l10n/app_localizations.dart';
 
 class PickupQrScanScreen extends StatefulWidget {
   const PickupQrScanScreen({
@@ -152,8 +153,8 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid pickup QR. Scan the code shown on the manager screen.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).delInvalidPickupQr),
             backgroundColor: Colors.red,
           ),
         );
@@ -217,6 +218,7 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
   Widget build(BuildContext context) {
     final scanSize = (MediaQuery.sizeOf(context).width * 0.72).clamp(220.0, 300.0);
     final batch = widget.preOrderBatch;
+    final l10n = AppLocalizations.of(context);
 
     return PopScope(
       canPop: !batch,
@@ -233,11 +235,13 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
         title: Column(
           children: [
             Text(
-              batch ? 'Scan pre-order QRs' : 'Scan Pickup QR',
+              batch ? l10n.delScanPreOrderQrs : l10n.delScanPickupQr,
               style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             Text(
-              batch ? '$_unlockedCount unlocked' : 'Order #${widget.orderNumber}',
+              batch
+                  ? l10n.delUnlockedCount(_unlockedCount.toString())
+                  : l10n.orderNumberHash(widget.orderNumber),
               style: GoogleFonts.inter(fontSize: 12, color: Colors.white70),
             ),
           ],
@@ -269,12 +273,12 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
               errorBuilder: (context, error) {
                 return _messageCard(
                   icon: Icons.videocam_off_outlined,
-                  title: 'Camera unavailable',
-                  message: error.errorDetails?.message ?? 'Unable to start the camera.',
+                  title: l10n.delCameraUnavailable,
+                  message: error.errorDetails?.message ?? l10n.delUnableToStartCamera,
                   action: FilledButton(
                     onPressed: _initCamera,
                     style: FilledButton.styleFrom(backgroundColor: const Color(0xFF059669)),
-                    child: const Text('Try again'),
+                    child: Text(l10n.tryAgain),
                   ),
                 );
               },
@@ -284,19 +288,19 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
           else if (_permissionDenied)
             _messageCard(
               icon: Icons.no_photography_outlined,
-              title: 'Camera permission needed',
-              message: 'Allow camera access to scan the Pickup QR from the manager screen.',
+              title: l10n.delCameraPermissionNeeded,
+              message: l10n.delAllowCameraToScanPickup,
               action: Column(
                 children: [
                   FilledButton(
                     onPressed: _initCamera,
                     style: FilledButton.styleFrom(backgroundColor: const Color(0xFF059669)),
-                    child: const Text('Allow camera'),
+                    child: Text(l10n.delAllowCamera),
                   ),
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: openAppSettings,
-                    child: const Text('Open app settings', style: TextStyle(color: Colors.white70)),
+                    child: Text(l10n.delOpenAppSettings, style: const TextStyle(color: Colors.white70)),
                   ),
                 ],
               ),
@@ -304,12 +308,12 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
           else
             _messageCard(
               icon: Icons.error_outline,
-              title: 'Scanner not ready',
-              message: _errorMessage ?? 'Something went wrong while opening the camera.',
+              title: l10n.delScannerNotReady,
+              message: _errorMessage ?? l10n.delCameraOpenError,
               action: FilledButton(
                 onPressed: _initCamera,
                 style: FilledButton.styleFrom(backgroundColor: const Color(0xFF059669)),
-                child: const Text('Try again'),
+                child: Text(l10n.tryAgain),
               ),
             ),
           if (_controller != null)
@@ -365,12 +369,12 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
                   Expanded(
                     child: Text(
                       _processing
-                          ? 'Verifying pickup…'
+                          ? l10n.delVerifyingPickup
                           : batch && _lastResult != null
                               ? _lastResult!
                               : batch
-                                  ? 'Scan the QR on each bag, one by one. Each scan shows that customer\'s address.'
-                                  : 'Align the QR inside the frame. The manager shows it under Show Pickup QR.',
+                                  ? l10n.delScanEachBagHint
+                                  : l10n.delAlignQrHint,
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -386,7 +390,7 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
                     FilledButton(
                       onPressed: () => Navigator.pop(context, _unlockedCount > 0),
                       style: FilledButton.styleFrom(backgroundColor: const Color(0xFF059669)),
-                      child: const Text('Done'),
+                      child: Text(l10n.doneShort),
                     ),
                   ],
                 ],
@@ -409,7 +413,7 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
                       const CircularProgressIndicator(color: Color(0xFF059669)),
                       const SizedBox(height: 14),
                       Text(
-                        'Verifying pickup…',
+                        l10n.delVerifyingPickup,
                         style: GoogleFonts.inter(fontWeight: FontWeight.w700),
                       ),
                     ],

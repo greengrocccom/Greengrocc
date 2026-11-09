@@ -9,6 +9,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/config/api_config.dart';
+import 'core/l10n/app_l10n.dart';
 import 'core/l10n/locale_controller.dart';
 import 'core/routes/app_router.dart';
 import 'core/routes/app_routes.dart';
@@ -63,6 +64,7 @@ Future<void> main() async {
   );
 
   debugPrint('GreenGroc API base URL: ${ApiConfig.baseUrl}');
+  useLatinDigitsForDates();
   await LocaleController.instance.loadSavedLocale();
   await ThemeController.instance.loadSavedTheme();
   await AuthService.instance.loadSession();

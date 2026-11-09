@@ -5,11 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../core/l10n/app_l10n.dart';
 import 'order_service.dart';
 import 'socket_service.dart';
 
-/// Streams the rider's GPS to customers over the socket while a ready-to-cook /
-/// instant order is on the way. Pre-orders never stream (status updates only).
+/// Streams the rider's GPS to customers over the socket for a ready-to-cook /
+/// instant order from assignment (riding to the store) until delivery.
+/// Pre-orders never stream (status updates only).
 ///
 /// Runs as an Android foreground service (persistent notification) and with iOS
 /// background location updates, so it keeps going when the app is minimised.
@@ -76,7 +78,7 @@ class LiveTrackingService extends ChangeNotifier {
 
   Future<bool> _ensurePermissions() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
-      _lastError = 'Turn on location to share live tracking';
+      _lastError = appL10n.delTurnOnLocationForTracking;
       return false;
     }
     var permission = await Geolocator.checkPermission();
@@ -84,7 +86,7 @@ class LiveTrackingService extends ChangeNotifier {
       permission = await Geolocator.requestPermission();
     }
     if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-      _lastError = 'Location permission is needed to share live tracking';
+      _lastError = appL10n.delLocationPermissionForTracking;
       return false;
     }
     if (!kIsWeb && Platform.isAndroid) {
@@ -97,14 +99,15 @@ class LiveTrackingService extends ChangeNotifier {
 
   LocationSettings _locationSettings() {
     if (!kIsWeb && Platform.isAndroid) {
+      final l10n = appL10n;
       return AndroidSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: _distanceFilterMeters,
         intervalDuration: _platformInterval,
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'Sharing live location',
-          notificationText: 'The customer can follow your delivery on the map',
-          notificationChannelName: 'Live delivery tracking',
+        foregroundNotificationConfig: ForegroundNotificationConfig(
+          notificationTitle: l10n.delTrackingNotificationTitle,
+          notificationText: l10n.delTrackingNotificationText,
+          notificationChannelName: l10n.delTrackingChannelName,
           enableWakeLock: true,
           setOngoing: true,
         ),

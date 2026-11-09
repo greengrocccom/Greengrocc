@@ -71,6 +71,7 @@ function withStock(product, inventoryBySku) {
   return {
     ...doc,
     storeStock: row ? row.stockCount : 0,
+    heldStock: row ? row.heldCount || 0 : 0,
     isCatalogProduct: !doc.ownerManagerId,
   };
 }
@@ -108,7 +109,7 @@ export const listManagerProducts = async (req, res, next) => {
 
     const products = await Product.find({ $and: and }).sort({ createdAt: -1 }).limit(2000);
     const inventory = await StoreInventory.find({ managerId: manager._id })
-      .select("sku productId stockCount")
+      .select("sku productId stockCount heldCount")
       .lean();
     const inventoryBySku = new Map();
     for (const row of inventory) {

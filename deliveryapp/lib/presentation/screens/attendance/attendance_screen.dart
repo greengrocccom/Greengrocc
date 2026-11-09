@@ -3,12 +3,20 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/config/cached_get.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/l10n/app_l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/charts/weekly_bar_chart.dart';
 import '../../widgets/common/app_panel.dart';
 import '../../widgets/layout/custom_app_bar.dart';
+
+String _fmtMinutes(int minutes) {
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  if (h == 0) return appL10n.ftDurationMinutes(m.toString());
+  return '${appL10n.ftDurationHours(h.toString())} ${appL10n.ftDurationMinutes(m.toString())}';
+}
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -21,7 +29,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   bool _loading = true;
   String? _error;
   String _todayDate = '';
-  String _online = '0h 0m';
+  String _online = '';
   int _trips = 0;
   int _shiftsBooked = 0;
   int _shiftsCompleted = 0;
@@ -49,7 +57,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           setState(() {
             _loading = false;
             _todayDate = body['date']?.toString() ?? '';
-            _online = body['totalOnlineFormatted']?.toString() ?? '0h 0m';
+            final onlineMinutes = (body['totalOnlineMinutes'] as num?)?.round();
+            _online = onlineMinutes != null
+                ? _fmtMinutes(onlineMinutes)
+                : body['totalOnlineFormatted']?.toString() ?? _fmtMinutes(0);
             _trips = (body['totalTrips'] as num?)?.toInt() ?? 0;
             _shiftsBooked = (body['shiftsBooked'] as num?)?.toInt() ?? 0;
             _shiftsCompleted = (body['shiftsCompleted'] as num?)?.toInt() ?? 0;
@@ -64,19 +75,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Could not load attendance. Pull to retry.';
+        _error = appL10n.ftCouldNotLoadAttendancePull;
       });
     }
   }
 
-  static String _fmtMinutes(int minutes) {
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    if (h == 0) return '${m}m';
-    return '${h}h ${m}m';
-  }
-
   void _showDayDetails(_DayBox day) {
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -102,7 +107,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                '${day.dayLabel} · ${day.date}',
+                l10n.dayWithDate(day.dayLabel, day.date),
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -115,7 +120,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   Expanded(
                     child: _DetailTile(
                       icon: Icons.schedule_outlined,
-                      label: 'Online time',
+                      label: l10n.ftOnlineTime,
                       value: day.onlineTime,
                     ),
                   ),
@@ -123,7 +128,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   Expanded(
                     child: _DetailTile(
                       icon: Icons.delivery_dining_outlined,
-                      label: 'Total trips',
+                      label: l10n.ftTotalTrips,
                       value: '${day.trips}',
                     ),
                   ),
@@ -135,7 +140,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   Expanded(
                     child: _DetailTile(
                       icon: Icons.event_available_outlined,
-                      label: 'Shifts booked',
+                      label: l10n.ftShiftsBooked,
                       value: '${day.shiftsBooked}',
                     ),
                   ),
@@ -143,7 +148,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   Expanded(
                     child: _DetailTile(
                       icon: Icons.check_circle_outline,
-                      label: 'Completed',
+                      label: l10n.completed,
                       value: '${day.shiftsCompleted}',
                     ),
                   ),
@@ -165,7 +170,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         title: l10n.attendance,
         subtitle: _todayDate.isEmpty
             ? l10n.trackWorkingHours
-            : 'Today · $_todayDate',
+            : l10n.todayWithLabel(_todayDate),
         showBackButton: true,
       ),
       body: RefreshIndicator(
@@ -179,12 +184,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     children: [ErrorPanel(message: _error!, onRetry: _load)],
                   )
-                : _content(),
+                : _content(l10n),
       ),
     );
   }
 
-  Widget _content() {
+  Widget _content(AppLocalizations l10n) {
     final weekMinutes = _days.fold<int>(0, (s, d) => s + d.onlineMinutes);
     final weekTrips = _days.fold<int>(0, (s, d) => s + d.trips);
     final activeDays = _days.where((d) => d.onlineMinutes > 0 || d.trips > 0).length;
@@ -194,7 +199,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final bars = [
       for (final d in _days)
         ChartBar(
-          label: d.dayLabel.length > 3 ? d.dayLabel.substring(0, 3) : d.dayLabel,
+          label: d.dayLabel,
           value: _showTrips ? d.trips.toDouble() : d.onlineMinutes / 60,
           highlight: d.isToday,
         ),
@@ -220,7 +225,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      'Today’s progress',
+                      l10n.ftTodaysProgress,
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -234,7 +239,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                'Online time',
+                l10n.ftOnlineTime,
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   color: Colors.white.withValues(alpha: 0.85),
@@ -259,9 +264,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
                 child: Row(
                   children: [
-                    Expanded(child: HeroStat(label: 'Trips', value: '$_trips')),
-                    Expanded(child: HeroStat(label: 'Shifts booked', value: '$_shiftsBooked')),
-                    Expanded(child: HeroStat(label: 'Completed', value: '$_shiftsCompleted')),
+                    Expanded(child: HeroStat(label: l10n.trips, value: '$_trips')),
+                    Expanded(child: HeroStat(label: l10n.ftShiftsBooked, value: '$_shiftsBooked')),
+                    Expanded(child: HeroStat(label: l10n.completed, value: '$_shiftsCompleted')),
                   ],
                 ),
               ),
@@ -269,28 +274,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
-        const SectionLabel('This week', subtitle: 'Last 7 days'),
+        SectionLabel(l10n.thisWeek, subtitle: l10n.last7Days),
         KpiGrid(
           children: [
             KpiTile(
-              label: 'Online hours',
+              label: l10n.ftOnlineHours,
               value: _fmtMinutes(weekMinutes),
               icon: Icons.schedule_rounded,
             ),
             KpiTile(
-              label: 'Trips delivered',
+              label: l10n.ftTripsDelivered,
               value: '$weekTrips',
               icon: Icons.delivery_dining_rounded,
               accent: AppColors.info,
             ),
             KpiTile(
-              label: 'Active days',
+              label: l10n.ftActiveDays,
               value: '$activeDays / ${_days.length}',
               icon: Icons.event_available_rounded,
               accent: const Color(0xFF8B5CF6),
             ),
             KpiTile(
-              label: 'Shifts completed',
+              label: l10n.ftShiftsCompleted,
               value: '$weekShiftsDone / $weekShiftsBooked',
               icon: Icons.task_alt_rounded,
               accent: AppColors.warning,
@@ -299,8 +304,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppPanel(
-          title: _showTrips ? 'Trips per day' : 'Online hours per day',
-          subtitle: 'Tap a bar for day details',
+          title: _showTrips ? l10n.ftTripsPerDay : l10n.ftOnlineHoursPerDay,
+          subtitle: l10n.ftTapBarForDetails,
           trailing: _MetricToggle(
             showTrips: _showTrips,
             onChanged: (v) => setState(() => _showTrips = v),
@@ -308,14 +313,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           child: WeeklyBarChart(
             bars: bars,
             color: _showTrips ? AppColors.info : AppColors.primary,
-            emptyMessage: 'No activity recorded this week',
+            emptyMessage: l10n.ftNoActivityThisWeek,
             axisLabel: (v) {
               final s = v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
-              return _showTrips ? s : '${s}h';
+              return _showTrips ? s : l10n.ftDurationHours(s);
             },
             tooltipLabel: (i) {
               final d = _days[i];
-              return '${d.dayLabel}\n${d.onlineTime} · ${d.trips} trip${d.trips == 1 ? '' : 's'}';
+              final trips = d.trips == 1
+                  ? l10n.ftTripCountOne(d.trips.toString())
+                  : l10n.ftTripCountMany(d.trips.toString());
+              return '${d.dayLabel}\n${d.onlineTime} · $trips';
             },
             onBarTap: (i) {
               if (i >= 0 && i < _days.length) _showDayDetails(_days[i]);
@@ -323,10 +331,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
         ),
         AppPanel(
-          title: 'Week calendar',
-          subtitle: 'Tap a day to see online time and trips',
+          title: l10n.ftWeekCalendar,
+          subtitle: l10n.ftTapDayForDetails,
           child: _days.isEmpty
-              ? const EmptyPanelMessage(message: 'No days to show yet.', icon: Icons.calendar_today_outlined)
+              ? EmptyPanelMessage(message: l10n.ftNoDaysYet, icon: Icons.calendar_today_outlined)
               : Column(
                   children: [
                     Row(
@@ -345,8 +353,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       spacing: 14,
                       runSpacing: 6,
                       children: [
-                        LegendDot(color: AppColors.primary, label: 'Active'),
-                        LegendDot(color: AppColors.border, label: 'No activity'),
+                        LegendDot(color: AppColors.primary, label: l10n.active),
+                        LegendDot(color: AppColors.border, label: l10n.ftNoActivity),
                       ],
                     ),
                   ],
@@ -365,6 +373,7 @@ class _MetricToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     Widget chip(String label, bool selected, VoidCallback onTap) {
       return GestureDetector(
         onTap: onTap,
@@ -400,8 +409,8 @@ class _MetricToggle extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          chip('Hours', !showTrips, () => onChanged(false)),
-          chip('Trips', showTrips, () => onChanged(true)),
+          chip(l10n.ftHours, !showTrips, () => onChanged(false)),
+          chip(l10n.trips, showTrips, () => onChanged(true)),
         ],
       ),
     );
@@ -432,7 +441,7 @@ class _DayPill extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              day.dayLabel.length > 3 ? day.dayLabel.substring(0, 3) : day.dayLabel,
+              day.dayLabel,
               style: GoogleFonts.inter(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
@@ -538,14 +547,17 @@ class _DayBox {
 
   factory _DayBox.fromJson(Map<String, dynamic> json) {
     final date = json['date']?.toString() ?? '';
+    final minutes = (json['totalOnlineMinutes'] as num?)?.round();
     return _DayBox(
       date: date,
-      dayLabel: json['dayLabel']?.toString() ?? '',
+      dayLabel: chartDayLabel(date, fallback: json['dayLabel']?.toString() ?? ''),
       dayNum: json['dayNum']?.toString() ??
           (date.contains('-') ? date.split('-').last : date),
       isToday: json['isToday'] == true,
-      onlineTime: json['totalOnlineFormatted']?.toString() ?? '0m',
-      onlineMinutes: (json['totalOnlineMinutes'] as num?)?.round() ?? 0,
+      onlineTime: minutes != null
+          ? _fmtMinutes(minutes)
+          : json['totalOnlineFormatted']?.toString() ?? _fmtMinutes(0),
+      onlineMinutes: minutes ?? 0,
       trips: (json['totalTrips'] as num?)?.toInt() ?? 0,
       shiftsBooked: (json['shiftsBooked'] as num?)?.toInt() ?? 0,
       shiftsCompleted: (json['shiftsCompleted'] as num?)?.toInt() ?? 0,

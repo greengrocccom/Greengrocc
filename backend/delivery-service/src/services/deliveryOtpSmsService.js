@@ -58,21 +58,31 @@ export async function sendDeliveryOtpSms(order) {
   return { success: true, customerPhone, devMock: result.devMock };
 }
 
-/** Fire-and-forget hook for status transitions into out_for_delivery; sends at most once per order. */
+/**
+ * Fire-and-forget hook for status transitions into out_for_delivery; sends at most once per
+ * order. A failed send releases the claim so the rider's or customer's resend can go out.
+ */
 export function sendDeliveryOtpSmsOnDispatch(order) {
   if (!order || order.customerOtpVerified || order.customerOtpSmsSentAt) return;
+  const label = order.orderNumber || order._id;
+  const releaseClaim = () =>
+    StoreOrder.updateOne({ _id: order._id }, { $unset: { customerOtpSmsSentAt: 1 } }).catch(() => {});
   StoreOrder.updateOne(
     { _id: order._id, customerOtpSmsSentAt: { $exists: false } },
     { $set: { customerOtpSmsSentAt: new Date() } }
   )
     .then((claim) => (claim.modifiedCount ? sendDeliveryOtpSms(order) : null))
-    .then((r) => {
+    .then(async (r) => {
       if (!r) return;
       if (r.success && !r.alreadyVerified) {
-        console.log(`[deliveryOtpSms] OTP SMS sent for ${order.orderNumber || order._id} to ****${r.customerPhone.slice(-4)}`);
+        console.log(`[deliveryOtpSms] OTP SMS sent for ${label} to ****${r.customerPhone.slice(-4)}`);
       } else if (!r.success) {
-        console.warn(`[deliveryOtpSms] skipped for ${order.orderNumber || order._id}: ${r.message}`);
+        await releaseClaim();
+        console.warn(`[deliveryOtpSms] skipped for ${label}: ${r.message}`);
       }
     })
-    .catch((err) => console.warn(`[deliveryOtpSms] failed for ${order.orderNumber || order._id}:`, err.message));
+    .catch(async (err) => {
+      await releaseClaim();
+      console.warn(`[deliveryOtpSms] failed for ${label}:`, err.message);
+    });
 }

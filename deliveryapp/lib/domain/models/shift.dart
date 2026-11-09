@@ -1,3 +1,5 @@
+import '../../core/l10n/app_l10n.dart';
+
 enum ShiftStatus { booked, available, full, cancelled, ended, fewSpotsLeft }
 
 /// A single KM-based earning slab for delivery riders.
@@ -15,7 +17,7 @@ class DeliveryEarningSlab {
   final double maxKm;
   final double riderAmount;
 
-  String get label => '${_fmt(minKm)} – ${_fmt(maxKm)} KM';
+  String get label => appL10n.ftKmRange(_fmt(minKm), _fmt(maxKm));
   String get amountLabel => '₹${riderAmount.toStringAsFixed(0)}';
 
   static String _fmt(double v) =>

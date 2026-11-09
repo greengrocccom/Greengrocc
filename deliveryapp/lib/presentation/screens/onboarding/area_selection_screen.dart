@@ -118,6 +118,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final city = _city;
     final areas = _filtered;
 
@@ -139,7 +140,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                 children: [
                   const SizedBox(height: 8),
                   Text(
-                    'Select Area',
+                    l10n.selectArea,
                     style: GoogleFonts.inter(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -149,8 +150,8 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                   const SizedBox(height: 6),
                   Text(
                     city != null
-                        ? 'Please select your area in ${city.name}'
-                        : 'Please select your area',
+                        ? l10n.uiSelectAreaIn(city.name)
+                        : l10n.uiSelectAreaSubtitle,
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: AppColors.textSecondary,
@@ -164,7 +165,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                     onChanged: (v) => setState(() => _query = v),
                     style: GoogleFonts.inter(fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Search area',
+                      hintText: l10n.searchArea,
                       prefixIcon: const Icon(
                         Icons.search_rounded,
                         color: Color(0xFF9CA3AF),
@@ -241,8 +242,8 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                             const SizedBox(height: 10),
                             Text(
                               _hubAreas.isEmpty
-                                  ? AppLocalizations.of(context).noAreasInCity
-                                  : 'No areas found',
+                                  ? l10n.noAreasInCity
+                                  : l10n.noAreasFound,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.inter(
                                 fontSize: 14,
@@ -343,9 +344,9 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                   ),
                 ),
                 child: _loadingStore
-                    ? const Row(
+                    ? Row(
                         children: [
-                          SizedBox(
+                          const SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
@@ -353,12 +354,14 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                               color: Color(0xFF059669),
                             ),
                           ),
-                          SizedBox(width: 12),
-                          Text(
-                            'Fetching Dark Store location details...',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF065F46),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(
+                              l10n.uiFetchingDarkStore,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF065F46),
+                              ),
                             ),
                           ),
                         ],
@@ -377,7 +380,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Could not check dark stores',
+                                      l10n.uiCouldNotCheckDarkStores,
                                       style: GoogleFonts.inter(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -391,7 +394,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                               Text(
                                 kDebugMode
                                     ? 'API: ${ApiConfig.baseUrl}'
-                                    : 'Check your connection and try again.',
+                                    : l10n.uiCheckConnectionTryAgain,
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   color: const Color(0xFFB45309),
@@ -430,9 +433,9 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                                       color: const Color(0xFFDCFCE7),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Text(
-                                      'ACTIVE HUB',
-                                      style: TextStyle(
+                                    child: Text(
+                                      l10n.uiActiveHub,
+                                      style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFF047857),
@@ -465,7 +468,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                               if (_darkStores.first.pincode.isNotEmpty) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  'PIN ${_darkStores.first.pincode}',
+                                  l10n.uiPinCode(_darkStores.first.pincode),
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -484,7 +487,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Store Manager Contact: ${_darkStores.first.phone}',
+                                      l10n.uiStoreManagerContact(_darkStores.first.phone),
                                       style: GoogleFonts.inter(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -509,7 +512,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'No Dark Store Registered',
+                                      l10n.uiNoDarkStoreRegistered,
                                       style: GoogleFonts.inter(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -526,9 +529,9 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                                       color: const Color(0xFFFEF3C7),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Text(
-                                      'NO HUB REGISTERED',
-                                      style: TextStyle(
+                                    child: Text(
+                                      l10n.uiNoHubRegistered,
+                                      style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFFB45309),
@@ -539,7 +542,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'No delivery manager has registered a dark store hub in $_selectedArea yet.',
+                                l10n.uiNoDarkStoreInArea(_selectedArea!),
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   color: const Color(0xFFB45309),
@@ -552,7 +555,7 @@ class _AreaSelectionScreenState extends State<AreaSelectionScreen> {
             Padding(
               padding: const EdgeInsets.all(24),
               child: PrimaryButton(
-                label: 'Continue',
+                label: l10n.continueButton,
                 onPressed: _selectedArea == null || city == null
                     ? null
                     : () => goOnboardingStep(

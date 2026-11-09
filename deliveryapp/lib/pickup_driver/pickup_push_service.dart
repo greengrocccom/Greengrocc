@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/l10n/app_l10n.dart';
 import 'pickup_driver_service.dart';
 import 'pickup_flow.dart';
 
@@ -158,7 +159,7 @@ class PickupPushService extends ChangeNotifier {
       final product = str(p['productName']);
       await _showLocal(
         id: str(p['id']).hashCode & 0x7fffffff,
-        title: 'New pickup assigned',
+        title: appL10n.pkNewPickupAssigned,
         body: [
           pickupOrderId(p),
           if (farmer.isNotEmpty) farmer,
