@@ -26,6 +26,7 @@ const HIDDEN_DISCONNECT_MS = 60000;
 const settings = { url: "", getToken: () => "" };
 let socket = null;
 let hasConnected = false;
+let authedToken;
 
 const entries = new Map();
 const tasks = new Set();
@@ -113,6 +114,12 @@ export function configureRealtime({ url, getToken }) {
 }
 
 function handleConnect() {
+  if ((settings.getToken() || undefined) !== authedToken) {
+    // The token changed while this connection was authenticating.
+    socket.disconnect();
+    socket.connect();
+    return;
+  }
   const reconnect = hasConnected;
   hasConnected = true;
   if (reconnect) {
@@ -143,7 +150,10 @@ export function getSocket() {
   if (socket) return socket;
   socket = io(settings.url, {
     transports: ["websocket", "polling"],
-    auth: (cb) => cb({ token: settings.getToken() || undefined }),
+    auth: (cb) => {
+      authedToken = settings.getToken() || undefined;
+      cb({ token: authedToken });
+    },
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10000,
@@ -177,9 +187,19 @@ function pauseWhileHidden(s) {
 
 /** Re-authenticate the socket after login / logout. */
 export function reconnectRealtime() {
-  const s = getSocket();
-  s.disconnect();
-  s.connect();
+  if (!socket) {
+    getSocket();
+    return;
+  }
+  // Closing a socket mid-handshake aborts it ("WebSocket is closed before the connection is
+  // established"); a socket that isn't connected yet reads the token when it authenticates.
+  if (!socket.connected) {
+    if (!socket.active) socket.connect();
+    return;
+  }
+  if ((settings.getToken() || undefined) === authedToken) return;
+  socket.disconnect();
+  socket.connect();
 }
 
 /** Listen to server-pushed entity events (`{ type, entity, action, id, data }`). */
