@@ -63,9 +63,6 @@ const STAGE_LABELS = {
   ready: { text: "Packed by vendor", className: "bg-sky-50 text-sky-800 ring-sky-200" },
 };
 
-const RIDER_HELD = ["assigned", "pickup_verified"];
-const canMarkOutForDelivery = (order) => RIDER_HELD.includes(order.status) && Boolean(order.assignedRider);
-const canMarkDelivered = (order) => [...RIDER_HELD, "out_for_delivery"].includes(order.status);
 
 const vendorConfirmed = (order) => order.vendorStatus === "confirmed";
 const isReceived = (order) => Boolean(order.storeReceivedAt);
@@ -366,36 +363,6 @@ export default function PreOrdersPage() {
     } finally {
       setBusyKey("");
     }
-  };
-
-  const runOrderAction = async (order, { key, call, fallback }) => {
-    setBusyKey(`${key}-${order.id}`);
-    try {
-      const res = await call([order.id]);
-      showToast(res.data.message || fallback);
-      await load({ silent: true });
-    } catch (err) {
-      showToast(err.response?.data?.failed?.[0]?.message || err.response?.data?.message || "Could not update pre-order");
-    } finally {
-      setBusyKey("");
-    }
-  };
-
-  const onOutForDelivery = (order) =>
-    runOrderAction(order, { key: "ofd", call: managerApi.preOrdersOutForDelivery, fallback: "Out for delivery" });
-
-  const onDeliver = (order) => {
-    const reason = (
-      window.prompt(
-        `Mark pre-order #${order.orderNumber} as delivered without the customer's OTP?\n\nReason (required):`
-      ) || ""
-    ).trim();
-    if (!reason) return;
-    runOrderAction(order, {
-      key: "deliver",
-      call: (ids) => managerApi.deliverPreOrders(ids, reason),
-      fallback: "Marked delivered",
-    });
   };
 
   const onCancel = async (order) => {
@@ -1072,28 +1039,6 @@ export default function PreOrdersPage() {
                                 {busyKey === `assign-${oid}` ? "Assigning…" : "Assign"}
                               </button>
                             </div>
-                          )}
-
-                          {canMarkOutForDelivery(order) && (
-                            <button
-                              type="button"
-                              disabled={busyKey === `ofd-${oid}`}
-                              onClick={() => onOutForDelivery(order)}
-                              className={actionBtnPrimary}
-                            >
-                              {busyKey === `ofd-${oid}` ? "Saving…" : "🚚 Out for delivery"}
-                            </button>
-                          )}
-
-                          {canMarkDelivered(order) && (
-                            <button
-                              type="button"
-                              disabled={busyKey === `deliver-${oid}`}
-                              onClick={() => onDeliver(order)}
-                              className={actionBtnOutline}
-                            >
-                              {busyKey === `deliver-${oid}` ? "Saving…" : "✓ Delivered"}
-                            </button>
                           )}
 
                           {showQr && (

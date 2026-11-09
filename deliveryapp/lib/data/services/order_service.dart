@@ -679,25 +679,22 @@ class OrderService extends ChangeNotifier {
     }
   }
 
-  /// Confirm customer paid online (Razorpay / UPI scan).
-  Future<({bool success, String? error})> confirmOnlinePayment(String orderId) async {
+  /// Create, verify, or close the order's Razorpay QR.
+  Future<Map<String, dynamic>> deliveryPaymentQr(String orderId, String action) async {
     try {
       final res = await apiPost(
         ApiConfig.confirmOnlinePayment(orderId),
         headers: AuthService.instance.authHeaders,
+        body: jsonEncode({'qrAction': action}),
       );
       final body = jsonDecode(res.body) as Map<String, dynamic>;
-      if (res.statusCode == 200) {
+      if (res.statusCode == 200 && body['paymentStatus'] == 'paid_online') {
         await fetchActiveDelivery();
         notifyListeners();
-        return (success: true, error: null);
       }
-      return (
-        success: false,
-        error: body['message'] as String? ?? 'Online payment confirmation failed',
-      );
+      return body;
     } catch (_) {
-      return (success: false, error: 'Network error. Please try again.');
+      return {'message': 'Could not check Razorpay. Please try again.'};
     }
   }
 

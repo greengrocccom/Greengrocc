@@ -357,13 +357,13 @@ Future<String?> showPaymentMethodSheet(
       icon: Icons.account_balance_wallet_rounded,
       iconColor: const Color(0xFFB45309),
       title: 'Collect ₹$amount',
-      subtitle: 'Items ₹$itemsTotal  ·  Delivery fee ₹$deliveryFee\nHow did the customer pay?',
+      subtitle: 'Items ₹$itemsTotal  ·  Delivery fee ₹$deliveryFee\nHow will the customer pay?',
       children: [
         _PaymentOption(
           icon: Icons.qr_code_2_rounded,
           color: _forest,
           title: 'Online payment',
-          subtitle: 'Customer paid by UPI / Razorpay QR',
+          subtitle: 'Show a Razorpay QR for the customer to scan',
           onTap: () => Navigator.pop(ctx, 'online'),
         ),
         const SizedBox(height: 10),

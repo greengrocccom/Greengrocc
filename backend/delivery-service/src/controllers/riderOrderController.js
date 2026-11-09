@@ -28,6 +28,8 @@ import { sendDeliveryOtpSms } from "../services/deliveryOtpSmsService.js";
 import { syncCustomerOrderFromStore } from "../services/syncCustomerOrderFromStore.js";
 import { resolveCashForOrder } from "../services/CashSettlementService.js";
 
+import { processDeliveryQr } from "../services/DeliveryQrService.js";
+
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_LOCK_MS = 15 * 60 * 1000;
 const OTP_HARD_LOCK_MS = 2 * 60 * 60 * 1000;
@@ -880,6 +882,13 @@ export const confirmCashCollection = async (req, res, next) => {
       });
     }
 
+    if (existing.deliveryPaymentQr?.token) {
+      return res.status(409).json({
+        success: false,
+        message: "Open Online payment and close the QR before collecting cash.",
+      });
+    }
+
     let amount = Math.round(Number(existing.amountToCollect || 0));
     if (amount <= 0) {
       // Older orders: the billed part total already includes the delivery fee.
@@ -1491,7 +1500,7 @@ export const confirmOnlinePaymentForOrder = async (req, res, next) => {
     }
 
     // A Razorpay payment confirmed on the customer order (webhook / checkout verify) is the only automatic proof.
-    if (order.sourceOrderId) {
+    if (order.sourceOrderId && !order.deliveryPaymentQr?.token) {
       const { default: EcommerceOrder } = await import("../../../legacy/models/order/Order.js");
       const customerOrder = await EcommerceOrder.findById(order.sourceOrderId)
         .select("paymentStatus razorpayPaymentId")
@@ -1506,12 +1515,44 @@ export const confirmOnlinePaymentForOrder = async (req, res, next) => {
           reviewedAt: new Date(),
           reviewedByName: "Razorpay",
         };
-        await order.save();
+        const saved = await StoreOrder.updateOne({
+          _id: order._id,
+          assignedRiderId: riderId,
+          "deliveryPaymentQr.token": null,
+          paymentStatus: { $nin: ["paid_online", "collected"] },
+        }, {
+          $set: {
+            paymentMethod: order.paymentMethod,
+            paymentStatus: order.paymentStatus,
+            amountCollected: order.amountCollected,
+            onlinePaymentClaim: order.onlinePaymentClaim,
+          },
+        });
+        if (!saved.matchedCount) {
+          return res.status(409).json({ success: false, message: "Payment changed. Try again." });
+        }
         return res.json({
           success: true,
           message: "Online payment verified.",
           paymentStatus: "paid_online",
           amountCollected: order.amountCollected,
+        });
+      }
+    }
+
+    const action = req.body?.qrAction;
+    if (action !== undefined || order.deliveryPaymentQr?.token) {
+      if (!["create", "check", "close"].includes(action)) {
+        return res.status(409).json({ success: false, message: "Use the payment QR to verify payment." });
+      }
+      try {
+        const result = await processDeliveryQr(order, action, OTP_STATUSES);
+        return res.status(result.message ? 409 : 200).json({ success: !result.message, ...result });
+      } catch (error) {
+        console.error("[Delivery QR]", error.message);
+        return res.status(502).json({
+          success: false,
+          message: "Razorpay QR is unavailable. Try again before accepting another payment.",
         });
       }
     }
@@ -1532,7 +1573,15 @@ export const confirmOnlinePaymentForOrder = async (req, res, next) => {
         reviewedByName: "",
         note: "",
       };
-      await order.save();
+      const saved = await StoreOrder.updateOne({
+        _id: order._id,
+        assignedRiderId: riderId,
+        "deliveryPaymentQr.token": null,
+        paymentStatus: { $nin: ["paid_online", "collected"] },
+      }, { $set: { onlinePaymentClaim: order.onlinePaymentClaim } });
+      if (!saved.matchedCount) {
+        return res.status(409).json({ success: false, message: "Payment changed. Try again." });
+      }
       try {
         getIO().to(`store_${order.managerId}`).emit("online_payment_claim", {
           orderId: order._id.toString(),

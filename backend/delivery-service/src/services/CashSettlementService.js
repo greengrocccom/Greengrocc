@@ -65,6 +65,7 @@ export async function recordRiderCashCollection({ orderId, riderId, amount, allo
   const result = await mongoose.connection.transaction(async (session) => {
     const order = await StoreOrder.findOneAndUpdate({
       _id: orderId, assignedRiderId: riderId, status: { $in: allowedStatuses },
+      "deliveryPaymentQr.token": null,
       customerOtpVerified: true, paymentStatus: { $nin: ["collected", "paid_online"] },
     }, {
       $set: { paymentMethod: "COD", paymentStatus: "collected", amountToCollect: amount, amountCollected: amount },

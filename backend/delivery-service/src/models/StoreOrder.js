@@ -216,6 +216,14 @@ const storeOrderSchema = new mongoose.Schema(
     /** Admin/manager closed the order without the rider OTP/proof flow. */
     manualCompletion: { type: auditSchema, default: undefined },
     /** Rider says the customer paid online at the door; needs a verified payment or manager approval. */
+    deliveryPaymentQr: {
+      token: String,
+      id: String,
+      imageUrl: String,
+      amount: Number,
+      paymentId: String,
+      reservedAt: Date,
+    },
     onlinePaymentClaim: {
       status: { type: String, enum: ["", "pending", "approved", "rejected"], default: "" },
       riderId: { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryBoy", default: null },

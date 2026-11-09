@@ -441,19 +441,11 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     if (choice == null || !mounted) return;
 
     if (choice == 'online') {
-      final pay = await OrderService.instance.confirmOnlinePayment(d.id);
-      if (!pay.success) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(pay.error ?? 'Online payment failed'), backgroundColor: Colors.red),
-          );
-        }
-        return;
+      if (await _showDeliveryPaymentQr(d.id) && mounted) {
+        await _askOptionalCommentThenFinish();
       }
-      await _askOptionalCommentThenFinish();
       return;
     }
-
     // Physical cash
     final cash = await OrderService.instance.confirmCashCollection(d.id);
     if (!cash.success) {
@@ -476,6 +468,87 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     if (proceed && mounted) {
       await _askOptionalCommentThenFinish();
     }
+  }
+
+  Future<bool> _showDeliveryPaymentQr(String orderId) async {
+    final service = OrderService.instance;
+    final result = await service.deliveryPaymentQr(orderId, 'create');
+    if (!mounted) return false;
+    if (result['paymentStatus'] == 'paid_online') return true;
+
+    final imageUrl = result['imageUrl'] as String?;
+    if (imageUrl == null && result['closed'] != true) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result['message'] as String? ?? 'Unable to open payment QR.'),
+      ));
+      return false;
+    }
+    if (imageUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('The previous QR expired. Tap Online again for a new QR.'),
+      ));
+      return false;
+    }
+
+    final amount = (result['amount'] as num).toStringAsFixed(2);
+    var busy = false;
+    String? message;
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> updatePayment(String action) async {
+            setDialogState(() {
+              busy = true;
+              message = null;
+            });
+            final updated = await service.deliveryPaymentQr(orderId, action);
+            if (!dialogContext.mounted) return;
+            if (updated['paymentStatus'] == 'paid_online') {
+              Navigator.of(dialogContext).pop(true);
+            } else if (updated['closed'] == true) {
+              Navigator.of(dialogContext).pop(false);
+            } else {
+              setDialogState(() {
+                busy = false;
+                message = updated['message'] as String? ?? 'Please try again.';
+              });
+            }
+          }
+
+          return AlertDialog(
+            title: Text('Pay ₹$amount by UPI'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.network(
+                    imageUrl,
+                    width: 230,
+                    height: 230,
+                    errorBuilder: (_, __, ___) => const Text('Unable to load the QR image.'),
+                  ),
+                  const Text('Ask the customer to scan this QR with their UPI app.'),
+                  if (busy) const LinearProgressIndicator(),
+                  if (message != null) Text(message!),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: busy ? null : () => updatePayment('close'),
+                child: const Text('Close QR'),
+              ),
+              FilledButton(
+                onPressed: busy ? null : () => updatePayment('check'),
+                child: const Text('Check payment'),
+              ),
+            ],
+          );
+        },
+      ),
+    ) ?? false;
   }
 
   Future<void> _finishDelivery({
