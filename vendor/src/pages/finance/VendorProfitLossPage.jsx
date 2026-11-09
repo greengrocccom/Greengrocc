@@ -147,7 +147,7 @@ export default function VendorProfitLossPage() {
             </span>
             <span className="text-xs font-medium text-slate-600">{rupee(operatingProfit)}</span>
           </div>
-          <p className="text-[10px] text-slate-400 mt-1">After {k.commissionRate || 10}% Admin Commission</p>
+          <p className="text-[10px] text-slate-400 mt-1">After {Number(k.commissionRate) || 0}% Admin Commission</p>
         </div>
 
         <div className="rounded-xl border border-emerald-300 bg-emerald-50/40 p-4 shadow-xs">
@@ -243,7 +243,7 @@ export default function VendorProfitLossPage() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 mb-2">3. Platform Fees & Commission</h3>
             <div className="space-y-1.5 pl-2">
               <div className="flex justify-between text-slate-700">
-                <span>Admin Commission ({k.commissionRate || 10}% on Product Sales)</span>
+                <span>Admin Commission ({Number(k.commissionRate) || 0}% on Product Sales)</span>
                 <span className="font-semibold text-indigo-700 tabular-nums">- {rupee(adminComm)}</span>
               </div>
               <div className="flex justify-between text-slate-500 text-[11px]">

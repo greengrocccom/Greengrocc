@@ -357,7 +357,7 @@ export default function MultiVendorDetailPage() {
                 <CopyBadge label="CC Code" value={ccCode} icon={Warehouse} />
                 <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1 text-xs font-medium text-slate-700 shadow-2xs">
                   <Percent className="h-3.5 w-3.5 text-slate-400" />
-                  Commission: <strong className="text-slate-900">{row.commissionRate ?? 10}%</strong>
+                  Commission: <strong className="text-slate-900">{row.commissionRate != null ? `${row.commissionRate}%` : '—'}</strong>
                 </span>
               </div>
 
@@ -659,7 +659,7 @@ export default function MultiVendorDetailPage() {
               <DetailItem label="Legal Business Name" value={row.businessName} icon={Building2} />
               <DetailItem label="Collection Centre Code (CC Code)" value={ccCode} icon={Warehouse} copyable />
               <DetailItem label="System ID" value={row.id} icon={Copy} copyable />
-              <DetailItem label="Platform Commission" value={`${row.commissionRate ?? 10}%`} icon={Percent} />
+              <DetailItem label="Platform Commission" value={row.commissionRate != null ? `${row.commissionRate}%` : '—'} icon={Percent} />
               <DetailItem label="Operational Status" icon={ShieldCheck}>
                 <StatusPill status={row.status} />
               </DetailItem>

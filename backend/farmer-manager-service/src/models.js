@@ -29,6 +29,8 @@ const vendorSchema = new mongoose.Schema(
       ifsc: { type: String, default: "" },
     },
     commissionRate: { type: Number, default: 10, min: 0, max: 100 },
+    /** Run by the admin itself: its delivered sales count as admin income instead of commission. */
+    isAdminVendor: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ["Pending", "Active", "Inactive", "Suspended"],

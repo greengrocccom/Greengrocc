@@ -9,6 +9,7 @@ import {
   getAdminFinanceSalesReports,
   getAdminFinancialReports,
   getAdminCommissionAnalytics,
+  getAdminNetProfit,
 } from "./adminFinanceController.js";
 import { protect, requireAdmin, requireRoles, optionalAuth } from "@greengrocc/shared";
 import * as taxCalculator from "./taxCalculator.js";
@@ -746,6 +747,7 @@ adminFinanceRouter.get("/payment-history", listAdminCommissionPayments);
 adminFinanceRouter.get("/sales-report", getAdminFinanceSalesReports);
 adminFinanceRouter.get("/commission-report", listAdminVendorCommissions);
 adminFinanceRouter.get("/financial-reports", getAdminFinancialReports);
+adminFinanceRouter.get("/admin-net-profit", getAdminNetProfit);
 
 const adminOnly = requireRoles("admin");
 adminFinanceRouter.get("/tax/figures", adminOnly, taxCalculator.getTaxFigures);

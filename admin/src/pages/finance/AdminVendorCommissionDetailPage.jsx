@@ -162,7 +162,7 @@ export default function AdminVendorCommissionDetailPage() {
     const combinedExpenses = vendorExpenses + darkStoreExpenses;
     const netProfit = totalSale - farmerProcurement - totalAdminCommission - combinedExpenses;
     const currentProfit = list.reduce((sum, s) => sum + Number(s.currentProfit || 0), 0) || Number(commission.currentProfit || 0);
-    const commissionRate = Number(commission.commissionRate || 10);
+    const commissionRate = Number(commission.commissionRate) || 0;
 
     return {
       customerPaidTotal,

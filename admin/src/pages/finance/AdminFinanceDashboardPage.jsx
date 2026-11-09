@@ -36,6 +36,7 @@ import {
   Legend,
 } from 'recharts';
 import adminFinanceApi from '../../api/adminFinanceApi';
+import AdminNetProfitSection from './AdminNetProfitSection';
 
 const DATE_PRESETS = [
   { id: 'all', label: 'All Time' },
@@ -82,18 +83,22 @@ export default function AdminFinanceDashboardPage() {
     dailyTrend: [],
   });
 
+  const dateParams = useMemo(() => {
+    const params = {};
+    if (preset && preset !== 'custom') {
+      params.preset = preset;
+    } else if (preset === 'custom') {
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+    }
+    return params;
+  }, [preset, startDate, endDate]);
+
   const loadDashboard = async () => {
     setLoading(true);
     setError('');
     try {
-      const params = {};
-      if (preset && preset !== 'custom') {
-        params.preset = preset;
-      } else if (preset === 'custom') {
-        if (startDate) params.startDate = startDate;
-        if (endDate) params.endDate = endDate;
-      }
-      const res = await adminFinanceApi.getDashboard(params);
+      const res = await adminFinanceApi.getDashboard(dateParams);
       if (res && res.kpis) {
         setData(res);
       }
@@ -171,6 +176,11 @@ export default function AdminFinanceDashboardPage() {
       totalVendorCount: list.length || Number(data.kpis?.totalVendorCount || 0),
     };
   }, [allVendors, data.kpis]);
+
+  const commissionRateLabel = useMemo(() => {
+    const rates = [...new Set(allVendors.map((v) => Number(v.commissionRate)).filter(Number.isFinite))];
+    return rates.length === 1 ? `${rates[0]}%` : 'vendor rates';
+  }, [allVendors]);
 
   // Chart 1: Daily Sales Trend
   const trendData = useMemo(() => {
@@ -251,7 +261,7 @@ export default function AdminFinanceDashboardPage() {
     if (total === 0) return [];
     return [
       { name: 'Farmer Procurement', value: procure, color: '#D97706' },
-      { name: 'Net Profit', value: netProf, color: '#059669' },
+      { name: 'Vendor Net Profit', value: netProf, color: '#059669' },
       { name: 'Admin Commission', value: comm, color: '#6366F1' },
       { name: 'Operating Expenses', value: exp, color: '#64748B' },
     ].filter((item) => item.value > 0);
@@ -537,7 +547,7 @@ export default function AdminFinanceDashboardPage() {
               {loading ? '...' : formatInr(scopedKpis.totalAdminCommission)}
             </p>
             <span className="text-[10px] font-medium text-indigo-800 truncate block mt-0.5">
-              10% on TOTAL SALE ({formatInr(scopedKpis.totalSale)})
+              {commissionRateLabel} on TOTAL SALE ({formatInr(scopedKpis.totalSale)})
             </span>
           </div>
 
@@ -546,9 +556,9 @@ export default function AdminFinanceDashboardPage() {
             <div className="flex items-center justify-between gap-1 text-slate-500">
               <span
                 className="text-[11px] font-bold uppercase tracking-wider text-emerald-950 truncate"
-                title="Net Profit"
+                title="Vendors' net profit, after paying admin commission"
               >
-                NET PROFIT (नक्त नफा)
+                VENDOR NET PROFIT (व्हेंडर नफा)
               </span>
               <TrendingUp className="h-4 w-4 shrink-0 text-emerald-600" />
             </div>
@@ -583,6 +593,9 @@ export default function AdminFinanceDashboardPage() {
             </span>
           </div>
         </div>
+
+        {/* ROW 4: Admin's own profit */}
+        <AdminNetProfitSection dateParams={dateParams} />
       </div>
 
       {/* ── CHARTS & GRAPHS SECTION (पायचार्ट व आलेख) ────────────────── */}
@@ -610,7 +623,7 @@ export default function AdminFinanceDashboardPage() {
                   <span className="h-2 w-2 rounded-full bg-emerald-600" /> Total Sale
                 </span>
                 <span className="flex items-center gap-1 text-indigo-700">
-                  <span className="h-2 w-2 rounded-full bg-indigo-600" /> Commission (10%)
+                  <span className="h-2 w-2 rounded-full bg-indigo-600" /> Commission ({commissionRateLabel})
                 </span>
               </div>
             </div>
@@ -749,7 +762,7 @@ export default function AdminFinanceDashboardPage() {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  Separate month-by-month performance of total sale, gross product sales & 10% admin commission
+                  Separate month-by-month performance of total sale, gross product sales & admin commission ({commissionRateLabel})
                 </p>
               </div>
             </div>
@@ -762,7 +775,7 @@ export default function AdminFinanceDashboardPage() {
                 <span className="h-2.5 w-2.5 rounded-sm bg-blue-600" /> Gross Product Sales
               </span>
               <span className="flex items-center gap-1.5 text-indigo-700">
-                <span className="h-2.5 w-2.5 rounded-sm bg-indigo-600" /> Admin Commission (10%)
+                <span className="h-2.5 w-2.5 rounded-sm bg-indigo-600" /> Admin Commission ({commissionRateLabel})
               </span>
             </div>
           </div>
@@ -795,7 +808,7 @@ export default function AdminFinanceDashboardPage() {
                             : name === 'grossProductSales'
                             ? 'Gross Product Sales'
                             : name === 'adminCommission'
-                            ? 'Admin Commission (10%)'
+                            ? `Admin Commission (${commissionRateLabel})`
                             : name,
                         ]}
                         labelFormatter={(lbl, payload) => {

@@ -478,7 +478,7 @@ export default function VendorProfilePage() {
             <Percent className="h-4 w-4 text-emerald-600" />
           </div>
           <p className="mt-1.5 text-xl font-bold text-slate-900">
-            {data.commissionRate ?? 10}%
+            {data.commissionRate != null ? `${data.commissionRate}%` : '—'}
           </p>
           <span className="mt-0.5 block text-[11px] text-slate-400">Platform Standard</span>
         </div>

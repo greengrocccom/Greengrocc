@@ -6,6 +6,43 @@ import DeliveryManager from "../../delivery-service/src/models/DeliveryManager.j
 import StoreOrder from "../../delivery-service/src/models/StoreOrder.js";
 import DeliveryExpense from "../../delivery-service/src/models/DeliveryExpense.js";
 
+/** Vendors saved without a rate use the Vendor schema's own default. */
+export const DEFAULT_COMMISSION_RATE = Number(Vendor.schema.path("commissionRate").defaultValue);
+
+export function vendorCommissionRate(vendor) {
+  return Number(vendor?.commissionRate ?? DEFAULT_COMMISSION_RATE);
+}
+
+/**
+ * Collapse trend rows grouped by { period, managerId } into one row per period, charging
+ * each store's sales at its vendor's commission rate (stores without a vendor earn none).
+ */
+function rollUpTrend(rows, rateByStore) {
+  const byPeriod = new Map();
+  for (const row of rows) {
+    const period = row._id.period;
+    const acc = byPeriod.get(period) || {
+      _id: period,
+      totalOrders: 0,
+      deliveredOrders: 0,
+      cancelledOrders: 0,
+      grossProductSales: 0,
+      deliveryCharges: 0,
+      adminCommission: 0,
+    };
+    const gross = Number(row.grossProductSales || 0);
+    const deliv = Number(row.deliveryCharges || 0);
+    acc.totalOrders += row.totalOrders;
+    acc.deliveredOrders += row.deliveredOrders;
+    acc.cancelledOrders += row.cancelledOrders;
+    acc.grossProductSales += gross;
+    acc.deliveryCharges += deliv;
+    acc.adminCommission += ((gross + deliv) * (rateByStore.get(String(row._id.managerId)) || 0)) / 100;
+    byPeriod.set(period, acc);
+  }
+  return [...byPeriod.values()].sort((a, b) => a._id.localeCompare(b._id));
+}
+
 /**
  * Helper to build IST Date Range from preset or custom dates
  */
@@ -86,7 +123,7 @@ export async function calculateVendorAdminCommission(vendorIdOrDoc, dateFilter =
 
   if (!vendor) return null;
 
-  const commissionRate = Number(vendor.commissionRate ?? 10);
+  const commissionRate = vendorCommissionRate(vendor);
   const isPrimaryVendor = vendor.id === "vendor-1";
   const vendorMatchIds = [vendor.id, String(vendor._id)].filter(Boolean);
 
@@ -309,7 +346,7 @@ export async function calculateVendorAdminCommission(vendorIdOrDoc, dateFilter =
   const customerPaymentTotal = Number(orderKpis?.customerPaymentTotal && Number(orderKpis.customerPaymentTotal) > totalSale ? orderKpis.customerPaymentTotal : totalSale + cancelledCostRaw);
   const deliveredSales = Number(orderKpis?.deliveredSales || 0);
 
-  // 3. Central Admin Commission calculation on TOTAL SALE (10% of totalSale)
+  // 3. Central Admin Commission: the vendor's commission rate on TOTAL SALE
   const totalAdminCommission = Math.round((totalSale * commissionRate) / 100);
 
   // 4. Commission Payments from existing VendorCommissionPayment model
@@ -610,12 +647,18 @@ export async function getAdminFinanceDashboardData(dateFilter = null) {
     orderTrendMatch.createdAt = dateFilter;
   }
 
+  const rateByStore = new Map();
+  for (const c of allCommissions.vendors) {
+    for (const store of c.darkStores || []) rateByStore.set(String(store._id), Number(c.commissionRate) || 0);
+  }
+
   const rawDailyTrend = await StoreOrder.aggregate([
     { $match: orderTrendMatch },
     {
       $group: {
         _id: {
-          $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Kolkata" },
+          period: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Kolkata" } },
+          managerId: "$managerId",
         },
         totalOrders: { $sum: 1 },
         deliveredOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
@@ -678,11 +721,11 @@ export async function getAdminFinanceDashboardData(dateFilter = null) {
     { $sort: { _id: 1 } },
   ]);
 
-  const dailyTrend = rawDailyTrend.map((d) => {
-    const gross = Number(d.grossProductSales || 0);
-    const deliv = Number(d.deliveryCharges || 0);
+  const dailyTrend = rollUpTrend(rawDailyTrend, rateByStore).map((d) => {
+    const gross = d.grossProductSales;
+    const deliv = d.deliveryCharges;
     const totalSale = gross + deliv;
-    const adminCommission = Math.round((totalSale * 10) / 100);
+    const adminCommission = Math.round(d.adminCommission);
     return {
       date: d._id,
       label: d._id.slice(5),
@@ -702,7 +745,8 @@ export async function getAdminFinanceDashboardData(dateFilter = null) {
     {
       $group: {
         _id: {
-          $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "Asia/Kolkata" },
+          period: { $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "Asia/Kolkata" } },
+          managerId: "$managerId",
         },
         totalOrders: { $sum: 1 },
         deliveredOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
@@ -780,11 +824,11 @@ export async function getAdminFinanceDashboardData(dateFilter = null) {
     "12": { en: "Dec", mr: "डिसेंबर" },
   };
 
-  const monthlyTrend = rawMonthlyTrend.map((m) => {
-    const gross = Number(m.grossProductSales || 0);
-    const deliv = Number(m.deliveryCharges || 0);
+  const monthlyTrend = rollUpTrend(rawMonthlyTrend, rateByStore).map((m) => {
+    const gross = m.grossProductSales;
+    const deliv = m.deliveryCharges;
     const totalSale = gross + deliv;
-    const adminCommission = Math.round((totalSale * 10) / 100);
+    const adminCommission = Math.round(m.adminCommission);
     const [year, monthPart] = (m._id || "").split("-");
     const mInfo = monthNames[monthPart] || { en: monthPart, mr: monthPart };
     const label = `${mInfo.en} ${year}`;

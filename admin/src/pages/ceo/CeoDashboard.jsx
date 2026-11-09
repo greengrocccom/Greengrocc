@@ -37,6 +37,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import erpApi from '../../api/erpApi';
+import AdminNetProfitCard from './AdminNetProfitCard';
 import { BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL } from '../../utils/ui';
 
 const FALLBACK_LENSES = [
@@ -362,6 +363,11 @@ export default function CeoDashboard() {
           </button>
         </form>
       </div>
+
+      <AdminNetProfitCard
+        period={timeFilter}
+        periodLabel={PERIOD_OPTIONS.find((p) => p.id === timeFilter)?.desc}
+      />
 
       {/* ========================================================================= */}
       {/* 4 CORE FINANCIAL & LIQUIDITY HERO CARDS                                   */}

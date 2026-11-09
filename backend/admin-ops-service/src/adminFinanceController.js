@@ -5,8 +5,10 @@ import {
   calculateAllVendorsCommission,
   getAdminFinanceDashboardData,
   recordVendorCommissionPayment,
+  vendorCommissionRate,
 } from "./adminCommissionService.js";
 import { VendorCommissionPayment } from "./models.js";
+import { FinanceExpense } from "./financeModels.js";
 import { getVendorCommissionAnalytics } from "./adminCommissionAnalytics.js";
 import { Vendor } from "../../farmer-manager-service/src/models.js";
 import DeliveryManager from "../../delivery-service/src/models/DeliveryManager.js";
@@ -25,6 +27,67 @@ export async function getAdminFinanceDashboard(req, res) {
   } catch (err) {
     console.error("[AdminFinance] getAdminFinanceDashboard error:", err);
     return res.status(500).json({ success: false, message: err.message || "Failed to load dashboard data" });
+  }
+}
+
+/** GreenGrocc's own expenses (Finance → Expense Transactions) for the period, grouped by type. */
+async function platformExpenses(dateFilter) {
+  const [entries, categories] = await Promise.all([
+    FinanceExpense.find(dateFilter ? { date: dateFilter } : {})
+      .sort({ date: -1, createdAt: -1 })
+      .select("title category amount date notes")
+      .lean(),
+    FinanceExpense.distinct("category"),
+  ]);
+
+  const groups = new Map();
+  for (const entry of entries) {
+    const category = String(entry.category || "").trim() || "Other";
+    const group = groups.get(category) || { category, total: 0, count: 0 };
+    group.total += Number(entry.amount) || 0;
+    group.count += 1;
+    groups.set(category, group);
+  }
+  const byCategory = [...groups.values()].sort((a, b) => b.total - a.total);
+  return {
+    totalExpenses: byCategory.reduce((sum, group) => sum + group.total, 0),
+    byCategory,
+    entries,
+    categories: categories.map((c) => String(c || "").trim()).filter(Boolean).sort(),
+  };
+}
+
+/**
+ * GET /api/admin/finance/admin-net-profit
+ * Admin Net Profit = commission from vendors + delivered product sales of the admin's own
+ * vendors (isAdminVendor; they pay no commission to themselves) − the admin's own expenses.
+ */
+export async function getAdminNetProfit(req, res) {
+  try {
+    const { preset, startDate, endDate } = req.query;
+    const dateFilter = buildIstDateFilter(preset, startDate, endDate);
+    const [{ vendors }, expenses] = await Promise.all([
+      calculateAllVendorsCommission(dateFilter),
+      platformExpenses(dateFilter),
+    ]);
+
+    const own = vendors.filter((v) => v.isAdminVendor);
+    const commission = vendors
+      .filter((v) => !v.isAdminVendor)
+      .reduce((sum, v) => sum + Number(v.totalAdminCommission || 0), 0);
+    const ownVendorDelivered = own.reduce((sum, v) => sum + Number(v.deliveredSales || 0), 0);
+
+    return res.json({
+      success: true,
+      commission,
+      ownVendorDelivered,
+      ownVendorNames: own.map((v) => v.vendor.name).filter(Boolean),
+      ...expenses,
+      netProfit: commission + ownVendorDelivered - expenses.totalExpenses,
+    });
+  } catch (err) {
+    console.error("[AdminFinance] getAdminNetProfit error:", err);
+    return res.status(500).json({ success: false, message: err.message || "Failed to load admin net profit" });
   }
 }
 
@@ -284,7 +347,7 @@ export async function getAdminVendorCommissionDetail(req, res) {
 
     const totalVendorProcurement = calc.farmerProcurement || 0;
     const totalVendorGrossSales = calc.grossProductSales || 0;
-    const vendorRate = calc.commissionRate || 10;
+    const vendorRate = calc.commissionRate;
 
     const darkStoreBreakdown = calc.darkStores.map((s) => {
       const o = storeOrderMap.get(String(s._id)) || {
@@ -456,7 +519,7 @@ export async function listAdminCommissionPayments(req, res) {
         ...p,
         vendorName: v.name || v.ownerName || p.vendorId,
         ownerName: v.ownerName || "",
-        commissionRate: vc?.commissionRate ?? 10,
+        commissionRate: vc ? vc.commissionRate : null,
         totalAdminCommission: vc?.totalAdminCommission ?? 0,
         pendingCommission: vc?.pendingCommission ?? 0,
       };
@@ -608,7 +671,7 @@ export async function getAdminFinanceSalesReports(req, res) {
       const eligibleSales = isCancelled ? 0 : productAmount;
       const store = storeMap.get(String(o.managerId)) || {};
       const vendor = vendorMap.get(store.vendorId) || vendorMap.get("vendor-1") || {};
-      const rate = Number(vendor.commissionRate ?? 10);
+      const rate = vendor.id ? vendorCommissionRate(vendor) : 0;
       const commission = Math.round((eligibleSales * rate) / 100);
 
       totalGrossSales += productAmount;

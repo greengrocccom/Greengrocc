@@ -192,7 +192,7 @@ export default function VendorFinanceDashboardPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1 text-slate-500">
             <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 truncate" title="Admin Commission">
-              Admin Comm ({k.commissionRate || 10}%)
+              Admin Comm ({Number(k.commissionRate) || 0}%)
             </span>
             <Coins className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
           </div>

@@ -20,6 +20,12 @@ export const adminFinanceApi = {
   getSalesReport: (params = {}) => apiClient.get('/admin/finance/sales-report', { params }).then((res) => res.data),
   getFinancialReports: (params = {}) =>
     apiClient.get('/admin/finance/financial-reports', { params }).then((res) => res.data),
+  getAdminNetProfit: (params = {}) =>
+    apiClient.get('/admin/finance/admin-net-profit', { params }).then((res) => res.data),
+  addPlatformExpense: (data) => apiClient.post('/admin-ops/finance/expenses', data).then((res) => res.data),
+  updatePlatformExpense: (id, data) =>
+    apiClient.put(`/admin-ops/finance/expenses/${id}`, data).then((res) => res.data),
+  deletePlatformExpense: (id) => apiClient.delete(`/admin-ops/finance/expenses/${id}`).then((res) => res.data),
   downloadSalesCsv: (params = {}) => {
     const query = new URLSearchParams({ ...params, exportCsv: 'true' }).toString();
     const token = readAdminToken();

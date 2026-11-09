@@ -1009,7 +1009,10 @@ export async function createVendorAdmin(req, res, next) {
       pincode: String(req.body.pincode || "").trim(),
       gstNumber: String(req.body.gstNumber || "").trim(),
       panNumber: String(req.body.panNumber || "").trim(),
-      commissionRate: Number(req.body.commissionRate || 10),
+      ...([undefined, null, ""].includes(req.body.commissionRate)
+        ? {}
+        : { commissionRate: Number(req.body.commissionRate) }),
+      isAdminVendor: String(req.body.isAdminVendor) === "true",
       status: req.body.status || "Active",
       vendorType: req.body.vendorType === "seller" ? "seller" : "farmer",
       zones,
@@ -1137,7 +1140,8 @@ export async function updateVendorAdmin(req, res, next) {
     fields.forEach((key) => {
       if (req.body[key] !== undefined) vendor[key] = req.body[key];
     });
-    if (req.body.commissionRate !== undefined) vendor.commissionRate = Number(req.body.commissionRate);
+    if (![undefined, null, ""].includes(req.body.commissionRate)) vendor.commissionRate = Number(req.body.commissionRate);
+    if (req.body.isAdminVendor !== undefined) vendor.isAdminVendor = String(req.body.isAdminVendor) === "true";
     if (req.body.password) vendor.password = await bcrypt.hash(String(req.body.password), 10);
     await vendor.save();
     let centre = await CollectionCentre.findOne({ vendorId: vendor.id }).sort({ createdAt: 1 });

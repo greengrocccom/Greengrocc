@@ -353,7 +353,7 @@ export async function getVendorSalesReports(req, res) {
       const deliveryCharge = rawPaid > itemsSum ? rawPaid - itemsSum : 0;
       const customerPaid = itemsSum + deliveryCharge;
       const storeName = o.managerId?.storeName || o.managerId?.name || storeMap.get(String(o.managerId)) || "Dark Store";
-      const comm = Math.round((customerPaid * (data.kpis.commissionRate || 10)) / 100);
+      const comm = Math.round((customerPaid * (Number(data.kpis?.commissionRate) || 0)) / 100);
 
       return {
         _id: o._id,
@@ -523,7 +523,7 @@ export async function getVendorSalesReports(req, res) {
 
     const totalVendorProcurement = data.kpis?.farmerProcurementCost || 0;
     const totalVendorGrossSales = data.kpis?.grossProductSales || 0;
-    const vendorRate = data.kpis?.commissionRate || 10;
+    const vendorRate = Number(data.kpis?.commissionRate) || 0;
 
     const darkStoreBreakdown = darkStores.map((s) => {
       const o = storeOrderMap.get(String(s._id)) || {

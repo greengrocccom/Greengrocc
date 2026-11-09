@@ -603,7 +603,7 @@ export default function AdminCommissionPaymentsPage() {
                       <div className="font-mono text-[10px] text-slate-400">{p.vendorId}</div>
                     </td>
                     <td className="px-3 py-3 text-center font-bold text-indigo-700">
-                      {p.commissionRate ? `${p.commissionRate}%` : '10%'}
+                      {p.commissionRate != null ? `${p.commissionRate}%` : '—'}
                     </td>
                     <td className="px-4 py-3 text-right font-black text-blue-900 text-sm">
                       {formatInr(p.amount)}

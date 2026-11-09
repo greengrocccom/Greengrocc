@@ -123,7 +123,7 @@ export async function calculateVendorFinancials({
     throw new Error("Vendor account not found");
   }
 
-  const commissionRate = Number(vendor.commissionRate || 10);
+  const commissionRate = Number(vendor.commissionRate ?? Vendor.schema.path("commissionRate").defaultValue);
   const dateMatch = buildDateRange(preset, startDate, endDate);
 
   // 2. Fetch all Dark Stores belonging to this Vendor

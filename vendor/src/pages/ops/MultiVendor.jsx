@@ -54,7 +54,7 @@ const DEFAULTS = {
   city: '',
   state: 'Maharashtra',
   gstNumber: '',
-  commissionRate: 10,
+  commissionRate: '',
   status: 'Active',
   password: 'vendor123',
   zones: [],
@@ -616,7 +616,9 @@ export default function MultiVendor() {
                         {(row.documents || []).length}/{DOCUMENT_TYPES.length} uploaded
                       </p>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{row.commissionRate ?? 10}%</td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {row.commissionRate != null ? `${row.commissionRate}%` : '—'}
+                    </td>
                     <td className="px-4 py-3">
                       <StatusPill status={row.status} />
                     </td>
@@ -1036,7 +1038,15 @@ export default function MultiVendor() {
                 <input value={form.state} onChange={setField('state')} className={INPUT} />
               </Field>
               <Field label="Commission %">
-                <input type="number" value={form.commissionRate} onChange={setField('commissionRate')} className={INPUT} />
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={form.commissionRate}
+                  onChange={setField('commissionRate')}
+                  placeholder="Blank = default rate"
+                  className={INPUT}
+                />
               </Field>
               <Field label="Status">
                 <select value={form.status} onChange={setField('status')} className={INPUT}>

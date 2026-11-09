@@ -163,7 +163,7 @@ export default function VendorSalesReportsPage() {
       ? k.customerPaymentTotal
       : totalSale + cancelledOrdersCost
   );
-  const commissionRate = Number(k.commissionRate || reportData?.vendor?.commissionRate || 10);
+  const commissionRate = Number(k.commissionRate ?? reportData?.vendor?.commissionRate) || 0;
   const totalDarkStoresCommission = darkStoreBreakdown.length > 0
     ? darkStoreBreakdown.reduce((sum, d) => sum + (Number(d.adminCommission ?? d.commission ?? Math.round((Number(d.totalSale || 0) * commissionRate) / 100)) || 0), 0)
     : 0;
