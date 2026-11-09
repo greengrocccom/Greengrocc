@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
+import { keepRawBodyForWebhooks } from "./rawBody.js";
 
 export const createServiceApp = ({ serviceName, routes = [] }) => {
   const app = express();
@@ -13,7 +14,7 @@ export const createServiceApp = ({ serviceName, routes = [] }) => {
       credentials: true,
     })
   );
-  app.use(express.json({ limit: "50mb" }));
+  app.use(express.json({ limit: "50mb", verify: keepRawBodyForWebhooks }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
   app.get("/health", (_req, res) => {

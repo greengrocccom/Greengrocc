@@ -1,5 +1,13 @@
-import crypto from "crypto";
 import razorpay, { isRazorpayConfigured } from "../config/razorpay.js";
+import {
+  CHECKOUT_PURPOSE,
+  confirmPayment,
+  finalizeFromCheckoutAttempt,
+  findOrderForPayment,
+  isValidCheckoutSignature,
+  isValidWebhookSignature,
+  refundPayment,
+} from "../services/razorpayCheckoutService.js";
 import Order from "../models/order/Order.js";
 import Payment from "../models/payment/Payment.js";
 import {
@@ -157,11 +165,18 @@ export const createRazorpayOrder = async (req, res) => {
       currency: "INR",
       receipt: `bmm_${Date.now()}`,
       notes: {
+        purpose: CHECKOUT_PURPOSE,
         userId: req.user._id.toString(),
+        attemptedOrderId: attemptedOrder._id.toString(),
         addressId: String(addressId),
         paymentMode,
       },
     });
+    // Bind the priced checkout to this Razorpay order so the payment always becomes exactly this order.
+    await Order.updateOne(
+      { _id: attemptedOrder._id, status: "attempted" },
+      { $set: { razorpayOrderId: razorpayOrder.id, razorpayPaymentId: "" } }
+    );
 
     res.status(200).json({
       success: true,
@@ -225,19 +240,49 @@ export const verifyRazorpayPayment = async (req, res) => {
       });
     }
 
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest("hex");
-
-    if (expectedSignature !== razorpay_signature) {
+    if (!isValidCheckoutSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature)) {
       return res.status(400).json({
         success: false,
         message: "Payment verification failed. Please try again.",
       });
     }
 
+    // Same payment verified again (retry, double tap, replay): return the order it already made.
+    const alreadyPlaced = await findOrderForPayment(razorpay_payment_id);
+    if (alreadyPlaced) {
+      if (String(alreadyPlaced.user) !== String(req.user._id)) {
+        return res.status(403).json({ success: false, message: "This payment belongs to another account" });
+      }
+      return res.status(200).json({ success: true, message: "Order placed successfully", data: alreadyPlaced });
+    }
+
     const razorpayOrder = await razorpay.orders.fetch(razorpay_order_id);
+    if (String(razorpayOrder?.notes?.userId || "") !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: "This payment belongs to another account" });
+    }
+
+    const confirmed = await confirmPayment(razorpay_payment_id, razorpayOrder);
+    if (confirmed.error) {
+      return res.status(400).json({ success: false, message: confirmed.error });
+    }
+    const { payment } = confirmed;
+
+    const fromAttempt = await finalizeFromCheckoutAttempt({
+      userId: req.user._id,
+      razorpayOrder,
+      payment,
+      message: orderMessage,
+    });
+    if (fromAttempt) {
+      if (fromAttempt.placed) {
+        void notifyOrderCreated(fromAttempt.order, { previousStatus: "attempted" });
+        void notifyPaymentSuccess(fromAttempt.order, { paymentMode });
+      }
+      return res.status(201).json({ success: true, message: "Order placed successfully", data: fromAttempt.order });
+    }
+
+    // No checkout snapshot for this payment (e.g. the checkout was edited in another tab):
+    // price the current checkout; if it no longer matches what was paid, refund in full.
     const result = await prepareOrderData(req.user._id, addressId, {
       checkoutItems,
       checkoutMode,
@@ -248,22 +293,18 @@ export const verifyRazorpayPayment = async (req, res) => {
       customerLocation,
       fulfillmentType: req.body.fulfillmentType,
     });
-
-    if (result.error) {
-      return res.status(result.status).json({
+    const payableAmount = result.error ? 0 : calculatePayableAmount(result.total);
+    if (result.error || Math.round(payableAmount * 100) !== Number(razorpayOrder.amount)) {
+      const reason = result.error || "Order total changed after payment";
+      const refund = await refundPayment(payment, reason);
+      return res.status(409).json({
         success: false,
-        message: result.error,
+        refunded: refund.refunded,
+        message: refund.refunded
+          ? `We couldn't place your order (${reason}). Your payment of ₹${Number(payment.amount) / 100} has been refunded.`
+          : `We couldn't place your order (${reason}). Please contact support with payment ID ${payment.id} for a refund.`,
         ...(result.code ? { code: result.code } : {}),
         ...(result.removedItems ? { removedItems: result.removedItems } : {}),
-      });
-    }
-
-    const payableAmount = calculatePayableAmount(result.total);
-    const expectedAmount = Math.round(payableAmount * 100);
-    if (Number(razorpayOrder.amount) !== expectedAmount) {
-      return res.status(400).json({
-        success: false,
-        message: "Payment amount does not match order total",
       });
     }
 
@@ -313,10 +354,69 @@ export const verifyRazorpayPayment = async (req, res) => {
       data: order,
     });
   } catch (error) {
+    // Another request placed the order for this payment at the same moment.
+    if (error?.code === 11000 && req.body?.razorpay_payment_id) {
+      const existing = await findOrderForPayment(req.body.razorpay_payment_id).catch(() => null);
+      if (existing && String(existing.user) === String(req.user._id)) {
+        return res.status(200).json({ success: true, message: "Order placed successfully", data: existing });
+      }
+    }
     res.status(500).json({
       success: false,
       message: error.message || "Failed to verify payment",
     });
+  }
+};
+
+/**
+ * POST /api/payments/webhook — Razorpay `payment.captured` / `order.paid`.
+ * Places the order when the customer paid but the app never called /verify (closed the
+ * app, lost network). Needs RAZORPAY_WEBHOOK_SECRET and the webhook set up in Razorpay.
+ */
+export const handleRazorpayWebhook = async (req, res) => {
+  if (!process.env.RAZORPAY_WEBHOOK_SECRET || !isRazorpayConfigured()) {
+    return res.status(503).json({ success: false, message: "Razorpay webhook is not configured" });
+  }
+  if (!isValidWebhookSignature(req.rawBody, req.get("x-razorpay-signature"))) {
+    return res.status(400).json({ success: false, message: "Invalid signature" });
+  }
+
+  const event = String(req.body?.event || "");
+  const payment = req.body?.payload?.payment?.entity;
+  if (!["payment.captured", "order.paid"].includes(event) || !payment?.id || !payment.order_id) {
+    return res.json({ success: true, ignored: true });
+  }
+
+  try {
+    if (await findOrderForPayment(payment.id)) return res.json({ success: true, alreadyPlaced: true });
+
+    const razorpayOrder = await razorpay.orders.fetch(payment.order_id);
+    const userId = razorpayOrder?.notes?.userId;
+    if (razorpayOrder?.notes?.purpose !== CHECKOUT_PURPOSE || !userId) {
+      return res.json({ success: true, ignored: true });
+    }
+
+    const confirmed = await confirmPayment(payment.id, razorpayOrder);
+    if (confirmed.error) {
+      console.warn(`[razorpay webhook] ${payment.id}: ${confirmed.error}`);
+      return res.json({ success: true, ignored: true });
+    }
+
+    const result = await finalizeFromCheckoutAttempt({ userId, razorpayOrder, payment: confirmed.payment });
+    if (!result) {
+      // The app's /verify prices the current checkout and refunds if it can't be placed.
+      console.warn(`[razorpay webhook] no checkout snapshot for ${payment.order_id}; left to /verify`);
+      return res.json({ success: true, pending: true });
+    }
+    if (result.placed) {
+      void notifyOrderCreated(result.order, { previousStatus: "attempted" });
+      void notifyPaymentSuccess(result.order, { paymentMode: "online", source: "webhook" });
+    }
+    return res.json({ success: true, orderId: String(result.order._id) });
+  } catch (error) {
+    console.error("[razorpay webhook] failed:", error?.error?.description || error.message);
+    // Non-2xx makes Razorpay retry later.
+    return res.status(500).json({ success: false });
   }
 };
 

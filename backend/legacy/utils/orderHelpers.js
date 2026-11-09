@@ -1268,6 +1268,9 @@ export async function upsertCheckoutAttemptOrder(userId, prepared, paymentMethod
     status: "attempted",
     preOrderSlot: normalizePreOrderSlot(prepared.preOrderSlot),
     fulfillmentType: normalizeFulfillmentType(prepared.fulfillmentType),
+    // A changed checkout is no longer the one a pending Razorpay order was priced for.
+    razorpayOrderId: "",
+    razorpayPaymentId: "",
   };
 
   const existing = await Order.findOne({ user: userId, status: "attempted" })

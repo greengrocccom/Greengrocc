@@ -6,12 +6,16 @@ import {
   getAdminPayments,
   getAdminRazorpayTransactions,
   getPaymentUnreadCount,
+  handleRazorpayWebhook,
   submitUpiPaymentProof,
   updatePaymentStatus,
   verifyRazorpayPayment,
 } from "../controllers/paymentController.js";
 
 const router = express.Router();
+
+// Called by Razorpay (no login); authenticated by the webhook signature.
+router.post("/webhook", handleRazorpayWebhook);
 
 router.post("/submit-upi-proof", protect, submitUpiPaymentProof);
 router.post("/create-order", protect, createRazorpayOrder);

@@ -131,7 +131,7 @@ const orderSchema = new mongoose.Schema(
       enum: ["unpaid", "paid_10", "paid", "refundable", "pending_verification"],
       default: "unpaid",
     },
-    razorpayOrderId: { type: String, default: "" },
+    razorpayOrderId: { type: String, default: "", index: true },
     razorpayPaymentId: { type: String, default: "" },
     codAdvanceAmount: { type: Number, default: 0, min: 0 },
     razorpayPaidAmount: { type: Number, default: 0, min: 0 },
@@ -365,6 +365,16 @@ orderSchema.pre("save", async function preSaveOrder() {
 
   this.orderNumber = orderNumber;
 });
+
+/** One order per Razorpay payment: a replayed or duplicate verify can never make a second paid order. */
+orderSchema.index(
+  { razorpayPaymentId: 1 },
+  {
+    name: "razorpayPaymentId_unique",
+    unique: true,
+    partialFilterExpression: { razorpayPaymentId: { $type: "string", $gt: "" } },
+  }
+);
 
 const Order = mongoose.model("Order", orderSchema);
 

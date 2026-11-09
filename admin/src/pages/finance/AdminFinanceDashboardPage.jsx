@@ -177,6 +177,8 @@ export default function AdminFinanceDashboardPage() {
     };
   }, [allVendors, data.kpis]);
 
+  const onlyOwnVendors = allVendors.length > 0 && allVendors.every((v) => v.isAdminVendor);
+
   const commissionRateLabel = useMemo(() => {
     const rates = [...new Set(allVendors.map((v) => Number(v.commissionRate)).filter(Number.isFinite))];
     return rates.length === 1 ? `${rates[0]}%` : 'vendor rates';
@@ -530,67 +532,73 @@ export default function AdminFinanceDashboardPage() {
           </div>
         </div>
 
-        {/* ROW 3: Final Profitability (Admin Commission, Net Profit & Current Profit) */}
+        {/* ROW 3: Commission, vendors' profit and delivered sales, in plain words */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Admin Commission Card */}
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-1 text-slate-500">
-              <span
-                className="text-[11px] font-bold uppercase tracking-wider text-indigo-950 truncate"
-                title="Total Admin Commission"
-              >
-                TOTAL ADMIN COMMISSION (एकूण कमिशन)
+          {/* Commission earned */}
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 shadow-xs flex flex-col">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[12px] font-bold text-indigo-950">
+                Commission earned <span className="font-semibold text-indigo-700/70">(कमिशन)</span>
               </span>
               <Percent className="h-4 w-4 shrink-0 text-indigo-600" />
             </div>
-            <p className="mt-1.5 text-xl sm:text-2xl font-bold tracking-tight text-indigo-700 truncate tabular-nums">
+            <p className="mt-1.5 text-xl sm:text-2xl font-bold tracking-tight text-indigo-700 tabular-nums">
               {loading ? '...' : formatInr(scopedKpis.totalAdminCommission)}
             </p>
-            <span className="text-[10px] font-medium text-indigo-800 truncate block mt-0.5">
-              {commissionRateLabel} on TOTAL SALE ({formatInr(scopedKpis.totalSale)})
-            </span>
+            <p className="mt-1 text-[11px] leading-snug text-indigo-900/80">
+              {onlyOwnVendors
+                ? 'No commission: all sales are from your own vendor, which pays no commission.'
+                : `What vendors owe you: ${commissionRateLabel} of their sales of ${formatInr(scopedKpis.totalSale)}.`}
+            </p>
           </div>
 
-          {/* Net Profit */}
-          <div className="rounded-xl border border-emerald-300 bg-emerald-50/50 p-3 shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-1 text-slate-500">
-              <span
-                className="text-[11px] font-bold uppercase tracking-wider text-emerald-950 truncate"
-                title="Vendors' net profit, after paying admin commission"
-              >
-                VENDOR NET PROFIT (व्हेंडर नफा)
+          {/* Vendors' profit */}
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50/50 p-3 shadow-xs flex flex-col">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[12px] font-bold text-emerald-950">
+                {onlyOwnVendors ? "Your vendor's profit" : "Vendors' profit"}{' '}
+                <span className="font-semibold text-emerald-700/70">(व्हेंडर नफा)</span>
               </span>
               <TrendingUp className="h-4 w-4 shrink-0 text-emerald-600" />
             </div>
             <p
-              className={`mt-1.5 text-xl sm:text-2xl font-bold tracking-tight truncate tabular-nums ${
+              className={`mt-1.5 text-xl sm:text-2xl font-bold tracking-tight tabular-nums ${
                 scopedKpis.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-600'
               }`}
             >
               {loading ? '...' : formatInr(scopedKpis.netProfit)}
             </p>
-            <span className="text-[10px] font-medium text-emerald-800 truncate block mt-0.5">
-              TOTAL SALE ({formatInr(scopedKpis.totalSale)}) - खरेदी ({formatInr(scopedKpis.farmerProcurement)}) - कमिशन ({formatInr(scopedKpis.totalAdminCommission)}) - खर्च ({formatInr(scopedKpis.combinedExpenses)})
-            </span>
+            <dl className="mt-1.5 space-y-0.5 text-[11px] tabular-nums text-emerald-950/80">
+              {[
+                ['Sales', scopedKpis.totalSale, ''],
+                ['Farmer purchases', scopedKpis.farmerProcurement, '−'],
+                ['Commission to you', scopedKpis.totalAdminCommission, '−'],
+                ['Store & vendor expenses', scopedKpis.combinedExpenses, '−'],
+              ].map(([label, value, sign]) => (
+                <div key={label} className="flex justify-between gap-2">
+                  <dt>{sign ? `${sign} ${label}` : label}</dt>
+                  <dd className="font-semibold">{formatInr(value)}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
 
-          {/* Current Profit */}
-          <div className="rounded-xl border border-emerald-300 bg-emerald-50/50 p-3 shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-1 text-slate-500">
-              <span
-                className="text-[11px] font-bold uppercase tracking-wider text-emerald-950 truncate"
-                title="Current Profit"
-              >
-                CURRENT PROFIT (वितरित नफा)
+          {/* Delivered sales */}
+          <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3 shadow-xs flex flex-col">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[12px] font-bold text-sky-950">
+                Delivered sales <span className="font-semibold text-sky-700/70">(वितरित विक्री)</span>
               </span>
-              <Coins className="h-4 w-4 shrink-0 text-emerald-600" />
+              <Coins className="h-4 w-4 shrink-0 text-sky-600" />
             </div>
-            <p className="mt-1.5 text-xl sm:text-2xl font-bold tracking-tight text-emerald-700 truncate tabular-nums">
+            <p className="mt-1.5 text-xl sm:text-2xl font-bold tracking-tight text-sky-700 tabular-nums">
               {loading ? '...' : formatInr(scopedKpis.currentProfit)}
             </p>
-            <span className="text-[10px] font-medium text-emerald-800 truncate block mt-0.5">
-              Delivered product sales ({scopedKpis.completedOrders} orders delivered)
-            </span>
+            <p className="mt-1 text-[11px] leading-snug text-sky-900/80">
+              Value of products in the {scopedKpis.completedOrders} order
+              {scopedKpis.completedOrders === 1 ? '' : 's'} already delivered. This is money in, not profit
+              (no costs taken off).
+            </p>
           </div>
         </div>
 
@@ -1075,8 +1083,8 @@ export default function AdminFinanceDashboardPage() {
                 <th className="px-4 py-3 text-right text-emerald-800 font-bold">TOTAL SALE</th>
                 <th className="px-4 py-3 text-right text-indigo-700 font-bold">ADMIN COMMISSION</th>
                 <th className="px-4 py-3 text-right text-rose-700 font-bold">DARK STORE EXPENSES</th>
-                <th className="px-4 py-3 text-right text-emerald-800 font-bold">NET PROFIT</th>
-                <th className="px-4 py-3 text-right text-emerald-700 font-bold">CURRENT PROFIT</th>
+                <th className="px-4 py-3 text-right text-emerald-800 font-bold" title="What the vendor keeps after purchases, your commission and expenses">VENDOR PROFIT</th>
+                <th className="px-4 py-3 text-right text-sky-700 font-bold" title="Value of products in delivered orders (not profit)">DELIVERED SALES</th>
                 <th className="px-4 py-3 text-center">ACTION</th>
               </tr>
             </thead>

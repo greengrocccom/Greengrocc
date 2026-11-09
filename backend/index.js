@@ -56,6 +56,7 @@ import { seedDefaultRolePoliciesIfEmpty } from "./admin-ops-service/src/policyCo
 import { purgeLegacySeedMarketPrices } from "./admin-ops-service/src/marketPriceControllers.js";
 import { purgeLegacySeedB2bClients } from "./admin-ops-service/src/b2bControllers.js";
 import { purgeLegacySeedVendorReviews } from "./farmer-manager-service/src/vendorReviewVacationControllers.js";
+import { keepRawBodyForWebhooks } from "./shared/rawBody.js";
 
 const PORT = process.env.PORT || 5001;
 
@@ -103,7 +104,7 @@ app.use(
   })
 );
 app.use(compression({ threshold: 1024 }));
-app.use(express.json({ limit: "50mb" }));
+app.use(express.json({ limit: "50mb", verify: keepRawBodyForWebhooks }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use((req, res, next) => {
   if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {

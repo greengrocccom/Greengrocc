@@ -36,6 +36,7 @@ import testFcmRoutes from "./routes/testFcmRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
 import { getFirebaseAdmin, getCustomerFirebaseAdmin } from "./config/firebaseAdmin.js";
+import { keepRawBodyForWebhooks } from "../shared/rawBody.js";
 
 const app = express();
 // Default 5001 — macOS AirPlay Receiver often occupies port 5000.
@@ -55,7 +56,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ verify: keepRawBodyForWebhooks }));
 
 app.get("/", (req, res) => {
   res.json({ message: "GreenGrocc API is running" });
