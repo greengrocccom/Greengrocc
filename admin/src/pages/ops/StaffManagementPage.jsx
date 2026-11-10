@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Clock,
   Sparkles,
+  Camera,
   RefreshCw,
   Search,
   Lock,
@@ -27,6 +28,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import opsApi from '../../api/opsApi';
+import CleaningReportsPanel from './CleaningReportsPanel';
 import { BTN, BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL, TH } from '../../utils/ui';
 
 export default function StaffManagementPage() {
@@ -379,6 +381,18 @@ export default function StaffManagementPage() {
         </button>
         <button
           type="button"
+          onClick={() => setActiveTab('cleaning')}
+          className={`pb-3 border-b-2 transition flex items-center gap-2 ${
+            activeTab === 'cleaning'
+              ? 'border-emerald-700 text-emerald-800'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Camera className="h-4 w-4" />
+          Cleaning Photos
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('hr-hub')}
           className={`pb-3 border-b-2 transition flex items-center gap-2 ${
             activeTab === 'hr-hub'
@@ -547,6 +561,8 @@ export default function StaffManagementPage() {
           </div>
         </div>
       )}
+
+      {activeTab === 'cleaning' && <CleaningReportsPanel />}
 
       {/* TAB 2: CUSTOM ROLES MANAGER */}
       {activeTab === 'roles' && (
@@ -1068,6 +1084,15 @@ export default function StaffManagementPage() {
                     </optgroup>
                   )}
                 </select>
+                {/\bclean(?:er|ers|ing)?\b/.test(
+                  `${staffForm.role} ${(rolesData.all || []).find((role) => role.value === staffForm.role)?.label || ''}`
+                    .toLowerCase()
+                    .replace(/[_-]+/g, ' ')
+                ) && (
+                  <p className="mt-1.5 text-[11px] leading-4 text-emerald-700">
+                    This cleaner will get a daily photo upload in the staff app. Uploaded photos show in the Cleaning Photos tab, by day and by person.
+                  </p>
+                )}
               </div>
 
               <div>

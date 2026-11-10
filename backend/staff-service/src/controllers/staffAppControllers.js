@@ -12,6 +12,7 @@ import {
   HrShift,
 } from "../../../admin-ops-service/src/models.js";
 import { ROLE_LABELS } from "../constants/roles.js";
+import { isCleaner } from "./cleaningReportController.js";
 import { getStaffFirebaseMessaging } from "../../../legacy/config/firebaseAdmin.js";
 
 const ok = (res, data, extra = {}) => res.json({ success: true, data, ...extra });
@@ -99,6 +100,7 @@ export async function getStaffOverview(req, res, next) {
         isActive: staff.isActive !== false,
         createdAt: staff.createdAt || null,
         isCustomRole: Boolean(customRole),
+        isCleaner: isCleaner(staff, customRole),
       },
       today: {
         date: today,

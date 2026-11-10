@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/api_client.dart';
 
 class CleaningReportEntry extends StatefulWidget {
@@ -38,7 +39,7 @@ class _CleaningReportEntryState extends State<CleaningReportEntry> {
           ),
           title: const Text('Daily Cleaning Report'),
           subtitle: const Text(
-            'Required: take a photo and add a cleaning note',
+            "Upload today's cleaning photo and a short note",
           ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.push(
@@ -61,6 +62,7 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
   final _note = TextEditingController();
   final _form = GlobalKey<FormState>();
   Uint8List? _photo;
+  String _source = 'camera';
   bool _busy = false;
   late Future<dynamic> _reports;
 
@@ -86,13 +88,37 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
       context,
       MaterialPageRoute(builder: (_) => const CleaningCameraScreen()),
     );
-    if (mounted && bytes != null) setState(() => _photo = bytes);
+    if (mounted && bytes != null) {
+      setState(() {
+        _photo = bytes;
+        _source = 'camera';
+      });
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      imageQuality: 80,
+    );
+    if (file == null || !mounted) return;
+    final bytes = await file.readAsBytes();
+    if (!mounted) return;
+    if (bytes.length > 5 * 1024 * 1024) {
+      _message('Photo is larger than 5 MB. Choose a smaller photo.');
+      return;
+    }
+    setState(() {
+      _photo = bytes;
+      _source = 'gallery';
+    });
   }
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     if (_photo == null) {
-      _message('Take a photo with the camera first.');
+      _message('Add a cleaning photo first.');
       return;
     }
     setState(() => _busy = true);
@@ -100,12 +126,13 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
       await ApiClient.post('/api/staff/my/cleaning-reports', {
         'note': _note.text.trim(),
         'photoBase64': base64Encode(_photo!),
-        'source': 'camera',
+        'source': _source,
       });
       if (!mounted) return;
       _note.clear();
       setState(() {
         _photo = null;
+        _source = 'camera';
         _reports = ApiClient.get('/api/staff/my/cleaning-reports');
       });
       _message('Cleaning report submitted.');
@@ -155,7 +182,7 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'A fresh camera photo and a note are required. Gallery images cannot be selected.',
+              'Take a photo or upload one from your gallery, then add a note about the areas cleaned.',
             ),
             const SizedBox(height: 16),
             if (_photo != null)
@@ -163,12 +190,24 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
                 borderRadius: BorderRadius.circular(12),
                 child: Image.memory(_photo!, height: 220, fit: BoxFit.cover),
               ),
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _capture,
-              icon: const Icon(Icons.camera_alt),
-              label: Text(
-                _photo == null ? 'Take required photo' : 'Retake photo',
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _capture,
+                    icon: const Icon(Icons.camera_alt),
+                    label: Text(_photo == null ? 'Take photo' : 'Retake'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _pickFromGallery,
+                    icon: const Icon(Icons.upload_rounded),
+                    label: const Text('Upload photo'),
+                  ),
+                ),
+              ],
             ),
             Form(
               key: _form,

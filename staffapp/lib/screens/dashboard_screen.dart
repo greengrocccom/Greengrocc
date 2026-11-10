@@ -13,6 +13,7 @@ import 'holidays_screen.dart';
 import 'meetings_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
+import 'cleaning_report_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onSwitchToAttendance;
@@ -100,6 +101,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } finally {
       if (mounted) setState(() => _isPunching = false);
     }
+  }
+
+  bool get _isCleaner {
+    if (_profile['isCleaner'] == true) return true;
+    final text = '${_profile['role'] ?? ''} ${_profile['roleLabel'] ?? ''}'
+        .toLowerCase()
+        .replaceAll(RegExp(r'[_-]+'), ' ');
+    return RegExp(r'\bclean(?:er|ers|ing)?\b').hasMatch(text);
   }
 
   @override
@@ -360,6 +369,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
+
+              if (_isCleaner) ...[
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CleaningReportScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFECFDF5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.add_a_photo_rounded, color: Color(0xFF059669)),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Daily cleaning photo',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF064E3B),
+                                    ),
+                                  ),
+                                  Text(
+                                    "Upload today's photo of the cleaned area",
+                                    style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF047857)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right, color: Color(0xFF059669)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 20),
 

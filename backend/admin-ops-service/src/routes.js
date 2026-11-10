@@ -297,6 +297,10 @@ import {
   listStaffNotifications,
   deleteStaffNotification,
 } from "./staffManagementControllers.js";
+import {
+  listCleaningReportsForAdmin,
+  getCleaningReportPhotoForAdmin,
+} from "../../staff-service/src/controllers/cleaningReportController.js";
 
 const router = express.Router();
 
@@ -516,6 +520,8 @@ router.put("/staff-management/staff/:id/password", resetStaffPassword);
 router.post("/staff-management/notifications", sendCustomStaffNotification);
 router.get("/staff-management/notifications", listStaffNotifications);
 router.delete("/staff-management/notifications/:id", deleteStaffNotification);
+router.get("/staff-management/cleaning-reports", listCleaningReportsForAdmin);
+router.get("/staff-management/cleaning-reports/:id/photo", getCleaningReportPhotoForAdmin);
 
 router.get("/hr/b2b-clients", listB2bClients);
 router.get("/hr/b2b-clients/registered-users", listRegisteredBulkUsers);
