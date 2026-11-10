@@ -110,6 +110,15 @@ const LABEL = "block text-[11px] font-semibold uppercase tracking-wide text-slat
 const FIELD =
   "w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/15 disabled:bg-slate-50 disabled:text-slate-400";
 
+const ASSIGNMENT_RADIUS_OPTIONS = [
+  ["", "Store default"],
+  ["500", "500 m"],
+  ["1000", "1 km"],
+  ["2000", "2 km"],
+  ["3000", "3 km"],
+  ["5000", "5 km"],
+];
+
 function Card({ title, action, children }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -358,6 +367,7 @@ export default function CreateShiftPage() {
   const [newShiftType, setNewShiftType] = useState("morning");
   const [newShiftName, setNewShiftName] = useState("Morning Shift");
   const [newCapacity, setNewCapacity] = useState(10);
+  const [assignmentRadius, setAssignmentRadius] = useState("");
   const [recurrenceMode, setRecurrenceMode] = useState("single_day");
   const [targetDate, setTargetDate] = useState(getTodayString());
   const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState([1, 2, 3, 4, 5]);
@@ -534,6 +544,7 @@ export default function CreateShiftPage() {
           incentiveEligibleRiderIds: Array.isArray(s.incentiveEligibleRiderIds) ? s.incentiveEligibleRiderIds : [],
         })),
         riderIds: selectedRiderIds,
+        assignmentRadiusMeters: assignmentRadius === "" ? null : Number(assignmentRadius),
       });
 
       showToast(res.data.message || "Shift created successfully!", true);
@@ -620,6 +631,19 @@ export default function CreateShiftPage() {
               onChange={(e) => setNewCapacity(e.target.value)}
               className={FIELD}
             />
+          </div>
+          <div>
+            <label className={LABEL}>Instant order radius</label>
+            <select value={assignmentRadius} onChange={(e) => setAssignmentRadius(e.target.value)} className={FIELD}>
+              {ASSIGNMENT_RADIUS_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-slate-500">
+              How far from the store a rider can be to get instant / ready-to-cook orders. Pre-orders have no limit.
+            </p>
           </div>
         </div>
       </Card>

@@ -628,6 +628,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get today => 'आज';
 
   @override
+  String get tomorrow => 'उद्या';
+
+  @override
   String get week => 'आठवडा';
 
   @override
@@ -2198,15 +2201,26 @@ class AppLocalizationsMr extends AppLocalizations {
   String get delPaymentQrUnavailable => 'पेमेंट QR उपलब्ध नाही.';
 
   @override
-  String delAskCustomerScanUpi(String amount) {
-    return 'ग्राहकाला कोणत्याही UPI ॲपने स्कॅन करायला सांगा. रक्कम ₹$amount निश्चित आहे.';
-  }
-
-  @override
   String get delCloseQr => 'QR बंद करा';
 
   @override
   String get delCheckPayment => 'पेमेंट तपासा';
+
+  @override
+  String get delBackToPreOrders => 'प्री-ऑर्डरकडे परत जा';
+
+  @override
+  String delQrNotForThisOrder(String orderNumber) {
+    return 'हा QR दुसऱ्या ऑर्डरचा आहे. #$orderNumber ची बॅग स्कॅन करा.';
+  }
+
+  @override
+  String get orderCompleted => 'ऑर्डर पूर्ण झाली';
+
+  @override
+  String cashCollectedAmount(String amount) {
+    return '$amount रोख घेतले';
+  }
 
   @override
   String get delCouldNotCompleteDelivery => 'डिलिव्हरी पूर्ण करता आली नाही.';

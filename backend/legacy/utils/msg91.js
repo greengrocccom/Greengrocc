@@ -522,16 +522,14 @@ export async function sendDeliveryVerificationOtp(phone10, otpCode) {
   });
 }
 
-/** Delivery Partner App (Login / Registration) */
+/** Delivery Partner App (Login / Registration) — both use GREGRC_Common_OTP */
 export async function sendDeliveryPartnerOtp(phone10, purpose = "login") {
   const isReg = purpose === "register" || purpose === "signup" || purpose === "registration";
   return sendOtp({
     phone: phone10,
     role: "delivery",
     purpose: isReg ? "register" : "login",
-    templateId: isReg
-      ? MSG91_TEMPLATES.DELIVERY_PARTNER_REGISTRATION
-      : MSG91_TEMPLATES.DELIVERY_PARTNER_LOGIN,
+    templateId: MSG91_TEMPLATES.COMMON_OTP,
   });
 }
 
@@ -541,9 +539,7 @@ export async function resendDeliveryPartnerOtp(phone10, purpose = "login") {
     phone: phone10,
     role: "delivery",
     purpose: isReg ? "register" : "login",
-    templateId: isReg
-      ? MSG91_TEMPLATES.DELIVERY_PARTNER_REGISTRATION
-      : MSG91_TEMPLATES.DELIVERY_PARTNER_LOGIN,
+    templateId: MSG91_TEMPLATES.COMMON_OTP,
   });
 }
 

@@ -86,9 +86,9 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
     final result = await OrderService.instance.failDelivery(id, failureReason: reason, emergency: true);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(result.success ? l10n.delEmergencySent : result.error ?? l10n.delCouldNotSendEmergency),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.success ? l10n.delEmergencySent : result.error ?? l10n.delCouldNotSendEmergency)),
+    );
     if (result.success) await _load(silent: true);
   }
 
@@ -107,11 +107,16 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
     );
   }
 
-  Future<void> _scanBags() async {
+  /// Without [order], scans every bag in a row; with one, only that order's bag.
+  Future<void> _scanBags([Map<String, dynamic>? order]) async {
     final unlocked = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => const PickupQrScanScreen(orderId: '', orderNumber: '', preOrderBatch: true),
+        builder: (_) => PickupQrScanScreen(
+          orderId: order?['id']?.toString() ?? '',
+          orderNumber: order?['orderNumber']?.toString() ?? '',
+          preOrderBatch: true,
+        ),
       ),
     );
     if (mounted) {
@@ -155,8 +160,8 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? FtErrorView(message: _error!, onRetry: _load)
-              : RefreshIndicator(onRefresh: _load, child: _content()),
+          ? FtErrorView(message: _error!, onRetry: _load)
+          : RefreshIndicator(onRefresh: _load, child: _content()),
     );
   }
 
@@ -182,14 +187,8 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                total == 0
-                    ? l10n.noPreOrdersAssigned
-                    : l10n.preOrdersAssignedToYou(total),
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
+                total == 0 ? l10n.noPreOrdersAssigned : l10n.preOrdersAssignedToYou(total),
+                style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
               ),
               if (_store != null) ...[
                 const SizedBox(height: 2),
@@ -218,10 +217,7 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
                 ),
               ],
               const SizedBox(height: 6),
-              Text(
-                l10n.preOrdersSalaryBased,
-                style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textMuted),
-              ),
+              Text(l10n.preOrdersSalaryBased, style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textMuted)),
             ],
           ),
         ),
@@ -258,17 +254,20 @@ class _PreOrderDeliveriesScreenState extends State<PreOrderDeliveriesScreen> {
         if (onTheWay.isNotEmpty) ...[
           _SectionTitle('🛵 ${l10n.outForDelivery} (${onTheWay.length})'),
           ...onTheWay.map(
-            (o) => _withEmergencyAction(o, _UnlockedTile(
-              order: o,
-              onCall: () => _call(o['customerPhone']?.toString() ?? ''),
-              onNavigate: () => _navigate(o),
-              onDeliver: () => _deliver(o),
-            )),
+            (o) => _withEmergencyAction(
+              o,
+              _UnlockedTile(
+                order: o,
+                onCall: () => _call(o['customerPhone']?.toString() ?? ''),
+                onNavigate: () => _navigate(o),
+                onDeliver: () => _deliver(o),
+              ),
+            ),
           ),
         ],
         if (toScan.isNotEmpty) ...[
           _SectionTitle('🔒 ${l10n.atStoreScanToSeeAddress} (${toScan.length})'),
-          ...toScan.map((o) => _withEmergencyAction(o, _LockedTile(order: o))),
+          ...toScan.map((o) => _withEmergencyAction(o, _LockedTile(order: o, onScan: () => _scanBags(o)))),
         ],
         if (done.isNotEmpty) ...[
           _SectionTitle('✅ ${l10n.finishedToday} (${done.length})'),
@@ -289,11 +288,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(2, 6, 2, 6),
       child: Text(
         text,
-        style: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textSecondary,
-        ),
+        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
       ),
     );
   }
@@ -306,16 +301,35 @@ String _paymentLine(AppLocalizations l10n, Map<String, dynamic> o) {
 }
 
 class _OrderHeader extends StatelessWidget {
-  const _OrderHeader({required this.order, required this.status, required this.statusColor});
+  const _OrderHeader({required this.order, required this.status, required this.statusColor, this.finished = false});
   final Map<String, dynamic> order;
   final String status;
   final Color statusColor;
+
+  /// Delivered / failed: no slot box, and the payment line reads as collected.
+  final bool finished;
+
+  /// "Today · Tue, 10 Nov", "Tomorrow · Wed, 11 Nov", or just "Fri, 13 Nov".
+  static String _deliveryDay(AppLocalizations l10n, String raw) {
+    final date = DateTime.tryParse(raw);
+    if (date == null) return '';
+    final now = DateTime.now();
+    final days = DateTime(date.year, date.month, date.day).difference(DateTime(now.year, now.month, now.day)).inDays;
+    final label = localizedDateFormat('EEE, d MMM').format(date);
+    if (days == 0) return '${l10n.today} · $label';
+    if (days == 1) return '${l10n.tomorrow} · $label';
+    return label;
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final slot = (order['preOrderSlot'] ?? '').toString();
+    final day = _deliveryDay(l10n, (order['preOrderDate'] ?? '').toString());
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final amount = (order['amountToCollect'] as num?) ?? 0;
+    final collectCash = order['paymentStatus'] != 'paid_online' && amount > 0;
+    final payColor = collectCash ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309)) : AppColors.success;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,11 +339,7 @@ class _OrderHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 '#${order['orderNumber'] ?? ''}',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
               ),
             ),
             Container(
@@ -340,23 +350,71 @@ class _OrderHeader extends StatelessWidget {
               ),
               child: Text(
                 status,
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: statusColor,
-                ),
+                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: statusColor),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 3),
-        Text(
-          [
-            if (slot.isNotEmpty) l10n.slotLabel(slot),
-            l10n.itemsCount((order['itemCount'] as num?)?.toInt() ?? 0),
-            _paymentLine(l10n, order),
-          ].join(' · '),
-          style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
+        if (!finished && (day.isNotEmpty || slot.isNotEmpty)) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.07),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (day.isNotEmpty) _InfoLine(icon: Icons.event_rounded, text: day, size: 14.5),
+                if (day.isNotEmpty && slot.isNotEmpty) const SizedBox(height: 4),
+                if (slot.isNotEmpty) _InfoLine(icon: Icons.schedule_rounded, text: slot, size: 16),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(collectCash ? Icons.payments_rounded : Icons.verified_rounded, size: 18, color: payColor),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                finished && collectCash && order['delivered'] == true
+                    ? l10n.cashCollectedAmount(formatRupees(amount))
+                    : _paymentLine(l10n, order),
+                style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: payColor),
+              ),
+            ),
+            Text(
+              l10n.itemsCount((order['itemCount'] as num?)?.toInt() ?? 0),
+              style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({required this.icon, required this.text, required this.size});
+  final IconData icon;
+  final String text;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: size + 2, color: AppColors.primary),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.inter(fontSize: size, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+          ),
         ),
       ],
     );
@@ -364,26 +422,39 @@ class _OrderHeader extends StatelessWidget {
 }
 
 class _LockedTile extends StatelessWidget {
-  const _LockedTile({required this.order});
+  const _LockedTile({required this.order, required this.onScan});
   final Map<String, dynamic> order;
+  final VoidCallback onScan;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FtSectionCard(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _OrderHeader(order: order, status: AppLocalizations.of(context).scanQr, statusColor: AppColors.warning),
-          const SizedBox(height: 6),
+          _OrderHeader(order: order, status: l10n.scanQr, statusColor: AppColors.warning),
+          const SizedBox(height: 8),
           Row(
             children: [
               Icon(Icons.lock_outline_rounded, size: 14, color: AppColors.textMuted),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(
-                  AppLocalizations.of(context).scanBagQrHint,
-                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary),
+                child: Text(l10n.scanBagQrHint, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 34,
+                child: FilledButton.icon(
+                  onPressed: onScan,
+                  icon: const Icon(Icons.qr_code_scanner_rounded, size: 16),
+                  label: Text(l10n.scanQr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ),
             ],
@@ -395,12 +466,7 @@ class _LockedTile extends StatelessWidget {
 }
 
 class _UnlockedTile extends StatelessWidget {
-  const _UnlockedTile({
-    required this.order,
-    required this.onCall,
-    required this.onNavigate,
-    required this.onDeliver,
-  });
+  const _UnlockedTile({required this.order, required this.onCall, required this.onNavigate, required this.onDeliver});
   final Map<String, dynamic> order;
   final VoidCallback onCall;
   final VoidCallback onNavigate;
@@ -411,69 +477,71 @@ class _UnlockedTile extends StatelessWidget {
     final name = order['customerName']?.toString() ?? '';
     final phone = order['customerPhone']?.toString() ?? '';
     final address = order['customerAddress']?.toString() ?? '';
-    return FtSectionCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _OrderHeader(order: order, status: AppLocalizations.of(context).outForDelivery, statusColor: AppColors.primary),
-          const SizedBox(height: 8),
-          Text(
-            name.isEmpty ? AppLocalizations.of(context).customer : name,
-            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-          ),
-          if (phone.isNotEmpty)
-            Text(phone, style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary)),
-          if (address.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(address, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
-          ],
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              if (phone.isNotEmpty) ...[
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onDeliver,
+      child: FtSectionCard(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _OrderHeader(
+              order: order,
+              status: AppLocalizations.of(context).outForDelivery,
+              statusColor: AppColors.primary,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name.isEmpty ? AppLocalizations.of(context).customer : name,
+              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            ),
+            if (phone.isNotEmpty) Text(phone, style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary)),
+            if (address.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(address, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+            ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (phone.isNotEmpty) ...[
+                  SizedBox(
+                    height: 30,
+                    child: OutlinedButton.icon(
+                      onPressed: onCall,
+                      icon: const Icon(Icons.call_rounded, size: 14),
+                      label: Text(
+                        AppLocalizations.of(context).callAction,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 SizedBox(
                   height: 30,
                   child: OutlinedButton.icon(
-                    onPressed: onCall,
-                    icon: const Icon(Icons.call_rounded, size: 14),
-                    label: Text(AppLocalizations.of(context).callAction, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    onPressed: onNavigate,
+                    icon: const Icon(Icons.navigation_rounded, size: 14),
+                    label: Text(
+                      AppLocalizations.of(context).map,
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const Spacer(),
+                Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
               ],
-              SizedBox(
-                height: 30,
-                child: OutlinedButton.icon(
-                  onPressed: onNavigate,
-                  icon: const Icon(Icons.navigation_rounded, size: 14),
-                  label: Text(AppLocalizations.of(context).map, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                height: 30,
-                child: FilledButton(
-                  onPressed: onDeliver,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: Text(AppLocalizations.of(context).deliverAction, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -487,16 +555,17 @@ class _DoneTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final failed = order['failed'] == true;
     final at = DateTime.tryParse(order['deliveredAt']?.toString() ?? '')?.toLocal();
-    final time = at == null
-        ? ''
-        : ' · ${localizedDateFormat('h:mm a').format(at)}';
+    final time = at == null ? '' : ' · ${localizedDateFormat('h:mm a').format(at)}';
     return Opacity(
       opacity: 0.8,
       child: FtSectionCard(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: _OrderHeader(
           order: order,
-          status: failed ? AppLocalizations.of(context).failedStatus : '${AppLocalizations.of(context).delivered}$time',
+          finished: true,
+          status: failed
+              ? AppLocalizations.of(context).failedStatus
+              : '✓ ${AppLocalizations.of(context).orderCompleted}$time',
           statusColor: failed ? AppColors.error : AppColors.success,
         ),
       ),

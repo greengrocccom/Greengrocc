@@ -628,6 +628,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get today => 'Today';
 
   @override
+  String get tomorrow => 'Tomorrow';
+
+  @override
   String get week => 'Week';
 
   @override
@@ -2193,15 +2196,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delPaymentQrUnavailable => 'Payment QR is unavailable.';
 
   @override
-  String delAskCustomerScanUpi(String amount) {
-    return 'Ask the customer to scan with any UPI app. The amount is fixed at ₹$amount.';
-  }
-
-  @override
   String get delCloseQr => 'Close QR';
 
   @override
   String get delCheckPayment => 'Check payment';
+
+  @override
+  String get delBackToPreOrders => 'Back to pre-orders';
+
+  @override
+  String delQrNotForThisOrder(String orderNumber) {
+    return 'This QR is for another order. Scan the bag for #$orderNumber.';
+  }
+
+  @override
+  String get orderCompleted => 'Order completed';
+
+  @override
+  String cashCollectedAmount(String amount) {
+    return 'Cash collected $amount';
+  }
 
   @override
   String get delCouldNotCompleteDelivery => 'Could not complete delivery.';

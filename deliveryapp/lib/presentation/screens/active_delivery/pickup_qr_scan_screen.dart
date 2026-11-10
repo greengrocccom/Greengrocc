@@ -19,6 +19,8 @@ class PickupQrScanScreen extends StatefulWidget {
 
   /// Pre-order mode: scan the QR on each bag one after another; each scan unlocks that
   /// customer's address. Pops `true` if at least one order was unlocked.
+  /// With a non-empty [orderId], only that order's bag is accepted and the screen
+  /// closes as soon as it unlocks.
   final bool preOrderBatch;
 
   @override
@@ -97,9 +99,24 @@ class _PickupQrScanScreenState extends State<PickupQrScanScreen> {
         DateTime.now().difference(_lastFailedAt) < const Duration(seconds: 3)) {
       return;
     }
+    final singleOrder = widget.orderId.isNotEmpty;
+    final parts = value.split(':');
+    if (singleOrder && (parts.length < 2 || parts[1] != widget.orderId)) {
+      setState(() {
+        _lastResultOk = false;
+        _lastResult = AppLocalizations.of(context).delQrNotForThisOrder(widget.orderNumber);
+        _lastFailedPayload = value;
+        _lastFailedAt = DateTime.now();
+      });
+      return;
+    }
     setState(() => _processing = true);
     final result = await OrderService.instance.scanPreOrderQr(value);
     if (!mounted) return;
+    if (singleOrder && result.success) {
+      Navigator.pop(context, true);
+      return;
+    }
     setState(() {
       _processing = false;
       _lastResultOk = result.success;

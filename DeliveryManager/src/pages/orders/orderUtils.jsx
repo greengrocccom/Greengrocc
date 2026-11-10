@@ -286,6 +286,9 @@ export function DriverAssignmentText({ order, onRiderClick }) {
         <p className="text-[10px] font-semibold text-amber-700">
           Waiting for nearby driver…
         </p>
+        <p className="text-[10px] text-slate-500">
+          No online rider near the store — auto-offers when one is
+        </p>
       </div>
     );
   }

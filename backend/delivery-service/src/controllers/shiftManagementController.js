@@ -304,6 +304,7 @@ export const generateDateWiseShifts = async ({
   salary,
   session = null,
   preservePay = false,
+  assignmentRadiusMeters,
   datesToGenerate = shiftDates({ type, customSlots, recurrenceMode, targetDate, targetMonth, daysOfWeek }),
 }) => {
   const createdShifts = [];
@@ -331,6 +332,7 @@ export const generateDateWiseShifts = async ({
         ratePerKm: Number(ratePerKm) || 10,
         deliveryEarningSlabs: deliveryEarningSlabs || [],
         ...(salary || {}),
+        ...(assignmentRadiusMeters !== undefined ? { assignmentRadiusMeters } : {}),
       });
       await newShift.save({ session });
       createdShifts.push(newShift);
@@ -343,6 +345,7 @@ export const generateDateWiseShifts = async ({
         existing.deliveryEarningSlabs = deliveryEarningSlabs;
       }
       if (salary) Object.assign(existing, salary);
+      if (assignmentRadiusMeters !== undefined) existing.assignmentRadiusMeters = assignmentRadiusMeters;
       existing.markModified("slots");
       await existing.save({ session });
       createdShifts.push(existing);
@@ -470,6 +473,12 @@ async function createUnifiedShift(req, res, manager) {
       !riderIds.length || riderIds.some((id) => !mongoose.isObjectIdOrHexString(id))) {
     return res.status(400).json({ success: false, message: schedule.error || "Select valid riders and an employment type." });
   }
+  const radiusRaw = req.body.assignmentRadiusMeters;
+  const assignmentRadiusMeters = radiusRaw == null || radiusRaw === "" ? null : Number(radiusRaw);
+  if (assignmentRadiusMeters != null &&
+      (!Number.isFinite(assignmentRadiusMeters) || assignmentRadiusMeters < 100 || assignmentRadiusMeters > 50000)) {
+    return res.status(400).json({ success: false, message: "Order radius must be between 100 m and 50 km." });
+  }
   const requested = [...new Set(riderIds.map(String))];
   const shiftName = name || `${schedule.config.type.replaceAll("_", " ").toUpperCase()} Shift`;
   const result = await mongoose.connection.transaction(async (session) => {
@@ -491,7 +500,7 @@ async function createUnifiedShift(req, res, manager) {
     if (!eligible.length) return { skipped, assigned: [], shifts: [], assignments: [] };
 
     const shifts = await generateDateWiseShifts({
-      ...schedule.config, name: shiftName, manager, session, preservePay: true,
+      ...schedule.config, name: shiftName, manager, session, preservePay: true, assignmentRadiusMeters,
       datesToGenerate: [...new Set(schedule.windows.map(({ date }) => date))],
     });
     const plannedSlots = getDefaultSlotsForType(schedule.config.type, schedule.config.customSlots, schedule.config.capacity);

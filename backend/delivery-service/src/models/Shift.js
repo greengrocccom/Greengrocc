@@ -235,6 +235,17 @@ const shiftSchema = new mongoose.Schema(
       enum: ['PART_TIME', 'FULL_TIME'],
       default: 'PART_TIME',
     },
+    /**
+     * How far from the dark store (meters) a rider on this shift may be to get
+     * instant / ready-to-cook offers. null = the store's geofenceRadius.
+     * Pre-orders are assigned manually and ignore it.
+     */
+    assignmentRadiusMeters: {
+      type: Number,
+      default: null,
+      min: 100,
+      max: 50000,
+    },
   },
   { timestamps: true }
 );
@@ -318,6 +329,7 @@ shiftSchema.methods.toSafeJSON = function toSafeJSON() {
     salaryAmount: this.salaryAmount ?? this.monthlySalary ?? null,
     salaryPeriod: this.salaryAmount != null ? this.salaryPeriod || "month" : "month",
     shiftCategory: this.shiftCategory || 'PART_TIME',
+    assignmentRadiusMeters: this.assignmentRadiusMeters ?? null,
     deliveryEarningSlabs: (this.deliveryEarningSlabs || []).map((s) => ({
       id: s._id ? s._id.toString() : undefined,
       minKm: s.minKm,

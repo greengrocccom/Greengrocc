@@ -1090,20 +1090,6 @@ export default function OrdersPage() {
                             Out of stock — request inventory first
                           </p>
                         )}
-                        {order.status === "packed" &&
-                          !isPickup &&
-                          !order.isPreOrder &&
-                          !order.assignedRiderId &&
-                          !order.currentOfferDriverId && (
-                          <button
-                            type="button"
-                            disabled={busyKey === `dispatch-${oid}`}
-                            onClick={() => onDispatchNow(oid)}
-                            className="rounded-xl border border-violet-300 bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-800 hover:bg-violet-100 disabled:opacity-50 whitespace-nowrap"
-                          >
-                            {busyKey === `dispatch-${oid}` ? "Dispatching…" : "Assign New Rider now"}
-                          </button>
-                        )}
                         {(() => {
                           if (
                             order.status !== "assigned" ||

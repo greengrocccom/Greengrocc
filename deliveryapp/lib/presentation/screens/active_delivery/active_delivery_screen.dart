@@ -562,10 +562,6 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
                       child: Text(notice ?? l10n.delPaymentQrUnavailable, textAlign: TextAlign.center),
                     ),
                   const SizedBox(height: 12),
-                  Text(
-                    l10n.delAskCustomerScanUpi(amount),
-                    textAlign: TextAlign.center,
-                  ),
                   if (busy) const LinearProgressIndicator(),
                   if (message != null) Text(message!),
                 ],
@@ -596,6 +592,7 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     final nav = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     final orderNumber = _delivery!.orderNumber;
+    final wasPreOrder = _delivery!.isPreOrder;
 
     final result = await OrderService.instance.completeDelivery(
       _delivery!.id,
@@ -606,15 +603,21 @@ class _ActiveDeliveryScreenState extends State<ActiveDeliveryScreen> with Widget
     if (result.success) {
       if (!mounted) return;
       final remaining = OrderService.instance.activeDeliveries;
+      // Pre-orders are run from the pre-order list, which shows this one as delivered.
+      final backToPreOrders = wasPreOrder && nav.canPop();
       await showStatusDialog(
         context,
         success: true,
         title: l10n.orderDeliveredTitle,
         message: l10n.orderDeliveredBody(orderNumber),
-        buttonLabel: remaining.isEmpty ? l10n.goToHome : l10n.nextDelivery,
+        buttonLabel: backToPreOrders
+            ? l10n.delBackToPreOrders
+            : remaining.isEmpty ? l10n.goToHome : l10n.nextDelivery,
       );
       if (!mounted) return;
-      if (remaining.isEmpty) {
+      if (backToPreOrders) {
+        nav.pop(true);
+      } else if (remaining.isEmpty) {
         if (nav.canPop()) {
           nav.popUntil((route) => route.isFirst);
           ShellNavigation.instance.goToTab(0);

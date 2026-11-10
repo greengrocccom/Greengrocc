@@ -1318,6 +1318,12 @@ abstract class AppLocalizations {
   /// **'Today'**
   String get today;
 
+  /// No description provided for @tomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get tomorrow;
+
   /// No description provided for @week.
   ///
   /// In en, this message translates to:
@@ -4114,12 +4120,6 @@ abstract class AppLocalizations {
   /// **'Payment QR is unavailable.'**
   String get delPaymentQrUnavailable;
 
-  /// No description provided for @delAskCustomerScanUpi.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask the customer to scan with any UPI app. The amount is fixed at ₹{amount}.'**
-  String delAskCustomerScanUpi(String amount);
-
   /// No description provided for @delCloseQr.
   ///
   /// In en, this message translates to:
@@ -4131,6 +4131,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check payment'**
   String get delCheckPayment;
+
+  /// No description provided for @delBackToPreOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to pre-orders'**
+  String get delBackToPreOrders;
+
+  /// No description provided for @delQrNotForThisOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR is for another order. Scan the bag for #{orderNumber}.'**
+  String delQrNotForThisOrder(String orderNumber);
+
+  /// No description provided for @orderCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Order completed'**
+  String get orderCompleted;
+
+  /// No description provided for @cashCollectedAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash collected {amount}'**
+  String cashCollectedAmount(String amount);
 
   /// No description provided for @delCouldNotCompleteDelivery.
   ///

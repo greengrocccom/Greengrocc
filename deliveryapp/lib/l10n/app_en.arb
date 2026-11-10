@@ -203,6 +203,7 @@
   "distanceRemaining": "— km remaining",
   "deliveryHistory": "Delivery History",
   "today": "Today",
+  "tomorrow": "Tomorrow",
   "week": "Week",
   "month": "Month",
   "orderId": "Order ID —",
@@ -1076,16 +1077,26 @@
   "delPleaseTryAgain": "Please try again.",
   "delScanToPayUpi": "Scan to pay by UPI",
   "delPaymentQrUnavailable": "Payment QR is unavailable.",
-  "delAskCustomerScanUpi": "Ask the customer to scan with any UPI app. The amount is fixed at ₹{amount}.",
-  "@delAskCustomerScanUpi": {
+  "delCloseQr": "Close QR",
+  "delCheckPayment": "Check payment",
+  "delBackToPreOrders": "Back to pre-orders",
+  "delQrNotForThisOrder": "This QR is for another order. Scan the bag for #{orderNumber}.",
+  "@delQrNotForThisOrder": {
+    "placeholders": {
+      "orderNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "orderCompleted": "Order completed",
+  "cashCollectedAmount": "Cash collected {amount}",
+  "@cashCollectedAmount": {
     "placeholders": {
       "amount": {
         "type": "String"
       }
     }
   },
-  "delCloseQr": "Close QR",
-  "delCheckPayment": "Check payment",
   "delCouldNotCompleteDelivery": "Could not complete delivery.",
   "delCouldNotOpenMaps": "Could not open Google Maps. Install Maps or try again.",
   "delStorePhoneUnavailable": "Store phone number not available.",

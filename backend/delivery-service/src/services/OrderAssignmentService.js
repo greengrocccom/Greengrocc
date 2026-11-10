@@ -2,6 +2,7 @@ import DeliveryBoy from "../models/DeliveryBoy.js";
 import DeliveryManager from "../models/DeliveryManager.js";
 import StoreOrder from "../models/StoreOrder.js";
 import DriverOfferHistory from "../models/DriverOfferHistory.js";
+import Shift from "../models/Shift.js";
 import { haversineKm } from "./darkStoreResolver.js";
 import { getIO } from "../../../socket.js";
 import {
@@ -52,12 +53,13 @@ async function assignDirectToFullTime(order, darkStore, excludedIds = []) {
       { $or: [{ verificationStatus: "approved" }, { verificationStatus: { $exists: false } }] },
     ],
   });
+  const radiusFor = await riderRadiusResolver(candidates, darkStore);
   const fresh = candidates.flatMap((driver) => {
     const loc = driver.currentLocation;
     const seen = loc?.updatedAt || driver.lastStatusAt || driver.lastOnlineAt;
     if (loc?.lat == null || loc?.lng == null || !seen || now - new Date(seen) > LOCATION_FRESHNESS_MS) return [];
     const distanceM = metersBetween(darkStore.latitude, darkStore.longitude, loc.lat, loc.lng);
-    if (distanceM == null || distanceM < MIN_ASSIGNMENT_DISTANCE_M || distanceM > assignmentMaxDistanceM(darkStore)) return [];
+    if (distanceM == null || distanceM < MIN_ASSIGNMENT_DISTANCE_M || distanceM > radiusFor(driver)) return [];
     return [{ driver, distanceM }];
   }).sort((a, b) => (a.driver.roundRobinPosition ?? 0) - (b.driver.roundRobinPosition ?? 0) ||
     new Date(waitingSince(a.driver)).getTime() - new Date(waitingSince(b.driver)).getTime() || a.distanceM - b.distanceM);
@@ -136,6 +138,20 @@ function assignmentMaxDistanceM(darkStore) {
   return MAX_ASSIGNMENT_DISTANCE_M; // Default 500m
 }
 
+/** Per-rider offer radius: the rider's current shift setting, else the store default. */
+async function riderRadiusResolver(drivers, darkStore) {
+  const storeRadius = assignmentMaxDistanceM(darkStore);
+  const shiftIds = [...new Set(drivers.map((d) => d.currentBooking?.shiftId).filter(Boolean).map(String))];
+  const shifts = shiftIds.length
+    ? await Shift.find({ _id: { $in: shiftIds } }).select("assignmentRadiusMeters").lean()
+    : [];
+  const radiusByShift = new Map(shifts.map((s) => [String(s._id), Number(s.assignmentRadiusMeters)]));
+  return (driver) => {
+    const radius = radiusByShift.get(String(driver.currentBooking?.shiftId || ""));
+    return Number.isFinite(radius) && radius > 0 ? radius : storeRadius;
+  };
+}
+
 function escapeRegex(value) {
   return value.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -144,7 +160,6 @@ export async function findEligibleDrivers(darkStore, excludedIds = []) {
   const storeLat = darkStore.latitude;
   const storeLng = darkStore.longitude;
   const storeId = darkStore._id;
-  const maxDistanceM = assignmentMaxDistanceM(darkStore);
 
   if (storeLat == null || storeLng == null) {
     console.warn(
@@ -195,6 +210,7 @@ export async function findEligibleDrivers(darkStore, excludedIds = []) {
   });
 
   const nowMs = now.getTime();
+  const radiusFor = await riderRadiusResolver(drivers, darkStore);
   const inRadius = [];
   const returning = [];
 
@@ -208,7 +224,7 @@ export async function findEligibleDrivers(darkStore, excludedIds = []) {
     const distanceM = metersBetween(storeLat, storeLng, loc.lat, loc.lng);
     if (distanceM == null || distanceM < MIN_ASSIGNMENT_DISTANCE_M) continue;
 
-    if (distanceM <= maxDistanceM) {
+    if (distanceM <= radiusFor(driver)) {
       inRadius.push({ driver, distanceM });
       continue;
     }

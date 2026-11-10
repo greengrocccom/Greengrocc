@@ -1,46 +1,68 @@
 const PLACEHOLDER_PATTERN = /^(your|xxx|test)/i;
 
+const envTemplate = (fallback, ...keys) => {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return fallback;
+};
+
 /**
  * 8 Approved MSG91 DLT Template IDs & Sender GREGRC
+ *
+ * Getters, not values: ES imports run before index.js calls dotenv.config(),
+ * so reading process.env at module load would always yield the fallbacks.
  */
 export const MSG91_TEMPLATES = {
   // 1. Delivery verification OTP for userapp / frontend / delivery completion
-  DELIVERY_VERIFICATION:
-    process.env.MSG91_TEMPLATE_DELIVERY_VERIFY?.trim() || "6ad22b384233828ece0fe432",
+  get DELIVERY_VERIFICATION() {
+    return envTemplate("6ad22b384233828ece0fe432", "MSG91_TEMPLATE_DELIVERY_VERIFY");
+  },
 
   // 2. GreenGrocc Admin Login OTP
-  ADMIN_LOGIN:
-    process.env.MSG91_TEMPLATE_ADMIN_LOGIN?.trim() || "6ad0c670a33b8888e30b69b2",
+  get ADMIN_LOGIN() {
+    return envTemplate("6ad0c670a33b8888e30b69b2", "MSG91_TEMPLATE_ADMIN_LOGIN");
+  },
 
   // 3. GreenGrocc Customer Login OTP for userapp / frontend
-  USER_LOGIN:
-    process.env.MSG91_TEMPLATE_USER_LOGIN?.trim() || "6ad22b01d08f916900083772",
+  get USER_LOGIN() {
+    return envTemplate("6ad22b01d08f916900083772", "MSG91_TEMPLATE_USER_LOGIN");
+  },
 
   // 4. GreenGrocc Customer Registration OTP for userapp / frontend
-  USER_REGISTRATION:
-    process.env.MSG91_TEMPLATE_USER_REG?.trim() || "6ad22ac5cf70e75d8705c454",
+  get USER_REGISTRATION() {
+    return envTemplate("6ad22ac5cf70e75d8705c454", "MSG91_TEMPLATE_USER_REG");
+  },
 
   // 5. Delivery Partner Login OTP for delivery app
-  DELIVERY_PARTNER_LOGIN:
-    process.env.MSG91_TEMPLATE_DELIVERY_LOGIN?.trim() || "6ad22d787d4a4a46bb0027d3",
+  get DELIVERY_PARTNER_LOGIN() {
+    return envTemplate("6ad22d787d4a4a46bb0027d3", "MSG91_TEMPLATE_DELIVERY_LOGIN");
+  },
 
   // 6. Delivery Partner Registration OTP for delivery app
-  DELIVERY_PARTNER_REGISTRATION:
-    process.env.MSG91_TEMPLATE_DELIVERY_REG?.trim() || "6ad22a84e456c659070eca32",
+  get DELIVERY_PARTNER_REGISTRATION() {
+    return envTemplate("6ad22a84e456c659070eca32", "MSG91_TEMPLATE_DELIVERY_REG");
+  },
 
   // 7. Haritsetu Registration OTP for farmer app
-  HARITSETU_REGISTRATION:
-    process.env.MSG91_TEMPLATE_FARMER_REG?.trim() || "6ad22a3d6c206ccb8808a390",
+  get HARITSETU_REGISTRATION() {
+    return envTemplate("6ad22a3d6c206ccb8808a390", "MSG91_TEMPLATE_FARMER_REG");
+  },
 
   // 8. Haritsetu Login OTP for farmer app
-  HARITSETU_LOGIN:
-    process.env.MSG91_TEMPLATE_FARMER_LOGIN?.trim() || "6ad229e275be8e188e041062",
+  get HARITSETU_LOGIN() {
+    return envTemplate("6ad229e275be8e188e041062", "MSG91_TEMPLATE_FARMER_LOGIN");
+  },
 
   // 9. GreenGrocc Common OTP (GREGRC_Common_OTP) for all other / generic flows
-  COMMON_OTP:
-    process.env.MSG91_TEMPLATE_COMMON_OTP?.trim() ||
-    process.env.MSG91_TEMPLATE_GREGRC_COMMON_OTP?.trim() ||
-    "6ad710ca600b25a9f602a842",
+  get COMMON_OTP() {
+    return envTemplate(
+      "6ad710ca600b25a9f602a842",
+      "MSG91_TEMPLATE_COMMON_OTP",
+      "MSG91_TEMPLATE_GREGRC_COMMON_OTP"
+    );
+  },
 };
 
 export const msg91Config = {
@@ -79,4 +101,3 @@ export function assertMsg91Configured() {
     );
   }
 }
-
