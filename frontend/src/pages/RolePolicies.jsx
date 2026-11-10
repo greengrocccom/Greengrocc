@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../api/api";
+import PolicyBody from "../components/legal/PolicyBody";
 
 export default function RolePolicies() {
   const [rows, setRows] = useState([]);
@@ -71,8 +72,8 @@ export default function RolePolicies() {
                   <span className="text-xs font-bold text-slate-400">{open ? "▲" : "▼"}</span>
                 </button>
                 {open ? (
-                  <div className="border-t border-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
-                    {row.body || "—"}
+                  <div className="border-t border-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-700">
+                    {row.body ? <PolicyBody text={row.body} /> : "—"}
                   </div>
                 ) : null}
               </div>

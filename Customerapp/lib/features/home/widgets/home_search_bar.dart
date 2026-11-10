@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/store_chrome.dart';
 import '../../../routes/route_paths.dart';
 import '../../../widgets/common/offers_badge_button.dart';
-import '../../../widgets/common/voice_mic_button.dart';
 import '../home_providers.dart';
 
 class HomeSearchBar extends ConsumerStatefulWidget {
@@ -75,14 +74,6 @@ class _HomeSearchBarState extends ConsumerState<HomeSearchBar> {
       return;
     }
     context.push('${RoutePaths.product}?q=${Uri.encodeComponent(trimmed)}');
-  }
-
-  void _applyTranscript(String text, bool isFinal) {
-    _controller.value = TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
-    );
-    if (isFinal) _submitSearch(text);
   }
 
   @override
@@ -184,7 +175,7 @@ class _HomeSearchBarState extends ConsumerState<HomeSearchBar> {
                           ),
                         ),
                       ),
-                    VoiceMicButton(onTranscript: _applyTranscript),
+                    const SizedBox(width: 10),
                   ],
                 ),
               ),

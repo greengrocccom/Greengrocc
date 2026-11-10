@@ -8,13 +8,16 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../config/theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../core/exceptions/api_exception.dart';
 import '../../core/providers/app_providers.dart';
 import '../../features/auth/auth_controller.dart';
-import '../../widgets/common/image_source_sheet.dart';
-import 'support_constants.dart';
 import '../../routes/route_paths.dart';
+import '../../widgets/common/image_source_sheet.dart';
+import '../../widgets/layout/storefront_header.dart';
+import '../../widgets/layout/storefront_page.dart';
+import 'support_constants.dart';
 
 const _maxAttachmentBytes = 5 * 1024 * 1024;
 const _maxMessageLength = 1000;
@@ -43,6 +46,14 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
   String? _error;
   String? _success;
   int? _openFaq;
+  String _phone = supportContactPhone;
+  String _phoneTel = supportContactPhoneHref;
+  String _whatsapp = supportContactPhone;
+  String _whatsappHref = supportWhatsAppHref;
+  String _email = supportContactEmail;
+  String _hours = 'Mon – Sat · 10 AM – 10 PM';
+  String _vendorName = '';
+  bool _isVendorSpecific = false;
 
   @override
   void initState() {
@@ -168,6 +179,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
         'phone': _phoneController.text.trim(),
         'orderId': _orderIdController.text.trim(),
         'issueType': _issueType,
+        'roleKey': 'customer',
         'message': _messageController.text.trim(),
         'attachment': _attachmentUrl ?? '',
         'attachmentName': _attachmentName ?? '',
@@ -199,267 +211,396 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  static const _primary = kWebPrimary;
+
+  TextStyle _t(double size, {FontWeight weight = FontWeight.w400, Color color = Colors.black, double? height}) =>
+      GoogleFonts.plusJakartaSans(fontSize: size, fontWeight: weight, color: color, height: height);
+
+  InputDecoration _input(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: _t(14, color: const Color(0x99666666)),
+        filled: true,
+        fillColor: Colors.white,
+        isDense: true,
+        counterText: '',
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: kWebBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: kWebBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: _primary),
+        ),
+      );
+
+  Widget _label(String text, {bool required = true, bool optional = false}) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text.rich(
+          TextSpan(
+            text: text,
+            style: _t(14, weight: FontWeight.w600),
+            children: [
+              if (required) TextSpan(text: ' *', style: _t(14, weight: FontWeight.w600, color: _primary)),
+              if (optional)
+                TextSpan(text: ' (Optional)', style: _t(14, color: kWebTextSecondary)),
+            ],
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.canPop() ? context.pop() : context.go(RoutePaths.home),
-        ),
-        title: const Text('Support'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+    return StorefrontPage(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'How can we help you?',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Our support team is here to help. Send us a message and we will get back to you soon.',
-            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _contactCard(Icons.phone, 'Phone', supportContactPhone, supportContactPhoneHref)),
-              const SizedBox(width: 10),
-              Expanded(child: _contactCard(Icons.chat, 'WhatsApp', supportContactPhone, supportWhatsAppHref)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _contactCard(
-                  Icons.email_outlined,
-                  'Email',
-                  _email,
-                  'mailto:$_email',
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: _HoursCard(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text('FAQs', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...supportFaqs.asMap().entries.map((entry) {
-            final index = entry.key;
-            final faq = entry.value;
-            final isOpen = _openFaq == index;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.borderLight),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    dense: true,
-                    title: Text(faq['question']!, style: const TextStyle(fontSize: 14)),
-                    trailing: Icon(isOpen ? Icons.remove : Icons.add, size: 18),
-                    onTap: () => setState(() => _openFaq = isOpen ? null : index),
-                  ),
-                  if (isOpen)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          faq['answer']!,
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          }),
-          TextButton(
-            onPressed: () => context.push(RoutePaths.shippingDetails),
-            child: const Text('View shipping & delivery FAQs →'),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderLight),
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Send us a message', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 12),
-                if (_error != null)
-                  _banner(_error!, Colors.red),
-                if (_success != null)
-                  _banner(_success!, Colors.green),
-                TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Name *')),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email *'),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.go(RoutePaths.home),
+                      child: Text('Home', style: _t(12, color: kWebTextSecondary)),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('›', style: _t(12, color: kWebTextSecondary)),
+                    ),
+                    Text('Support', style: _t(12)),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone *'),
+                const SizedBox(height: 16),
+                Text('How can we help you?', style: _t(18, weight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Text(
+                  "Our support team is here to help you. We'll get back to you as soon as possible.",
+                  style: _t(12, color: kWebTextSecondary, height: 1.625),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _orderIdController,
-                  decoration: const InputDecoration(labelText: 'Order ID (optional)'),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: _issueType,
-                  decoration: const InputDecoration(labelText: 'Issue Type *'),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('Select issue type')),
-                    ...supportIssueOptions.map(
-                      (option) => DropdownMenuItem(
-                        value: option.value,
-                        child: Text(option.label),
+                const SizedBox(height: 24),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _contactCard(
+                        icon: Icons.phone_outlined,
+                        iconBg: const Color(0xFFFFEDD5),
+                        iconColor: _primary,
+                        title: 'Phone',
+                        lines: [Text(_phone, textAlign: TextAlign.center, style: _t(12, weight: FontWeight.w600, color: _primary))],
+                        href: _phoneTel,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _contactCard(
+                        icon: Icons.chat_rounded,
+                        iconBg: const Color(0xFFDCFCE7),
+                        iconColor: const Color(0xFF16A34A),
+                        title: 'WhatsApp',
+                        lines: [
+                          Text(
+                            _whatsapp,
+                            textAlign: TextAlign.center,
+                            style: _t(12, weight: FontWeight.w600, color: const Color(0xFF16A34A)),
+                          ),
+                        ],
+                        href: _whatsappHref,
                       ),
                     ),
                   ],
-                  onChanged: (value) => setState(() => _issueType = value),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _messageController,
-                  maxLines: 5,
-                  maxLength: _maxMessageLength,
-                  decoration: const InputDecoration(
-                    labelText: 'Message *',
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text('Upload Attachment (optional)', style: TextStyle(fontWeight: FontWeight.w500)),
-                const SizedBox(height: 8),
-                if (_attachmentLocalPath != null || _attachmentUrl != null)
-                  Column(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: _attachmentLocalPath != null
-                            ? Image.file(
-                                File(_attachmentLocalPath!),
-                                height: 120,
-                                width: double.infinity,
-                                fit: BoxFit.contain,
-                              )
-                            : CachedNetworkImage(
-                                imageUrl: _attachmentUrl!,
-                                height: 120,
-                                width: double.infinity,
-                                fit: BoxFit.contain,
-                                memCacheWidth: 480,
-                                memCacheHeight: 240,
-                                filterQuality: FilterQuality.medium,
-                              ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _contactCard(
+                        icon: Icons.mail_outline_rounded,
+                        iconBg: const Color(0xFFFFEDD5),
+                        iconColor: _primary,
+                        title: 'Email',
+                        lines: [
+                          Text(_email, textAlign: TextAlign.center, style: _t(12, weight: FontWeight.w600, color: _primary)),
+                        ],
+                        href: 'mailto:$_email',
                       ),
-                      if (_uploadingAttachment)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 6),
-                          child: Text(
-                            'Uploading attachment...',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      TextButton(
-                        onPressed: _submitting || _uploadingAttachment
-                            ? null
-                            : () => setState(() {
-                                  _attachmentUrl = null;
-                                  _attachmentLocalPath = null;
-                                  _attachmentName = null;
-                                }),
-                        child: const Text('Remove', style: TextStyle(color: Colors.red)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _contactCard(
+                        icon: Icons.schedule_rounded,
+                        iconBg: const Color(0xFFDBEAFE),
+                        iconColor: const Color(0xFF2563EB),
+                        title: _isVendorSpecific && _vendorName.isNotEmpty ? _vendorName : 'Office Hours',
+                        lines: [
+                          Text('Mon – Sat', textAlign: TextAlign.center, style: _t(11, color: kWebTextSecondary, height: 1.375)),
+                          Text(_hours, textAlign: TextAlign.center, style: _t(11, color: kWebTextSecondary, height: 1.375)),
+                        ],
                       ),
-                    ],
-                  )
-                else
-                  OutlinedButton.icon(
-                    onPressed: _submitting || _uploadingAttachment ? null : _pickAttachment,
-                    icon: const Icon(Icons.upload_file),
-                    label: Text(_uploadingAttachment ? 'Uploading...' : 'Choose image'),
-                  ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _submitting ? null : _submit,
-                  child: Text(_submitting ? 'Submitting...' : 'Submit Ticket'),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 24),
+                _form(),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Wrap(
-            alignment: WrapAlignment.spaceAround,
-            spacing: 8,
-            runSpacing: 12,
-            children: const [
-              _TrustBadge(icon: Icons.verified_user_outlined, title: '100% Original', desc: 'Genuine & trusted'),
-              _TrustBadge(icon: Icons.lock_outline, title: 'Secure Payments', desc: '100% safe'),
-              _TrustBadge(icon: Icons.replay_outlined, title: 'Easy Returns', desc: 'Hassle-free'),
-              _TrustBadge(icon: Icons.local_shipping_outlined, title: 'Fast Delivery', desc: 'Pan India'),
-              _TrustBadge(icon: Icons.support_agent_outlined, title: 'Dedicated Support', desc: "We're here"),
-            ],
+          Container(
+            padding: const EdgeInsets.fromLTRB(8, 20, 8, 20),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: kWebBorder)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                _TrustBadge(icon: Icons.verified_user_outlined, title: '100% Original Products', desc: 'Genuine & trusted'),
+                _TrustBadge(icon: Icons.lock_outline, title: 'Secure Payments', desc: '100% safe & secure'),
+                _TrustBadge(icon: Icons.undo_rounded, title: 'Easy Returns', desc: 'Hassle-free returns'),
+                _TrustBadge(icon: Icons.local_shipping_outlined, title: 'Fast Delivery', desc: 'Pan India delivery'),
+                _TrustBadge(icon: Icons.forum_outlined, title: 'Dedicated Support', desc: "We're here to help"),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _banner(String text, MaterialColor color) {
+  Widget _form() {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.shade200),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kWebBorder),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 2, offset: Offset(0, 1))],
       ),
-      child: Text(text, style: TextStyle(color: color.shade800, fontSize: 13)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_error != null) ...[_banner(_error!, error: true), const SizedBox(height: 16)],
+          _label('Name'),
+          TextField(controller: _nameController, style: _t(14), decoration: _input('Enter your name')),
+          const SizedBox(height: 16),
+          _label('Email'),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: _t(14),
+            decoration: _input('Enter your email'),
+          ),
+          const SizedBox(height: 16),
+          _label('Phone'),
+          TextField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            style: _t(14),
+            decoration: _input('Enter your phone number'),
+          ),
+          const SizedBox(height: 16),
+          _label('Order ID', required: false, optional: true),
+          TextField(controller: _orderIdController, style: _t(14), decoration: _input('Enter your order ID')),
+          const SizedBox(height: 16),
+          _label('Issue Type'),
+          DropdownButtonFormField<String>(
+            initialValue: _issueType,
+            isExpanded: true,
+            style: _t(14),
+            decoration: _input('Select issue type'),
+            items: [
+              for (final option in supportIssueOptions)
+                DropdownMenuItem(value: option.value, child: Text(option.label)),
+            ],
+            onChanged: (value) => setState(() {
+              _issueType = value;
+              _error = null;
+            }),
+          ),
+          const SizedBox(height: 16),
+          _label('Message'),
+          Stack(
+            children: [
+              TextField(
+                controller: _messageController,
+                maxLines: 5,
+                maxLength: _maxMessageLength,
+                style: _t(14),
+                onChanged: (_) => setState(() {}),
+                decoration: _input('Describe your issue in detail...').copyWith(
+                  contentPadding: const EdgeInsets.fromLTRB(16, 13, 16, 32),
+                ),
+              ),
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: Text(
+                  '${_messageController.text.length}/$_maxMessageLength',
+                  style: _t(12, color: kWebTextMuted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _label('Upload Attachment', required: false, optional: true),
+          _attachmentBox(),
+          if (_success != null) ...[const SizedBox(height: 16), _banner(_success!)],
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 48,
+            child: FilledButton.icon(
+              onPressed: _submitting ? null : _submit,
+              style: FilledButton.styleFrom(
+                backgroundColor: _primary,
+                disabledBackgroundColor: _primary.withValues(alpha: 0.6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              icon: const Icon(Icons.send_rounded, size: 16, color: Colors.white),
+              label: Text(
+                _submitting ? 'Submitting...' : 'Submit Ticket',
+                style: _t(14, weight: FontWeight.w700, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _contactCard(IconData icon, String title, String value, String href) {
-    return InkWell(
-      onTap: () => _launch(href),
-      borderRadius: BorderRadius.circular(10),
+  Widget _attachmentBox() {
+    final hasAttachment = _attachmentLocalPath != null || _attachmentUrl != null;
+    return GestureDetector(
+      onTap: hasAttachment || _submitting || _uploadingAttachment ? null : _pickAttachment,
+      child: CustomPaint(
+        painter: _DashedBorderPainter(),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0x4DF8F8F8),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: !hasAttachment
+              ? Column(
+                  children: [
+                    const Icon(Icons.file_upload_outlined, size: 40, color: kWebTextMuted),
+                    const SizedBox(height: 8),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: _uploadingAttachment ? 'Uploading...' : 'Click to upload',
+                            style: _t(14, weight: FontWeight.w600, color: _primary),
+                          ),
+                          TextSpan(text: ' or drag and drop', style: _t(14, color: kWebTextSecondary)),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text('PNG, JPG up to 2MB', style: _t(12, color: kWebTextMuted)),
+                  ],
+                )
+              : Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 64,
+                        height: 64,
+                        child: _attachmentLocalPath != null
+                            ? Image.file(File(_attachmentLocalPath!), fit: BoxFit.cover)
+                            : CachedNetworkImage(imageUrl: _attachmentUrl!, fit: BoxFit.cover),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _uploadingAttachment ? 'Uploading attachment...' : (_attachmentName ?? 'Attachment'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: _t(14, weight: FontWeight.w500),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: _submitting || _uploadingAttachment
+                                ? null
+                                : () => setState(() {
+                                      _attachmentUrl = null;
+                                      _attachmentLocalPath = null;
+                                      _attachmentName = null;
+                                    }),
+                            child: Text(
+                              'Remove',
+                              style: _t(12, weight: FontWeight.w600, color: const Color(0xFFDC2626)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _banner(String text, {bool error = false}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: error ? const Color(0xFFFEF2F2) : const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: error ? const Color(0xFFFECACA) : const Color(0xFFBBF7D0)),
+      ),
+      child: Text(
+        text,
+        style: _t(14, color: error ? const Color(0xFFB91C1C) : const Color(0xFF15803D)),
+      ),
+    );
+  }
+
+  Widget _contactCard({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required List<Widget> lines,
+    String? href,
+  }) {
+    return GestureDetector(
+      onTap: href == null ? null : () => _launch(href),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.borderLight),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kWebBorder),
+          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 2, offset: Offset(0, 1))],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: AppColors.primary, size: 20),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, size: 20, color: iconColor),
+            ),
             const SizedBox(height: 8),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            Text(title, textAlign: TextAlign.center, style: _t(12, weight: FontWeight.w700)),
             const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontSize: 11, color: AppColors.primary)),
+            ...lines,
           ],
         ),
       ),
@@ -467,39 +608,30 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
   }
 }
 
-class _HoursCard extends StatelessWidget {
-  const _HoursCard();
+class _DashedBorderPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = kWebBorder
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12)));
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(metric.extractPath(distance, distance + 6), paint);
+        distance += 10;
+      }
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.schedule, color: Colors.blue, size: 20),
-          SizedBox(height: 8),
-          Text('Office Hours', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          SizedBox(height: 4),
-          Text('Mon – Sat', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-          Text('10 AM – 7 PM', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-        ],
-      ),
-    );
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _TrustBadge extends StatelessWidget {
-  const _TrustBadge({
-    required this.icon,
-    required this.title,
-    required this.desc,
-  });
+  const _TrustBadge({required this.icon, required this.title, required this.desc});
 
   final IconData icon;
   final String title;
@@ -507,20 +639,36 @@ class _TrustBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 90,
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-            child: Icon(icon, color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(height: 6),
-          Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-          Text(desc, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, color: AppColors.textSecondary)),
-        ],
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: Column(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: kWebPrimary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 18, color: kWebPrimary),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w700, height: 1.25),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              desc,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(fontSize: 8, color: kWebTextSecondary, height: 1.25),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+

@@ -27,7 +27,7 @@ const SUPPORT_FAQS = [
   {
     question: "What is your return and refund policy?",
     answer:
-      "Eligible products can be returned within the return window shown on the product page. Refunds are processed after inspection.",
+      "Report damaged, spoiled, wrong or missing items from My Orders within 24 hours of delivery (7 days for packaged goods) with a photo. Approved refunds go to your original payment method. See our Return & Refund Policy for full details.",
   },
   {
     question: "How can I cancel my order?",

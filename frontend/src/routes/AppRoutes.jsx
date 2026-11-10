@@ -29,6 +29,7 @@ import Blog from "../pages/Blog";
 import PrivacyPolicy from "../pages/PrivacyPolicy";
 import TermsAndConditions from "../pages/TermsAndConditions";
 import ShippingDetails from "../pages/ShippingDetails";
+import RefundPolicy from "../pages/RefundPolicy";
 import RolePolicies from "../pages/RolePolicies";
 import Location from "../pages/Location";
 import Categories from "../pages/Categories";
@@ -267,6 +268,7 @@ export function AppRoutes() {
       <Route path="/privacy-policy" element={<MobileLayout><PrivacyPolicy /></MobileLayout>} />
       <Route path="/terms-and-conditions" element={<MobileLayout><TermsAndConditions /></MobileLayout>} />
       <Route path="/shipping-details" element={<MobileLayout><ShippingDetails /></MobileLayout>} />
+      <Route path="/return-refund-policy" element={<MobileLayout><RefundPolicy /></MobileLayout>} />
       <Route path="/policies" element={<MobileLayout><RolePolicies /></MobileLayout>} />
       <Route path="/admin/*" element={<Navigate to="/" replace />} />
 
@@ -283,6 +285,7 @@ export function AppRoutes() {
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
               <Route path="/shipping-details" element={<ShippingDetails />} />
+              <Route path="/return-refund-policy" element={<RefundPolicy />} />
               <Route path="/policies" element={<RolePolicies />} />
             </Routes>
           </Layout>

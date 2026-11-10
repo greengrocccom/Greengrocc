@@ -963,7 +963,7 @@ class _BillSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final deliveryFree = order.deliveryCharges == 0;
-    final handlingFee = 5.0;
+    final adjustments = orderBillAdjustments(order);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -986,28 +986,37 @@ class _BillSummary extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           _BillRow(
-            label: 'MRP',
-            value: formatInr(order.subtotal, withDecimals: false),
-          ),
-          const SizedBox(height: 10),
-          _BillRow(
-            label: 'Handling charge',
-            value: '+${formatInr(handlingFee, withDecimals: false)}',
-          ),
-          const SizedBox(height: 10),
-          _BillRow(
-            label: order.isPickup ? 'Store pickup' : 'Delivery charges',
-            value: deliveryFree || order.isPickup
-                ? 'FREE'
-                : formatInr(order.deliveryCharges, withDecimals: false),
-            valueColor: deliveryFree || order.isPickup ? _themeGreen : null,
+            label: 'Item total',
+            value: formatInrExact(order.subtotal),
           ),
           if (order.couponDiscount > 0) ...[
             const SizedBox(height: 10),
             _BillRow(
-              label: 'Coupon discount',
-              value: '-${formatInr(order.couponDiscount, withDecimals: false)}',
+              label: 'Coupon discount (${order.couponCode.isEmpty ? 'Applied' : order.couponCode})',
+              value: '-${formatInrExact(order.couponDiscount)}',
               valueColor: _themeGreen,
+            ),
+          ],
+          if (order.rewardDiscount > 0) ...[
+            const SizedBox(height: 10),
+            _BillRow(
+              label: 'Reward points discount (${order.rewardPointsUsed} pts)',
+              value: '-${formatInrExact(order.rewardDiscount)}',
+              valueColor: _themeGreen,
+            ),
+          ],
+          const SizedBox(height: 10),
+          _BillRow(
+            label: order.isPickup ? 'Store pickup' : 'Delivery fee',
+            value: deliveryFree || order.isPickup ? 'FREE' : formatInrExact(order.deliveryCharges),
+            valueColor: deliveryFree || order.isPickup ? _themeGreen : null,
+          ),
+          for (final line in adjustments) ...[
+            const SizedBox(height: 10),
+            _BillRow(
+              label: line.label,
+              value: '${line.amount < 0 ? '-' : ''}${formatInrExact(line.amount.abs())}',
+              valueColor: line.amount < 0 ? _themeGreen : null,
             ),
           ],
           const Padding(

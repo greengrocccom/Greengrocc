@@ -1,11 +1,49 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/store_chrome.dart';
 import '../../../routes/route_paths.dart';
+import '../../../widgets/category/category_outline_icon.dart';
 import '../home_providers.dart';
+
+/// Website `shortCategoryLabel` — compact strip label for a category name.
+String shortCategoryLabel(String name) {
+  var label = name.trim();
+  if (label.isEmpty || label.toLowerCase() == 'all') return 'All';
+  label = label
+      .replaceFirst(
+        RegExp(
+          r'^(super\s*mall|supermall|ready\s*2\s*cook|ready2cook|ready-to-cook|instant\s*order|instant|green\s*grocc|greengrocc)\s*[-:]?\s*',
+          caseSensitive: false,
+        ),
+        '',
+      )
+      .trim();
+  final key = label.toLowerCase();
+  if (RegExp('packaged').hasMatch(key)) return 'Packaged';
+  if (RegExp('grain|pulse').hasMatch(key)) return 'Grains';
+  if (RegExp('snack|namkeen').hasMatch(key)) return 'Snacks';
+  if (RegExp('beverage|drink').hasMatch(key)) return 'Drinks';
+  if (RegExp('chopped').hasMatch(key)) return 'Chopped';
+  if (RegExp(r'cut.*sliced|sliced').hasMatch(key)) return 'Sliced';
+  if (RegExp('peeled').hasMatch(key)) return 'Peeled';
+  if (RegExp(r'cleaned\s*bhaji|bhaji.*leafy|leafy').hasMatch(key)) return 'Bhaji';
+  if (RegExp(r'veggie.*bhaji|bhaji\s*mix').hasMatch(key)) return 'Mix';
+  if (RegExp(r'dry\s*fruit').hasMatch(key)) return 'Dry Fruits';
+  if (RegExp('vegetable|veggies').hasMatch(key)) return 'Veggies';
+  if (label.length <= 11) return label;
+  final beforeJoin = label.split(RegExp(r'\s*[&/|]\s*')).first.trim();
+  if (beforeJoin.length >= 3 && beforeJoin.length <= 11) return beforeJoin;
+  final words = label.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  if (words.length >= 2) {
+    final two = '${words[0]} ${words[1]}';
+    if (two.length <= 11) return two;
+    return words[0].length <= 11 ? words[0] : '${words[0].substring(0, 10)}…';
+  }
+  return '${label.substring(0, 10)}…';
+}
 
 class SelectedCategoryHeaderTabNotifier extends Notifier<String> {
   @override
@@ -33,195 +71,6 @@ class HomeHeaderCategoryStrip extends ConsumerWidget {
     this.iconProgress = 1,
   });
 
-  IconData _getCategoryIcon(String name) {
-    final lower = name.toLowerCase().trim();
-
-    if (lower == 'all') return Icons.grid_view_rounded;
-    if (lower.contains('preorder') ||
-        lower.contains('pre-order') ||
-        lower.contains('pre order')) {
-      return Icons.calendar_today_rounded;
-    }
-
-    // Oils, Ghee, Refined, Mustard
-    if (lower.contains('oil') ||
-        lower.contains('ghee') ||
-        lower.contains('mustard') ||
-        lower.contains('refined')) {
-      return Icons.opacity_rounded;
-    }
-
-    // Grocery, Atta, Flour, Rice, Dal, Pulses, Staples, Grains
-    if (lower.contains('atta') ||
-        lower.contains('flour') ||
-        lower.contains('rice') ||
-        lower.contains('dal') ||
-        lower.contains('pulse') ||
-        lower.contains('grain') ||
-        lower.contains('grocery') ||
-        lower.contains('staple')) {
-      return Icons.rice_bowl_rounded;
-    }
-
-    // Spices, Masala, Chilli, Turmeric, Salt, Sugar
-    if (lower.contains('spice') ||
-        lower.contains('masala') ||
-        lower.contains('chilli') ||
-        lower.contains('turmeric') ||
-        lower.contains('salt') ||
-        lower.contains('sugar')) {
-      return Icons.grain_rounded;
-    }
-
-    // Beverages, Drinks, Juice, Tea, Coffee, Soda, Water, Cold Drink
-    if (lower.contains('beverage') ||
-        lower.contains('drink') ||
-        lower.contains('tea') ||
-        lower.contains('coffee') ||
-        lower.contains('juice') ||
-        lower.contains('soda') ||
-        lower.contains('water') ||
-        lower.contains('cold drink')) {
-      return Icons.local_drink_rounded;
-    }
-
-    // Bakery, Bread, Cakes, Cookies, Biscuits, Buns
-    if (lower.contains('bakery') ||
-        lower.contains('bread') ||
-        lower.contains('cake') ||
-        lower.contains('biscuit') ||
-        lower.contains('cookie') ||
-        lower.contains('toast') ||
-        lower.contains('bun')) {
-      return Icons.bakery_dining_rounded;
-    }
-
-    // Dairy, Milk, Paneer, Curd, Butter, Cheese, Dahi
-    if (lower.contains('dairy') ||
-        lower.contains('milk') ||
-        lower.contains('paneer') ||
-        lower.contains('curd') ||
-        lower.contains('butter') ||
-        lower.contains('cheese') ||
-        lower.contains('dahi') ||
-        lower.contains('cream')) {
-      return Icons.water_drop_rounded;
-    }
-
-    // Dry Fruits, Nuts, Almond, Kaju, Badam, Raisins, Seeds
-    if (lower.contains('dry fruit') ||
-        lower.contains('nut') ||
-        lower.contains('almond') ||
-        lower.contains('cashew') ||
-        lower.contains('kaju') ||
-        lower.contains('badam') ||
-        lower.contains('raisin') ||
-        lower.contains('pista') ||
-        lower.contains('walnut')) {
-      return Icons.scatter_plot_rounded;
-    }
-
-    // Fruits, Apple, Mango, Banana, Orange
-    if (lower.contains('fruit') ||
-        lower.contains('apple') ||
-        lower.contains('mango') ||
-        lower.contains('banana') ||
-        lower.contains('orange')) {
-      return Icons.apple_rounded;
-    }
-
-    // Vegetables, Sabzi, Potato, Onion, Tomato
-    if (lower.contains('veg') ||
-        lower.contains('sabzi') ||
-        lower.contains('potato') ||
-        lower.contains('onion') ||
-        lower.contains('tomato')) {
-      return Icons.grass_rounded;
-    }
-
-    // Meat, Chicken, Fish, Eggs, Seafood, Mutton
-    if (lower.contains('meat') ||
-        lower.contains('chicken') ||
-        lower.contains('fish') ||
-        lower.contains('egg') ||
-        lower.contains('seafood') ||
-        lower.contains('mutton')) {
-      return Icons.kebab_dining_rounded;
-    }
-
-    // Snacks, Chips, Namkeen, Sweets, Chocolates, Ice Cream
-    if (lower.contains('snack') ||
-        lower.contains('munchie') ||
-        lower.contains('chip') ||
-        lower.contains('sweet') ||
-        lower.contains('chocolat') ||
-        lower.contains('namkeen') ||
-        lower.contains('candy') ||
-        lower.contains('ice cream')) {
-      return Icons.cookie_rounded;
-    }
-
-    // Ready to Cook, Instant Food, Noodles, Pasta, Sauce, Soup, Maggi
-    if (lower.contains('ready') ||
-        lower.contains('instant') ||
-        lower.contains('noodle') ||
-        lower.contains('pasta') ||
-        lower.contains('sauce') ||
-        lower.contains('soup') ||
-        lower.contains('maggi') ||
-        lower.contains('meal')) {
-      return Icons.ramen_dining_rounded;
-    }
-
-    // Cleaning, Household, Detergent, Soap, Dish, Wash, Home Care
-    if (lower.contains('clean') ||
-        lower.contains('house') ||
-        lower.contains('detergent') ||
-        lower.contains('soap') ||
-        lower.contains('dish') ||
-        lower.contains('wash') ||
-        lower.contains('home care')) {
-      return Icons.cleaning_services_rounded;
-    }
-
-    // Personal Care, Beauty, Hygiene, Skincare, Haircare, Shampoo
-    if (lower.contains('personal') ||
-        lower.contains('care') ||
-        lower.contains('beauty') ||
-        lower.contains('skin') ||
-        lower.contains('hair') ||
-        lower.contains('shampoo') ||
-        lower.contains('face') ||
-        lower.contains('hygiene') ||
-        lower.contains('bath')) {
-      return Icons.sanitizer_rounded;
-    }
-
-    // Baby Care, Diapers, Infant
-    if (lower.contains('baby') ||
-        lower.contains('diaper') ||
-        lower.contains('infant') ||
-        lower.contains('kid')) {
-      return Icons.child_friendly_rounded;
-    }
-
-    // Pet Care
-    if (lower.contains('pet') || lower.contains('dog') || lower.contains('cat')) {
-      return Icons.pets_rounded;
-    }
-
-    // Electronics & Appliances
-    if (lower.contains('electronic') ||
-        lower.contains('appliance') ||
-        lower.contains('gadget') ||
-        lower.contains('mobile') ||
-        lower.contains('tech')) {
-      return Icons.devices_other_rounded;
-    }
-
-    return Icons.grid_view_rounded;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(categoriesProvider);
@@ -230,7 +79,12 @@ class HomeHeaderCategoryStrip extends ConsumerWidget {
 
     final categoryList = categoriesAsync.maybeWhen(
       data: (cats) {
-        final names = ['All', ...cats.map((c) => c.categoryName)];
+        final names = [
+          'All',
+          ...cats
+              .map((c) => c.categoryName)
+              .where((n) => n.toLowerCase() != 'most purchase'),
+        ];
         final uniqueNames = <String>[];
         for (final name in names) {
           if (!uniqueNames.any((n) => n.toLowerCase() == name.toLowerCase())) {
@@ -252,10 +106,11 @@ class HomeHeaderCategoryStrip extends ConsumerWidget {
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0x1A064E3B))),
       ),
-      child: ListView.builder(
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         itemCount: categoryList.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 4),
         itemBuilder: (context, index) {
           final catName = categoryList[index];
           final isSelected = selectedCategory == catName;
@@ -283,10 +138,10 @@ class HomeHeaderCategoryStrip extends ConsumerWidget {
               }
             },
             behavior: HitTestBehavior.opaque,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 54),
+            child: SizedBox(
+              width: 54.4,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -296,13 +151,21 @@ class HomeHeaderCategoryStrip extends ConsumerWidget {
                           ? null
                           : Opacity(
                               opacity: t,
-                              child: Icon(_getCategoryIcon(catName), size: 18, color: fg),
+                              child: catName.toLowerCase() == 'all' && isSelected
+                                  ? Icon(Icons.shopping_basket, size: 18, color: fg)
+                                  : CategoryOutlineIcon(
+                                      name: catName,
+                                      index: index,
+                                      size: 18,
+                                      color: fg,
+                                    ),
                             ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      catName,
+                      shortCategoryLabel(catName),
                       maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,

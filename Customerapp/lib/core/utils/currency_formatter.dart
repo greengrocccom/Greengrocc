@@ -12,6 +12,10 @@ final _inrFormatterWithDecimals = NumberFormat.currency(
   decimalDigits: 2,
 );
 
+/// Paise only when the amount has them (e.g. ₹220.50, ₹224).
+String formatInrExact(num value) =>
+    formatInr(value, withDecimals: value.roundToDouble() != value);
+
 String formatInr(num value, {bool withDecimals = false}) {
   if (withDecimals) {
     return _inrFormatterWithDecimals.format(value);

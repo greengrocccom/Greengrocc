@@ -9,6 +9,9 @@ import {
 } from "../../config/contact";
 import MaharashtraPrideBanner from "../home/MaharashtraPrideBanner";
 import OptimizedImg from "../common/OptimizedImg";
+import { getAndroidAppDownloadUrl } from "../../utils/appDownload";
+
+const PLAY_STORE_URL = getAndroidAppDownloadUrl();
 
 export default function Footer() {
   const [menuOpen, setMenuOpen] = React.useState(true);
@@ -165,7 +168,10 @@ export default function Footer() {
 
                     {/* Google Play Badge (Black Pill, Google Play Icon) */}
                     <a
-                      href="#"
+                      href={PLAY_STORE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Get the GreenGrocc app on Google Play"
                       className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-black text-white hover:bg-neutral-900 border border-white/20 transition-all shadow-md active:scale-95 cursor-pointer"
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -254,7 +260,11 @@ export default function Footer() {
                   </Link>
                   <span className="text-white/60">|</span>
                   <Link to="/shipping-details" className="hover:text-white transition-colors">
-                    Sitemap
+                    Shipping Policy
+                  </Link>
+                  <span className="text-white/60">|</span>
+                  <Link to="/return-refund-policy" className="hover:text-white transition-colors">
+                    Return & Refund
                   </Link>
                   <span className="text-white/60">|</span>
                   <Link to="/terms-and-conditions" className="hover:text-white transition-colors">
@@ -495,7 +505,10 @@ export default function Footer() {
 
                   {/* Google Play Badge */}
                   <a
-                    href="#"
+                    href={PLAY_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Get the GreenGrocc app on Google Play"
                     className="flex-1 max-w-[170px] inline-flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-full bg-black text-white hover:bg-neutral-900 border border-white/20 transition-all shadow-md active:scale-95 cursor-pointer"
                   >
                     <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
@@ -569,7 +582,11 @@ export default function Footer() {
                   </Link>
                   <span className="text-white/60">|</span>
                   <Link to="/shipping-details" className="hover:text-white transition-colors">
-                    Sitemap
+                    Shipping Policy
+                  </Link>
+                  <span className="text-white/60">|</span>
+                  <Link to="/return-refund-policy" className="hover:text-white transition-colors">
+                    Return & Refund
                   </Link>
                   <span className="text-white/60">|</span>
                   <Link to="/terms-and-conditions" className="hover:text-white transition-colors">

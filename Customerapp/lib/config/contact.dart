@@ -35,6 +35,9 @@ abstract final class ContactConfig {
   static const whatsAppGroupUrl =
       'https://chat.whatsapp.com/KEjIzY8mRbn8vR3LYBxnP8';
 
+  static const playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.greengrocc.userapp&pcampaignid=web_share';
+
   static const socialLinks = <SocialLink>[
     SocialLink(
       id: 'whatsapp-community',

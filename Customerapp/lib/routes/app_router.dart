@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/auth_controller.dart';
+import '../features/auth/auth_state.dart';
 import '../features/cart/cart_screen.dart';
+import '../features/orders/track_latest_order_screen.dart';
 import '../features/categories/categories_screen.dart';
 import '../features/checkout/checkout_screen.dart';
 import '../features/checkout/payment_method.dart';
@@ -34,6 +37,16 @@ import 'route_paths.dart';
 import 'shell_navigator_keys.dart';
 
 export 'shell_navigator_keys.dart';
+
+/// Website `/login` and `/signup` render the home page with the auth modal open.
+String _openAuthAndGoHome(Ref ref, AuthModalMode mode) {
+  Future.microtask(() {
+    if (!ref.read(authControllerProvider).isLoggedIn) {
+      ref.read(authControllerProvider.notifier).openAuthModal(mode, null);
+    }
+  });
+  return RoutePaths.home;
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -195,8 +208,33 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.about,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const InfoPageScreen(content: aboutPage),
+        builder: (context, state) => const AboutScreen(),
       ),
+      GoRoute(
+        path: RoutePaths.careers,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const CareersScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.policies,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const PoliciesScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.trackOrder,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const TrackLatestOrderScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.login,
+        redirect: (context, state) => _openAuthAndGoHome(ref, AuthModalMode.login),
+      ),
+      GoRoute(
+        path: RoutePaths.signup,
+        redirect: (context, state) => _openAuthAndGoHome(ref, AuthModalMode.signup),
+      ),
+      GoRoute(path: '/signin', redirect: (context, state) => RoutePaths.login),
+      GoRoute(path: '/register', redirect: (context, state) => RoutePaths.signup),
       GoRoute(
         path: RoutePaths.contact,
         parentNavigatorKey: rootNavigatorKey,
@@ -210,17 +248,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.privacyPolicy,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const InfoPageScreen(content: privacyPolicyPage),
+        builder: (context, state) =>
+            const InfoPageScreen(content: privacyPolicyPage, policyKey: 'privacy'),
       ),
       GoRoute(
         path: RoutePaths.terms,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const InfoPageScreen(content: termsPage),
+        builder: (context, state) => const InfoPageScreen(content: termsPage, policyKey: 'terms'),
       ),
       GoRoute(
         path: RoutePaths.shippingDetails,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const InfoPageScreen(content: shippingDetailsPage),
+        builder: (context, state) =>
+            const InfoPageScreen(content: shippingDetailsPage, policyKey: 'shipping'),
+      ),
+      GoRoute(
+        path: RoutePaths.refundPolicy,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) =>
+            const InfoPageScreen(content: refundPolicyPage, policyKey: 'refund'),
       ),
       GoRoute(
         path: RoutePaths.location,
@@ -257,15 +303,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           productId: state.pathParameters['id']!,
         ),
       ),
-      GoRoute(
-        path: RoutePaths.farmerProfile,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) {
-          final extra = state.extra;
-          final farmer = extra is FarmerTrace ? extra : null;
-          return FarmerProfileScreen(farmer: farmer);
-        },
-      ),
+      for (final path in [RoutePaths.farmerProfile, RoutePaths.farmers, RoutePaths.farmerById])
+        GoRoute(
+          path: path,
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) {
+            final extra = state.extra;
+            final farmer = extra is FarmerTrace ? extra : null;
+            return FarmerProfileScreen(farmer: farmer);
+          },
+        ),
     ],
   );
 

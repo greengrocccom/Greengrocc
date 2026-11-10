@@ -182,6 +182,38 @@ export function filterOrders(orders, { filter, query }) {
   });
 }
 
+/**
+ * Discounts and fees saved on an order besides item total, coupon, reward points
+ * and delivery. Any gap between those lines and `order.total` (orders saved before
+ * offer discounts were recorded) is shown as "Other discount" so the bill adds up.
+ */
+export function getOrderBillAdjustments(order) {
+  const n = (value) => Number(value) || 0;
+  const lines = [];
+  if (n(order?.giftCardDiscount) > 0) {
+    lines.push({ label: `Gift card (${order.giftCardCode || "Applied"})`, amount: -n(order.giftCardDiscount) });
+  }
+  if (n(order?.dynamicDiscount) > 0) {
+    lines.push({ label: "Offer discount", amount: -n(order.dynamicDiscount) });
+  }
+  if (n(order?.heavyHandlingFee) > 0) {
+    lines.push({ label: "Heavy item handling", amount: n(order.heavyHandlingFee) });
+  }
+  if (n(order?.packagingFee) > 0) {
+    lines.push({ label: "Packaging fee", amount: n(order.packagingFee) });
+  }
+  const expected =
+    n(order?.subtotal) -
+    n(order?.couponDiscount) -
+    n(order?.rewardDiscount) +
+    n(order?.deliveryCharges) +
+    lines.reduce((sum, line) => sum + line.amount, 0);
+  const gap = Math.round((n(order?.total) - expected) * 100) / 100;
+  if (gap <= -0.5) lines.push({ label: "Other discount", amount: gap });
+  if (gap >= 0.5) lines.push({ label: "Other charges", amount: gap });
+  return lines;
+}
+
 /** Sum of placed orders that still count (not cancelled / returned / attempted). */
 export function getLifetimeOrderSpend(orders) {
   return (orders || []).reduce((sum, order) => {

@@ -120,6 +120,7 @@ export async function finalizeFromCheckoutAttempt({ userId, razorpayOrder, payme
     giftCardDiscount: snapshot.giftCardDiscount,
     deliveryCharges: snapshot.deliveryCharges,
     heavyHandlingFee: snapshot.heavyHandlingFee,
+    packagingFee: snapshot.packagingFee,
     bundleDiscount: snapshot.bundleDiscount,
     loyaltyDiscount: snapshot.loyaltyDiscount,
     dynamicDiscount: snapshot.dynamicDiscount,

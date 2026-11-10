@@ -74,6 +74,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String? _lastCheckoutAttemptKey;
   double? _serverShipping;
   String? _serverShippingKey;
+
+  /// Admin pricing rules (quantity / bundle / loyalty, packaging, heavy items)
+  /// are only known server-side; read back from the checkout attempt.
+  double _serverOfferDiscount = 0;
+  double _serverPackagingFee = 0;
+  double _serverHeavyFee = 0;
   String _fulfillment = FulfillmentType.delivery;
   String? _preOrderSlot;
   PaymentModeOption? _paymentMode;
@@ -310,10 +316,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       });
       final order = ApiResponseParser.getData(response.data) as Map<String, dynamic>;
       final charges = order['deliveryCharges'];
+      double amount(String field) => (order[field] as num?)?.toDouble() ?? 0;
       if (charges is num && mounted) {
         setState(() {
           _serverShipping = charges.toDouble();
           _serverShippingKey = key;
+          _serverOfferDiscount = amount('dynamicDiscount');
+          _serverPackagingFee = amount('packagingFee');
+          _serverHeavyFee = amount('heavyHandlingFee');
         });
       }
     } catch (_) {
@@ -453,6 +463,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _serverShippingKey == _checkoutAttemptKey(cartItems);
     final summary =
         serverPriced ? applyServerShipping(localSummary, _serverShipping!) : localSummary;
+    final attemptCurrent = _serverShippingKey == _checkoutAttemptKey(cartItems);
+    final offerDiscount = attemptCurrent ? _serverOfferDiscount : 0.0;
+    final packagingFee = serverPriced ? _serverPackagingFee : 0.0;
+    final heavyFee = serverPriced ? _serverHeavyFee : 0.0;
+    final payable = (summary.total - offerDiscount + packagingFee + heavyFee).clamp(0.0, double.infinity);
     final feeKnown = isPickup || serverPriced || storeSettings != null;
 
     final groups = groupCartByDepartment(cartItems);
@@ -480,7 +495,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             (!serverPriced || summary.shipping == shippingChargeFor(summary.subtotal, storeSettings))
         ? nextCheaperShippingSlab(summary.subtotal, storeSettings)
         : null;
-    final totalSaved = summary.savings + couponDiscount;
+    final totalSaved = summary.savings + couponDiscount + offerDiscount;
     final mrpTotal = summary.subtotal + summary.savings;
 
     if (!cartLoading && cartItems.isEmpty) {
@@ -688,6 +703,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                 value: '-${formatInr(couponDiscount)}',
                                 valueColor: _savedInk,
                               ),
+                            if (offerDiscount > 0)
+                              _BillRow(
+                                icon: Icons.local_offer_outlined,
+                                label: 'Offer discount',
+                                value: '-${formatInrExact(offerDiscount)}',
+                                valueColor: _savedInk,
+                              ),
                             _BillRow(
                               icon: isPickup
                                   ? Icons.storefront_outlined
@@ -704,6 +726,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                   : 'Add ${formatInr(cheaperSlab.orderAmount - summary.subtotal)} more for '
                                       '${cheaperSlab.shippingCharge <= 0 ? 'FREE delivery' : '${formatInr(cheaperSlab.shippingCharge)} delivery'}',
                             ),
+                            if (packagingFee > 0)
+                              _BillRow(
+                                icon: Icons.inventory_2_outlined,
+                                label: 'Packaging Fee',
+                                value: formatInrExact(packagingFee),
+                              ),
+                            if (heavyFee > 0)
+                              _BillRow(
+                                icon: Icons.inventory_2_outlined,
+                                label: 'Heavy item handling',
+                                value: formatInrExact(heavyFee),
+                              ),
                             Padding(
                               padding: const EdgeInsets.only(left: 32),
                               child: Text(
@@ -733,7 +767,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                   const SizedBox(width: 8),
                                 ],
                                 Text(
-                                  formatInr(summary.total),
+                                  formatInrExact(payable),
                                   style: _font(size: 15, weight: FontWeight.w800),
                                 ),
                               ],
@@ -753,13 +787,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           : _PayBar(
               mode: _paymentMode,
               pickup: isPickup,
-              total: summary.total,
+              total: payable,
               feeKnown: feeKnown,
               blocker: blocker,
               minimumOrderMet: minimumOrderMet,
-              onChange: () => _choosePaymentMode(summary.total, isPickup),
+              onChange: () => _choosePaymentMode(payable, isPickup),
               onSlid: () => _paymentMode == null
-                  ? _choosePaymentMode(summary.total, isPickup)
+                  ? _choosePaymentMode(payable, isPickup)
                   : _openPayment(autoPay: true),
             ),
     );

@@ -1,6 +1,13 @@
 import { RolePolicy, POLICY_ROLE_KEYS } from "./models.js";
 import { ROLE_LABELS } from "../../staff-service/src/constants/roles.js";
 import { createMemoryCache } from "../../shared/cache/memoryCache.js";
+import {
+  TERMS_BODY,
+  PRIVACY_BODY,
+  REFUND_BODY,
+  SHIPPING_BODY,
+  LEGACY_CUSTOMER_BODIES,
+} from "./customerPolicyContent.js";
 
 const livePoliciesCache = createMemoryCache({
   name: "role-policies-live",
@@ -42,17 +49,26 @@ function serializePolicy(doc) {
   };
 }
 
+const CUSTOMER_PAGE_KEYS = ["privacy", "terms", "refund", "shipping", "general"];
+
 function normalizePageKey(raw) {
   const value = String(raw || "").trim().toLowerCase();
-  if (["privacy", "terms", "refund", "general"].includes(value)) return value;
+  if (CUSTOMER_PAGE_KEYS.includes(value)) return value;
   return "";
 }
 
+const PAGE_TITLE_PATTERNS = {
+  privacy: /privacy\s*policy|^privacy\b/i,
+  terms: /terms/i,
+  refund: /refund|return/i,
+  shipping: /shipping|delivery\s*policy/i,
+};
+
 function inferPageKeyFromTitle(title) {
   const t = String(title || "");
-  if (/privacy\s*policy/i.test(t) || /^privacy\b/i.test(t)) return "privacy";
-  if (/terms/i.test(t)) return "terms";
-  if (/refund|return/i.test(t)) return "refund";
+  for (const [key, pattern] of Object.entries(PAGE_TITLE_PATTERNS)) {
+    if (pattern.test(t)) return key;
+  }
   return "";
 }
 
@@ -69,52 +85,11 @@ function normalizeRoleKey(raw) {
 function defaultPoliciesForRole(roleKey) {
   if (roleKey === "customer") {
     return [
-      {
-        title: "Terms & Conditions",
-        pageKey: "terms",
-        body: `Terms & Conditions for GreenGrocc customers
-
-1. By using the GreenGrocc website and app you agree to these terms.
-2. Prices, offers, and delivery slots shown at checkout are final for that order.
-3. You must provide accurate delivery address and contact details.
-4. Misuse of accounts, coupons, or payment methods may lead to order cancellation.
-5. GreenGrocc may update these terms; the latest version is always on this page.`,
-        roleKey,
-        status: "published",
-        sortOrder: 1,
-        createdBy: "system",
-      },
-      {
-        title: "Privacy Policy",
-        pageKey: "privacy",
-        body: `Privacy Policy for GreenGrocc customers
-
-1. We collect name, phone, address, and order details to deliver your groceries.
-2. Payment details are processed by trusted payment partners; we do not store full card data.
-3. We use your data for orders, support, and service improvements — not for sale to third parties.
-4. You can request account or data updates by contacting GreenGrocc support.
-5. GreenGrocc may update this policy; check this page regularly.`,
-        roleKey,
-        status: "published",
-        sortOrder: 2,
-        createdBy: "system",
-      },
-      {
-        title: "Refund & Return Policy",
-        pageKey: "refund",
-        body: `Refund & Return Policy for GreenGrocc customers
-
-1. Report missing, damaged, or incorrect items promptly via the app or support.
-2. Fresh produce quality issues are reviewed case by case for refund or replacement.
-3. Refunds are credited to the original payment method or wallet as applicable.
-4. Items that cannot be returned for hygiene or perishability reasons are listed at purchase.
-5. For warranty or manufacturer defects, follow the process shown on the product page.`,
-        roleKey,
-        status: "published",
-        sortOrder: 3,
-        createdBy: "system",
-      },
-    ];
+      { title: "Terms & Conditions", pageKey: "terms", body: TERMS_BODY, sortOrder: 1 },
+      { title: "Privacy Policy", pageKey: "privacy", body: PRIVACY_BODY, sortOrder: 2 },
+      { title: "Return & Refund Policy", pageKey: "refund", body: REFUND_BODY, sortOrder: 3 },
+      { title: "Shipping & Delivery Policy", pageKey: "shipping", body: SHIPPING_BODY, sortOrder: 4 },
+    ].map((row) => ({ ...row, roleKey, status: "published", createdBy: "system" }));
   }
 
   const label = roleLabel(roleKey);
@@ -172,28 +147,28 @@ export async function seedDefaultRolePoliciesIfEmpty() {
     for (const roleKey of POLICY_ROLE_KEYS) {
       const count = await RolePolicy.countDocuments({ roleKey });
       if (count > 0) continue;
-      await RolePolicy.insertMany(defaultPoliciesForRole(roleKey));
-      created += 3;
+      const rows = defaultPoliciesForRole(roleKey);
+      await RolePolicy.insertMany(rows);
+      created += rows.length;
     }
 
-    // Ensure Users site always has Terms + Privacy even if older staff-style seeds exist
+    // Ensure the Users site always has Terms, Privacy, Refund and Shipping pages
     const customerDefaults = defaultPoliciesForRole("customer");
     for (const def of customerDefaults) {
-      let titleRx = null;
-      if (/terms/i.test(def.title)) titleRx = /terms/i;
-      else if (/privacy/i.test(def.title)) titleRx = /privacy\s*policy/i;
-      else if (/refund|return/i.test(def.title)) titleRx = /refund|return/i;
-      if (!titleRx) continue;
       const exists = await RolePolicy.findOne({
         roleKey: "customer",
-        $or: [
-          ...(def.pageKey ? [{ pageKey: def.pageKey }] : []),
-          { title: { $regex: titleRx } },
-        ],
+        $or: [{ pageKey: def.pageKey }, { title: { $regex: PAGE_TITLE_PATTERNS[def.pageKey] } }],
       }).lean();
       if (exists) {
-        if (def.pageKey && !exists.pageKey) {
-          await RolePolicy.updateOne({ _id: exists._id }, { $set: { pageKey: def.pageKey } });
+        const $set = {};
+        if (!exists.pageKey) $set.pageKey = def.pageKey;
+        // Upgrade the old 5-line starter text, but never overwrite admin-edited content
+        if (exists.createdBy === "system" && LEGACY_CUSTOMER_BODIES.includes(String(exists.body || "").trim())) {
+          $set.title = def.title;
+          $set.body = def.body;
+        }
+        if (Object.keys($set).length > 0) {
+          await RolePolicy.updateOne({ _id: exists._id }, { $set });
           updated += 1;
         }
         continue;

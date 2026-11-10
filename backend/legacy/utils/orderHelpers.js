@@ -1231,6 +1231,14 @@ export async function prepareCheckoutAttemptData(userId, options = {}) {
     giftCardCode: giftCardCode || "",
     giftCardDiscount: giftCardDiscount || 0,
     deliveryCharges,
+    heavyHandlingFee: heavyHandlingFee || 0,
+    packagingFee: pricing.packagingFee || 0,
+    bundleDiscount: bundleDiscount || 0,
+    loyaltyDiscount: loyaltyDiscount || 0,
+    quantityDiscount: quantityDiscount || 0,
+    dynamicDiscount: dynamicDiscount || 0,
+    freeAddon: freeAddon || null,
+    dynamicPricingDetails: dynamicPricingDetails || null,
     gstAmount,
     total,
     cart,
@@ -1256,6 +1264,7 @@ export async function upsertCheckoutAttemptOrder(userId, prepared, paymentMethod
     giftCardDiscount: prepared.giftCardDiscount || 0,
     deliveryCharges: prepared.deliveryCharges,
     heavyHandlingFee: prepared.heavyHandlingFee || 0,
+    packagingFee: prepared.packagingFee || 0,
     bundleDiscount: prepared.bundleDiscount || 0,
     loyaltyDiscount: prepared.loyaltyDiscount || 0,
     dynamicDiscount: prepared.dynamicDiscount || 0,
@@ -1361,6 +1370,7 @@ export async function completeAttemptedOrder({
   giftCardDiscount = 0,
   deliveryCharges,
   heavyHandlingFee = 0,
+  packagingFee = 0,
   bundleDiscount = 0,
   loyaltyDiscount = 0,
   dynamicDiscount = 0,
@@ -1410,6 +1420,7 @@ export async function completeAttemptedOrder({
   order.giftCardDiscount = giftCardDiscount > 0 ? giftCardDiscount : 0;
   order.deliveryCharges = deliveryCharges;
   order.heavyHandlingFee = heavyHandlingFee > 0 ? heavyHandlingFee : 0;
+  order.packagingFee = packagingFee > 0 ? packagingFee : 0;
   order.bundleDiscount = bundleDiscount > 0 ? bundleDiscount : 0;
   order.loyaltyDiscount = loyaltyDiscount > 0 ? loyaltyDiscount : 0;
   order.dynamicDiscount = dynamicDiscount > 0 ? dynamicDiscount : 0;
@@ -1468,6 +1479,7 @@ export async function finalizeOrder({
   giftCardDiscount = 0,
   deliveryCharges,
   heavyHandlingFee = 0,
+  packagingFee = 0,
   bundleDiscount = 0,
   loyaltyDiscount = 0,
   dynamicDiscount = 0,
@@ -1507,6 +1519,7 @@ export async function finalizeOrder({
     giftCardDiscount,
     deliveryCharges,
     heavyHandlingFee,
+    packagingFee,
     bundleDiscount,
     loyaltyDiscount,
     dynamicDiscount,
@@ -1557,6 +1570,7 @@ export async function finalizeOrder({
     giftCardDiscount: giftCardDiscount > 0 ? giftCardDiscount : 0,
     deliveryCharges,
     heavyHandlingFee: heavyHandlingFee > 0 ? heavyHandlingFee : 0,
+    packagingFee: packagingFee > 0 ? packagingFee : 0,
     bundleDiscount: bundleDiscount > 0 ? bundleDiscount : 0,
     loyaltyDiscount: loyaltyDiscount > 0 ? loyaltyDiscount : 0,
     dynamicDiscount: dynamicDiscount > 0 ? dynamicDiscount : 0,

@@ -1,4 +1,4 @@
-import '../../config/contact.dart';
+import 'policy_defaults.dart';
 
 class InfoSection {
   const InfoSection({required this.title, required this.body, this.bullets});
@@ -12,12 +12,16 @@ class StaticPageContent {
   const StaticPageContent({
     required this.title,
     this.subtitle,
-    required this.sections,
+    this.sections = const [],
+    this.body,
   });
 
   final String title;
   final String? subtitle;
   final List<InfoSection> sections;
+
+  /// Policy-formatted text (`## Heading`, `- bullet`, `1. step`), used instead of [sections].
+  final String? body;
 }
 
 class BlogPost {
@@ -71,112 +75,26 @@ const aboutPage = StaticPageContent(
 
 const privacyPolicyPage = StaticPageContent(
   title: 'Privacy Policy',
-  subtitle: 'Last updated: June 5, 2026',
-  sections: [
-    InfoSection(
-      title: 'Information We Collect',
-      body:
-          'When you register, place an order, or contact us, we may collect your name, email, phone number, address details, and order-related information necessary to process your deliveries.',
-    ),
-    InfoSection(
-      title: 'How We Use Your Information',
-      body:
-          'We use your data to process orders, provide customer support, improve our services, and share relevant updates about fresh deals and seasonal arrivals if you subscribe to our updates.',
-    ),
-    InfoSection(
-      title: 'Data Security',
-      body:
-          'We implement reasonable security measures to protect your personal information. Passwords are encrypted and access to customer data is restricted to authorized personnel only.',
-    ),
-    InfoSection(
-      title: 'Sharing of Information',
-      body:
-          'We do not sell your personal information. We may share data with trusted service providers (such as payment processors and delivery partners) only as needed to fulfill your orders.',
-    ),
-    InfoSection(
-      title: 'Contact Us',
-      body:
-          'For privacy-related questions, email us at ${ContactConfig.contactEmail} or call ${ContactConfig.contactPhoneDisplay}.',
-    ),
-  ],
+  subtitle: 'Last updated: $kPolicyDefaultsUpdated',
+  body: kPrivacyPolicyBody,
 );
 
 const termsPage = StaticPageContent(
   title: 'Terms & Conditions',
-  subtitle: 'Last updated: June 5, 2026',
-  sections: [
-    InfoSection(
-      title: 'General',
-      body:
-          'By using GreenGrocc, you agree to these terms. Our platform is for customers ordering groceries and daily essentials for personal or household use.',
-    ),
-    InfoSection(
-      title: 'Orders & Product Availability',
-      body:
-          'All orders are subject to stock availability and confirmation. Fresh produce weights and counts may vary slightly within standard trade margins.',
-    ),
-    InfoSection(
-      title: 'Payment & Invoicing',
-      body:
-          'Payment terms will be communicated at the time of order confirmation. Digital invoices are provided for all purchases.',
-    ),
-    InfoSection(
-      title: 'Delivery',
-      body:
-          'We deliver through our dedicated dark stores and delivery partners. Delivery timelines vary by location. Risk of loss passes to the buyer upon successful delivery.',
-    ),
-    InfoSection(
-      title: 'Returns & Refunds',
-      body:
-          'Return eligibility depends on product category and freshness standards. Contact support for return requests within the applicable window shown on your order page.',
-    ),
-    InfoSection(
-      title: 'Contact',
-      body:
-          'Questions about these terms? Email ${ContactConfig.contactEmail} or call ${ContactConfig.contactPhoneDisplay}.',
-    ),
-  ],
+  subtitle: 'Last updated: $kPolicyDefaultsUpdated',
+  body: kTermsPolicyBody,
+);
+
+const refundPolicyPage = StaticPageContent(
+  title: 'Return & Refund Policy',
+  subtitle: 'Last updated: $kPolicyDefaultsUpdated',
+  body: kRefundPolicyBody,
 );
 
 const shippingDetailsPage = StaticPageContent(
-  title: 'Shipping Details',
-  subtitle: 'Last updated: June 10, 2026',
-  sections: [
-    InfoSection(
-      title: 'Delivery Coverage',
-      body:
-          'GreenGrocc delivers fresh groceries and essentials fast through our network of local dark stores. We deliver to serviceable pin codes within our store delivery radius.',
-    ),
-    InfoSection(
-      title: 'Fast Delivery',
-      body:
-          'Instant and ready-to-cook orders are packed and dispatched in minutes. Pre-orders are delivered in your chosen delivery time slot.',
-    ),
-    InfoSection(
-      title: 'Delivery Charges',
-      body:
-          'Standard delivery charges apply on small orders. Orders meeting the free delivery threshold qualify for free doorstep delivery.',
-    ),
-    InfoSection(
-      title: 'Estimated Delivery',
-      body: '',
-      bullets: [
-        'Instant orders: Delivered in minutes from your local dark store',
-        'Pre-orders: Delivered in your selected scheduled slot',
-        'Special festive slots available during peak holiday seasons',
-      ],
-    ),
-    InfoSection(
-      title: 'Cash on Delivery (COD)',
-      body:
-          'COD is available on eligible orders. Cash is collected at your doorstep upon delivery. Please ensure exact change when possible.',
-    ),
-    InfoSection(
-      title: 'Contact for Shipping Help',
-      body:
-          'For delivery queries, email ${ContactConfig.contactEmail} or call ${ContactConfig.contactPhoneDisplay}. Our store hub is at ${ContactConfig.contactAddress}.',
-    ),
-  ],
+  title: 'Shipping & Delivery Policy',
+  subtitle: 'Last updated: $kPolicyDefaultsUpdated',
+  body: kShippingPolicyBody,
 );
 
 const blogPosts = <BlogPost>[

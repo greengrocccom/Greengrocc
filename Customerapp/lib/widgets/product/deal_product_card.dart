@@ -8,13 +8,12 @@ import '../../models/cart_item.dart';
 import '../../models/product.dart';
 import '../common/app_network_image.dart';
 import 'variant_bottom_sheet.dart';
-import 'wishlist_button.dart';
 
 /// Dimensions so every product card is identical in grids and carousels.
 class DealProductCardDimensions {
   const DealProductCardDimensions._();
 
-  static const double width = 112;
+  static const double width = 100;
   static const double height = 196;
   static const double gridChildAspectRatio = 0.555;
   static const double twoColumnChildAspectRatio = 0.64;
@@ -104,8 +103,8 @@ class DealProductCard extends ConsumerWidget {
     String unitText = '1 pc';
     if (product.variants.isNotEmpty && product.variants.first.name.isNotEmpty) {
       unitText = product.variants.first.name;
-    } else if (product.subcategory.isNotEmpty) {
-      unitText = product.subcategory;
+    } else if (product.unit.trim().isNotEmpty) {
+      unitText = product.unit.trim();
     }
 
     final card = Container(
@@ -191,11 +190,6 @@ class DealProductCard extends ConsumerWidget {
                       ),
                     ),
 
-                  Positioned(
-                    right: 4,
-                    top: 4,
-                    child: WishlistButton(product: product, size: 24),
-                  ),
                 ],
               ),
             ),
@@ -238,8 +232,28 @@ class DealProductCard extends ConsumerWidget {
                           fontWeight: FontWeight.w600,
                           fontSize: 11.0,
                           color: Color(0xFF0A6C38),
+                          height: 1.2,
                         ),
                       ),
+                      if (product.ratings > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.star_rounded, size: 13, color: Color(0xFF0C831F)),
+                              const SizedBox(width: 2),
+                              Text(
+                                product.ratings.toStringAsFixed(1),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11,
+                                  color: Color(0xFF0C831F),
+                                  height: 1.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
 

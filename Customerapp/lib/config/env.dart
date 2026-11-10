@@ -50,7 +50,7 @@ class Env {
   static String get websiteAssetUrl {
     final raw =
         dotenv.isInitialized ? dotenv.env['WEBSITE_ASSET_URL']?.trim() : null;
-    final url = raw != null && raw.isNotEmpty ? raw : 'https://greengrocc.com';
+    final url = raw != null && raw.isNotEmpty ? raw : 'https://www.greengrocc.com';
     return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
   }
 

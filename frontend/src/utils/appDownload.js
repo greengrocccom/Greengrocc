@@ -1,7 +1,7 @@
 const PROMPT_DISMISSED_KEY = "bmm_app_download_prompt_dismissed";
 
 export const PLAY_STORE_APP_URL =
-  "https://play.google.com/store/apps/details?id=com.greengrocc.app";
+  "https://play.google.com/store/apps/details?id=com.greengrocc.userapp&pcampaignid=web_share";
 
 export function getAndroidAppDownloadUrl() {
   const configured = String(import.meta.env.VITE_ANDROID_APP_DOWNLOAD_URL || "").trim();

@@ -20,6 +20,7 @@ import 'cart/floating_cart_bar.dart';
 import 'common/offline_banner.dart';
 import 'layout/flipkart_bottom_nav.dart';
 import 'layout/mobile_header.dart';
+import 'layout/storefront_page.dart';
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key, required this.navigationShell, this.location = ''});
 
@@ -31,40 +32,7 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  static const _tabs = <FlipkartNavItem>[
-    FlipkartNavItem(
-      label: 'Home',
-      icon: Icons.home_outlined,
-      activeIcon: Icons.home_rounded,
-      assetIcon: 'assets/images/homeIcon.png',
-    ),
-    FlipkartNavItem(
-      label: 'Order Again',
-      icon: Icons.receipt_long_outlined,
-      activeIcon: Icons.receipt_long_rounded,
-      assetIcon: 'assets/images/orderAgainIcon.png',
-    ),
-    FlipkartNavItem(
-      label: 'Categories',
-      icon: Icons.widgets_outlined,
-      activeIcon: Icons.widgets_rounded,
-      assetIcon: 'assets/images/categoriesIcon (1).png',
-      iconSize: 22,
-    ),
-    FlipkartNavItem(
-      label: 'Shop',
-      icon: Icons.storefront_outlined,
-      activeIcon: Icons.storefront_rounded,
-      assetIcon: 'assets/images/cart.png',
-      iconSize: 28,
-    ),
-    FlipkartNavItem(
-      label: 'Account',
-      icon: Icons.account_circle_outlined,
-      activeIcon: Icons.account_circle_rounded,
-      assetIcon: 'assets/images/profileIcon.png',
-    ),
-  ];
+  static const _tabs = storefrontNavItems;
 
   /// Visual tab order maps onto the existing shell branches.
   /// The Shop branch also hosts the cart screen, opened from the floating cart bar.
@@ -172,25 +140,17 @@ class _AppShellState extends ConsumerState<AppShell> {
     final cartCount = ref.watch(
       cartControllerProvider.select((s) => s.cartCount),
     );
-    final accountInitial = ref.watch(
-      authControllerProvider.select((s) {
-        final name = s.user?.name;
-        if (name == null || name.trim().isEmpty) return null;
-        return name.trim()[0].toUpperCase();
-      }),
-    );
-
     final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     // Like the website, the cart page has its own checkout bar and no bottom nav.
     final hideBottomNav = isKeyboardOpen || widget.location.startsWith(RoutePaths.cart);
     final visualIndex = _visualIndex(widget.navigationShell.currentIndex);
     final chrome = StoreChrome.forStore(ref.watch(selectedStoreTabProvider));
     // The cart screen has its own checkout bar.
-    final branch = widget.navigationShell.currentIndex;
+    // Website shows the floating cart bar only on home and categories.
     final showCartBar = !hideBottomNav &&
         cartCount > 0 &&
-        branch != 4 &&
-        !widget.location.startsWith(RoutePaths.cart);
+        (widget.location == RoutePaths.home || widget.location == RoutePaths.categories);
+    final cartBarLift = showCartBar ? floatingCartBarHeight + 8 : 0.0;
     final mediaQuery = MediaQuery.of(context);
 
     return PopScope(
@@ -243,6 +203,12 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                 if (!hideBottomNav)
                   Positioned(
+                    right: 12,
+                    bottom: mediaQuery.padding.bottom + FlipkartBottomNav.barHeight + 17 + cartBarLift,
+                    child: const SupportBubble(),
+                  ),
+                if (!hideBottomNav)
+                  Positioned(
                     left: 0,
                     right: 0,
                     bottom: 0,
@@ -250,7 +216,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                       currentIndex: visualIndex,
                       items: _tabs,
                       cartBadgeCount: cartCount,
-                      accountInitial: accountInitial,
                       activeColor: chrome.accent,
                       activeBackground: chrome.activeNavBg,
                       onTap: _onTap,

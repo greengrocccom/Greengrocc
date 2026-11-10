@@ -101,7 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
-    final bottomContentSpacer = ShellBottomInsets.of(context) + 56;
+    final bottomContentSpacer = MediaQuery.paddingOf(context).bottom;
     final currentStore = ref.watch(selectedStoreTabProvider);
     final isMain = currentStore == 'main';
     final bannerSection = bannerSectionForStore(currentStore);
@@ -176,12 +176,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const FarmerGrowthBanner(),
                       const WhatMakesUsDifferent(),
                     ],
-                    const MaharashtraPrideBanner(),
-                    const HomeFooter(),
-                    ColoredBox(
-                      color: footerGreen,
-                      child: SizedBox(height: bottomContentSpacer),
-                    ),
+                    StorefrontFooter(bottomSpacer: bottomContentSpacer),
                   ],
                 ),
               ],

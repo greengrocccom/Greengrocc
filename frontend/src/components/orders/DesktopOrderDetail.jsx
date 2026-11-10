@@ -6,6 +6,7 @@ import {
   formatOrderDateTime,
   formatOrderPrice,
   getMiniTrackerIndex,
+  getOrderBillAdjustments,
   getOrderDisplayCode,
   getOrderPaymentLabel,
   getOrderStatusColor,
@@ -361,6 +362,18 @@ function DesktopOrderDetail({
                     </span>
                   </div>
                 </div>
+                {getOrderBillAdjustments(order).map((line) => (
+                  <div
+                    key={line.label}
+                    className={`flex justify-between ${line.amount < 0 ? "text-emerald-700" : "text-text-secondary"}`}
+                  >
+                    <span>{line.label}</span>
+                    <span className={`font-bold ${line.amount < 0 ? "" : "text-text-primary"}`}>
+                      {line.amount < 0 ? "-" : ""}
+                      {formatOrderPrice(Math.abs(line.amount))}
+                    </span>
+                  </div>
+                ))}
                 {order.rewardPointsEarned > 0 ? (
                   <div className="flex justify-between text-amber-800 bg-amber-50/80 p-2 rounded-lg text-xs font-semibold">
                     <span>Points earned on this order</span>

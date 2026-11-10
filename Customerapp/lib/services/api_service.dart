@@ -819,6 +819,37 @@ class ApiService {
         'Your support request has been submitted.';
   }
 
+  /// Admin → Policy Management → Users (customer role).
+  Future<List<Map<String, dynamic>>> fetchLivePolicies() async {
+    final response = await _dio.get(
+      '/api/admin-ops/policies/live',
+      queryParameters: {'role': 'customer'},
+    );
+    final list = response.data is Map ? response.data['data'] : null;
+    if (list is! List) return const [];
+    return list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> fetchOpenVacancies() async {
+    final response = await _dio.get('/api/admin-ops/hr/vacancies/open');
+    final list = response.data is Map ? response.data['data'] : null;
+    if (list is! List) return const [];
+    return list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<void> applyForVacancy(Map<String, dynamic> data) async {
+    await _dio.post('/api/admin-ops/hr/candidates/apply', data: data);
+  }
+
+  Future<Map<String, dynamic>> fetchSupportContact() async {
+    final response = await _dio.get('/api/support/contact');
+    final data = response.data;
+    if (data is Map && data['success'] == true) {
+      return Map<String, dynamic>.from(data);
+    }
+    return const {};
+  }
+
   Future<List<Product>> fetchWishlistProducts() async {
     final response = await getWishlist();
     return parseOnBackground(parseWishlistProductsResponse, response.data);

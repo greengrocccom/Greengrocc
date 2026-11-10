@@ -28,6 +28,8 @@ String? mapDeepLinkToRoute(Uri uri) {
     '/privacy-policy',
     '/terms-and-conditions',
     '/shipping-details',
+    '/return-refund-policy',
+    '/policies',
   };
 
   if (staticRoutes.contains(path)) return path;

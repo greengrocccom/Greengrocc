@@ -27,5 +27,13 @@ class RoutePaths {
   static const terms = '/terms-and-conditions';
   static const location = '/location';
   static const shippingDetails = '/shipping-details';
+  static const refundPolicy = '/return-refund-policy';
   static const farmerProfile = '/farmer-profile';
+  static const farmers = '/farmers';
+  static const farmerById = '/farmer/:id';
+  static const careers = '/careers';
+  static const policies = '/policies';
+  static const trackOrder = '/track-order';
+  static const login = '/login';
+  static const signup = '/signup';
 }

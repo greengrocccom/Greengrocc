@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../../core/utils/optimized_image_url.dart';
 import '../../../models/site_banner.dart';
+import '../../../widgets/common/app_network_image.dart';
 import '../../../routes/route_paths.dart';
 import '../home_providers.dart';
 
@@ -167,13 +168,11 @@ class _SiteBannerCarouselState extends ConsumerState<SiteBannerCarousel> {
                       onPageChanged: (i) => setState(() => _index = i),
                       itemBuilder: (context, i) => GestureDetector(
                         onTap: () => openSiteBanner(context, banners[i]),
-                        child: CachedNetworkImage(
-                          imageUrl: optimizedImageUrl(banners[i].imageUrl),
+                        child: AppNetworkImage(
+                          imageUrl: banners[i].imageUrl,
                           fit: BoxFit.cover,
                           width: double.infinity,
-                          fadeInDuration: const Duration(milliseconds: 150),
-                          placeholder: (_, _) => const ColoredBox(color: Color(0xFFECFDF5)),
-                          errorWidget: (_, _, _) => const ColoredBox(color: Color(0xFFF1F5F9)),
+                          placeholder: const ColoredBox(color: Color(0xFFECFDF5)),
                         ),
                       ),
                     ),
@@ -304,13 +303,12 @@ class _RotatingTileState extends State<_RotatingTile> {
             children: [
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
-                child: CachedNetworkImage(
+                child: AppNetworkImage(
                   key: ValueKey(banner.id),
-                  imageUrl: optimizedImageUrl(banner.imageUrl),
+                  imageUrl: banner.imageUrl,
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: 128,
-                  errorWidget: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
               if (widget.banners.length > 1)
@@ -569,10 +567,9 @@ class _OfferSlide extends StatelessWidget {
         builder: (context, box) => Stack(
           fit: StackFit.expand,
           children: [
-            CachedNetworkImage(
-              imageUrl: optimizedImageUrl(banner.imageUrl),
+            AppNetworkImage(
+              imageUrl: banner.imageUrl,
               fit: BoxFit.cover,
-              errorWidget: (_, _, _) => const ColoredBox(color: Color(0xFFF1F5F9)),
             ),
             Positioned(
               left: 0,

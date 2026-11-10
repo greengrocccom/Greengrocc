@@ -500,9 +500,16 @@ function Checkout() {
     Number(appliedGiftCard?.discountAmount || 0),
     Math.max(0, subtotalAfterCoupon - rewardDiscount)
   );
-  const discountedSubtotal = Math.max(0, subtotalAfterCoupon - rewardDiscount - giftCardDiscount);
   const serverPriced =
     !isPickup && serverDelivery.key === checkoutAttemptKey && serverDelivery.charges != null;
+  // Admin pricing rules (quantity / bundle / loyalty, heavy items) are only known server-side.
+  const offerDiscount = serverDelivery.key === checkoutAttemptKey ? serverDelivery.offerDiscount || 0 : 0;
+  const heavyHandlingFee =
+    !isPickup && serverDelivery.key === checkoutAttemptKey ? serverDelivery.heavyHandlingFee || 0 : 0;
+  const discountedSubtotal = Math.max(
+    0,
+    subtotalAfterCoupon - rewardDiscount - giftCardDiscount - offerDiscount
+  );
   const deliveryCharges = isPickup
     ? 0
     : serverPriced
@@ -524,7 +531,10 @@ function Checkout() {
       : (storeSettings?.freePackagingAbove > 0 && subtotal >= storeSettings?.freePackagingAbove
         ? 0
         : (storeSettings?.packagingFee || 0));
-  const { total: orderTotal } = calculateOrderTotal(discountedSubtotal, deliveryCharges + packagingFee);
+  const { total: orderTotal } = calculateOrderTotal(
+    discountedSubtotal,
+    deliveryCharges + packagingFee + heavyHandlingFee
+  );
   const minimumOrderMet = meetsMinimumOrder(subtotal, storeSettings);
   const minimumOrderShortfall = getMinimumOrderShortfall(subtotal, storeSettings);
   const minimumOrderValue = mergeStoreSettings(storeSettings).minimumOrderValue;
@@ -534,7 +544,7 @@ function Checkout() {
     return sum + diff * item.quantity;
   }, 0);
   const mrpTotal = subtotal + savings;
-  const totalSaved = savings + couponDiscount + rewardDiscount;
+  const totalSaved = savings + couponDiscount + rewardDiscount + offerDiscount;
 
   const { data: availableCoupons = [] } = useAvailableCouponsQuery(subtotal, {
     enabled: Boolean(user) && subtotal > 0,
@@ -724,7 +734,14 @@ function Checkout() {
       const orderId = data?.data?._id;
       const charges = Number(data?.data?.deliveryCharges);
       if (Number.isFinite(charges)) {
-        setServerDelivery({ key: requestKey, charges });
+        const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : null);
+        setServerDelivery({
+          key: requestKey,
+          charges,
+          packagingFee: num(data.data.packagingFee),
+          offerDiscount: num(data.data.dynamicDiscount) || 0,
+          heavyHandlingFee: num(data.data.heavyHandlingFee) || 0,
+        });
       }
       if (orderId) {
         setAttemptedOrderId(orderId);
@@ -1723,6 +1740,14 @@ function Checkout() {
                       valueClass="text-[#0B7A3B]"
                     />
                   ) : null}
+                  {offerDiscount > 0 ? (
+                    <BillRow
+                      icon={<Tag />}
+                      label="Offer discount"
+                      value={`-${formatPrice(offerDiscount, 2)}`}
+                      valueClass="text-[#0B7A3B]"
+                    />
+                  ) : null}
                   <BillRow
                     icon={isPickup ? <Store /> : <Bike />}
                     label={isPickup ? "Store pickup" : "Delivery Fee"}
@@ -1743,6 +1768,14 @@ function Checkout() {
                       icon={<Package className="h-4 w-4" />}
                       label="Packaging Fee"
                       value={formatPrice(packagingFee)}
+                      valueClass="text-slate-900"
+                    />
+                  ) : null}
+                  {heavyHandlingFee > 0 ? (
+                    <BillRow
+                      icon={<Package className="h-4 w-4" />}
+                      label="Heavy item handling"
+                      value={formatPrice(heavyHandlingFee)}
                       valueClass="text-slate-900"
                     />
                   ) : null}

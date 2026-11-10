@@ -199,6 +199,13 @@ class Order {
     this.shipment = const OrderShipment(),
     this.couponCode = '',
     this.couponDiscount = 0,
+    this.rewardDiscount = 0,
+    this.rewardPointsUsed = 0,
+    this.giftCardCode = '',
+    this.giftCardDiscount = 0,
+    this.dynamicDiscount = 0,
+    this.heavyHandlingFee = 0,
+    this.packagingFee = 0,
     this.giftHamper,
     this.deliveryOtp = '',
     this.fulfillmentType = 'delivery',
@@ -232,6 +239,15 @@ class Order {
   final OrderShipment shipment;
   final String couponCode;
   final double couponDiscount;
+  final double rewardDiscount;
+  final int rewardPointsUsed;
+  final String giftCardCode;
+  final double giftCardDiscount;
+
+  /// Admin pricing rules (quantity, bundle, loyalty) applied when the order was placed.
+  final double dynamicDiscount;
+  final double heavyHandlingFee;
+  final double packagingFee;
   final OrderGiftHamper? giftHamper;
   /// 4-digit code customer shares with rider to complete delivery.
   final String deliveryOtp;
@@ -362,6 +378,13 @@ class Order {
           : const OrderShipment(),
       couponCode: json['couponCode']?.toString() ?? '',
       couponDiscount: _toDouble(json['couponDiscount']),
+      rewardDiscount: _toDouble(json['rewardDiscount']),
+      rewardPointsUsed: _toInt(json['rewardPointsUsed']),
+      giftCardCode: json['giftCardCode']?.toString() ?? '',
+      giftCardDiscount: _toDouble(json['giftCardDiscount']),
+      dynamicDiscount: _toDouble(json['dynamicDiscount']),
+      heavyHandlingFee: _toDouble(json['heavyHandlingFee']),
+      packagingFee: _toDouble(json['packagingFee']),
       giftHamper: json['giftHamper'] is Map<String, dynamic>
           ? OrderGiftHamper.fromJson(json['giftHamper'] as Map<String, dynamic>)
           : null,

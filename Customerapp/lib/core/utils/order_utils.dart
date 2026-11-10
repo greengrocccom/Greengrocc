@@ -3,6 +3,33 @@ import 'package:intl/intl.dart';
 
 import '../../models/order.dart';
 
+typedef OrderBillLine = ({String label, double amount});
+
+/// Discounts and fees saved on an order besides item total, coupon, reward
+/// points and delivery. Any gap to `order.total` (orders saved before offer
+/// discounts were recorded) shows as "Other discount" so the bill adds up.
+List<OrderBillLine> orderBillAdjustments(Order order) {
+  final lines = <OrderBillLine>[
+    if (order.giftCardDiscount > 0)
+      (
+        label: 'Gift card (${order.giftCardCode.isEmpty ? 'Applied' : order.giftCardCode})',
+        amount: -order.giftCardDiscount,
+      ),
+    if (order.dynamicDiscount > 0) (label: 'Offer discount', amount: -order.dynamicDiscount),
+    if (order.heavyHandlingFee > 0) (label: 'Heavy item handling', amount: order.heavyHandlingFee),
+    if (order.packagingFee > 0) (label: 'Packaging fee', amount: order.packagingFee),
+  ];
+  final expected = order.subtotal -
+      order.couponDiscount -
+      order.rewardDiscount +
+      order.deliveryCharges +
+      lines.fold<double>(0, (sum, line) => sum + line.amount);
+  final gap = ((order.total - expected) * 100).round() / 100;
+  if (gap <= -0.5) lines.add((label: 'Other discount', amount: gap));
+  if (gap >= 0.5) lines.add((label: 'Other charges', amount: gap));
+  return lines;
+}
+
 const orderStatusLabels = <String, String>{
   'attempted': 'Attempted',
   'confirm': 'Confirm',

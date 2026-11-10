@@ -594,13 +594,13 @@ const rolePolicySchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     body: { type: String, default: "", trim: true },
-    /** Stable key for frontend pages (privacy/terms) so admins can freely rename titles. */
+    /** Stable key for customer pages (privacy/terms/refund/shipping) so admins can freely rename titles. */
     pageKey: {
       type: String,
       default: "",
       trim: true,
       index: true,
-      enum: ["", "privacy", "terms", "refund", "general"],
+      enum: ["", "privacy", "terms", "refund", "shipping", "general"],
     },
     roleKey: {
       type: String,

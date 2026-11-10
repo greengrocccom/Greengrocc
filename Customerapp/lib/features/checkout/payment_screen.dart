@@ -80,6 +80,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   CheckoutStoreQuery? _storeQuery;
   double? _serverShipping;
   String? _serverShippingKey;
+  double? _serverTotal;
   String? _pricingRequestedKey;
   bool _autoPayPending = false;
   bool _setupDone = false;
@@ -246,10 +247,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       });
       final order = ApiResponseParser.getData(response.data) as Map<String, dynamic>;
       final charges = order['deliveryCharges'];
+      final serverTotal = order['total'];
       if (charges is num && mounted) {
         setState(() {
           _serverShipping = charges.toDouble();
           _serverShippingKey = _pricingKey(items, addressId);
+          _serverTotal = serverTotal is num ? serverTotal.toDouble() : null;
         });
       }
       final orderId = order['_id']?.toString();
@@ -593,7 +596,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final darkStore = storeAsync.value?.store;
     final slot = widget.preOrderSlot?.trim() ?? '';
 
-    final payableNow = PaymentUtils.payableAmount(summary.total, _paymentPlan);
+    // The order is saved (and charged) at the server total, which includes
+    // admin offer discounts and fees the client can't price.
+    final orderTotal = serverPriced && _serverTotal != null ? _serverTotal! : summary.total;
+    final payableNow = PaymentUtils.payableAmount(orderTotal, _paymentPlan);
     final itemCount = summary.itemCount;
     final etaLines = [
       if (hasNowItems) departmentEtaText(Department.instant, pickup: _isPickup),

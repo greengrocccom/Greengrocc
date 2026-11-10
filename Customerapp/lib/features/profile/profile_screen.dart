@@ -259,6 +259,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       onSupport: () => context.push(RoutePaths.support),
       onPrivacy: () => context.push(RoutePaths.privacyPolicy),
       onTerms: () => context.push(RoutePaths.terms),
+      onRefund: () => context.push(RoutePaths.refundPolicy),
+      onShipping: () => context.push(RoutePaths.shippingDetails),
       onContact: () => context.push(RoutePaths.contact),
       onAbout: () => context.push(RoutePaths.about),
       onShare: _handleShare,
@@ -1205,6 +1207,8 @@ class _MenuSection extends StatelessWidget {
     required this.onSupport,
     required this.onPrivacy,
     required this.onTerms,
+    required this.onRefund,
+    required this.onShipping,
     required this.onContact,
     required this.onAbout,
     required this.onShare,
@@ -1213,6 +1217,8 @@ class _MenuSection extends StatelessWidget {
   final VoidCallback onSupport;
   final VoidCallback onPrivacy;
   final VoidCallback onTerms;
+  final VoidCallback onRefund;
+  final VoidCallback onShipping;
   final VoidCallback onContact;
   final VoidCallback onAbout;
   final VoidCallback onShare;
@@ -1245,6 +1251,10 @@ class _MenuSection extends StatelessWidget {
                 _MenuItem(icon: Icons.privacy_tip_outlined, title: 'Privacy Policy', onTap: onPrivacy),
                 divider,
                 _MenuItem(icon: Icons.article_outlined, title: 'Terms & Conditions', onTap: onTerms),
+                divider,
+                _MenuItem(icon: Icons.assignment_return_outlined, title: 'Return & Refund Policy', onTap: onRefund),
+                divider,
+                _MenuItem(icon: Icons.local_shipping_outlined, title: 'Shipping & Delivery Policy', onTap: onShipping),
                 divider,
                 _MenuItem(icon: Icons.contact_support_outlined, title: 'Contact Us', onTap: onContact),
                 divider,

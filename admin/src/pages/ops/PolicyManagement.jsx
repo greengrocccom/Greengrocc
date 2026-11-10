@@ -308,7 +308,7 @@ function RolePoliciesScreen({ roleKey }) {
 
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <form onSubmit={save} className={`w-full max-w-lg ${PANEL} p-5`}>
+          <form onSubmit={save} className={`max-h-[92vh] w-full max-w-2xl overflow-y-auto ${PANEL} p-5`}>
             <div className="mb-4 flex items-start justify-between">
               <h2 className="text-lg font-bold">
                 {editing ? 'Edit policy' : `Add policy · ${roleLabel}`}
@@ -347,7 +347,8 @@ function RolePoliciesScreen({ roleKey }) {
                     <option value="">General (/policies list only)</option>
                     <option value="terms">Terms &amp; Conditions page</option>
                     <option value="privacy">Privacy Policy page</option>
-                    <option value="refund">Refund / Return (policies list)</option>
+                    <option value="refund">Return &amp; Refund Policy page</option>
+                    <option value="shipping">Shipping &amp; Delivery page</option>
                   </select>
                   <span className="mt-1 block text-[11px] font-normal text-slate-400">
                     Keeps the page linked even if you rename the title.
@@ -358,12 +359,16 @@ function RolePoliciesScreen({ roleKey }) {
                 Policy content
                 <textarea
                   required
-                  rows={8}
-                  className={`${INPUT} mt-1.5`}
+                  rows={12}
+                  className={`${INPUT} mt-1.5 font-mono text-[13px]`}
                   value={form.body}
                   onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
                   placeholder="Write the full policy text…"
                 />
+                <span className="mt-1 block text-[11px] font-normal text-slate-400">
+                  Formatting: start a line with <code>## </code> for a heading, <code>- </code> for a bullet,
+                  or <code>1. </code> for a numbered step. Other lines show as paragraphs.
+                </span>
               </label>
               <label className="block text-xs font-semibold text-slate-600">
                 Status

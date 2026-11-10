@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/utils/optimized_image_url.dart';
@@ -122,6 +123,21 @@ class AppNetworkImage extends StatelessWidget {
 
     final memW = _memDim(context, width, cacheWidth);
     final memH = _memDim(context, height, cacheHeight);
+
+    if (kIsWeb) {
+      // Image hosts (S3) send no CORS headers; fall back to an <img> element.
+      return Image.network(
+        optimizedImageUrl(imageUrl, widthPx: memW, heightPx: memH),
+        fit: fit,
+        alignment: alignment,
+        width: width,
+        height: height,
+        webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+        loadingBuilder: (context, child, progress) =>
+            progress == null ? child : (placeholder ?? _loadingBox()),
+        errorBuilder: (_, _, _) => _errorBox(),
+      );
+    }
 
     return CachedNetworkImage(
       imageUrl: optimizedImageUrl(imageUrl, widthPx: memW, heightPx: memH),
