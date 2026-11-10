@@ -4,6 +4,7 @@ import { managerApi } from "../../api/managerApi";
 import { useAuth } from "../../context/AuthContext";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { Icon } from "../../components/ui/Icon";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 import { useLive } from "../../realtime/useLive";
 
 export default function PendingDriversPage() {
@@ -30,6 +31,8 @@ export default function PendingDriversPage() {
   }, []);
 
   useLive(load, [load]);
+
+  const pagination = usePagination(riders);
 
   const handleRowClick = (riderId) => {
     navigate(`/drivers/pending/${riderId}`);
@@ -137,6 +140,7 @@ export default function PendingDriversPage() {
           <h3 className="text-sm font-semibold text-slate-700">No pending applications</h3>
         </div>
       ) : (
+        <>
         <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
           <table className="w-full text-left text-sm min-w-[850px]">
             <thead className="bg-[#ecfdf5] border-b border-emerald-100 text-[11px] font-bold text-slate-700 tracking-wider">
@@ -150,7 +154,7 @@ export default function PendingDriversPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
-              {riders.map((r) => {
+              {pagination.pageRows.map((r) => {
                 const riderId = r.id || r._id;
                 const bank = r.bankDetails || {};
                 const accountDisplay = bank.accountNumber
@@ -248,6 +252,8 @@ export default function PendingDriversPage() {
             </tbody>
           </table>
         </div>
+        <Pagination pagination={pagination} />
+        </>
       )}
     </PageShell>
   );

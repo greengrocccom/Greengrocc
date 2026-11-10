@@ -69,16 +69,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
   }
 
+  /// Guests can open their cart too; the cart asks them to sign in at checkout.
   Future<void> _openCart() async {
-    if (!ref.read(authControllerProvider).isLoggedIn) {
-      await showAuthModalBottomSheet(
-        context,
-        ref,
-        mode: AuthModalMode.login,
-        redirectRoute: RoutePaths.cart,
-      );
-      return;
-    }
     if (mounted) context.go(RoutePaths.cart);
   }
 
@@ -109,7 +101,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     widget.navigationShell.goBranch(
       shellIndex,
-      initialLocation: isCurrentTab,
+      // The Shop branch also holds the cart; the Shop tab must open the shop.
+      initialLocation: isCurrentTab || shellIndex == shopShellBranch,
     );
   }
 
@@ -145,11 +138,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     final hideBottomNav = isKeyboardOpen || widget.location.startsWith(RoutePaths.cart);
     final visualIndex = _visualIndex(widget.navigationShell.currentIndex);
     final chrome = StoreChrome.forStore(ref.watch(selectedStoreTabProvider));
-    // The cart screen has its own checkout bar.
-    // Website shows the floating cart bar only on home and categories.
-    final showCartBar = !hideBottomNav &&
-        cartCount > 0 &&
-        (widget.location == RoutePaths.home || widget.location == RoutePaths.categories);
+    // Every tab shows the offer + cart bar once the cart has items; the cart screen
+    // has its own checkout bar (hideBottomNav covers it).
+    final showCartBar = !hideBottomNav && cartCount > 0;
     final cartBarLift = showCartBar ? floatingCartBarHeight + 8 : 0.0;
     final mediaQuery = MediaQuery.of(context);
 
@@ -260,19 +251,14 @@ class _ShellSideEffectsState extends ConsumerState<_ShellSideEffects> {
     });
   }
 
-  /// First open: sign in, then pick a delivery location (its nearest dark
-  /// store decides the catalogue). Neither sheet can be skipped.
+  /// First open: pick a delivery location (its nearest dark store decides the
+  /// catalogue); the sheet can't be skipped. Signing in is only asked for at checkout.
   Future<void> _checkAndPromptFlow() async {
     if (!mounted || _promptActive) return;
     _promptActive = true;
     try {
       await ref.read(deliveryLocationProvider.notifier).restored;
       if (!mounted) return;
-
-      if (!ref.read(authControllerProvider).isLoggedIn) {
-        await showAuthModalBottomSheet(context, ref, mode: AuthModalMode.login, mandatory: true);
-        if (!mounted || !ref.read(authControllerProvider).isLoggedIn) return;
-      }
 
       final location = ref.read(deliveryLocationProvider);
       if (location == null || !location.hasLocation) {

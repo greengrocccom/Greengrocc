@@ -13,7 +13,6 @@ import '../../core/utils/product_pricing.dart';
 import '../../core/utils/product_utils.dart';
 import '../../core/utils/recently_viewed.dart';
 import '../../features/auth/auth_controller.dart';
-import '../../features/auth/auth_host.dart';
 import '../../features/cart/cart_controller.dart';
 import '../../features/home/home_providers.dart';
 import '../../models/cart_item.dart';
@@ -2220,25 +2219,15 @@ class _QuantityOptionCard extends StatelessWidget {
 class _DetailFloatingCartBar extends ConsumerWidget {
   const _DetailFloatingCartBar();
 
-  Future<void> _openCart(BuildContext context, WidgetRef ref) async {
-    if (!ref.read(authControllerProvider).isLoggedIn) {
-      await showAuthModalBottomSheet(
-        context,
-        ref,
-        mode: AuthModalMode.login,
-        redirectRoute: RoutePaths.cart,
-      );
-      return;
-    }
-    if (context.mounted) context.go(RoutePaths.cart);
-  }
+  /// Guests see their cart too; signing in is asked for at checkout.
+  void _openCart(BuildContext context) => context.go(RoutePaths.cart);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cartCount =
         ref.watch(cartControllerProvider.select((s) => s.cartCount));
     if (cartCount <= 0) return const SizedBox.shrink();
-    return FloatingCartBar(onOpenCart: () => _openCart(context, ref));
+    return FloatingCartBar(onOpenCart: () => _openCart(context));
   }
 }
 

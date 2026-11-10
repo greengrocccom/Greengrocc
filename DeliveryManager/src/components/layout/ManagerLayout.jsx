@@ -51,15 +51,7 @@ const navSections = [
           { to: "/fulltime/assign-orders", label: "Assign Orders" },
         ],
       },
-      {
-        key: "gigs",
-        label: "Gigs & Incentives",
-        icon: "trophy",
-        children: [
-          { to: "/incentives", label: "My Gigs", end: true },
-          { to: "/incentives/create", label: "Create Gig" },
-        ],
-      },
+      { to: "/leaderboard", label: "Leaderboard", icon: "trophy" },
     ],
   },
   {

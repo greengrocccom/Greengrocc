@@ -172,7 +172,7 @@ class _TabSwipeShellState extends ConsumerState<TabSwipeShell> {
 
     _syncBranchRootState();
     HapticFeedback.lightImpact();
-    widget.navigationShell.goBranch(shellIndex, initialLocation: false);
+    widget.navigationShell.goBranch(shellIndex, initialLocation: shellIndex == shopShellBranch);
   }
 
   @override

@@ -3,6 +3,7 @@ import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import FinanceDateFilter from "../../components/finance/FinanceDateFilter";
 import { Icon } from "../../components/ui/Icon";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 
 const rupee = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const TZ = "Asia/Kolkata";
@@ -86,6 +87,8 @@ export default function RevenuePage() {
     });
     return list;
   }, [data.rows, sort]);
+
+  const pagination = usePagination(rows, { resetDeps: [period, dateFilter, sort] });
 
   const rangeTotal = useMemo(
     () =>
@@ -212,7 +215,7 @@ export default function RevenuePage() {
                   </td>
                 </tr>
               ) : (
-                rows.map((r) => (
+                pagination.pageRows.map((r) => (
                   <tr key={r.start} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-800">{periodLabel(r.start, period)}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{r.orders}</td>
@@ -242,6 +245,7 @@ export default function RevenuePage() {
             )}
           </table>
         </div>
+        {!loading && <Pagination pagination={pagination} className="border-t border-slate-100 px-4" />}
       </section>
     </PageShell>
   );

@@ -10,6 +10,7 @@ import '../../features/address/address_controller.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../models/address.dart';
 import 'address_form.dart';
+import 'map_location_picker_sheet.dart';
 
 /// Pops with the id of the saved address that became the delivery location.
 /// A [mandatory] sheet stays open until a location is chosen.
@@ -190,6 +191,16 @@ class _SelectDeliveryLocationSheetContentState
     return null;
   }
 
+  /// Guests have no saved addresses: they pick an area on the map instead.
+  Future<void> _pickLocationOnMap() async {
+    final picked = await showMapLocationPickerSheet(context, ref);
+    if (!mounted || picked == null || picked.isEmpty) return;
+    _detectionSeq++;
+    await ref.read(deliveryLocationProvider.notifier).setLocation(DeliveryLocation.fromJson(picked));
+    ref.invalidate(nearestStoreProvider);
+    if (mounted) Navigator.of(context).pop();
+  }
+
   Future<void> _selectAddress(Address addr) async {
     _detectionSeq++; // Prevent in-flight GPS detection from overwriting manual address selection
     final loc = DeliveryLocation.fromAddress(addr);
@@ -248,6 +259,7 @@ class _SelectDeliveryLocationSheetContentState
   Widget build(BuildContext context) {
     final currentLocation = ref.watch(deliveryLocationProvider);
     final savedAddresses = ref.watch(addressControllerProvider.select((s) => s.addresses));
+    final isLoggedIn = ref.watch(authControllerProvider.select((s) => s.isLoggedIn));
 
     final mediaQuery = MediaQuery.of(context);
     final maxSheetHeight = mediaQuery.size.height * 0.88;
@@ -438,11 +450,8 @@ class _SelectDeliveryLocationSheetContentState
                         children: [
                           InkWell(
                             onTap: () {
-                              final auth = ref.read(authControllerProvider);
-                              if (!auth.isLoggedIn) {
-                                ref
-                                    .read(authControllerProvider.notifier)
-                                    .openAuthModal(AuthModalMode.login);
+                              if (!isLoggedIn) {
+                                _pickLocationOnMap();
                                 return;
                               }
                               setState(() {
@@ -478,7 +487,7 @@ class _SelectDeliveryLocationSheetContentState
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Add new address',
+                                          isLoggedIn ? 'Add new address' : 'Add location',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14.5,
                                             fontWeight: FontWeight.w800,
@@ -487,9 +496,11 @@ class _SelectDeliveryLocationSheetContentState
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          _isAddAddressExpanded
-                                              ? 'Fill in the details below to save'
-                                              : 'Enter house, street & area details',
+                                          !isLoggedIn
+                                              ? 'Search or pick your area on the map'
+                                              : _isAddAddressExpanded
+                                                  ? 'Fill in the details below to save'
+                                                  : 'Enter house, street & area details',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11.5,
                                             color: const Color(0xFF64748B),

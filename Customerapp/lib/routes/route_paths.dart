@@ -1,3 +1,6 @@
+/// Shell branch of the Shop tab, which also hosts the cart screen.
+const shopShellBranch = 3;
+
 class RoutePaths {
   RoutePaths._();
 

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { useLive } from "../../realtime/useLive";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 import { AttendanceBadge, apiError, formatDateTime, formatMoney } from "./fullTimeUi";
 
 export default function FullTimeAssignOrdersPage() {
@@ -45,6 +46,8 @@ export default function FullTimeAssignOrdersPage() {
       ),
     [orders, filter]
   );
+  const ordersPagination = usePagination(visibleOrders, { resetDeps: [filter] });
+  const assignedPagination = usePagination(assigned);
   const activeDrivers = drivers.filter((d) => d.isActive);
   const chosenDriver = drivers.find((d) => d.id === riderId);
 
@@ -186,6 +189,7 @@ export default function FullTimeAssignOrdersPage() {
               No packed delivery orders waiting. Orders appear here after they are packed.
             </p>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-black text-xs font-bold uppercase tracking-wider text-white">
@@ -201,7 +205,7 @@ export default function FullTimeAssignOrdersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {visibleOrders.map((o) => (
+                  {ordersPagination.pageRows.map((o) => (
                     <tr
                       key={o.id}
                       onClick={() => toggle(o.id)}
@@ -246,6 +250,8 @@ export default function FullTimeAssignOrdersPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination pagination={ordersPagination} />
+            </>
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
@@ -270,6 +276,7 @@ export default function FullTimeAssignOrdersPage() {
         {assigned.length === 0 ? (
           <p className="text-xs text-slate-500">No active Full-Time assignments.</p>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-black text-xs font-bold uppercase tracking-wider text-white">
@@ -282,7 +289,7 @@ export default function FullTimeAssignOrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {assigned.map((o) => (
+                {assignedPagination.pageRows.map((o) => (
                   <tr key={o.id} className="hover:bg-slate-50">
                     <td className="px-3 py-3">
                       <Link to={`/orders/${o.id}`} className="font-bold text-slate-900 hover:text-emerald-700">
@@ -312,6 +319,8 @@ export default function FullTimeAssignOrdersPage() {
               </tbody>
             </table>
           </div>
+          <Pagination pagination={assignedPagination} />
+          </>
         )}
       </div>
     </PageShell>

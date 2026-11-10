@@ -3,6 +3,7 @@ import { managerApi } from "../../api/managerApi";
 import { useAuth } from "../../context/AuthContext";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { useLive } from "../../realtime/useLive";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 import ProductFormModal from "./ProductFormModal";
 import ProductDetailModal from "./ProductDetailModal";
 import { DEPARTMENT_LABELS, DEPARTMENT_STYLES, toDepartment } from "./productDepartments";
@@ -191,6 +192,8 @@ export default function ProductsPage() {
       .sort(byDepartmentThenNumber);
   }, [products, filter, category, search, outOfStockOnly]);
 
+  const pagination = usePagination(visible, { resetDeps: [filter, category, search, outOfStockOnly] });
+
   const outOfStockCount = useMemo(
     () => products.filter((p) => !(Number(p.storeStock) > 0)).length,
     [products]
@@ -336,6 +339,7 @@ export default function ProductsPage() {
           </p>
         </div>
       ) : (
+        <>
         <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
           <table className="w-full min-w-[1000px] text-left text-sm">
             <thead>
@@ -355,7 +359,7 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {visible.map((p, index) => {
+              {pagination.pageRows.map((p, index) => {
                 const dept = toDepartment(p.section);
                 const discount =
                   p.discountedPercent ||
@@ -466,6 +470,8 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
+        <Pagination pagination={pagination} />
+        </>
       )}
 
       {viewing && (

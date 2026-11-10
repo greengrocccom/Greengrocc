@@ -16,6 +16,7 @@ class JustArrivedSection extends ConsumerWidget {
     return productsAsync.when(
       loading: () => HomeProductRow(
         title: 'Just Arrived',
+        emoji: '✨',
         onViewAll: () => context.push(RoutePaths.justArrived),
         products: const [],
         loading: true,
@@ -23,6 +24,7 @@ class JustArrivedSection extends ConsumerWidget {
       error: (_, _) => const SizedBox.shrink(),
       data: (products) => HomeProductRow(
         title: 'Just Arrived',
+        emoji: '✨',
         onViewAll: () => context.push(RoutePaths.justArrived),
         products: products,
         loading: false,

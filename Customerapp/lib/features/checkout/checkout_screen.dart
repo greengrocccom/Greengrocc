@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 import '../../core/exceptions/api_exception.dart';
 import '../../core/network/api_response_parser.dart';
@@ -12,6 +16,7 @@ import '../../core/utils/cart_utils.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/department_utils.dart';
 import '../../core/utils/payment_utils.dart';
+import '../../core/utils/razorpay_error_message.dart';
 import '../../features/address/address_controller.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../features/cart/cart_controller.dart';
@@ -93,9 +98,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   List<Coupon> _coupons = const [];
   String? _couponsKey;
 
+  late final Razorpay _razorpay;
+  bool _placingOrder = false;
+  /// Set once the order exists: the emptied cart must not bounce back to /cart.
+  bool _orderPlaced = false;
+  String? _attemptedOrderId;
+  /// Address the Razorpay order was priced for; verification must use the same one.
+  Address? _payingAddress;
+
   @override
   void initState() {
     super.initState();
+    _razorpay = Razorpay()
+      ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleRazorpaySuccess)
+      ..on(Razorpay.EVENT_PAYMENT_ERROR, _handleRazorpayError);
     Future.microtask(() async {
       ref.read(storeSettingsProvider.notifier).refresh();
       // Always reload: server cart lines carry each product's department.
@@ -116,6 +132,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   @override
   void dispose() {
+    _razorpay.clear();
     _couponController.dispose();
     super.dispose();
   }
@@ -236,6 +253,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             'quantity': item.quantity,
             'variantName': item.variantName,
             'colorName': item.colorName,
+            'name': item.name,
+            'price': item.price,
+            'discountedPrice': item.discountedPrice,
+            'brandName': item.brandName,
+            'image': item.productImages.isNotEmpty ? item.productImages.first : '',
           },
         )
         .toList();
@@ -250,21 +272,171 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     };
   }
 
-  Future<void> _openPayment({bool autoPay = false}) async {
-    final mode = _paymentMode;
-    final query = <String, String>{
-      if (_selectedAddressId != null) 'addressId': _selectedAddressId!,
-      if (_appliedCoupon != null) 'coupon': _appliedCoupon!.code,
-      if (_message.trim().isNotEmpty) 'note': _message.trim(),
-      'fulfillment': _fulfillment,
-      if (_preOrderSlot != null &&
-          ref.read(cartControllerProvider).items.any((i) => i.department == Department.preorder))
-        'slot': _preOrderSlot!,
-      if (mode != null) 'method': mode.name,
-      if (autoPay && mode != null) 'autopay': '1',
+  /// Delivery address coordinates when the saved address has them, else the delivery location.
+  Map<String, dynamic>? _orderLocationPayload(Address address) {
+    final loc = address.location;
+    final lat = loc?['lat'];
+    final lng = loc?['lng'];
+    final latNum = lat is num ? lat.toDouble() : double.tryParse('$lat');
+    final lngNum = lng is num ? lng.toDouble() : double.tryParse('$lng');
+    if (latNum == null || lngNum == null) return _customerLocationPayload();
+    return {
+      'city': address.city,
+      'area': address.area,
+      'state': address.state,
+      'pincode': address.pincode,
+      'fullAddress': address.fullAddress,
+      'lat': latNum,
+      'lng': lngNum,
+      'location': {'lat': latNum, 'lng': lngNum},
     };
-    await context.push(Uri(path: RoutePaths.payment, queryParameters: query).toString());
-    if (mounted) await _loadPaymentMode();
+  }
+
+  /// Fields shared by the COD order, the Razorpay order and its verification.
+  Map<String, dynamic> _orderPayload(Address address, List<CartItem> items) => {
+        'addressId': address.id,
+        'customerMessage': _message.trim(),
+        'checkoutItems': _checkoutItemsPayload(items),
+        'checkoutMode': 'cart',
+        'customerLocation': _orderLocationPayload(address),
+        if (_appliedCoupon != null) 'couponCode': _appliedCoupon!.code,
+        ..._fulfillmentPayload(items),
+      };
+
+  /// Places the order right here on checkout: COD is saved straight away, online
+  /// opens Razorpay over this page and is confirmed on its success callback.
+  Future<void> _placeOrder(Address address) async {
+    final mode = _paymentMode;
+    if (_placingOrder || mode == null) return;
+    final auth = ref.read(authControllerProvider);
+    if (!auth.isLoggedIn || auth.user == null) {
+      ref.read(authControllerProvider.notifier).openAuthModal();
+      return;
+    }
+    final items = ref.read(cartControllerProvider).items;
+    if (items.isEmpty) return;
+
+    await saveLastPaymentMode(mode);
+    setState(() => _placingOrder = true);
+    final api = ref.read(apiServiceProvider);
+    try {
+      if (mode == PaymentModeOption.cod) {
+        final response = await api.placeOrder({
+          ..._orderPayload(address, items),
+          'paymentMethod': 'cod',
+        });
+        if (ApiResponseParser.getData(response.data) is! Map<String, dynamic>) {
+          throw ApiException(
+            ApiResponseParser.getMessage(response.data) ?? 'Failed to place your order.',
+          );
+        }
+        await _onOrderPlaced(
+          _fulfillment == FulfillmentType.pickup
+              ? 'Pay when you collect it at the dark store.'
+              : 'Pay by cash or UPI when your order arrives.',
+        );
+        return;
+      }
+
+      final response = await api.createRazorpayOrder({
+        ..._orderPayload(address, items),
+        'paymentMode': PaymentPlan.full,
+      });
+      final body = ApiResponseParser.getData(response.data);
+      if (body is! Map<String, dynamic>) {
+        throw ApiException(
+          ApiResponseParser.getMessage(response.data) ?? 'Invalid payment response from server.',
+        );
+      }
+      final attemptedId = body['attemptedOrderId']?.toString() ?? '';
+      if (attemptedId.isNotEmpty) _attemptedOrderId = attemptedId;
+      final keyId = body['keyId']?.toString() ?? '';
+      final razorpayOrderId = body['razorpayOrderId']?.toString() ?? '';
+      final amountRaw = body['amount'];
+      final amountPaise = amountRaw is int ? amountRaw : int.tryParse('${amountRaw ?? ''}');
+      if (keyId.isEmpty || razorpayOrderId.isEmpty) {
+        throw ApiException('Online payment is not configured. Please contact support.');
+      }
+      if (amountPaise == null || amountPaise <= 0) throw ApiException('Invalid payment amount.');
+
+      _payingAddress = address;
+      final user = auth.user!;
+      _razorpay.open({
+        'key': keyId,
+        'amount': amountPaise,
+        'order_id': razorpayOrderId,
+        'name': 'GreenGrocc',
+        'description': 'Order payment',
+        'prefill': {'contact': user.phone, 'email': user.email, 'name': user.name},
+        'theme': {'color': '#047857'},
+      });
+      // _placingOrder stays on until Razorpay reports success or failure.
+    } catch (e) {
+      _orderFailed(apiErrorMessage(e, fallback: 'Could not place your order. Please try again.'));
+    }
+  }
+
+  /// Verifying is idempotent on the server (the same payment returns the same
+  /// order), so retry dropped connections instead of making the customer pay again.
+  Future<void> _verifyWithRetry(Map<String, dynamic> payload) async {
+    for (var attempt = 1;; attempt++) {
+      try {
+        await ref.read(apiServiceProvider).verifyRazorpayPayment(payload);
+        return;
+      } on DioException catch (e) {
+        if (e.response != null || attempt >= 4) rethrow;
+        await Future<void>.delayed(Duration(seconds: attempt * 2));
+      }
+    }
+  }
+
+  Future<void> _handleRazorpaySuccess(PaymentSuccessResponse response) async {
+    final address = _payingAddress;
+    if (address == null) return;
+    try {
+      await _verifyWithRetry({
+        ..._orderPayload(address, ref.read(cartControllerProvider).items),
+        'paymentMode': PaymentPlan.full,
+        if (_attemptedOrderId != null) 'attemptedOrderId': _attemptedOrderId,
+        'razorpay_order_id': response.orderId,
+        'razorpay_payment_id': response.paymentId,
+        'razorpay_signature': response.signature,
+      });
+      await _onOrderPlaced('Payment received — your order is confirmed.');
+    } catch (e) {
+      _orderFailed(apiErrorMessage(
+        e,
+        fallback: 'Payment received but the order could not be created. Please contact support.',
+      ));
+    }
+  }
+
+  void _handleRazorpayError(PaymentFailureResponse response) {
+    _orderFailed(razorpayErrorMessage(response));
+  }
+
+  void _orderFailed(String message) {
+    if (!mounted) return;
+    setState(() => _placingOrder = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red.shade700),
+    );
+  }
+
+  Future<void> _onOrderPlaced(String note) async {
+    if (!mounted) return;
+    setState(() {
+      _orderPlaced = true;
+      _placingOrder = false;
+    });
+    unawaited(ref.read(cartControllerProvider.notifier).loadCart());
+    final goToOrders = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _OrderPlacedDialog(note: note),
+    );
+    if (!mounted) return;
+    context.go(goToOrders == true ? RoutePaths.orders : RoutePaths.home);
   }
 
   Future<void> _choosePaymentMode(double total, bool pickup) async {
@@ -498,13 +670,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final totalSaved = summary.savings + couponDiscount + offerDiscount;
     final mrpTotal = summary.subtotal + summary.savings;
 
-    if (!cartLoading && cartItems.isEmpty) {
+    if (!cartLoading && cartItems.isEmpty && !_orderPlaced) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) context.go(RoutePaths.cart);
       });
     }
 
-    if (!cartLoading && cartItems.isNotEmpty) {
+    if (!cartLoading && cartItems.isNotEmpty && !_orderPlaced && !_placingOrder) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _syncCheckoutAttempt(cartItems);
       });
@@ -793,10 +965,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               feeKnown: feeKnown,
               blocker: blocker,
               minimumOrderMet: minimumOrderMet,
-              onChange: () => _choosePaymentMode(payable, isPickup),
-              onSlid: () => _paymentMode == null
-                  ? _choosePaymentMode(payable, isPickup)
-                  : _openPayment(autoPay: true),
+              busy: _placingOrder || _orderPlaced,
+              onChange: _placingOrder ? null : () => _choosePaymentMode(payable, isPickup),
+              onSlid: () {
+                if (_paymentMode == null) {
+                  _choosePaymentMode(payable, isPickup);
+                } else if (selectedAddress != null) {
+                  _placeOrder(selectedAddress);
+                }
+              },
             ),
     );
   }
@@ -1621,6 +1798,7 @@ class _PayBar extends StatelessWidget {
     required this.minimumOrderMet,
     required this.onChange,
     required this.onSlid,
+    this.busy = false,
   });
 
   final PaymentModeOption? mode;
@@ -1631,11 +1809,13 @@ class _PayBar extends StatelessWidget {
   final bool minimumOrderMet;
   final VoidCallback? onChange;
   final VoidCallback onSlid;
+  /// The order is being placed (or payment is open): no second slide.
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
     final current = mode;
-    final ready = blocker == null && feeKnown;
+    final ready = blocker == null && feeKnown && !busy;
 
     return Container(
       padding: EdgeInsets.fromLTRB(14, 10, 14, MediaQuery.paddingOf(context).bottom + 10),
@@ -1716,16 +1896,75 @@ class _PayBar extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _SlideToPay(
-            label: current == null
-                ? 'Slide to choose payment'
-                : current == PaymentModeOption.cod
-                    ? 'Slide to Place Order'
-                    : 'Slide to Pay',
+            label: busy
+                ? 'Placing your order…'
+                : current == null
+                    ? 'Slide to choose payment'
+                    : current == PaymentModeOption.cod
+                        ? 'Slide to Place Order'
+                        : 'Slide to Pay',
             amount: feeKnown ? formatInr(total) : '…',
             enabled: ready,
             onSlid: onSlid,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Shown over checkout once the order exists; pops `true` for "Track order".
+class _OrderPlacedDialog extends StatelessWidget {
+  const _OrderPlacedDialog({required this.note});
+
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(color: _savedBg, shape: BoxShape.circle),
+                child: const Icon(Icons.check_rounded, size: 38, color: _accent),
+              ),
+              const SizedBox(height: 14),
+              Text('Order placed! 🎉', style: _font(size: 19, weight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Text(
+                note,
+                textAlign: TextAlign.center,
+                style: _font(size: 13, weight: FontWeight.w500, color: _muted),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _accent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('Track order', style: _font(size: 14, weight: FontWeight.w800, color: Colors.white)),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text('Continue shopping', style: _font(size: 13, weight: FontWeight.w700, color: _accent)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

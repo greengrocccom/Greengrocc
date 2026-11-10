@@ -91,21 +91,10 @@ class _AddressFormState extends ConsumerState<AddressForm> {
     };
   }
 
-  void _clearCityAndPincode() {
-    _controllers['city']!.text = '';
-    _controllers['pincode']!.text = '';
-  }
-
-  void _clearPincode() {
-    _controllers['pincode']!.text = '';
-  }
-
   Future<void> _handlePincodeSelected(String value) async {
-    final pincode = value.replaceAll(RegExp(r'\D'), '').substring(
-          0,
-          value.length.clamp(0, 6),
-        );
-    _controllers['pincode']!.text = pincode;
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    final pincode = digits.substring(0, digits.length.clamp(0, 6));
+    if (_controllers['pincode']!.text != pincode) _controllers['pincode']!.text = pincode;
 
     if (pincode.length != 6) return;
 
@@ -390,44 +379,52 @@ class _AddressFormState extends ConsumerState<AddressForm> {
         ),
         const SizedBox(height: 12),
 
+        // Pincode first and always editable: typing 6 digits fills city & state.
+        const Text(
+          'Pincode',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 6),
+        LocationAutocompleteField(
+          controller: _controllers['pincode']!,
+          hint: 'Enter 6-digit pincode',
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          fetchSuggestions: (query) => api.fetchLocationPincodes(
+            state: stateValue,
+            city: cityValue,
+            q: query,
+          ),
+          onSelected: _handlePincodeSelected,
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'City and state fill in automatically — you can also type or change them.',
+          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 12),
+
         Row(
           children: [
+            Expanded(
+              child: LocationAutocompleteField(
+                controller: _controllers['city']!,
+                hint: 'City',
+                fetchSuggestions: (query) => api.fetchLocationCities(
+                  state: _controllers['state']!.text.trim(),
+                  q: query,
+                ),
+                onSelected: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: LocationAutocompleteField(
                 controller: _controllers['state']!,
                 hint: 'State',
                 fetchSuggestions: (query) => api.fetchLocationStates(q: query),
-                onSelected: (_) => setState(_clearCityAndPincode),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: LocationAutocompleteField(
-                controller: _controllers['city']!,
-                hint: stateValue.isEmpty ? 'Select state first' : 'City',
-                enabled: stateValue.isNotEmpty,
-                fetchSuggestions: (query) => api.fetchLocationCities(
-                  state: _controllers['state']!.text.trim(),
-                  q: query,
-                ),
-                onSelected: (_) => setState(_clearPincode),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: LocationAutocompleteField(
-                controller: _controllers['pincode']!,
-                hint: cityValue.isEmpty ? 'Select city first' : 'Pincode',
-                enabled: stateValue.isNotEmpty && cityValue.isNotEmpty,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                fetchSuggestions: (query) => api.fetchLocationPincodes(
-                  state: _controllers['state']!.text.trim(),
-                  city: _controllers['city']!.text.trim(),
-                  q: query,
-                ),
-                onSelected: _handlePincodeSelected,
+                onSelected: (_) => setState(() {}),
               ),
             ),
           ],

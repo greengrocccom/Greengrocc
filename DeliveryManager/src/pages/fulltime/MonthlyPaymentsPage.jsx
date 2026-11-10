@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { Icon } from "../../components/ui/Icon";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 
 const money = (value) =>
   `₹${(Number(value) || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -101,6 +102,10 @@ export default function MonthlyPaymentsPage() {
         return true;
       });
   }, [data.rows, searchQuery, payoutFilter]);
+
+  const pagination = usePagination(visibleRows, {
+    resetDeps: [month, type, searchQuery, payoutFilter],
+  });
 
   const monthYearLabel = useMemo(() => {
     try {
@@ -317,7 +322,7 @@ export default function MonthlyPaymentsPage() {
                     </td>
                   </tr>
                 ) : (
-                  visibleRows.map((rider) => {
+                  pagination.pageRows.map((rider) => {
                     const isPaid = Boolean(rider.paid);
 
                     return (
@@ -468,6 +473,7 @@ export default function MonthlyPaymentsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination pagination={pagination} className="border-t border-slate-100 px-5" />
         </div>
       )}
 

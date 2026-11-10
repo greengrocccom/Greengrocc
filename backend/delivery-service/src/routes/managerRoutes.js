@@ -58,6 +58,7 @@ import {
   manualAssignOrder,
 } from "../controllers/liveOpsController.js";
 import { createDeliveryBoyByManager } from "../controllers/createRiderController.js";
+import { getRiderLeaderboard } from "../controllers/leaderboardController.js";
 
 import {
   createShift,
@@ -175,6 +176,7 @@ router.put("/products/:id/stock", setManagerProductStock);
 router.get("/inventory-requests", listMyInventoryRequests);
 router.post("/inventory-requests", createInventoryRequest);
 router.get("/riders", listRiders);
+router.get("/leaderboard", getRiderLeaderboard);
 router.get("/drivers", listRiders);
 router.get("/riders/pending", listPendingDrivers);
 router.get("/riders/live", getLiveRiders);

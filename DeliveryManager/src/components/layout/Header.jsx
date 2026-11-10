@@ -22,7 +22,8 @@ const getPageTitle = (pathname) => {
   if (pathname === "/stock") return "Inventory & Stock";
   if (pathname === "/preorders") return "Pre-Orders";
   if (pathname === "/return-pickups") return "Return Pickups";
-  if (pathname.startsWith("/incentives")) return "Gigs & Incentives";
+  if (pathname === "/leaderboard") return "Driver Leaderboard";
+  if (pathname.startsWith("/incentives")) return "Driver Incentive";
   if (pathname === "/alerts") return "Alerts";
   return "GreenRow Store Manager";
 };

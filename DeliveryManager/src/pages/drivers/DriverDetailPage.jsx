@@ -5,6 +5,7 @@ import { PageShell } from "../../components/layout/ManagerLayout";
 import { useLive } from "../../realtime/useLive";
 import FullTimeDriverPanel from "../fulltime/FullTimeDriverPanel";
 import PaymentConfigPanel from "./PaymentConfigPanel";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 
 export default function DriverDetailPage() {
   const { driverId } = useParams();
@@ -291,6 +292,11 @@ export default function DriverDetailPage() {
     const lastFour = clean.slice(-4);
     return `XXXX XXXX ${lastFour}`;
   };
+
+  const ordersPagination = usePagination(data?.datePerformance?.orders || [], {
+    resetDeps: [driverId, period, selectedDate],
+  });
+  const shiftsPagination = usePagination(data?.recentShifts || [], { resetDeps: [driverId] });
 
   if (loading) {
     return (
@@ -1122,10 +1128,10 @@ export default function DriverDetailPage() {
                       </td>
                     </tr>
                   ) : (
-                    ordersList.map((ord, idx) => (
+                    ordersPagination.pageRows.map((ord, idx) => (
                       <tr key={ord.id || idx} className="hover:bg-slate-50/60 transition">
                         <td className="py-2 px-2.5 font-semibold text-slate-800">
-                          #{ord.orderNumber || (ord.id ? ord.id.slice(-6).toUpperCase() : `ORD-${idx + 1}`)}
+                          #{ord.orderNumber || (ord.id ? ord.id.slice(-6).toUpperCase() : `ORD-${ordersPagination.start + idx + 1}`)}
                         </td>
                         <td className="py-2 px-2.5 text-slate-600">
                           {formatTimeOnly(ord.deliveredAt || ord.assignedAt || ord.createdAt)}
@@ -1170,6 +1176,7 @@ export default function DriverDetailPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination pagination={ordersPagination} />
           </div>
         </div>
       )}
@@ -1370,7 +1377,7 @@ export default function DriverDetailPage() {
                     </td>
                   </tr>
                 ) : (
-                  recentShifts.map((s, idx) => (
+                  shiftsPagination.pageRows.map((s, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50">
                       <td className="py-2.5 px-3 font-semibold text-slate-800">{s.shiftName || s.shiftType}</td>
                       <td className="py-2.5 px-3 text-slate-600">{s.dateString}</td>
@@ -1398,6 +1405,7 @@ export default function DriverDetailPage() {
               </tbody>
             </table>
           </div>
+          <Pagination pagination={shiftsPagination} />
         </div>
       )}
 

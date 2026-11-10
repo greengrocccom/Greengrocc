@@ -5,11 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../models/product.dart';
 import '../../../models/site_banner.dart';
 import '../../../routes/route_paths.dart';
-import '../../../widgets/common/section_header.dart';
 import '../../../widgets/common/skeleton_loaders.dart';
 import '../../../widgets/product/deal_product_card.dart';
 import '../../../features/cart/cart_controller.dart';
 import '../home_providers.dart';
+import 'home_section_style.dart';
 import 'site_banner_widgets.dart';
 
 /// Category rows on home, as a sliver: each row is built — and its products
@@ -38,6 +38,10 @@ class HomeAllCategoryProducts extends ConsumerWidget {
             key: ValueKey('home-cat-${names[index]}-$currentStore'),
             categoryName: names[index],
             currentStore: currentStore,
+            // Every other row sits on a coloured wash, cycling through the palette.
+            tint: index.isOdd
+                ? HomeSectionTint.cycle[(index ~/ 2) % HomeSectionTint.cycle.length]
+                : null,
           ),
         );
       },
@@ -50,10 +54,12 @@ class _CategoryProductSection extends ConsumerWidget {
     super.key,
     required this.categoryName,
     required this.currentStore,
+    this.tint,
   });
 
   final String categoryName;
   final String currentStore;
+  final HomeSectionTint? tint;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,6 +79,7 @@ class _CategoryProductSection extends ConsumerWidget {
           : _CategoryProductGrid(
               categoryName: categoryName,
               products: products,
+              tint: tint,
             ),
     );
   }
@@ -107,10 +114,11 @@ class _CategorySectionSkeleton extends StatelessWidget {
 }
 
 class _CategoryProductGrid extends ConsumerWidget {
-  const _CategoryProductGrid({required this.categoryName, required this.products});
+  const _CategoryProductGrid({required this.categoryName, required this.products, this.tint});
 
   final String categoryName;
   final List<Product> products;
+  final HomeSectionTint? tint;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,8 +131,17 @@ class _CategoryProductGrid extends ConsumerWidget {
             .where((b) => b.category == key)
             .toList();
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+    void viewAll() => context.push(
+          '${RoutePaths.product}?categoryName=${Uri.encodeComponent(categoryName)}',
+        );
+
+    return HomeStyledSection(
+      title: categoryName,
+      emoji: categoryEmoji(categoryName),
+      tint: tint,
+      products: products,
+      onViewAll: viewAll,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -133,13 +150,6 @@ class _CategoryProductGrid extends ConsumerWidget {
               banners: banners,
               padding: const EdgeInsets.only(bottom: 12),
             ),
-          SectionHeader(
-            title: categoryName,
-            dense: true,
-            onViewAll: () => context.push(
-              '${RoutePaths.product}?categoryName=${Uri.encodeComponent(categoryName)}',
-            ),
-          ),
           GridView.builder(
             shrinkWrap: true,
             padding: EdgeInsets.zero,

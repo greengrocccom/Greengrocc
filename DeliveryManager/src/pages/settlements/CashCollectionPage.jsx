@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 import { subscribeToSocketEvent } from "../../services/socket";
 
 const rupees = new Intl.NumberFormat("en-IN", {
@@ -199,6 +200,10 @@ export default function CashCollectionPage() {
 
     return list;
   }, [rawRecords, statusFilter, searchQuery]);
+
+  const pagination = usePagination(filteredRecords, {
+    resetDeps: [period, selectedDate, statusFilter, searchQuery],
+  });
 
   // Totals for filtered records
   const pageTotals = useMemo(() => {
@@ -508,7 +513,7 @@ export default function CashCollectionPage() {
               </thead>
 
               <tbody className="divide-y divide-slate-100">
-                {filteredRecords.map((r) => {
+                {pagination.pageRows.map((r) => {
                   const isReceived = r.isReceived || r.status === "COMPLETED";
                   const isPending = canReceive(r);
 
@@ -670,6 +675,7 @@ export default function CashCollectionPage() {
             </table>
           </div>
         )}
+        {!loading && <Pagination pagination={pagination} className="border-t border-slate-100 px-4" />}
       </section>
 
       {/* ─── CONFIRM PHYSICAL RECEIPT MODAL ─── */}

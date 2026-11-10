@@ -16,6 +16,8 @@ class HotSellingSection extends ConsumerWidget {
     return productsAsync.when(
       loading: () => HomeProductRow(
         title: 'Hot Selling Products',
+        emoji: '🔥',
+        tint: HomeSectionTint.pink,
         onViewAll: () => context.push(RoutePaths.hotSelling),
         products: const [],
         loading: true,
@@ -23,6 +25,8 @@ class HotSellingSection extends ConsumerWidget {
       error: (_, _) => const SizedBox.shrink(),
       data: (products) => HomeProductRow(
         title: 'Hot Selling Products',
+        emoji: '🔥',
+        tint: HomeSectionTint.pink,
         onViewAll: () => context.push(RoutePaths.hotSelling),
         products: products,
         loading: false,

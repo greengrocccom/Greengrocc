@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { useLive } from "../../realtime/useLive";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 
 const REQUEST_STATUS = {
   pending: "bg-amber-50 text-amber-800 border-amber-200",
@@ -69,6 +70,9 @@ export default function StockPage() {
     const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+
+  const inventoryPagination = usePagination(filteredInventory, { resetDeps: [search, categoryFilter] });
+  const requestsPagination = usePagination(requests);
 
   const openRequest = (item) => {
     const suggested = item.stockCount === 0 ? 30 : Math.max(20, (item.lowStockThreshold || 10) * 2);
@@ -225,6 +229,7 @@ export default function StockPage() {
       {loading ? (
         <div className="h-64 rounded-2xl bg-slate-200/60 animate-pulse" />
       ) : view === "requests" ? (
+        <>
         <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
           <table className="w-full text-left text-sm">
             <thead>
@@ -245,7 +250,7 @@ export default function StockPage() {
                   </td>
                 </tr>
               ) : (
-                requests.map((row) => (
+                requestsPagination.pageRows.map((row) => (
                   <tr key={row.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => setViewingRequest(row)}>
                     <td className="py-3 px-4 font-mono text-[11px] font-bold text-slate-800">
                       {row.requestNumber}
@@ -281,6 +286,8 @@ export default function StockPage() {
             </tbody>
           </table>
         </div>
+        <Pagination pagination={requestsPagination} />
+        </>
       ) : filteredInventory.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-slate-500 shadow-xs">
           <h3 className="text-base font-bold text-slate-800">No Matching Stock Items</h3>
@@ -289,6 +296,7 @@ export default function StockPage() {
           </p>
         </div>
       ) : (
+        <>
         <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
           <table className="w-full text-left text-sm">
             <thead>
@@ -302,7 +310,7 @@ export default function StockPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredInventory.map((row) => {
+              {inventoryPagination.pageRows.map((row) => {
                 const isZero = row.stockCount === 0;
                 const isLow = row.isLowStock;
                 const pending = pendingSkuSet.has(row.sku);
@@ -355,6 +363,8 @@ export default function StockPage() {
             </tbody>
           </table>
         </div>
+        <Pagination pagination={inventoryPagination} />
+        </>
       )}
 
       {requestItem && (

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { managerApi } from "../../api/managerApi";
 import { useAuth } from "../../context/AuthContext";
 import { Icon } from "../../components/ui/Icon";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 import { useLive } from "../../realtime/useLive";
 import { subscribeToSocketEvent } from "../../services/socket";
 
@@ -335,6 +336,10 @@ export default function DriversPage({ employmentType = null }) {
         return slotFilter === "ASSIGNED" ? isAssigned : !isAssigned;
       });
   }, [categoryRiders, employmentType, searchQuery, statusFilter, paymentFilter, slotFilter, assignedSlotRiderIds]);
+
+  const pagination = usePagination(visibleRiders, {
+    resetDeps: [employmentType, typeFilter, searchQuery, statusFilter, paymentFilter, slotFilter],
+  });
 
   // Stat calculations
   const totalRidersCount = categoryRiders.length;
@@ -732,7 +737,7 @@ export default function DriversPage({ employmentType = null }) {
                     </td>
                   </tr>
                 ) : (
-                  visibleRiders.map((r, index) => {
+                  pagination.pageRows.map((r, index) => {
                     const riderId = r.id || r._id;
                     const isRiderActive = r.isActive !== false;
                     const riderType = r.employmentType || "PART_TIME";
@@ -757,7 +762,7 @@ export default function DriversPage({ employmentType = null }) {
                       >
                         {/* 1. # */}
                         <td className="px-4 py-4 text-center font-bold text-slate-700">
-                          {index + 1}
+                          {pagination.start + index + 1}
                         </td>
 
                         {/* 2. Rider Details (Compact icon, vertically centered name & phone, no phone icon) */}
@@ -948,6 +953,7 @@ export default function DriversPage({ employmentType = null }) {
               </tbody>
             </table>
           </div>
+          <Pagination pagination={pagination} className="border-t border-slate-100 px-4" />
         </div>
       )}
 

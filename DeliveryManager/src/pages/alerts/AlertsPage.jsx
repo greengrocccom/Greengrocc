@@ -3,6 +3,7 @@ import { managerApi } from "../../api/managerApi";
 import { useLive } from "../../realtime/useLive";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { Icon } from "../../components/ui/Icon";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState([]);
@@ -24,6 +25,8 @@ export default function AlertsPage() {
   }, [filter]);
 
   useLive(loadAlerts, [loadAlerts]);
+
+  const pagination = usePagination(alerts, { resetDeps: [filter] });
 
   const onMarkRead = async (alertId) => {
     try {
@@ -90,6 +93,7 @@ export default function AlertsPage() {
             <p className="text-sm font-semibold text-slate-700">No alerts</p>
           </div>
         ) : (
+          <>
           <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
             <table className="w-full text-left text-sm">
               <thead>
@@ -102,7 +106,7 @@ export default function AlertsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {alerts.map((item) => (
+                {pagination.pageRows.map((item) => (
                   <tr key={item._id} className="hover:bg-slate-50/60 transition">
                     <td className="py-3.5 px-4 font-mono text-slate-500 whitespace-nowrap">
                       {new Date(item.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
@@ -147,6 +151,8 @@ export default function AlertsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination pagination={pagination} />
+          </>
         )}
       </div>
     </PageShell>

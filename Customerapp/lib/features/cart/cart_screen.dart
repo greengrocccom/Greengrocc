@@ -287,12 +287,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   ? const SkeletonCartPage()
                   : RefreshableBody(
                       onRefresh: _loadCart,
-                      child: isLoggedIn
-                          ? _EmptyCart(onBrowse: () => context.go(RoutePaths.product))
-                          : _LoginPrompt(
-                              onLogin: () =>
-                                  ref.read(authControllerProvider.notifier).openAuthModal(),
-                            ),
+                      child: _EmptyCart(onBrowse: () => context.go(RoutePaths.product)),
                     ),
             ),
           ],
@@ -1443,47 +1438,6 @@ class _ApplyCouponCard extends StatelessWidget {
             ],
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _LoginPrompt extends StatelessWidget {
-  const _LoginPrompt({required this.onLogin});
-
-  final VoidCallback onLogin;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.shopping_cart_outlined, size: 64, color: AppColors.textMuted),
-            const SizedBox(height: 16),
-            Text(
-              'Sign in to view your cart',
-              style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Items you add to your cart will appear here',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: onLogin,
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF16A34A),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: const Text('Sign In'),
-            ),
-          ],
-        ),
       ),
     );
   }

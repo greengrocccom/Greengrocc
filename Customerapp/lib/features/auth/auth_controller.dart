@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/exceptions/api_exception.dart';
@@ -108,6 +109,9 @@ class AuthController extends Notifier<AuthState> {
     } on DioException catch (dioError) {
       if (epoch != _sessionEpoch) return;
       final statusCode = dioError.response?.statusCode;
+      if (statusCode == 401 || statusCode == 403) {
+        debugPrint('[auth] session check failed: $statusCode ${dioError.response?.data}');
+      }
       if (statusCode == 401) {
         final data = dioError.response?.data;
         final msg = (data is Map ? data['message']?.toString() : '') ?? '';

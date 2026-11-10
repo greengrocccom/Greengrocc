@@ -22,8 +22,8 @@ import ShiftManagementPage from "./pages/shifts/ShiftManagementPage";
 import FullTimeShiftManagementPage from "./pages/shifts/FullTimeShiftManagementPage";
 import EditFullTimeShiftPage from "./pages/shifts/EditFullTimeShiftPage";
 import CreateShiftPage from "./pages/shifts/CreateShiftPage";
-import IncentivesPage from "./pages/incentives/IncentivesPage";
 import CreateGigPage from "./pages/incentives/CreateGigPage";
+import LeaderboardPage from "./pages/incentives/LeaderboardPage";
 import AlertsPage from "./pages/alerts/AlertsPage";
 import ApplyLeavePage from "./pages/leave/ApplyLeavePage";
 import PoliciesPage from "./pages/policies/PoliciesPage";
@@ -67,8 +67,9 @@ function App() {
               <Route path="/orders/:orderId" element={<OrderDetailPage />} />
               <Route path="/preorders" element={<PreOrdersPage />} />
               <Route path="/return-pickups" element={<ReturnPickupsPage />} />
-              <Route path="/incentives" element={<IncentivesPage />} />
+              <Route path="/incentives" element={<Navigate to="/leaderboard" replace />} />
               <Route path="/incentives/create" element={<CreateGigPage />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/policies" element={<PoliciesPage />} />
               <Route path="/announcements" element={<AnnouncementsPage />} />

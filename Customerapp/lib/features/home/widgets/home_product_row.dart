@@ -7,9 +7,10 @@ import '../../../features/auth/auth_controller.dart';
 import '../../../features/cart/cart_controller.dart';
 import '../../../models/cart_item.dart';
 import '../../../models/product.dart';
-import '../../../widgets/common/section_header.dart';
 import '../../../widgets/product/deal_product_card.dart';
-import 'home_section_card.dart';
+import 'home_section_style.dart';
+
+export 'home_section_style.dart' show HomeSectionTint;
 
 class HomeProductRow extends ConsumerWidget {
   const HomeProductRow({
@@ -18,14 +19,22 @@ class HomeProductRow extends ConsumerWidget {
     required this.onViewAll,
     required this.products,
     required this.loading,
-    this.showHeader = true,
+    this.emoji = '',
+    this.tint,
+    this.secondRow = const [],
   });
 
-  final bool showHeader;
   final String title;
+  final String emoji;
   final VoidCallback onViewAll;
   final List<Product> products;
   final bool loading;
+
+  /// Coloured wavy background; null keeps the plain page background.
+  final HomeSectionTint? tint;
+
+  /// Optional second scroll row shown under the first, inside the same section.
+  final List<Product> secondRow;
 
   CartItem? _cartLine(List<CartItem> items, Product product) {
     final defaults = resolveCartDefaults(product);
@@ -116,57 +125,58 @@ class HomeProductRow extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return HomeSectionCard(
-      margin: EdgeInsets.zero,
-      padding: EdgeInsets.fromLTRB(12, showHeader ? 12 : 0, 0, 12),
-      showDivider: false,
+    return HomeStyledSection(
+      title: title,
+      emoji: emoji,
+      tint: tint,
+      products: products,
+      onViewAll: onViewAll,
       child: Column(
         children: [
-          if (showHeader)
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: SectionHeader(
-              title: title,
-              dense: true,
-              onViewAll: onViewAll,
-            ),
-          ),
-          SizedBox(
-            height: DealProductCardDimensions.height,
-            child: loading
-                ? ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    cacheExtent: 240,
-                    itemCount: 6,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (_, _) => Container(
-                      width: DealProductCardDimensions.width,
-                      decoration: BoxDecoration(
-                        color: AppColors.mobileSurface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    clipBehavior: Clip.none,
-                    cacheExtent: 240,
-                    itemCount: products.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final product = products[index];
-                      return _HomeDealProductCard(
-                        product: product,
-                        onAdd: (ctx) => _handleAdd(ref, product, ctx),
-                        onIncrease: () => _handleIncrease(ref, product, context),
-                        onDecrease: () => _handleDecrease(ref, product),
-                      );
-                    },
-                  ),
-          ),
+          _scrollRow(ref, products),
+          if (!loading && secondRow.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _scrollRow(ref, secondRow),
+          ],
         ],
       ),
-        );
+    );
+  }
+
+  Widget _scrollRow(WidgetRef ref, List<Product> rowProducts) {
+    return SizedBox(
+      height: DealProductCardDimensions.height,
+      child: loading
+          ? ListView.separated(
+              scrollDirection: Axis.horizontal,
+              cacheExtent: 240,
+              itemCount: 6,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (_, _) => Container(
+                width: DealProductCardDimensions.width,
+                decoration: BoxDecoration(
+                  color: AppColors.mobileSurface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            )
+          : ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              cacheExtent: 240,
+              itemCount: rowProducts.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final product = rowProducts[index];
+                return _HomeDealProductCard(
+                  product: product,
+                  onAdd: (ctx) => _handleAdd(ref, product, ctx),
+                  onIncrease: () => _handleIncrease(ref, product, context),
+                  onDecrease: () => _handleDecrease(ref, product),
+                );
+              },
+            ),
+    );
   }
 }
 

@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/providers/app_providers.dart';
 import '../../core/utils/product_pricing.dart';
@@ -15,6 +17,8 @@ import '../../routes/shell_navigator_keys.dart';
 import '../../widgets/cart/fly_product_animator.dart';
 
 enum AddToCartResult { success, requiresLogin, failed }
+
+const _guestCartKey = 'guest_cart_v1';
 
 class PendingCartAction {
   const PendingCartAction({
@@ -123,12 +127,81 @@ class CartController extends Notifier<CartState> {
       }
     });
 
+    // The initial (empty) state is reported late; saving it would erase the stored cart.
+    listenSelf((previous, next) {
+      if (previous != null && previous.items != next.items) unawaited(_saveGuestCart(next.items));
+    });
+
     final auth = ref.read(authControllerProvider);
     if (auth.isLoggedIn && !auth.loading) {
       Future.microtask(() => loadCart(silent: true));
+    } else {
+      Future.microtask(_restoreGuestCart);
     }
 
     return const CartState();
+  }
+
+  /// Guests' carts live on the phone so they survive an app restart; once signed
+  /// in the server cart is the source of truth and the local copy is dropped.
+  Future<void> _saveGuestCart(List<CartItem> items) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (ref.read(authControllerProvider).isLoggedIn || items.isEmpty) {
+      await prefs.remove(_guestCartKey);
+      return;
+    }
+    await prefs.setString(
+      _guestCartKey,
+      jsonEncode([
+        for (final item in items)
+          {
+            'id': item.id,
+            'quantity': item.quantity,
+            'variantName': item.variantName,
+            'colorName': item.colorName,
+            'section': item.section,
+            'storeType': item.storeType,
+          },
+      ]),
+    );
+  }
+
+  Future<void> _restoreGuestCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_guestCartKey);
+    if (raw == null) return;
+    List<dynamic> lines;
+    try {
+      lines = jsonDecode(raw) as List<dynamic>;
+    } catch (_) {
+      await prefs.remove(_guestCartKey);
+      return;
+    }
+
+    final api = ref.read(apiServiceProvider);
+    final restored = <CartItem>[];
+    for (final line in lines.whereType<Map<String, dynamic>>()) {
+      final id = line['id']?.toString() ?? '';
+      final quantity = (line['quantity'] as num?)?.toInt() ?? 0;
+      if (id.isEmpty || quantity < 1) continue;
+      try {
+        final product = await api.fetchProductById(id);
+        restored.add(cartItemFromProduct(
+          product,
+          quantity,
+          variantName: line['variantName']?.toString() ?? '',
+          colorName: line['colorName']?.toString() ?? '',
+          section: line['section']?.toString(),
+          storeType: line['storeType']?.toString(),
+        ));
+      } catch (_) {
+        // Product removed or unavailable — drop that line.
+      }
+    }
+
+    // Signed in or already shopping meanwhile: don't overwrite the live cart.
+    if (!ref.mounted || ref.read(authControllerProvider).isLoggedIn || state.items.isNotEmpty) return;
+    if (restored.isNotEmpty) state = state.copyWith(items: restored);
   }
 
   Future<void> _handleLogin() async {

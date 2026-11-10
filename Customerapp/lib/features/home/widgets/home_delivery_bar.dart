@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/providers/location_provider.dart';
 import '../../../core/theme/store_chrome.dart';
 import '../../../routes/route_paths.dart';
+import '../../../widgets/address/select_delivery_location_sheet.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/auth_host.dart';
 import '../../orders/orders_controller.dart';
@@ -16,7 +18,7 @@ import 'home_header_category_strip.dart';
 class HomeDeliveryBar extends ConsumerWidget {
   const HomeDeliveryBar({super.key});
 
-  static const double height = 88;
+  static const double height = 112;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,7 +57,9 @@ class HomeDeliveryBar extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
+            const _DeliveryLocationLine(),
+            const SizedBox(height: 6),
             Container(
               height: 38,
               padding: const EdgeInsets.all(3),
@@ -101,6 +105,55 @@ class HomeDeliveryBar extends ConsumerWidget {
     ref.read(selectedStoreTabProvider.notifier).setStore(store);
     ref.read(selectedCategoryHeaderTabProvider.notifier).setCategory('All');
     context.go(RoutePaths.home);
+  }
+}
+
+/// "📍 Balewadi, Pune ▾" under the logo; opens the delivery location sheet.
+class _DeliveryLocationLine extends ConsumerWidget {
+  const _DeliveryLocationLine();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final location = ref.watch(deliveryLocationProvider);
+    final place = [location?.area, location?.city]
+        .whereType<String>()
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toSet()
+        .join(', ');
+    final hasLocation = location?.hasLocation ?? false;
+    final label = !hasLocation
+        ? 'Select delivery location'
+        : place.isNotEmpty
+            ? place
+            : location!.displayAddress;
+
+    return SizedBox(
+      height: 20,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => showSelectDeliveryLocationBottomSheet(context, ref),
+        child: Row(
+          children: [
+            const Icon(Icons.location_on_rounded, size: 16, color: Color(0xFF0C831F)),
+            const SizedBox(width: 3),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: hasLocation ? const Color(0xFF0F172A) : const Color(0xFF0C831F),
+                ),
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF0F172A)),
+          ],
+        ),
+      ),
+    );
   }
 }
 

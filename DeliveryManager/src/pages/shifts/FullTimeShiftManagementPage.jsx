@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { managerApi } from "../../api/managerApi";
 import { apiError, formatDays, formatMinutes, formatMoney } from "../fulltime/fullTimeUi";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 
 export const SHIFT_PALETTE = {
   early_morning: {
@@ -288,6 +289,8 @@ export default function FullTimeShiftManagementPage() {
       });
   }, [shifts, activeFilterTab, searchQuery]);
 
+  const pagination = usePagination(filteredShifts, { resetDeps: [activeFilterTab, searchQuery] });
+
   return (
     <PageShell title="Full-Time Shifts">
       {/* Top Navigation Tabs */}
@@ -516,7 +519,7 @@ export default function FullTimeShiftManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredShifts.map((s) => {
+                {pagination.pageRows.map((s) => {
                   const cat = getFullTimeShiftCategory(s);
                   const isExpired = cat === "expired";
                   const theme = isExpired ? SHIFT_PALETTE.expired : getShiftTypeTheme(s);
@@ -657,6 +660,7 @@ export default function FullTimeShiftManagementPage() {
             </table>
           </div>
         )}
+        {!loading && <Pagination pagination={pagination} className="px-4" />}
       </div>
     </PageShell>
   );

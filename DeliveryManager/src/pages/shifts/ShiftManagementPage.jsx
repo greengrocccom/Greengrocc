@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { managerApi } from "../../api/managerApi";
 import AssignRidersModal from "../../components/shifts/AssignRidersModal";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 
 const incentiveLabel = (slot) =>
   slot?.incentiveMode === "per_km" && slot.incentiveRate > 0
@@ -713,6 +714,10 @@ export default function ShiftManagementPage() {
     return startA - startB;
   });
 
+  const pagination = usePagination(filteredSlotRows, {
+    resetDeps: [selectedDate, activeFilterTab, selectedZone, searchQuery],
+  });
+
   return (
     <PageShell>
       {toast && (
@@ -941,7 +946,7 @@ export default function ShiftManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredSlotRows.map((row) => {
+                {pagination.pageRows.map((row) => {
                   const rowCategory = getSlotCategory(row);
                   const isExpired = rowCategory === "expired";
                   const slotDateObj = formatDateWithDay(row.dateString);
@@ -1108,6 +1113,7 @@ export default function ShiftManagementPage() {
             </table>
           </div>
         )}
+        {!loading && <Pagination pagination={pagination} className="px-4" />}
       </div>
 
       {/* FLOATING ACTION DROPDOWN (Outside overflow container so it is NEVER clipped) */}

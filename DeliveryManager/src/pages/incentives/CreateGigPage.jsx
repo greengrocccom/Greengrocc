@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import { managerApi } from "../../api/managerApi";
 
@@ -7,6 +7,8 @@ const getTodayString = () => new Date().toISOString().slice(0, 10);
 
 export default function CreateGigPage() {
   const navigate = useNavigate();
+  // The leaderboard sends { audience, riderIds } for drivers picked there.
+  const preset = useLocation().state || {};
   const [toast, setToast] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,14 +28,16 @@ export default function CreateGigPage() {
   ]);
 
   // Driver audience state: 'all' | 'top_performers' | 'specific'
-  const [targetAudience, setTargetAudience] = useState("all");
-  const [selectedRiderIds, setSelectedRiderIds] = useState([]);
+  const [targetAudience, setTargetAudience] = useState(() =>
+    ["all", "top_performers", "specific"].includes(preset.audience) ? preset.audience : "all");
+  const [selectedRiderIds, setSelectedRiderIds] = useState(() =>
+    Array.isArray(preset.riderIds) ? preset.riderIds : []);
   const [riders, setRiders] = useState([]);
   const [riderSearch, setRiderSearch] = useState("");
 
   useEffect(() => {
     managerApi
-      .getAssignableRiders()
+      .leaderboard("all")
       .then((res) => setRiders(res.data?.riders || []))
       .catch(() => setRiders([]));
   }, []);
@@ -43,6 +47,11 @@ export default function CreateGigPage() {
     if (!q) return riders;
     return riders.filter((r) => (r.name || "").toLowerCase().includes(q) || String(r.phone || "").includes(q));
   }, [riders, riderSearch]);
+
+  const selectedRiders = useMemo(
+    () => riders.filter((r) => selectedRiderIds.includes(r.id)),
+    [riders, selectedRiderIds]
+  );
 
   const showToast = (msg) => {
     setToast(msg);
@@ -98,7 +107,7 @@ export default function CreateGigPage() {
 
       showToast(res.data.message || "Gig incentive created successfully!");
       setTimeout(() => {
-        navigate("/incentives");
+        navigate("/leaderboard");
       }, 1000);
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to create gig");
@@ -352,6 +361,27 @@ export default function CreateGigPage() {
 
             {targetAudience === "specific" && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 mt-2">
+                {selectedRiders.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-slate-600">Selected:</span>
+                    {selectedRiders.map((r) => (
+                      <span
+                        key={r.id}
+                        className="inline-flex items-center gap-1 rounded-full bg-emerald-100 py-0.5 pl-2.5 pr-1 text-[11px] font-bold text-emerald-800"
+                      >
+                        {r.name}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRiderIds((prev) => prev.filter((id) => id !== r.id))}
+                          className="flex h-4 w-4 items-center justify-center rounded-full text-emerald-700 hover:bg-emerald-200"
+                          aria-label={`Remove ${r.name}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -444,7 +474,7 @@ export default function CreateGigPage() {
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
             <Link
-              to="/incentives"
+              to="/leaderboard"
               className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
             >
               Cancel

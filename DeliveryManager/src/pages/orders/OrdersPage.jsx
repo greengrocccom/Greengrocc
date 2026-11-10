@@ -5,6 +5,7 @@ import { PageShell } from "../../components/layout/ManagerLayout";
 import PickupQrModal from "../../components/PickupQrModal";
 import OrderTrackingDrawer from "../../components/tracking/OrderTrackingDrawer";
 import { useLive } from "../../realtime/useLive";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 import { mapsLink, useRiderLiveLocations } from "../../hooks/useRiderLiveLocations";
 import { subscribeToSocketEvent } from "../../services/socket";
 import { STATUS_TABS, matchesTab, countBySummaryBucket, OrderStatusText, OrderDepartmentTags, DriverAssignmentText, isInitialOrderStatus, allItemsAvailable, actionBtnOutline, actionBtnPrimary, actionBtnDanger, isCodPayment, isPickupOrder, formatRupee } from "./orderUtils";
@@ -583,6 +584,8 @@ export default function OrdersPage() {
     });
   }, [dateFilteredOrders, searchQuery, activeTab]);
 
+  const pagination = usePagination(filteredOrders, { resetDeps: [dateFilter, searchQuery, activeTab] });
+
   const ordersByDate = useMemo(() => {
     const groups = {};
     for (const order of filteredOrders) {
@@ -927,6 +930,7 @@ export default function OrdersPage() {
           </p>
         </div>
       ) : (
+        <>
         <div className="overflow-x-auto rounded-xl border border-slate-200/90 bg-white shadow-2xs">
           <table className="w-full text-left text-xs">
             <thead>
@@ -941,7 +945,7 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredOrders.map((order) => {
+              {pagination.pageRows.map((order) => {
                       const oid = order.id || order._id;
                 const isInitial = isInitialOrderStatus(order.status);
                 const isPacked = order.status === "packed";
@@ -1180,6 +1184,8 @@ export default function OrdersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination pagination={pagination} />
+        </>
       )}
 
       <PickupQrModal

@@ -7,6 +7,7 @@ import PickupQrModal from "../../components/PickupQrModal";
 import PreOrderQrLabels from "../../components/PreOrderQrLabels";
 import OrderTrackingDrawer from "../../components/tracking/OrderTrackingDrawer";
 import { useLive } from "../../realtime/useLive";
+import { Pagination, usePagination } from "../../components/ui/Pagination";
 import {
   DeliveryDelayNotice,
   OrderDepartmentTags,
@@ -263,9 +264,11 @@ export default function PreOrdersPage() {
     });
   }, [orders, activeTab, slotFilter, searchQuery]);
 
+  const pagination = usePagination(visibleOrders, { resetDeps: [activeTab, slotFilter, searchQuery, dateFilter] });
+
   const ordersByDate = useMemo(() => {
     const map = new Map();
-    for (const o of visibleOrders) {
+    for (const o of pagination.pageRows) {
       const dateKey = o.preOrderDate || (o.createdAt ? o.createdAt.slice(0, 10) : "No date");
       if (!map.has(dateKey)) {
         map.set(dateKey, { dateKey, orders: [] });
@@ -273,7 +276,7 @@ export default function PreOrdersPage() {
       map.get(dateKey).orders.push(o);
     }
     return [...map.values()].sort((a, b) => (b.dateKey > a.dateKey ? 1 : b.dateKey < a.dateKey ? -1 : 0));
-  }, [visibleOrders]);
+  }, [pagination.pageRows]);
 
   const onAssign = async (order) => {
     const oid = order.id;
@@ -671,6 +674,7 @@ export default function PreOrdersPage() {
           </p>
         </div>
       ) : (
+        <>
         <div className="overflow-x-auto rounded-xl border border-slate-200/90 bg-white shadow-2xs">
           <table className="w-full text-left text-xs">
             <thead>
@@ -711,7 +715,7 @@ export default function PreOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {visibleOrders.map((order) => {
+              {pagination.pageRows.map((order) => {
                 const oid = order.id;
                 const stage =
                   order.status === "preorder_hold" && vendorConfirmed(order)
@@ -1077,6 +1081,8 @@ export default function PreOrdersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination pagination={pagination} />
+        </>
       )}
 
       <PickupQrModal

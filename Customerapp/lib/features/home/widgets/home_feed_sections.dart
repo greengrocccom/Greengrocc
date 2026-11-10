@@ -12,18 +12,24 @@ class _ProviderRow extends ConsumerWidget {
   const _ProviderRow({
     required this.provider,
     required this.title,
+    required this.emoji,
     required this.viewAll,
+    this.tint,
   });
 
   final FutureProvider<List<Product>> provider;
   final String title;
+  final String emoji;
   final String viewAll;
+  final HomeSectionTint? tint;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ref.watch(provider).when(
           loading: () => HomeProductRow(
             title: title,
+            emoji: emoji,
+            tint: tint,
             onViewAll: () => context.push(viewAll),
             products: const [],
             loading: true,
@@ -31,6 +37,8 @@ class _ProviderRow extends ConsumerWidget {
           error: (_, _) => const SizedBox.shrink(),
           data: (products) => HomeProductRow(
             title: title,
+            emoji: emoji,
+            tint: tint,
             onViewAll: () => context.push(viewAll),
             products: products,
             loading: false,
@@ -46,6 +54,8 @@ class MostViewedSection extends StatelessWidget {
   Widget build(BuildContext context) => _ProviderRow(
         provider: mostViewedProductsProvider,
         title: 'Most viewed',
+        emoji: '👀',
+        tint: HomeSectionTint.blue,
         viewAll: RoutePaths.product,
       );
 }
@@ -60,6 +70,7 @@ class PreviouslyBoughtSection extends ConsumerWidget {
     if (products.isEmpty) return const SizedBox.shrink();
     return HomeProductRow(
       title: 'Previously bought',
+      emoji: '🔁',
       onViewAll: () => context.go(RoutePaths.orders),
       products: products,
       loading: false,
@@ -79,6 +90,8 @@ class DepartmentSuggestedSection extends ConsumerWidget {
     if (products.isEmpty) return const SizedBox.shrink();
     return HomeProductRow(
       title: section == 'instantorder' ? 'Instant bestsellers' : 'Suggested for you',
+      emoji: section == 'instantorder' ? '⚡' : '💚',
+      tint: HomeSectionTint.mint,
       onViewAll: () => context.push('${RoutePaths.product}?section=$section'),
       products: products.take(16).toList(),
       loading: false,
@@ -95,23 +108,14 @@ class SuggestedForYouSection extends ConsumerWidget {
     final products = ref.watch(suggestedProductsProvider).value ?? const <Product>[];
     if (products.isEmpty) return const SizedBox.shrink();
     final half = (products.length / 2).ceil();
-    return Column(
-      children: [
-        HomeProductRow(
-          title: 'Suggested for You',
-          onViewAll: () => context.push(RoutePaths.product),
-          products: products.take(half).toList(),
-          loading: false,
-        ),
-        if (products.length > half)
-          HomeProductRow(
-            title: '',
-            showHeader: false,
-            onViewAll: () => context.push(RoutePaths.product),
-            products: products.skip(half).toList(),
-            loading: false,
-          ),
-      ],
+    return HomeProductRow(
+      title: 'Suggested for You',
+      emoji: '💚',
+      tint: HomeSectionTint.mint,
+      onViewAll: () => context.push(RoutePaths.product),
+      products: products.take(half).toList(),
+      secondRow: products.skip(half).toList(),
+      loading: false,
     );
   }
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { managerApi } from "../../api/managerApi";
 import { PageShell } from "../../components/layout/ManagerLayout";
 import FinanceDateFilter from "../../components/finance/FinanceDateFilter";
+import { PAGE_SIZE, Pagination } from "../../components/ui/Pagination";
 import {
   Plus,
   Search,
@@ -86,7 +87,7 @@ export default function SettlementsPage() {
         status: statusFilter,
         search,
         page,
-        limit: 15,
+        limit: PAGE_SIZE,
       });
       if (res.data?.success) {
         setSettlements(res.data.data || []);
@@ -416,6 +417,19 @@ export default function SettlementsPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {!loading && (
+          <Pagination
+            className="border-t border-slate-100 px-4"
+            pagination={{
+              page,
+              pageCount: pagination.pages,
+              total: pagination.total,
+              start: (page - 1) * PAGE_SIZE,
+              end: Math.min(page * PAGE_SIZE, pagination.total),
+              setPage,
+            }}
+          />
         )}
       </div>
 
