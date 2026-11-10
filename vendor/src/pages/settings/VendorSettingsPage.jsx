@@ -123,9 +123,9 @@ export default function VendorSettingsPage() {
 
   const handleClearCache = () => {
     try {
-      const keepAuth = localStorage.getItem("greengroo_vendor_auth");
+      const keepAuth = localStorage.getItem("greengrocc_vendor_auth");
       localStorage.clear();
-      if (keepAuth) localStorage.setItem("greengroo_vendor_auth", keepAuth);
+      if (keepAuth) localStorage.setItem("greengrocc_vendor_auth", keepAuth);
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(DEFAULT_SETTINGS));
       setSettings(DEFAULT_SETTINGS);
       document.body.classList.remove("vendor-compact-tables");
@@ -903,7 +903,7 @@ export default function VendorSettingsPage() {
                     </label>
                     <input
                       type="url"
-                      placeholder="https://erp.yourcompany.com/webhook/greengroo"
+                      placeholder="https://erp.yourcompany.com/webhook/greengrocc"
                       className={EXCEL_INPUT}
                       value={settings.integrations.erpWebhookUrl}
                       onChange={(e) => updateSection("integrations", "erpWebhookUrl", e.target.value)}

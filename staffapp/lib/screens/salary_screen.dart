@@ -180,7 +180,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
                   children: [
                     const Icon(Icons.eco_rounded, color: AppColors.brandGreen, size: 24),
                     const SizedBox(width: 6),
-                    Text('GreenGroo Pay Slip', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('GreenGrocc Pay Slip', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),

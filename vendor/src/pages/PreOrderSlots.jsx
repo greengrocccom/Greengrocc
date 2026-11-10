@@ -16,7 +16,7 @@ export default function PreOrderSlots() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const token = (localStorage.getItem('greengrocc_admin_token') || (() => { try { return JSON.parse(localStorage.getItem('greengroo_vendor_auth'))?.token; } catch { return ''; } })());
+      const token = (localStorage.getItem('greengrocc_admin_token') || (() => { try { return JSON.parse(localStorage.getItem('greengrocc_vendor_auth'))?.token; } catch { return ''; } })());
       // Use /api/settings/admin or /api/settings based on the routes
       const res = await fetch(`${API_BASE}/api/settings/admin`, {
         headers: {
@@ -42,7 +42,7 @@ export default function PreOrderSlots() {
     try {
       setSaving(true);
       setError(null);
-      const token = (localStorage.getItem('greengrocc_admin_token') || (() => { try { return JSON.parse(localStorage.getItem('greengroo_vendor_auth'))?.token; } catch { return ''; } })());
+      const token = (localStorage.getItem('greengrocc_admin_token') || (() => { try { return JSON.parse(localStorage.getItem('greengrocc_vendor_auth'))?.token; } catch { return ''; } })());
       const res = await fetch(`${API_BASE}/api/settings`, {
         method: 'PUT',
         headers: {

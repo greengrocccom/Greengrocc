@@ -193,7 +193,7 @@ const FALLBACK_SEED_REQUESTS = [
   },
 ]
 
-const STORAGE_KEY = 'greengroo_segregation_packaging_v1'
+const STORAGE_KEY = 'greengrocc_segregation_packaging_v1'
 
 export default function InventoryRequestsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -1276,7 +1276,7 @@ export default function InventoryRequestsPage() {
                 {/* Brand Header */}
                 <div className="flex items-center justify-between border-b-2 border-slate-800 pb-3">
                   <div>
-                    <h2 className="text-lg font-black tracking-tight text-emerald-800">GREENGROO LOGISTICS</h2>
+                    <h2 className="text-lg font-black tracking-tight text-emerald-800">GREENGROCC LOGISTICS</h2>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Darkstore Restock Crate Tag</p>
                   </div>
                   <div className="text-right">
@@ -1397,7 +1397,7 @@ export default function InventoryRequestsPage() {
                 {/* Letterhead */}
                 <div className="flex items-center justify-between border-b-2 border-slate-800 pb-4">
                   <div>
-                    <h1 className="text-xl font-black text-emerald-800 tracking-tight">GREENGROO AGRI SUPPLY CHAIN</h1>
+                    <h1 className="text-xl font-black text-emerald-800 tracking-tight">GREENGROCC AGRI SUPPLY CHAIN</h1>
                     <p className="text-[11px] text-slate-600">Central Sorting & Segregation Hub • Pune Warehouse-1</p>
                   </div>
                   <div className="text-right">

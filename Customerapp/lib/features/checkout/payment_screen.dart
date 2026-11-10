@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -84,6 +85,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   String? _pricingRequestedKey;
   bool _autoPayPending = false;
   bool _setupDone = false;
+  /// Set from creating the Razorpay order until it is verified or fails; the
+  /// background price refresh must not re-save the checkout in between.
+  bool _paymentInFlight = false;
+  /// Address the Razorpay order was priced for; verification must use the same one.
+  Address? _payingAddress;
 
   @override
   void initState() {
@@ -284,6 +290,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     }
 
     saveLastPaymentMode(_selectedMode);
+    if (_selectedMode != PaymentModeOption.cod) _paymentInFlight = true;
+    _pricingRequestedKey = _pricingKey(cartItems, address.id);
     await _syncCheckoutAttempt(cartItems, address.id, force: true);
 
     if (_selectedMode == PaymentModeOption.cod) {
@@ -296,6 +304,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Future<void> _startRazorpayPayment(Address address) async {
     setState(() {
       _placingOrder = true;
+      _paymentInFlight = true;
+      _payingAddress = address;
       _errorMessage = '';
     });
 
@@ -363,8 +373,23 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       final msg = apiErrorMessage(e, fallback: 'Failed to start payment. Try again.');
       setState(() {
         _placingOrder = false;
+        _paymentInFlight = false;
         _errorMessage = msg;
       });
+    }
+  }
+
+  /// Verifying is idempotent on the server (the same payment returns the same
+  /// order), so retry dropped connections instead of making the customer pay again.
+  Future<void> _verifyWithRetry(Map<String, dynamic> payload) async {
+    for (var attempt = 1;; attempt++) {
+      try {
+        await ref.read(apiServiceProvider).verifyRazorpayPayment(payload);
+        return;
+      } on DioException catch (e) {
+        if (e.response != null || attempt >= 4) rethrow;
+        await Future<void>.delayed(Duration(seconds: attempt * 2));
+      }
     }
   }
 
@@ -377,17 +402,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     try {
       final cartItems = ref.read(cartControllerProvider).items;
       final addresses = ref.read(addressControllerProvider.select((s) => s.addresses));
-      final defaultAddr = addresses.where((a) => a.isDefault).firstOrNull ?? addresses.firstOrNull;
-      final rawId = widget.selectedAddressId ?? defaultAddr?.id;
-      final resolvedId = _resolveAddressId(rawId);
+      final address = _payingAddress ??
+          addresses.where((a) => a.id == widget.selectedAddressId).firstOrNull ??
+          addresses.where((a) => a.isDefault).firstOrNull ??
+          addresses.firstOrNull;
+      final resolvedId = _resolveAddressId(address?.id ?? widget.selectedAddressId);
 
-      await ref.read(apiServiceProvider).verifyRazorpayPayment({
+      await _verifyWithRetry({
         if (resolvedId != null) 'addressId': resolvedId,
         'paymentMode': _paymentPlan,
         'customerMessage': widget.customerMessage?.trim() ?? '',
         'checkoutItems': _checkoutItemsPayload(cartItems),
         'checkoutMode': 'cart',
-        'customerLocation': _customerLocationPayload(address: defaultAddr),
+        'customerLocation': _customerLocationPayload(address: address),
         if (_appliedCoupon != null) 'couponCode': _appliedCoupon!.code,
         if (_attemptedOrderId != null) 'attemptedOrderId': _attemptedOrderId,
         'razorpay_order_id': response.orderId,
@@ -396,14 +423,17 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         ..._fulfillmentPayload(),
       });
 
+      _paymentInFlight = false;
       await _completeOrderSuccess('Order placed and payment confirmed via Razorpay!');
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = apiErrorMessage(
           e,
           fallback: 'Payment verified but order creation failed. Contact support.',
         );
         _placingOrder = false;
+        _paymentInFlight = false;
       });
     }
   }
@@ -412,6 +442,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final msg = razorpayErrorMessage(response);
     setState(() {
       _placingOrder = false;
+      _paymentInFlight = false;
       _errorMessage = msg;
     });
   }
@@ -567,7 +598,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         : localSummary;
 
     final pricingKey = _pricingKey(cartItems, effectiveAddress.id);
-    if (cartItems.isNotEmpty && !_orderPlaced && _pricingRequestedKey != pricingKey) {
+    // Auto-pay and an open Razorpay sheet save the checkout themselves; a parallel
+    // background save could land after the Razorpay order and unlink it.
+    if (cartItems.isNotEmpty &&
+        !_orderPlaced &&
+        !_paymentInFlight &&
+        !_autoPayPending &&
+        _pricingRequestedKey != pricingKey) {
       _pricingRequestedKey = pricingKey;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _syncCheckoutAttempt(cartItems, effectiveAddress.id);
@@ -648,7 +685,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               _DeliveryRouteCard(
                 storeName: (darkStore?.storeName.trim().isNotEmpty ?? false)
                     ? darkStore!.storeName
-                    : 'GreenGroo',
+                    : 'GreenGrocc',
                 addressTitle: _isPickup
                     ? 'Store pickup'
                     : ((selectedAddress?.fullName.trim().isNotEmpty ?? false)

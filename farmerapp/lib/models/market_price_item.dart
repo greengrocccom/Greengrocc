@@ -40,8 +40,8 @@ class MarketPriceItem {
   factory MarketPriceItem.fromJson(Map<String, dynamic> json) {
     final mName = json['marketName']?.toString() ?? '';
     final isGg = json['isGreenGroo'] == true ||
-        mName.toLowerCase().contains('greengroo') ||
-        mName.contains('ग्रीनग्रू');
+        mName.toLowerCase().contains('greengro') ||
+        mName.contains('ग्रीनग्र');
 
     return MarketPriceItem(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
@@ -104,9 +104,9 @@ class ProductMarketComparison {
   final String bestMarketName;
   final double bestAdvantagePercent;
   final List<MarketRateComparison> markets;
-  final MarketRateComparison? greenGrooRate;
-  final double greenGrooVsAvgPercent; // positive if GreenGroo is higher, negative if lower
-  final double greenGrooDiffAmount;
+  final MarketRateComparison? greenGroccRate;
+  final double greenGroccVsAvgPercent; // positive if GreenGrocc is higher, negative if lower
+  final double greenGroccDiffAmount;
 
   const ProductMarketComparison({
     required this.productName,
@@ -119,10 +119,10 @@ class ProductMarketComparison {
     required this.bestMarketName,
     required this.bestAdvantagePercent,
     required this.markets,
-    this.greenGrooRate,
-    this.greenGrooVsAvgPercent = 0.0,
-    this.greenGrooDiffAmount = 0.0,
+    this.greenGroccRate,
+    this.greenGroccVsAvgPercent = 0.0,
+    this.greenGroccDiffAmount = 0.0,
   });
 
-  bool get hasGreenGroo => greenGrooRate != null;
+  bool get hasGreenGrocc => greenGroccRate != null;
 }

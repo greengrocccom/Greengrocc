@@ -32,7 +32,7 @@ export default function ProductManagerLayout() {
             <LogoIcon className="h-5 w-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold leading-tight text-white">GreenGroo</p>
+            <p className="text-sm font-bold leading-tight text-white">GreenGrocc</p>
             <p className="text-xs text-white/60">Product Manager</p>
           </div>
         </div>

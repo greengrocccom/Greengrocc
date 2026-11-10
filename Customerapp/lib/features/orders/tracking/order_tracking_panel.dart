@@ -12,13 +12,12 @@ import '../../../config/env.dart';
 import '../../../config/theme.dart';
 import '../../../services/socket_service.dart';
 import '../widgets/preorder_progress_steps.dart';
-import 'live_tracking_map.dart';
 import '../../../models/order.dart';
 import 'order_tracking_models.dart';
 import 'order_tracking_repository.dart';
-import 'osm_tracking_map.dart';
 import 'polyline_codec.dart';
 import 'road_route_service.dart';
+import 'tracking_map.dart';
 import 'tracking_timeline.dart';
 import 'widgets/modern_tracking_view.dart';
 
@@ -509,25 +508,16 @@ class _OrderTrackingPanelState extends ConsumerState<OrderTrackingPanel> {
             ),
             if (showMap) ...[
               const SizedBox(height: 14),
-              if (Env.useGoogleMaps)
-                LiveTrackingMap(
-                  driver: _driver,
-                  heading: _heading,
-                  store: tracking.storeLocation,
-                  destination: tracking.destination,
-                  route: live.route,
-                  etaText: tracking.eta?.text,
-                  distanceMeters: tracking.eta?.distanceMeters,
-                  liveTracking: tracking.liveTracking,
-                )
-              else
-                OsmTrackingMap(
-                  driver: _driver,
-                  heading: _heading,
-                  store: tracking.storeLocation,
-                  destination: tracking.destination,
-                  route: live.route,
-                ),
+              TrackingMap(
+                driver: _driver,
+                heading: _heading,
+                store: tracking.storeLocation,
+                destination: tracking.destination,
+                route: live.route,
+                etaText: tracking.eta?.text,
+                distanceMeters: tracking.eta?.distanceMeters,
+                liveTracking: tracking.liveTracking,
+              ),
             ],
             if (tracking.liveTracking && _lastFixAt != null && !tracking.isClosed) ...[
               const SizedBox(height: 8),

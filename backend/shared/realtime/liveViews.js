@@ -89,7 +89,7 @@ function sendToSubscribers(view, event, payloadFor) {
 }
 
 async function fetchView(view) {
-  const headers = { Accept: "application/json", "x-greengroo-live": "1" };
+  const headers = { Accept: "application/json", "x-greengrocc-live": "1" };
   if (view.token) headers.Authorization = `Bearer ${view.token}`;
   const res = await fetch(`${baseUrl}${view.url}`, { headers });
   let body = null;

@@ -11,7 +11,7 @@ export const FARMER_COLORS = {
   error: "#DC2626",
 };
 
-export const FARMER_STORAGE_KEY = "greengroo_farmer_auth";
+export const FARMER_STORAGE_KEY = "greengrocc_farmer_auth";
 
 export const REGISTRATION_STATUS = {
   REGISTERED: "REGISTERED",

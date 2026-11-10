@@ -14,7 +14,7 @@ export const api = withLiveAdapter(
   axios
 );
 
-const AUTH_STORAGE_KEY = "greengroo_product_manager_auth";
+const AUTH_STORAGE_KEY = "greengrocc_product_manager_auth";
 
 function storedToken() {
   try {

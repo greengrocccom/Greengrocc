@@ -1248,6 +1248,28 @@ export async function prepareCheckoutAttemptData(userId, options = {}) {
   };
 }
 
+function checkoutItemsKey(items) {
+  return (items || [])
+    .map((item) => [String(item.product || ""), item.variantName || "", item.colorName || "", Number(item.quantity) || 0].join(":"))
+    .sort()
+    .join("|");
+}
+
+function checkoutAddressKey(address) {
+  const loc = address?.location || {};
+  return [address?.fullAddress, address?.pincode, loc.lat, loc.lng].map((v) => String(v ?? "")).join("|");
+}
+
+function isSameCheckoutAttempt(existing, payload) {
+  return (
+    Math.round(Number(existing.total) * 100) === Math.round(Number(payload.total) * 100) &&
+    checkoutItemsKey(existing.items) === checkoutItemsKey(payload.items) &&
+    checkoutAddressKey(existing.deliveryAddress) === checkoutAddressKey(payload.deliveryAddress) &&
+    String(existing.fulfillmentType || "") === String(payload.fulfillmentType || "") &&
+    String(existing.preOrderSlot || "") === String(payload.preOrderSlot || "")
+  );
+}
+
 export async function upsertCheckoutAttemptOrder(userId, prepared, paymentMethod = "cod") {
   const normalizedPaymentMethod = paymentMethod === "online" ? "online" : "cod";
   const payload = {
@@ -1277,15 +1299,20 @@ export async function upsertCheckoutAttemptOrder(userId, prepared, paymentMethod
     status: "attempted",
     preOrderSlot: normalizePreOrderSlot(prepared.preOrderSlot),
     fulfillmentType: normalizeFulfillmentType(prepared.fulfillmentType),
-    // A changed checkout is no longer the one a pending Razorpay order was priced for.
-    razorpayOrderId: "",
-    razorpayPaymentId: "",
   };
 
   const existing = await Order.findOne({ user: userId, status: "attempted" })
     .sort({ updatedAt: -1 })
-    .select("_id")
+    .select("_id items total deliveryAddress fulfillmentType preOrderSlot razorpayOrderId")
     .lean();
+
+  // A changed checkout is no longer the one a pending Razorpay order was priced for.
+  // Re-saving the same checkout (the app refreshes prices in the background while the
+  // Razorpay sheet is open) must keep that link, or the payment can't become the order.
+  if (!existing?.razorpayOrderId || !isSameCheckoutAttempt(existing, payload)) {
+    payload.razorpayOrderId = "";
+    payload.razorpayPaymentId = "";
+  }
 
   // Atomic update: concurrent syncs from the checkout page would otherwise
   // race on document.save() and fail with a VersionError.

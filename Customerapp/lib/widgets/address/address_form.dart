@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/theme.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/providers/location_provider.dart';
 import '../../core/utils/address_utils.dart';
 import '../../core/utils/detect_current_location.dart';
 import '../../features/address/address_controller.dart';
@@ -130,10 +129,6 @@ class _AddressFormState extends ConsumerState<AddressForm> {
     setState(() => _isDetecting = true);
     try {
       final detected = await detectPhoneLocation(ref.read(apiServiceProvider));
-      if (!mounted || seq != _detectLocationSeq) return;
-      await ref.read(deliveryLocationProvider.notifier).setLocation(
-            detected.toDeliveryLocation(),
-          );
       if (!mounted || seq != _detectLocationSeq) return;
       setState(() {
         _applyDetected(detected);

@@ -45,9 +45,9 @@ const stripMarathi = (str = '') =>
     .replace(/\s{2,}/g, ' ')
     .trim();
 
-const isGreenGrooRecord = (row) =>
+const isGreenGroccRecord = (row) =>
   Boolean(row?.isGreenGroo) ||
-  String(row?.marketName || '').toLowerCase().includes('greengroo');
+  String(row?.marketName || '').toLowerCase().includes('greengro');
 
 const localToday = () => {
   const d = new Date();
@@ -86,16 +86,16 @@ const latestPerMarket = (list) => {
   return Array.from(map.values());
 };
 
-const GREENGROO_HUBS = [
-  'GreenGroo Direct Center',
-  'GreenGroo Hub - Pune',
-  'GreenGroo Hub - Nashik',
-  'GreenGroo Hub - Mumbai',
-  'GreenGroo Hub - Kolhapur',
+const GREENGROCC_HUBS = [
+  'GreenGrocc Direct Center',
+  'GreenGrocc Hub - Pune',
+  'GreenGrocc Hub - Nashik',
+  'GreenGrocc Hub - Mumbai',
+  'GreenGrocc Hub - Kolhapur',
 ];
 
 const MARKET_SUGGESTIONS = [
-  'GreenGroo Direct Center',
+  'GreenGrocc Direct Center',
   'Pune APMC',
   'Mumbai Vashi APMC',
   'Nashik APMC',
@@ -174,7 +174,7 @@ export default function MarketPricesPage() {
 
   // Filters
   const [search, setSearch] = useState('');
-  const [scopeFilter, setScopeFilter] = useState('all'); // 'all', 'greengroo', 'apmc'
+  const [scopeFilter, setScopeFilter] = useState('all'); // 'all', 'greengrocc', 'apmc'
   const [marketFilter, setMarketFilter] = useState('all');
   const [productFilter, setProductFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -182,7 +182,7 @@ export default function MarketPricesPage() {
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
-  const [isGreenGrooMode, setIsGreenGrooMode] = useState(false);
+  const [isGreenGroccMode, setIsGreenGroccMode] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState(makeInitialForm);
   const [formErrors, setFormErrors] = useState({});
@@ -235,7 +235,7 @@ export default function MarketPricesPage() {
     return Array.from(new Set(source.filter(Boolean))).sort().reverse();
   }, [filterOptions.dates, rows]);
 
-  // Product price comparison (GreenGroo vs APMC) on each market's latest active quote, per Quintal
+  // Product price comparison (GreenGrocc vs APMC) on each market's latest active quote, per Quintal
   const productAnalysis = useMemo(() => {
     const groups = {};
     rows.forEach((row) => {
@@ -251,17 +251,17 @@ export default function MarketPricesPage() {
 
     return Object.values(groups).map((p) => {
       const latest = latestPerMarket(p.rows);
-      const greenGrooRow =
+      const greenGroccRow =
         latest
-          .filter((r) => isGreenGrooRecord(r))
+          .filter((r) => isGreenGroccRecord(r))
           .sort((a, b) => comparablePrice(b) - comparablePrice(a))[0] || null;
-      const apmcRows = latest.filter((r) => !isGreenGrooRecord(r));
+      const apmcRows = latest.filter((r) => !isGreenGroccRecord(r));
       const apmcPrices = apmcRows.map((r) => comparablePrice(r)).filter((x) => x > 0);
       const apmcMin = apmcPrices.length ? Math.min(...apmcPrices) : 0;
       const apmcMax = apmcPrices.length ? Math.max(...apmcPrices) : 0;
       const apmcAvg = apmcPrices.length ? apmcPrices.reduce((a, b) => a + b, 0) / apmcPrices.length : 0;
 
-      const ggPrice = greenGrooRow ? comparablePrice(greenGrooRow) : 0;
+      const ggPrice = greenGroccRow ? comparablePrice(greenGroccRow) : 0;
       let diffPercent = 0;
       let diffAmount = 0;
       let status = 'none';
@@ -276,7 +276,7 @@ export default function MarketPricesPage() {
 
       return {
         ...p,
-        greenGrooRow,
+        greenGroccRow,
         apmcRows,
         apmcMin,
         apmcMax,
@@ -293,9 +293,9 @@ export default function MarketPricesPage() {
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((row) => {
-      const isGg = isGreenGrooRecord(row);
+      const isGg = isGreenGroccRecord(row);
 
-      if (scopeFilter === 'greengroo' && !isGg) return false;
+      if (scopeFilter === 'greengrocc' && !isGg) return false;
       if (scopeFilter === 'apmc' && isGg) return false;
 
       const matchesSearch =
@@ -320,16 +320,16 @@ export default function MarketPricesPage() {
   const openCreateModal = () => {
     setEditingItem(null);
     setForm({ ...makeInitialForm(), isGreenGroo: false });
-    setIsGreenGrooMode(false);
+    setIsGreenGroccMode(false);
     setFormErrors({});
     setModalOpen(true);
   };
 
-  const openGreenGrooModal = (prefillProduct = '') => {
+  const openGreenGroccModal = (prefillProduct = '') => {
     setEditingItem(null);
     setForm({
       ...makeInitialForm(),
-      marketName: 'GreenGroo Direct Center',
+      marketName: 'GreenGrocc Direct Center',
       productName: prefillProduct || 'Tomato',
       variety: 'Hybrid',
       district: 'Pune',
@@ -340,15 +340,15 @@ export default function MarketPricesPage() {
       isGreenGroo: true,
       isActive: true,
     });
-    setIsGreenGrooMode(true);
+    setIsGreenGroccMode(true);
     setFormErrors({});
     setModalOpen(true);
   };
 
   const openEditModal = (item) => {
     setEditingItem(item);
-    const isGg = isGreenGrooRecord(item);
-    setIsGreenGrooMode(isGg);
+    const isGg = isGreenGroccRecord(item);
+    setIsGreenGroccMode(isGg);
     setForm({
       marketName: stripMarathi(item.marketName || ''),
       productName: stripMarathi(item.productName || ''),
@@ -380,7 +380,7 @@ export default function MarketPricesPage() {
         (r) =>
           r.isActive !== false &&
           Number(r.price) > 0 &&
-          !isGreenGrooRecord(r) &&
+          !isGreenGroccRecord(r) &&
           r._id !== editingItem?._id &&
           analysisKey(r) === key
       )
@@ -493,7 +493,7 @@ export default function MarketPricesPage() {
           </div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">Market Prices</h1>
           <p className="text-xs text-slate-500">
-            APMC mandi rates, GreenGroo procurement prices, and % comparison.
+            APMC mandi rates, GreenGrocc procurement prices, and % comparison.
           </p>
         </div>
 
@@ -509,12 +509,12 @@ export default function MarketPricesPage() {
           </button>
           <button
             type="button"
-            onClick={() => openGreenGrooModal()}
+            onClick={() => openGreenGroccModal()}
             className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition active:scale-[0.98] whitespace-nowrap"
-            title="Set GreenGroo Direct Procurement Price"
+            title="Set GreenGrocc Direct Procurement Price"
           >
             <Sparkles className="mr-1 h-3.5 w-3.5 text-emerald-200" />
-            🌿 GreenGroo Price
+            🌿 GreenGrocc Price
           </button>
           <button
             type="button"
@@ -579,13 +579,13 @@ export default function MarketPricesPage() {
         </div>
       )}
 
-      {/* Price Comparison Cards (GreenGroo vs APMC) - Compact */}
+      {/* Price Comparison Cards (GreenGrocc vs APMC) - Compact */}
       <div className={`${PANEL} p-3.5`}>
         <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
           <div className="flex items-center gap-1.5">
             <Sparkles className="h-4 w-4 text-emerald-600" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              GreenGroo vs APMC Price Comparison
+              GreenGrocc vs APMC Price Comparison
             </h2>
           </div>
           <span className="text-[11px] text-slate-400">
@@ -595,7 +595,7 @@ export default function MarketPricesPage() {
 
         <div className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {productAnalysis.map((item) => {
-            const hasGg = Boolean(item.greenGrooRow);
+            const hasGg = Boolean(item.greenGroccRow);
             return (
               <div
                 key={item.key}
@@ -616,7 +616,7 @@ export default function MarketPricesPage() {
 
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5 text-[11px]">
                   <div className="bg-white/80 p-1.5 rounded border border-slate-100">
-                    <span className="text-[10px] text-emerald-700 font-bold block">GreenGroo</span>
+                    <span className="text-[10px] text-emerald-700 font-bold block">GreenGrocc</span>
                     <span className="font-extrabold text-emerald-950">
                       {hasGg ? `₹${Math.round(item.ggPrice).toLocaleString('en-IN')}` : '-'}
                     </span>
@@ -651,7 +651,7 @@ export default function MarketPricesPage() {
                   {hasGg ? (
                     <button
                       type="button"
-                      onClick={() => openEditModal(item.greenGrooRow)}
+                      onClick={() => openEditModal(item.greenGroccRow)}
                       className="text-[10.5px] font-semibold text-emerald-700 hover:underline"
                     >
                       Edit
@@ -659,7 +659,7 @@ export default function MarketPricesPage() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => openGreenGrooModal(item.productName)}
+                      onClick={() => openGreenGroccModal(item.productName)}
                       className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800"
                     >
                       + Set
@@ -672,7 +672,7 @@ export default function MarketPricesPage() {
         </div>
         {!loading && productAnalysis.length === 0 && (
           <p className="mt-3 text-center text-[11px] text-slate-400">
-            No active prices yet. Add an APMC or GreenGroo price to see the comparison.
+            No active prices yet. Add an APMC or GreenGrocc price to see the comparison.
           </p>
         )}
       </div>
@@ -692,14 +692,14 @@ export default function MarketPricesPage() {
         </button>
         <button
           type="button"
-          onClick={() => setScopeFilter('greengroo')}
+          onClick={() => setScopeFilter('greengrocc')}
           className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 font-medium transition ${
-            scopeFilter === 'greengroo'
+            scopeFilter === 'greengrocc'
               ? 'bg-emerald-600 text-white'
               : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
           }`}
         >
-          🌿 GreenGroo ({rows.filter((r) => isGreenGrooRecord(r)).length})
+          🌿 GreenGrocc ({rows.filter((r) => isGreenGroccRecord(r)).length})
         </button>
         <button
           type="button"
@@ -710,7 +710,7 @@ export default function MarketPricesPage() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          APMC Mandis ({rows.filter((r) => !isGreenGrooRecord(r)).length})
+          APMC Mandis ({rows.filter((r) => !isGreenGroccRecord(r)).length})
         </button>
       </div>
 
@@ -833,7 +833,7 @@ export default function MarketPricesPage() {
                 <th className={`${TH} py-2.5 px-3`}>Variety</th>
                 <th className={`${TH} py-2.5 px-3`}>Price</th>
                 <th className={`${TH} py-2.5 px-3`}>Min - Max</th>
-                <th className={`${TH} py-2.5 px-3`}>vs APMC / GreenGroo</th>
+                <th className={`${TH} py-2.5 px-3`}>vs APMC / GreenGrocc</th>
                 <th className={`${TH} py-2.5 px-3`}>Trend</th>
                 <th className={`${TH} py-2.5 px-3`}>Arrivals</th>
                 <th className={`${TH} py-2.5 px-3`}>Date</th>
@@ -857,7 +857,7 @@ export default function MarketPricesPage() {
                 </tr>
               ) : (
                 filteredRows.map((row) => {
-                  const isGg = isGreenGrooRecord(row);
+                  const isGg = isGreenGroccRecord(row);
                   const displayMarket = stripMarathi(row.marketName);
                   const displayProduct = stripMarathi(row.productName);
                   const displayVariety = stripMarathi(row.variety) || 'Standard';
@@ -911,7 +911,7 @@ export default function MarketPricesPage() {
                         {Number(row.maxPrice || row.price).toLocaleString('en-IN')}
                       </td>
 
-                      {/* Comparison vs APMC / GreenGroo */}
+                      {/* Comparison vs APMC / GreenGrocc */}
                       <td className={`${TD} py-2.5 px-3`}>
                         {(() => {
                           const analysis = productAnalysis.find((a) => a.key === analysisKey(row));
@@ -943,17 +943,17 @@ export default function MarketPricesPage() {
                               if (diffFromGg < -0.05) {
                                 return (
                                   <span className="text-[10.5px] text-amber-800 font-medium bg-amber-50 px-1.5 py-0.5 rounded">
-                                    {Math.abs(diffFromGg).toFixed(1)}% below GreenGroo
+                                    {Math.abs(diffFromGg).toFixed(1)}% below GreenGrocc
                                   </span>
                                 );
                               } else if (diffFromGg > 0.05) {
                                 return (
                                   <span className="text-[10.5px] text-blue-800 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
-                                    +{diffFromGg.toFixed(1)}% above GreenGroo
+                                    +{diffFromGg.toFixed(1)}% above GreenGrocc
                                   </span>
                                 );
                               } else {
-                                return <span className="text-[11px] text-slate-500">Same as GreenGroo</span>;
+                                return <span className="text-[11px] text-slate-500">Same as GreenGrocc</span>;
                               }
                             }
                             return <span className="text-slate-400">-</span>;
@@ -1040,15 +1040,15 @@ export default function MarketPricesPage() {
             <div className="shrink-0 flex items-center justify-between border-b border-slate-100 px-4 py-3 bg-white">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-900">
-                  {isGreenGrooMode
+                  {isGreenGroccMode
                     ? editingItem
-                      ? 'Edit GreenGroo Price'
-                      : 'Set GreenGroo Procurement Price'
+                      ? 'Edit GreenGrocc Price'
+                      : 'Set GreenGrocc Procurement Price'
                     : editingItem
                     ? 'Edit Market Price'
                     : 'Add Market Price'}
                 </h3>
-                {isGreenGrooMode && (
+                {isGreenGroccMode && (
                   <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9.5px] font-bold text-emerald-800">
                     Direct
                   </span>
@@ -1068,20 +1068,20 @@ export default function MarketPricesPage() {
               {/* Market Name */}
               <div>
                 <label className="font-semibold text-slate-700 block">
-                  {isGreenGrooMode ? 'GreenGroo Center / Hub' : 'Market / APMC Name'}{' '}
+                  {isGreenGroccMode ? 'GreenGrocc Center / Hub' : 'Market / APMC Name'}{' '}
                   <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   list="market-suggestions"
-                  placeholder="e.g. Pune APMC or GreenGroo Direct Center"
+                  placeholder="e.g. Pune APMC or GreenGrocc Direct Center"
                   value={form.marketName}
                   onChange={(e) => setForm({ ...form, marketName: e.target.value })}
                   className={`${INPUT} mt-1 py-1.5 text-xs`}
                   autoFocus
                 />
                 <datalist id="market-suggestions">
-                  {(isGreenGrooMode ? GREENGROO_HUBS : MARKET_SUGGESTIONS).map((item) => (
+                  {(isGreenGroccMode ? GREENGROCC_HUBS : MARKET_SUGGESTIONS).map((item) => (
                     <option key={item} value={item} />
                   ))}
                 </datalist>
@@ -1091,8 +1091,8 @@ export default function MarketPricesPage() {
 
                 {/* Quick Hub Chips */}
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {(isGreenGrooMode
-                    ? GREENGROO_HUBS
+                  {(isGreenGroccMode
+                    ? GREENGROCC_HUBS
                     : ['Pune APMC', 'Mumbai Vashi APMC', 'Nashik APMC', 'Kolhapur APMC']
                   ).map((chip) => (
                     <button

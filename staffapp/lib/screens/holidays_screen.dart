@@ -55,7 +55,7 @@ class _HolidaysScreenState extends State<HolidaysScreen> {
               'date': hDate != null ? DateFormat('d MMM yyyy (E)').format(hDate) : 'Annual Holiday',
               'daysLeft': daysLabel,
               'dateTime': hDate,
-              'description': h['body'] ?? 'Official paid holiday observed by GreenGroo.',
+              'description': h['body'] ?? 'Official paid holiday observed by GreenGrocc.',
             };
           }).toList();
 

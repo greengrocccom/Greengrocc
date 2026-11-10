@@ -434,15 +434,15 @@ export function parsePickupQr(payload) {
   } catch {
     /* not a URL */
   }
-  const pickupMatch = raw.match(/^(?:ggp\.|greengroo:pickup:)([A-Za-z0-9_-]+)$/i);
+  const pickupMatch = raw.match(/^(?:ggp\.|greengro(?:o|cc):pickup:)([A-Za-z0-9_-]+)$/i);
   if (pickupMatch) return { token: pickupMatch[1] };
   const batchMatch = raw.match(/(GGC-BAT-[A-Za-z0-9-]+)/i);
-  if (batchMatch && /greengroo:batch:|ggp\.batch\.|\/batches\//i.test(raw)) {
+  if (batchMatch && /greengro(?:o|cc):batch:|ggp\.batch\.|\/batches\//i.test(raw)) {
     return { batchId: batchMatch[1] };
   }
   const biz = raw.match(/(GGC-ORD-[A-Za-z0-9-]+)/i);
   if (biz) return { orderId: biz[1] };
-  const orderMatch = raw.match(/(?:greengroo:order:|ggp\.order\.)([A-Za-z0-9_-]+)/i);
+  const orderMatch = raw.match(/(?:greengro(?:o|cc):order:|ggp\.order\.)([A-Za-z0-9_-]+)/i);
   if (orderMatch) return { orderId: orderMatch[1] };
   if (/^[A-Fa-f0-9]{20,}$/.test(raw)) return { token: raw };
   return { orderId: raw.replace(/^order[:#\s]+/i, "").trim() };
@@ -1982,7 +1982,7 @@ function batchPayload(batchId, orders) {
   return {
     batchId,
     lotId: batchId,
-    qrPayload: batchQrPayloadFor(batchId, orders) || `greengroo:batch:${batchId}`,
+    qrPayload: batchQrPayloadFor(batchId, orders) || `greengrocc:batch:${batchId}`,
     status: first.status || "",
     liveStatus: first.liveStatus || "",
     orderCount: orders.length,

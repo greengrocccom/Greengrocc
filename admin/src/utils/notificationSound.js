@@ -32,7 +32,7 @@ export function getSoundSettings() {
     return { enabled: true, preset: 'chime', volume: 0.8 };
   }
   try {
-    const stored = localStorage.getItem('greengroo_admin_sound_settings');
+    const stored = localStorage.getItem('greengrocc_admin_sound_settings');
     if (stored) {
       return JSON.parse(stored);
     }
@@ -45,7 +45,7 @@ export function getSoundSettings() {
 export function saveSoundSettings(settings) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('greengroo_admin_sound_settings', JSON.stringify(settings));
+    localStorage.setItem('greengrocc_admin_sound_settings', JSON.stringify(settings));
   } catch (e) {
     // ignore
   }

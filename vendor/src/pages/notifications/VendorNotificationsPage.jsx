@@ -73,7 +73,7 @@ export default function VendorNotificationsPage() {
         <div>
           <div className={PAGE_KICKER}>Inbox</div>
           <h1 className={PAGE_TITLE}>Notifications</h1>
-          <p className={PAGE_SUB}>Announcements, holidays and notes from GreenGroo admin. Items older than 7 days are hidden.</p>
+          <p className={PAGE_SUB}>Announcements, holidays and notes from GreenGrocc admin. Items older than 7 days are hidden.</p>
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={onRefresh} className={`${BTN} gap-1.5`} disabled={refreshing}>

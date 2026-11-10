@@ -162,27 +162,27 @@ export default function VendorExportImportPage() {
 
     if (format === "csv") {
       const csvContent = generateCSV(exportableProducts);
-      triggerDownload(csvContent, `greengroo-products-${dateStr}.csv`, "text/csv;charset=utf-8;");
+      triggerDownload(csvContent, `greengrocc-products-${dateStr}.csv`, "text/csv;charset=utf-8;");
       toast.success(`Exported ${count} products to CSV!`);
       saveImportHistoryEntry({
         type: "export",
         entity: "products",
         format: "CSV",
         recordCount: count,
-        fileName: `greengroo-products-${dateStr}.csv`,
+        fileName: `greengrocc-products-${dateStr}.csv`,
         status: "Completed",
       });
       setHistoryLogs(getImportHistory());
     } else {
-      const xmlContent = generateXML(exportableProducts, vendor?.vendorName || "GreenGroo Vendor Portal");
-      triggerDownload(xmlContent, `greengroo-products-${dateStr}.xml`, "application/xml;charset=utf-8;");
+      const xmlContent = generateXML(exportableProducts, vendor?.vendorName || "GreenGrocc Vendor Portal");
+      triggerDownload(xmlContent, `greengrocc-products-${dateStr}.xml`, "application/xml;charset=utf-8;");
       toast.success(`Exported ${count} products to XML!`);
       saveImportHistoryEntry({
         type: "export",
         entity: "products",
         format: "XML",
         recordCount: count,
-        fileName: `greengroo-products-${dateStr}.xml`,
+        fileName: `greengrocc-products-${dateStr}.xml`,
         status: "Completed",
       });
       setHistoryLogs(getImportHistory());
@@ -304,7 +304,7 @@ export default function VendorExportImportPage() {
   // --------------------------------------------------------------------
   const handleExportShopConfig = (format = configExportFormat) => {
     const dateStr = new Date().toISOString().slice(0, 10);
-    const shopName = vendor?.vendorName || "GreenGroo Shop";
+    const shopName = vendor?.vendorName || "GreenGrocc Shop";
 
     const fullConfig = {
       ...settings,
@@ -1018,7 +1018,7 @@ export default function VendorExportImportPage() {
                 <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs space-y-1.5 text-slate-600">
                   <div className="flex justify-between">
                     <span>Store Name:</span>
-                    <strong className="text-slate-800">{vendor?.vendorName || "GreenGroo Vendor"}</strong>
+                    <strong className="text-slate-800">{vendor?.vendorName || "GreenGrocc Vendor"}</strong>
                   </div>
                   <div className="flex justify-between">
                     <span>Opening Hours:</span>

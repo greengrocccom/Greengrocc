@@ -203,7 +203,7 @@ Map<String, dynamic>? matchPickupForQr(
   } catch (_) {}
   for (final re in [
     RegExp(r'GGC-ORD-[A-Za-z0-9-]+', caseSensitive: false),
-    RegExp(r'(?:greengroo:order:|ggp\.order\.)([A-Za-z0-9_-]+)',
+    RegExp(r'(?:greengro(?:o|cc):order:|ggp\.order\.)([A-Za-z0-9_-]+)',
         caseSensitive: false),
   ]) {
     final m = re.firstMatch(value);
@@ -472,7 +472,7 @@ String parseOrderQrPayload(dynamic payload) {
   final biz =
       RegExp(r'(GGC-ORD-[A-Za-z0-9-]+)', caseSensitive: false).firstMatch(raw);
   if (biz != null) return biz.group(1)!;
-  final tagged = RegExp(r'(?:greengroo:order:|ggp\.order\.)([A-Za-z0-9_-]+)',
+  final tagged = RegExp(r'(?:greengro(?:o|cc):order:|ggp\.order\.)([A-Za-z0-9_-]+)',
           caseSensitive: false)
       .firstMatch(raw);
   if (tagged != null) return tagged.group(1)!;
@@ -609,7 +609,7 @@ String parseBatchQrPayload(dynamic payload) {
   final biz =
       RegExp(r'(GGC-BAT-[A-Za-z0-9-]+)', caseSensitive: false).firstMatch(raw);
   if (biz != null) return biz.group(1)!;
-  final tagged = RegExp(r'(?:greengroo:batch:|ggp\.batch\.)([A-Za-z0-9_-]+)',
+  final tagged = RegExp(r'(?:greengro(?:o|cc):batch:|ggp\.batch\.)([A-Za-z0-9_-]+)',
           caseSensitive: false)
       .firstMatch(raw);
   if (tagged != null) return tagged.group(1)!;
@@ -707,12 +707,12 @@ String buildBatchQrPayload(Map<String, dynamic> record, [String batchId = '']) {
 
 String orderQrLabel(String payload) {
   final id = parseOrderQrPayload(payload);
-  return id.isNotEmpty ? 'greengroo:order:$id' : payload;
+  return id.isNotEmpty ? 'greengrocc:order:$id' : payload;
 }
 
 String batchQrLabel(String payload) {
   final id = parseBatchQrPayload(payload);
-  return id.isNotEmpty ? 'greengroo:batch:$id' : payload;
+  return id.isNotEmpty ? 'greengrocc:batch:$id' : payload;
 }
 
 String orderQrFacts(String payload) {

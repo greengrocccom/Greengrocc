@@ -25,9 +25,9 @@ function safeEmit(fn) {
 }
 
 const LEGACY_SEED_ROWS = [
-  ["GreenGroo Direct Center", "Tomato", "Hybrid Super Grade", "Direct farmgate purchase. 0% middleman commission, 24h instant payout."],
-  ["GreenGroo Direct Center", "Onion", "Garwa / Export", "Direct farm procurement with doorstep pickup."],
-  ["GreenGroo Direct Center", "Potato", "Jyoti Premium", "Direct procurement center at Manchar Hub."],
+  ["GreenGrocc Direct Center", "Tomato", "Hybrid Super Grade", "Direct farmgate purchase. 0% middleman commission, 24h instant payout."],
+  ["GreenGrocc Direct Center", "Onion", "Garwa / Export", "Direct farm procurement with doorstep pickup."],
+  ["GreenGrocc Direct Center", "Potato", "Jyoti Premium", "Direct procurement center at Manchar Hub."],
   ["Pune APMC", "Tomato", "Hybrid No.1", "Good quality arrivals from Narayangaon & Junnar."],
   ["Mumbai Vashi APMC", "Tomato", "Desi Special", "High retail demand in MMR region."],
   ["Nashik APMC", "Onion", "Lal Kaanda", "Major trading volume today."],
@@ -221,8 +221,8 @@ export async function createMarketPrice(req, res, next) {
     }
     const isGg =
       Boolean(isGreenGroo) ||
-      String(marketName).toLowerCase().includes("greengroo") ||
-      String(marketName).includes("ग्रीनग्रू");
+      String(marketName).toLowerCase().includes("greengro") ||
+      String(marketName).includes("ग्रीनग्र");
 
     const row = await MarketPrice.create({
       marketName: String(marketName).trim(),
@@ -282,8 +282,8 @@ export async function updateMarketPrice(req, res, next) {
     if (marketName !== undefined) {
       row.marketName = String(marketName).trim();
       if (
-        String(marketName).toLowerCase().includes("greengroo") ||
-        String(marketName).includes("ग्रीनग्रू")
+        String(marketName).toLowerCase().includes("greengro") ||
+        String(marketName).includes("ग्रीनग्र")
       ) {
         row.isGreenGroo = true;
       }

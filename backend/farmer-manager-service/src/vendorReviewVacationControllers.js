@@ -44,7 +44,7 @@ export async function getVendorVacation(req, res) {
       return res.json({
         success: true,
         vacation: { ...DEFAULT_VACATION },
-        vendorName: "GreenGroo Vendor",
+        vendorName: "GreenGrocc Vendor",
         status: "STORE_LIVE",
       });
     }

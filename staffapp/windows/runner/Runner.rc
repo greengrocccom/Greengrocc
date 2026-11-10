@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.greengroo" "\0"
+            VALUE "CompanyName", "GreenGrocc" "\0"
             VALUE "FileDescription", "staffapp" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "staffapp" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.greengroo. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 GreenGrocc. All rights reserved." "\0"
             VALUE "OriginalFilename", "staffapp.exe" "\0"
             VALUE "ProductName", "staffapp" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

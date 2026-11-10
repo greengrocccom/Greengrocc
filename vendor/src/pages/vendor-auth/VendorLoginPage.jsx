@@ -57,7 +57,7 @@ export default function VendorLoginPage() {
   const navigateAfterLogin = (vendorOk, driverOk) => {
     const defaultVendorTarget = (() => {
       try {
-        const raw = localStorage.getItem("greengroo_vendor_panel_settings");
+        const raw = localStorage.getItem("greengrocc_vendor_panel_settings");
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed?.display?.defaultLandingPage) return parsed.display.defaultLandingPage;

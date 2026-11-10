@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'GreenGroo',
+                              'GreenGrocc',
                               style: GoogleFonts.outfit(
                                 fontSize: 26,
                                 fontWeight: FontWeight.bold,
@@ -402,10 +402,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 28),
 
-                  // Powered by GreenGroo
+                  // Powered by GreenGrocc
                   Center(
                     child: Text(
-                      'Powered by GreenGroo',
+                      'Powered by GreenGrocc',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: const Color(0xFF94A3B8),

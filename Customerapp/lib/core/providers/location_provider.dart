@@ -16,7 +16,25 @@ class DeliveryLocation {
     this.pincode,
     this.address,
     this.label,
+    this.addressId,
   });
+
+  /// Location taken from one of the customer's saved addresses; checkout
+  /// delivers to that same address.
+  factory DeliveryLocation.fromAddress(Address addr) {
+    final location = addr.location;
+    return DeliveryLocation(
+      latitude: _coord(location, const ['lat', 'latitude']),
+      longitude: _coord(location, const ['lng', 'longitude']),
+      pincode: addr.pincode,
+      city: addr.city,
+      state: addr.state,
+      area: addr.area.isNotEmpty ? addr.area : addr.fullAddress,
+      address: '${addr.shopNo} ${addr.shopName}, ${addr.fullAddress}, ${addr.city}, ${addr.state} - ${addr.pincode}',
+      label: '${addr.shopName.isNotEmpty ? addr.shopName : addr.fullAddress}, ${addr.city}',
+      addressId: addr.id,
+    );
+  }
 
   final double? latitude;
   final double? longitude;
@@ -26,6 +44,8 @@ class DeliveryLocation {
   final String? pincode;
   final String? address;
   final String? label;
+  /// Saved address this location was picked from, if any.
+  final String? addressId;
 
   bool get hasLocation =>
       (latitude != null && longitude != null) ||
@@ -72,6 +92,7 @@ class DeliveryLocation {
         'pincode': pincode,
         'address': address,
         'label': label,
+        'addressId': addressId,
       };
 
   factory DeliveryLocation.fromJson(Map<String, dynamic> json) {
@@ -88,8 +109,32 @@ class DeliveryLocation {
       pincode: json['pincode']?.toString(),
       address: json['address']?.toString(),
       label: json['label']?.toString(),
+      addressId: json['addressId']?.toString(),
     );
   }
+}
+
+/// Whether [addr] is the place [location] points at (same saved address, or
+/// the same spot for locations saved before addresses were linked).
+bool addressMatchesLocation(Address addr, DeliveryLocation? location) {
+  if (location == null) return false;
+  final id = location.addressId;
+  if (id != null && id.isNotEmpty) return id == addr.id;
+  final lat = _coord(addr.location, const ['lat', 'latitude']);
+  final lng = _coord(addr.location, const ['lng', 'longitude']);
+  if (location.latitude != null && location.longitude != null && lat != null && lng != null) {
+    return (location.latitude! - lat).abs() < 0.0008 && (location.longitude! - lng).abs() < 0.0008;
+  }
+  final text = location.address ?? '';
+  return text.isNotEmpty && addr.fullAddress.isNotEmpty && text.contains(addr.fullAddress);
+}
+
+/// The saved address checkout should deliver to for [location].
+Address? addressForLocation(List<Address> addresses, DeliveryLocation? location) {
+  for (final addr in addresses) {
+    if (addressMatchesLocation(addr, location)) return addr;
+  }
+  return null;
 }
 
 const _storageKey = 'greengrocc_delivery_location';

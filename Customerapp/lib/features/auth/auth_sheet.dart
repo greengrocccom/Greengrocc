@@ -17,9 +17,11 @@ const _brandDark = Color(0xFF064E2B);
 /// Website-style auth: Sign In (OTP or password) and Sign Up (retail / bulk),
 /// both verified with an SMS OTP (MSG91 user login / registration templates).
 class AuthSheet extends ConsumerStatefulWidget {
-  const AuthSheet({super.key, required this.mode});
+  const AuthSheet({super.key, required this.mode, this.mandatory = false});
 
   final AuthModalMode mode;
+  /// Hides the close button: the customer has to sign in to continue.
+  final bool mandatory;
 
   @override
   ConsumerState<AuthSheet> createState() => _AuthSheetState();
@@ -348,19 +350,22 @@ class _AuthSheetState extends ConsumerState<AuthSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: Material(
-                color: Colors.transparent,
-                shape: const CircleBorder(),
-                child: IconButton(
-                  onPressed: () {
-                    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.close_rounded, color: Color(0xFF9CA3AF)),
+            if (widget.mandatory)
+              const SizedBox(height: 14)
+            else
+              Align(
+                alignment: Alignment.centerRight,
+                child: Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+                    },
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFF9CA3AF)),
+                  ),
                 ),
               ),
-            ),
             Center(
               child: Image.asset('assets/images/gg_logo.png', height: 40, fit: BoxFit.contain),
             ),

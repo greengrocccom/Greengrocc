@@ -34,7 +34,7 @@ export default function LoginPage() {
         className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm"
       >
         <p className="text-xs font-semibold uppercase tracking-wider text-green-primary">
-          GreenGroo
+          GreenGrocc
         </p>
         <h1 className="mt-1 text-xl font-bold text-gray-900">Product Manager</h1>
         <p className="mt-1 text-sm text-gray-500">
@@ -53,7 +53,7 @@ export default function LoginPage() {
             type="email"
             required
             autoComplete="email"
-            placeholder="pm@greengroo.com"
+            placeholder="pm@greengrocc.com"
             value={form.email}
             onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2"

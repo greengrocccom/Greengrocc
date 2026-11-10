@@ -1050,7 +1050,7 @@ async function presentInspection(inspection, pickup, order, farmer, centre) {
     inspectionId: inspection.inspectionId,
     orderId: order?.id || inspection.orderId,
     orderDisplayId: order?.orderId || order?.id || inspection.orderId,
-    qrPayload: order?.orderId || order?.id ? `greengroo:order:${order.orderId || order.id}` : pickup?.qrPayload || "",
+    qrPayload: order?.orderId || order?.id ? `greengrocc:order:${order.orderId || order.id}` : pickup?.qrPayload || "",
     qrToken: pickup?.qrToken || "",
     farmerId: inspection.farmerId,
     farmerName: farmer?.name || "",

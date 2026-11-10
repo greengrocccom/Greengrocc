@@ -50,7 +50,7 @@ export default function LoginPage() {
             type="email"
             required
             autoComplete="email"
-            placeholder="pm@greengroo.com"
+            placeholder="pm@greengrocc.com"
             value={form.email}
             onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2"

@@ -1053,7 +1053,7 @@ export default function FarmersPage() {
                             <div className="flex justify-between border-b border-gray-50 pb-1.5">
                               <span className="text-gray-500">Vendor</span>
                               <span className="text-gray-800">
-                                {farmerDetails?.farmer?.vendorName || selectedFarmer.vendorName || 'GreenGroo Master'}
+                                {farmerDetails?.farmer?.vendorName || selectedFarmer.vendorName || 'GreenGrocc Master'}
                               </span>
                             </div>
                             <div className="flex justify-between">

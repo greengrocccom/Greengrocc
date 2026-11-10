@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { setAuthToken, staffApi } from "../api/staffApi";
 
-const STORAGE_KEY = "greengroo_segregation_manager_auth";
+const STORAGE_KEY = "greengrocc_segregation_manager_auth";
 const EXPECTED_ROLE = "segregation_manager";
 
 const AuthContext = createContext(null);

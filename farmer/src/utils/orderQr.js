@@ -39,7 +39,7 @@ export function parseOrderQrPayload(payload) {
   }
   const biz = raw.match(/(GGC-ORD-[A-Za-z0-9-]+)/i);
   if (biz) return biz[1];
-  const tagged = raw.match(/(?:greengroo:order:|ggp\.order\.)([A-Za-z0-9_-]+)/i);
+  const tagged = raw.match(/(?:greengro(?:o|cc):order:|ggp\.order\.)([A-Za-z0-9_-]+)/i);
   if (tagged) return tagged[1];
   return raw.replace(/^order[:#\s]+/i, "").trim();
 }
@@ -113,7 +113,7 @@ export function stableOrderQrValue(order) {
 
 export function orderQrLabel(payload) {
   const id = parseOrderQrPayload(payload);
-  return id ? `greengroo:order:${id}` : String(payload || "");
+  return id ? `greengrocc:order:${id}` : String(payload || "");
 }
 
 export function orderQrFacts(payloadOrRecord) {

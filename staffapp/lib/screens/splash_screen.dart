@@ -37,7 +37,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   Future<void> _navigateNext() async {
     await Future.delayed(const Duration(milliseconds: 2200));
-    final token = await SessionManager.getToken();
+    String? token;
+    try {
+      token = await SessionManager.getToken().timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('[Splash] Could not read saved session: $e');
+    }
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {

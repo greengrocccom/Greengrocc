@@ -482,7 +482,7 @@ export default function TraceabilityPage() {
                     <CopyButton text={result.id} />
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Verified GreenGroo Farm-to-Consumer Provenance Chain
+                    Verified GreenGrocc Farm-to-Consumer Provenance Chain
                   </p>
                 </div>
               </div>
@@ -633,7 +633,7 @@ export default function TraceabilityPage() {
                       <div>
                         <span className="text-slate-400 font-medium">Assigned Field Manager</span>
                         <p className="font-medium text-slate-800">
-                          {graph.manager?.name || farmer.managerId || 'GreenGroo Field Coordinator'}
+                          {graph.manager?.name || farmer.managerId || 'GreenGrocc Field Coordinator'}
                         </p>
                       </div>
                     </div>

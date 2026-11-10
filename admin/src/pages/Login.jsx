@@ -154,7 +154,7 @@ export default function Login() {
   return (
     <div className="admin-auth-shell flex min-h-dvh items-center justify-center px-4 py-8 text-slate-900">
       <div className={`w-full max-w-md ${PANEL} p-5 sm:p-7`}>
-        <p className={PAGE_KICKER}>GreenGroo Admin</p>
+        <p className={PAGE_KICKER}>GreenGrocc Admin</p>
         <h1 className={`mt-1 ${PAGE_TITLE}`}>Sign in to Admin Panel</h1>
         <p className={`mt-0.5 ${PAGE_SUB}`}>
           {authMode === 'password'

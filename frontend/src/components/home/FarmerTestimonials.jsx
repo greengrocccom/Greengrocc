@@ -9,7 +9,7 @@ export default function FarmerTestimonials({ className = "" }) {
       name: "Ramesh Patil",
       location: "Nashik, Maharashtra",
       quote:
-        "GreenGroo has given me a better market for my produce. I now get fair prices and regular orders.",
+        "GreenGrocc has given me a better market for my produce. I now get fair prices and regular orders.",
       image: "/assets/testimonials/farmer_ramesh_patil.png",
       produce: "Spinach",
       produceType: "leaf",
@@ -19,7 +19,7 @@ export default function FarmerTestimonials({ className = "" }) {
       name: "Sangita Jadhav",
       location: "Ahmednagar, Maharashtra",
       quote:
-        "It is very easy to list my products and manage orders. GreenGroo has helped me reach more customers.",
+        "It is very easy to list my products and manage orders. GreenGrocc has helped me reach more customers.",
       image: "/assets/testimonials/farmer_sangita_jadhav.png",
       produce: "Tomato",
       produceType: "tomato",
@@ -29,7 +29,7 @@ export default function FarmerTestimonials({ className = "" }) {
       name: "Vijay Shinde",
       location: "Pune, Maharashtra",
       quote:
-        "The collection and payment process is smooth. I can focus on farming while GreenGroo takes care of the rest.",
+        "The collection and payment process is smooth. I can focus on farming while GreenGrocc takes care of the rest.",
       image: "/assets/testimonials/farmer_vijay_shinde.png",
       produce: "Bottle Gourd",
       produceType: "gourd",

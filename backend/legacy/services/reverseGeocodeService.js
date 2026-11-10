@@ -216,7 +216,7 @@ async function fetchNominatim(lat, lng, zoom) {
   const { data } = await axios.get(`${NOMINATIM_URL}?${params}`, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "GreenGroo/1.0 (delivery location lookup)",
+      "User-Agent": "GreenGrocc/1.0 (delivery location lookup)",
     },
     timeout: 12000,
   });
@@ -250,7 +250,7 @@ async function fetchOverpassElements(url, query) {
   const { data } = await axios.post(url, `data=${encodeURIComponent(query)}`, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "GreenGroo/1.0 (delivery location lookup)",
+      "User-Agent": "GreenGrocc/1.0 (delivery location lookup)",
     },
     timeout: 6000,
   });
@@ -496,7 +496,7 @@ export async function geocodeAddressString(query) {
       {
         headers: {
           Accept: "application/json",
-          "User-Agent": "GreenGroo/1.0 (delivery address geocoding)",
+          "User-Agent": "GreenGrocc/1.0 (delivery address geocoding)",
         },
         timeout: 12000,
       }

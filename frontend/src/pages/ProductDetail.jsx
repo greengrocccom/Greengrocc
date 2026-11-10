@@ -363,7 +363,7 @@ function MediaThumbnailCarousel({ items, activeIndex, onSelect }) {
   );
 }
 
-function WhyShopFromGreenGroo() {
+function WhyShopFromGreenGrocc() {
   const points = [
     {
       title: "Round The Clock Delivery",
@@ -397,7 +397,7 @@ function WhyShopFromGreenGroo() {
 
   return (
     <section>
-      <h2 className="text-[15px] font-bold text-slate-900 sm:text-base">Why shop from GreenGroo?</h2>
+      <h2 className="text-[15px] font-bold text-slate-900 sm:text-base">Why shop from GreenGrocc?</h2>
       <ul className="mt-3 space-y-3">
         {points.map((point) => (
           <li
@@ -819,7 +819,7 @@ function ProductDetailsSection({
                   <ProductDescriptionContent
                     description={product.description}
                     features={product.features}
-                    fallback={`Fresh ${product.name} from GreenGroo. Quality checked and ready for delivery.`}
+                    fallback={`Fresh ${product.name} from GreenGrocc. Quality checked and ready for delivery.`}
                   />
                 </div>
               </div>

@@ -7,21 +7,21 @@ import 'screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const GreenGrooStaffApp());
+  runApp(const GreenGroccStaffApp());
   // Permission prompts and FCM/network delays must not block app startup.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     PushNotificationService.instance.init();
   });
 }
 
-class GreenGrooStaffApp extends StatelessWidget {
-  const GreenGrooStaffApp({super.key});
+class GreenGroccStaffApp extends StatelessWidget {
+  const GreenGroccStaffApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: rootNavigatorKey,
-      title: 'GreenGroo Staff',
+      title: 'GreenGrocc Staff',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

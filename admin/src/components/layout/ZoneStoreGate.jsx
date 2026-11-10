@@ -19,7 +19,7 @@ import opsApi from '../../api/opsApi';
 import darkStoreApi from '../../api/darkStoreApi';
 import { BTN, BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL } from '../../utils/ui';
 
-const STORAGE_KEY = 'greengroo_admin_last_zone_store';
+const STORAGE_KEY = 'greengrocc_admin_last_zone_store';
 
 function validStoreId(value) {
   const id = typeof value === 'string' ? value.trim() : '';

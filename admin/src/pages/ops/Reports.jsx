@@ -182,7 +182,7 @@ export default function Reports() {
     const lines = [];
 
     // Header & Summary
-    lines.push('GREENGROO DETAILED SALES & DARK STORE REPORT');
+    lines.push('GREENGROCC DETAILED SALES & DARK STORE REPORT');
     lines.push(`Generated At,${new Date().toLocaleString('en-IN')}`);
     lines.push(`Date Range,${filters.startDate || ''} to ${filters.endDate || ''} (${range})`);
     lines.push(`Zone Filter,${zone}`);

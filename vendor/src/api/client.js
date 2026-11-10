@@ -7,7 +7,7 @@ export const API_ORIGIN = API_BASE_URL.replace(/\/+$/, '').replace(/\/api$/, '')
 
 export function readAdminToken() {
   try {
-    const raw = localStorage.getItem('greengroo_vendor_auth');
+    const raw = localStorage.getItem('greengrocc_vendor_auth');
     const vendorToken = raw ? JSON.parse(raw)?.token : null;
     if (vendorToken) return vendorToken;
   } catch {}

@@ -39,15 +39,23 @@ export async function submitCleaningReport(req, res, next) {
     if (!await eligibleStaff(req.user.id)) {
       return res.status(403).json({ success: false, message: "An active cleaner account is required" });
     }
-    const { note, photoBase64, source } = req.body;
+    const { note, photoBase64, source, capturedAt: capturedAtRaw } = req.body;
     const uploadSource = String(source || "").trim().toLowerCase();
     if (typeof note !== "string" || !note.trim() || note.trim().length > 2000) {
       return res.status(400).json({ success: false, message: "A note of 1–2000 characters is required" });
     }
-    if (!["camera", "gallery"].includes(uploadSource) || typeof photoBase64 !== "string" ||
+    if (uploadSource !== "camera" || typeof photoBase64 !== "string" ||
         !photoBase64.length || photoBase64.length > 7_000_000 ||
         !/^[A-Za-z0-9+/]+={0,2}$/.test(photoBase64)) {
-      return res.status(400).json({ success: false, message: "Upload a cleaning photo from the camera or gallery (maximum 5 MB)" });
+      return res.status(400).json({ success: false, message: "Take the cleaning photo with the in-app camera (maximum 5 MB)" });
+    }
+    const capturedAt = new Date(typeof capturedAtRaw === "string" ? capturedAtRaw : NaN);
+    if (Number.isNaN(capturedAt.getTime())) {
+      return res.status(400).json({ success: false, message: "Photo time is missing. Please update the staff app and take a new photo." });
+    }
+    const ageMs = Date.now() - capturedAt.getTime();
+    if (ageMs < -5 * 60 * 1000 || ageMs > 6 * 60 * 60 * 1000) {
+      return res.status(400).json({ success: false, message: "Photo time is wrong. Check your phone's date and time, then retake the photo." });
     }
     let photo;
     try {
@@ -59,11 +67,11 @@ export async function submitCleaningReport(req, res, next) {
     } catch {
       return res.status(400).json({ success: false, message: "The photo is invalid or too large. Please take another photo." });
     }
-    // Assign the reporting day on the server in the company's timezone.
-    const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-    const report = await CleaningReport.create({ staffId: req.user.id, date, note: note.trim(), photo });
+    // Reporting day follows the photo's capture time in the company's timezone.
+    const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(capturedAt);
+    const report = await CleaningReport.create({ staffId: req.user.id, date, note: note.trim(), capturedAt, photo });
     return res.status(201).json({ success: true, data: {
-      _id: report.id, date: report.date, note: report.note, createdAt: report.createdAt,
+      _id: report.id, date: report.date, note: report.note, capturedAt: report.capturedAt, createdAt: report.createdAt,
     } });
   } catch (error) { next(error); }
 }
@@ -115,6 +123,7 @@ export async function buildCleaningGallery({ date = "", staffId = "" } = {}) {
       id: row._id.toString(),
       date: row.date,
       note: row.note,
+      capturedAt: row.capturedAt || null,
       createdAt: row.createdAt,
       staff: {
         id: staff?._id?.toString() || String(row.staffId || ""),

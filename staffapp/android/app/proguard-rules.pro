@@ -13,6 +13,13 @@
 -keep class com.google.android.gms.** { *; }
 -dontwarn com.google.android.gms.**
 
+# shared_preferences (DataStore / protobuf are accessed reflectively)
+-keep class androidx.datastore.** { *; }
+-keep class io.flutter.plugins.sharedpreferences.** { *; }
+-keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn kotlinx.coroutines.**
+
 # Google Play Core / Deferred Components (suppress optional missing classes)
 -dontwarn com.google.android.play.core.**
 -dontwarn io.flutter.embedding.android.FlutterPlayStoreSplitApplication

@@ -246,7 +246,7 @@ export default function AjaxLiveSearchWidget({
   // Drag and drop handlers
   const handleDragStart = (e) => {
     setIsDragging(true);
-    e.dataTransfer.setData("application/x-greengroo-search-widget", "true");
+    e.dataTransfer.setData("application/x-greengrocc-search-widget", "true");
     e.dataTransfer.effectAllowed = "move";
   };
 
@@ -842,7 +842,7 @@ import AjaxLiveSearchWidget from "../components/search/AjaxLiveSearchWidget";
                 </span>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Drag-and-Drop Live Search Widget</h3>
-                  <p className="text-xs text-slate-500">Embed this widget anywhere across GreenGroo</p>
+                  <p className="text-xs text-slate-500">Embed this widget anywhere across GreenGrocc</p>
                 </div>
               </div>
               <button

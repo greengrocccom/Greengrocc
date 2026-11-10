@@ -12,7 +12,7 @@ const AUTH_IMAGES = {
   signup: {
     src: "/herobaner.png",
     fallback: "/banners/fruits-banner.png",
-    headline: "Join GreenGroo",
+    headline: "Join GreenGrocc",
     highlight: "today",
     sub: "Shop everyday groceries or register as a bulk buyer for Grade A, B & C pricing.",
   },
@@ -40,10 +40,10 @@ export default function AuthSplitLayout({ mode = "login", children, wide = false
             <Link to="/" className="inline-flex items-center gap-2.5 self-start">
               <OptimizedImg
                 src="/greengrocc-logo.png"
-                alt="GreenGroo"
+                alt="GreenGrocc"
                 className="h-10 w-auto rounded-lg bg-white/95 p-1 shadow-sm"
               />
-              <span className="text-lg font-bold tracking-tight text-white">GreenGroo</span>
+              <span className="text-lg font-bold tracking-tight text-white">GreenGrocc</span>
             </Link>
 
             <div className="max-w-md">
@@ -63,8 +63,8 @@ export default function AuthSplitLayout({ mode = "login", children, wide = false
         <main className="relative flex h-screen flex-col overflow-y-auto overscroll-contain bg-white">
           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3.5 lg:hidden">
             <Link to="/" className="inline-flex items-center gap-2">
-              <OptimizedImg src="/greengrocc-logo.png" alt="GreenGroo" className="h-8 w-auto" />
-              <span className="text-base font-bold text-gray-900">GreenGroo</span>
+              <OptimizedImg src="/greengrocc-logo.png" alt="GreenGrocc" className="h-8 w-auto" />
+              <span className="text-base font-bold text-gray-900">GreenGrocc</span>
             </Link>
             <Link to="/" className="text-sm font-medium text-primary hover:underline">
               Back

@@ -149,7 +149,7 @@ export function HomeDeliveryBar() {
         <Link to="/" className="min-w-0 shrink py-0.5 leading-none">
           <OptimizedImg
             src={LOGO_URL}
-            alt="GreenGroo"
+            alt="GreenGrocc"
             className="h-8 w-auto max-w-[130px] object-contain object-left sm:h-9 sm:max-w-[150px]"
           />
         </Link>

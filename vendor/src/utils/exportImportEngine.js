@@ -1,5 +1,5 @@
 /**
- * GreenGroo Frontend Export / Import Engine
+ * GreenGrocc Frontend Export / Import Engine
  * 100% Client-side CSV & XML processing for Products and Shop Configurations.
  * No backend access required.
  */
@@ -114,7 +114,7 @@ GGC-ART-FRU-APP-01,"Shimla Royal Delicious Apple","Royal Delicious","GreenGrocc 
 GGC-ART-VEG-CHI-01,"G4 Fresh Green Chilli",G4,"GreenGrocc Farms",Vegetables,Chillies,65,58,75,180,Kg,"Grade B",true,"Ganesh Kulkarni",Desi,2026-10-20,"Spicy dark green chillies picked fresh this morning."`;
 
 export const SAMPLE_PRODUCTS_XML = `<?xml version="1.0" encoding="UTF-8"?>
-<shop_catalog version="1.0" generated_by="GreenGroo Vendor Portal">
+<shop_catalog version="1.0" generated_by="GreenGrocc Vendor Portal">
   <metadata>
     <exported_at>2026-10-20T12:00:00Z</exported_at>
     <currency>INR</currency>
@@ -221,12 +221,12 @@ export const SAMPLE_PRODUCTS_XML = `<?xml version="1.0" encoding="UTF-8"?>
 export const EXISTING_SHOP_PRESETS = [
   {
     id: "organic_farmgate",
-    name: "GreenGrooc Organic Farmgate Hub",
+    name: "GreenGroccc Organic Farmgate Hub",
     shopType: "Farm Direct & Organic",
     description: "Configured for direct farmgate collection centers, organic produce verification, and strict quality grading.",
     icon: "Sprout",
     config: {
-      shopName: "GreenGrooc Organic Farmgate Hub",
+      shopName: "GreenGroccc Organic Farmgate Hub",
       businessType: "Farm Producer Collective",
       storeType: "organic_hub",
       deliveryRadiusKm: 25,
@@ -272,12 +272,12 @@ export const EXISTING_SHOP_PRESETS = [
   },
   {
     id: "express_darkstore",
-    name: "GreenGrooc 10-Min Fast Express Store",
+    name: "GreenGroccc 10-Min Fast Express Store",
     shopType: "Urban Quick Commerce Dark Store",
     description: "Ultra-fast fulfillment configuration with auto-confirm pre-orders, automated driver dispatch, and instant restock alerts.",
     icon: "Zap",
     config: {
-      shopName: "GreenGrooc 10-Min Fast Express Store",
+      shopName: "GreenGroccc 10-Min Fast Express Store",
       businessType: "Quick Commerce Dark Store",
       storeType: "mall",
       deliveryRadiusKm: 5,
@@ -616,7 +616,7 @@ export function parseXML(xmlText) {
 /**
  * Generates well-formed XML string from products array
  */
-export function generateXML(products = [], shopName = "GreenGroo Vendor Portal") {
+export function generateXML(products = [], shopName = "GreenGrocc Vendor Portal") {
   if (!Array.isArray(products) || products.length === 0) return "";
 
   const escapeXML = (str) => {
@@ -697,11 +697,11 @@ export function generateShopConfigXML(shopConfig, vendorName = "Vendor Store") {
   const escapeXML = (str) => String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<greengroo_shop_configuration version="2.0">
+<greengrocc_shop_configuration version="2.0">
   <metadata>
     <exported_at>${new Date().toISOString()}</exported_at>
     <shop_name>${escapeXML(vendorName)}</shop_name>
-    <format>GreenGroo Unified Shop Spec</format>
+    <format>GreenGrocc Unified Shop Spec</format>
   </metadata>
   <shop_profile>
     <store_type>${escapeXML(cfg.storeType || "standard")}</store_type>
@@ -738,7 +738,7 @@ export function generateShopConfigXML(shopConfig, vendorName = "Vendor Store") {
     <notify_quality_completed>${Boolean(cfg.notifications?.notifyQualityCompleted !== false)}</notify_quality_completed>
     <daily_summary_email>${Boolean(cfg.notifications?.dailySummaryEmail)}</daily_summary_email>
   </notifications_settings>
-</greengroo_shop_configuration>`;
+</greengrocc_shop_configuration>`;
 }
 
 /**
@@ -815,7 +815,7 @@ export function parseShopConfigXML(xmlText) {
 // 6. VALIDATION & ACTIVITY LOG HELPERS
 // ----------------------------------------------------------------------
 
-export const IMPORT_HISTORY_KEY = "greengroo_vendor_import_history";
+export const IMPORT_HISTORY_KEY = "greengrocc_vendor_import_history";
 
 export function getImportHistory() {
   try {

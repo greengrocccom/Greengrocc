@@ -6,11 +6,13 @@ import 'auth_controller.dart';
 import 'auth_sheet.dart';
 
 /// Directly displays the login / sign-up modal bottom sheet and manages modal state.
+/// A [mandatory] sheet can only be closed by signing in.
 Future<void> showAuthModalBottomSheet(
   BuildContext context,
   WidgetRef ref, {
   AuthModalMode mode = AuthModalMode.login,
   String? redirectRoute,
+  bool mandatory = false,
 }) async {
   if (_AuthHostState.isSheetOpen) return;
   _AuthHostState.isSheetOpen = true;
@@ -23,13 +25,16 @@ Future<void> showAuthModalBottomSheet(
       isScrollControlled: true,
       useSafeArea: true,
       useRootNavigator: true,
-      isDismissible: true,
-      enableDrag: true,
+      isDismissible: !mandatory,
+      enableDrag: !mandatory,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => AuthSheet(mode: mode),
+      builder: (context) => PopScope(
+        canPop: !mandatory,
+        child: AuthSheet(mode: mode, mandatory: mandatory),
+      ),
     );
   } finally {
     _AuthHostState.isSheetOpen = false;

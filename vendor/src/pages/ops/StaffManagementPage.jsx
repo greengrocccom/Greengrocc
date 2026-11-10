@@ -858,10 +858,10 @@ export default function StaffManagementPage() {
           <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-5 text-emerald-950">
             <h2 className="text-base font-bold flex items-center gap-2">
               <Smartphone className="h-5 w-5 text-emerald-700" />
-              GreenGroo Mobile Staff App Integration
+              GreenGrocc Mobile Staff App Integration
             </h2>
             <p className="text-xs text-emerald-800 mt-1 max-w-2xl">
-              The Flutter Staff App located in <code className="bg-emerald-100 px-1.5 py-0.5 rounded font-mono">/staffapp</code> dynamically pulls data from GreenGroo HR Management modules.
+              The Flutter Staff App located in <code className="bg-emerald-100 px-1.5 py-0.5 rounded font-mono">/staffapp</code> dynamically pulls data from GreenGrocc HR Management modules.
               Staff members log in with credentials created on this page, and their role automatically unlocks their customized views:
             </p>
           </div>
@@ -1025,7 +1025,7 @@ export default function StaffManagementPage() {
                   type="email"
                   className={INPUT}
                   required
-                  placeholder="ramesh@greengroo.com"
+                  placeholder="ramesh@greengrocc.com"
                   value={staffForm.email}
                   onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
                 />

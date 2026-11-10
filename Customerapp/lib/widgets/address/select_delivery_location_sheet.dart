@@ -11,19 +11,33 @@ import '../../features/auth/auth_controller.dart';
 import '../../models/address.dart';
 import 'address_form.dart';
 
-Future<String?> showSelectDeliveryLocationBottomSheet(BuildContext context, WidgetRef ref) {
+/// Pops with the id of the saved address that became the delivery location.
+/// A [mandatory] sheet stays open until a location is chosen.
+Future<String?> showSelectDeliveryLocationBottomSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  bool mandatory = false,
+}) {
   ref.read(addressControllerProvider.notifier).loadAddresses();
 
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
+    isDismissible: !mandatory,
+    enableDrag: !mandatory,
     backgroundColor: Colors.transparent,
-    builder: (context) => const SelectDeliveryLocationSheetContent(),
+    builder: (context) => PopScope(
+      canPop: !mandatory,
+      child: SelectDeliveryLocationSheetContent(mandatory: mandatory),
+    ),
   );
 }
 
 class SelectDeliveryLocationSheetContent extends ConsumerStatefulWidget {
-  const SelectDeliveryLocationSheetContent({super.key});
+  const SelectDeliveryLocationSheetContent({super.key, this.mandatory = false});
+
+  final bool mandatory;
 
   @override
   ConsumerState<SelectDeliveryLocationSheetContent> createState() =>
@@ -88,14 +102,9 @@ class _SelectDeliveryLocationSheetContentState
         return;
       }
 
-      final addressId = await _saveDetectedAddress(detected);
+      var addressId = await _saveDetectedAddress(detected);
       if (!mounted || seq != _detectionSeq) return;
-      if (addressId != null) {
-        Navigator.of(context).pop(addressId);
-        return;
-      }
-
-      final savedId = await showDeliveryAddressFormSheet(
+      addressId ??= await showDeliveryAddressFormSheet(
         context,
         initial: addressFormFromPhoneLocation(
           detected,
@@ -104,8 +113,9 @@ class _SelectDeliveryLocationSheetContentState
           email: user.email,
         ),
       );
-      if (!mounted || seq != _detectionSeq) return;
-      if (savedId != null) Navigator.of(context).pop(savedId);
+      if (!mounted || seq != _detectionSeq || addressId == null) return;
+      await _useSavedAddress(addressId);
+      if (mounted) Navigator.of(context).pop(addressId);
     } on PhoneLocationException catch (error) {
       if (!mounted || seq != _detectionSeq) return;
       setState(() => _isDetectingLocation = false);
@@ -161,6 +171,17 @@ class _SelectDeliveryLocationSheetContentState
     return addresses.isNotEmpty ? addresses.first.id : null;
   }
 
+  /// Links the delivery location to the saved address so checkout uses it.
+  Future<void> _useSavedAddress(String addressId) async {
+    final saved = ref
+        .read(addressControllerProvider)
+        .addresses
+        .where((addr) => addr.id == addressId)
+        .firstOrNull;
+    if (saved == null) return;
+    await ref.read(deliveryLocationProvider.notifier).setLocation(DeliveryLocation.fromAddress(saved));
+  }
+
   String? _tenDigitPhone(String? raw) {
     final digits = (raw ?? '').replaceAll(RegExp(r'\D'), '');
     if (digits.length < 10) return null;
@@ -169,8 +190,9 @@ class _SelectDeliveryLocationSheetContentState
     return null;
   }
 
-  Future<void> _selectAddress(DeliveryLocation loc, {String? addressId}) async {
+  Future<void> _selectAddress(Address addr) async {
     _detectionSeq++; // Prevent in-flight GPS detection from overwriting manual address selection
+    final loc = DeliveryLocation.fromAddress(addr);
     await ref.read(deliveryLocationProvider.notifier).setLocation(loc);
     ref.invalidate(nearestStoreProvider);
     if (mounted) {
@@ -186,22 +208,8 @@ class _SelectDeliveryLocationSheetContentState
           duration: const Duration(seconds: 2),
         ),
       );
-      Navigator.of(context).pop(addressId);
+      Navigator.of(context).pop(addr.id);
     }
-  }
-
-  bool _isAddressSelected(Address addr, DeliveryLocation? current) {
-    if (current == null) return false;
-    final lat = addr.location?['lat'];
-    final lng = addr.location?['lng'];
-    if (current.latitude != null && current.longitude != null && lat is num && lng is num) {
-      return (current.latitude! - lat.toDouble()).abs() < 0.0008 &&
-          (current.longitude! - lng.toDouble()).abs() < 0.0008;
-    }
-    if (current.address != null && current.address!.isNotEmpty && addr.fullAddress.isNotEmpty) {
-      return current.address!.contains(addr.fullAddress);
-    }
-    return false;
   }
 
   Future<void> _handleSaveAddressFromSheet(Map<String, String> form) async {
@@ -233,27 +241,7 @@ class _SelectDeliveryLocationSheetContentState
     final addresses = ref.read(addressControllerProvider).addresses;
     final created = addresses.isNotEmpty ? addresses.first : null;
 
-    if (created != null) {
-      await _selectAddress(
-        DeliveryLocation(
-          latitude: created.location?['lat'] is num
-              ? (created.location!['lat'] as num).toDouble()
-              : null,
-          longitude: created.location?['lng'] is num
-              ? (created.location!['lng'] as num).toDouble()
-              : null,
-          pincode: created.pincode,
-          city: created.city,
-          state: created.state,
-          area: created.area.isNotEmpty ? created.area : created.fullAddress,
-          address:
-              '${created.shopNo} ${created.shopName}, ${created.fullAddress}, ${created.city}, ${created.state} - ${created.pincode}',
-          label:
-              '${created.shopName.isNotEmpty ? created.shopName : created.fullAddress}, ${created.city}',
-        ),
-        addressId: created.id,
-      );
-    }
+    if (created != null) await _selectAddress(created);
   }
 
   @override
@@ -268,29 +256,29 @@ class _SelectDeliveryLocationSheetContentState
       clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
       children: [
-        // Floating X Close Button
-        Positioned(
-          top: -50,
-          child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E293B),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+        if (!widget.mandatory)
+          Positioned(
+            top: -50,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E293B),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
               ),
-              child: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
             ),
           ),
-        ),
 
         // Main Sheet Body
         Container(
@@ -595,24 +583,8 @@ class _SelectDeliveryLocationSheetContentState
                     if (savedAddresses.isNotEmpty)
                       ...savedAddresses.map((addr) => _SavedAddressCardItem(
                             address: addr,
-                            isCurrent: _isAddressSelected(addr, currentLocation),
-                            onSelect: () => _selectAddress(
-                              DeliveryLocation(
-                                latitude: addr.location?['lat'] is num
-                                    ? (addr.location!['lat'] as num).toDouble()
-                                    : null,
-                                longitude: addr.location?['lng'] is num
-                                    ? (addr.location!['lng'] as num).toDouble()
-                                    : null,
-                                pincode: addr.pincode,
-                                city: addr.city,
-                                state: addr.state,
-                                area: addr.area.isNotEmpty ? addr.area : addr.fullAddress,
-                                address: '${addr.shopNo} ${addr.shopName}, ${addr.fullAddress}, ${addr.city}, ${addr.state} - ${addr.pincode}',
-                                label: '${addr.shopName.isNotEmpty ? addr.shopName : addr.fullAddress}, ${addr.city}',
-                              ),
-                              addressId: addr.id,
-                            ),
+                            isCurrent: addressMatchesLocation(addr, currentLocation),
+                            onSelect: () => _selectAddress(addr),
                           ))
                     else
                       Padding(

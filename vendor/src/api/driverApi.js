@@ -3,7 +3,7 @@ import { getApiBaseUrl } from "../config/env";
 import { withLiveAdapter } from "../realtime/liveClient";
 import { syncRealtimeToken } from "../realtime/setup";
 import "./staffApi";
-export const DRIVER_STORAGE_KEY = "greengroo_driver_auth";
+export const DRIVER_STORAGE_KEY = "greengrocc_driver_auth";
 
 export const driverHttp = withLiveAdapter(
   axios.create({

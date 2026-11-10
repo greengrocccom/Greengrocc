@@ -73,7 +73,7 @@ export async function processDeliveryQr(order, action, allowedStatuses) {
     try {
       const created = await razorpayQr("", "POST", {
         type: "upi_qr",
-        name: "GreenGroo Delivery",
+        name: "GreenGrocc Delivery",
         usage: "single_use",
         fixed_amount: true,
         payment_amount: amount,

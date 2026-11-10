@@ -376,8 +376,8 @@ class _MarketComparisonScreenState extends State<MarketComparisonScreen> {
                         const SizedBox(height: 16),
 
                         if (selected != null) ...[
-                          // 🌿 GreenGroo Direct Procurement Spotlight Card
-                          if (selected.hasGreenGroo && selected.greenGrooRate != null) ...[
+                          // 🌿 GreenGrocc Direct Procurement Spotlight Card
+                          if (selected.hasGreenGrocc && selected.greenGroccRate != null) ...[
                             Container(
                               padding: const EdgeInsets.all(15),
                               decoration: BoxDecoration(
@@ -412,7 +412,7 @@ class _MarketComparisonScreenState extends State<MarketComparisonScreen> {
                                             Text('🌿', style: TextStyle(fontSize: 11)),
                                             SizedBox(width: 4),
                                             Text(
-                                              AppLanguage().tr(mr: 'GREENGROO थेट खरेदी दर', en: 'GREENGROO DIRECT PURCHASE RATE'),
+                                              AppLanguage().tr(mr: 'GREENGROCC थेट खरेदी दर', en: 'GREENGROCC DIRECT PURCHASE RATE'),
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 10.5,
@@ -427,15 +427,15 @@ class _MarketComparisonScreenState extends State<MarketComparisonScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: selected.greenGrooVsAvgPercent >= 0
+                                          color: selected.greenGroccVsAvgPercent >= 0
                                               ? const Color(0xFF10B981)
                                               : const Color(0xFFEF4444),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
-                                          selected.greenGrooVsAvgPercent >= 0
-                                              ? AppLanguage().tr(mr: '+${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}% जास्त भाव 📈', en: '+${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}% higher price 📈')
-                                              : AppLanguage().tr(mr: '${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}% कमी भाव 📉', en: '${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}% lower price 📉'),
+                                          selected.greenGroccVsAvgPercent >= 0
+                                              ? AppLanguage().tr(mr: '+${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}% जास्त भाव 📈', en: '+${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}% higher price 📈')
+                                              : AppLanguage().tr(mr: '${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}% कमी भाव 📉', en: '${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}% lower price 📉'),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 10,
@@ -451,7 +451,7 @@ class _MarketComparisonScreenState extends State<MarketComparisonScreen> {
                                     textBaseline: TextBaseline.alphabetic,
                                     children: [
                                       Text(
-                                        '₹${selected.greenGrooRate!.price.toStringAsFixed(0)}',
+                                        '₹${selected.greenGroccRate!.price.toStringAsFixed(0)}',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 24,
@@ -468,9 +468,9 @@ class _MarketComparisonScreenState extends State<MarketComparisonScreen> {
                                       ),
                                       const Spacer(),
                                       Text(
-                                        selected.greenGrooDiffAmount >= 0
-                                            ? AppLanguage().tr(mr: '+₹${selected.greenGrooDiffAmount.toStringAsFixed(0)} जादा नफा', en: '+₹${selected.greenGrooDiffAmount.toStringAsFixed(0)} extra profit')
-                                            : AppLanguage().tr(mr: '-₹${selected.greenGrooDiffAmount.abs().toStringAsFixed(0)} फरक', en: '-₹${selected.greenGrooDiffAmount.abs().toStringAsFixed(0)} difference'),
+                                        selected.greenGroccDiffAmount >= 0
+                                            ? AppLanguage().tr(mr: '+₹${selected.greenGroccDiffAmount.toStringAsFixed(0)} जादा नफा', en: '+₹${selected.greenGroccDiffAmount.toStringAsFixed(0)} extra profit')
+                                            : AppLanguage().tr(mr: '-₹${selected.greenGroccDiffAmount.abs().toStringAsFixed(0)} फरक', en: '-₹${selected.greenGroccDiffAmount.abs().toStringAsFixed(0)} difference'),
                                         style: const TextStyle(
                                           color: Color(0xFFD1FAE5),
                                           fontSize: 12,
@@ -819,7 +819,7 @@ class _MarketComparisonScreenState extends State<MarketComparisonScreen> {
                                                   borderRadius: BorderRadius.circular(6),
                                                 ),
                                                 child: const Text(
-                                                  '🌿 GreenGroo',
+                                                  '🌿 GreenGrocc',
                                                   style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
                                                 ),
                                               ),
@@ -842,7 +842,7 @@ class _MarketComparisonScreenState extends State<MarketComparisonScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           isGg
-                                              ? AppLanguage().tr(mr: 'GreenGroo थेट शेतकरी खरेदी हमीभाव • ०% कमिशन', en: 'GreenGroo direct farmer purchase assured price • 0% commission')
+                                              ? AppLanguage().tr(mr: 'GreenGrocc थेट शेतकरी खरेदी हमीभाव • ०% कमिशन', en: 'GreenGrocc direct farmer purchase assured price • 0% commission')
                                               : AppLanguage().tr(mr: 'किमान: ₹${m.minPrice.toStringAsFixed(0)} • कमाल: ₹${m.maxPrice.toStringAsFixed(0)} • ${m.district}', en: 'Min: ₹${m.minPrice.toStringAsFixed(0)} • Max: ₹${m.maxPrice.toStringAsFixed(0)} • ${m.district}'),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -872,24 +872,24 @@ class _MarketComparisonScreenState extends State<MarketComparisonScreen> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                           decoration: BoxDecoration(
-                                            color: selected.greenGrooVsAvgPercent >= 0
+                                            color: selected.greenGroccVsAvgPercent >= 0
                                                 ? const Color(0xFFDCFCE7)
                                                 : const Color(0xFFFEE2E2),
                                             borderRadius: BorderRadius.circular(6),
                                             border: Border.all(
-                                              color: selected.greenGrooVsAvgPercent >= 0
+                                              color: selected.greenGroccVsAvgPercent >= 0
                                                   ? const Color(0xFF86EFAC)
                                                   : const Color(0xFFFCA5A5),
                                             ),
                                           ),
                                           child: Text(
-                                            selected.greenGrooVsAvgPercent >= 0
-                                                ? AppLanguage().tr(mr: '+${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}% जास्त भाव', en: '+${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}% higher price')
-                                                : AppLanguage().tr(mr: '${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}% कमी भाव', en: '${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}% lower price'),
+                                            selected.greenGroccVsAvgPercent >= 0
+                                                ? AppLanguage().tr(mr: '+${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}% जास्त भाव', en: '+${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}% higher price')
+                                                : AppLanguage().tr(mr: '${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}% कमी भाव', en: '${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}% lower price'),
                                             style: TextStyle(
                                               fontSize: 9.5,
                                               fontWeight: FontWeight.bold,
-                                              color: selected.greenGrooVsAvgPercent >= 0
+                                              color: selected.greenGroccVsAvgPercent >= 0
                                                   ? const Color(0xFF16A34A)
                                                   : const Color(0xFFDC2626),
                                             ),

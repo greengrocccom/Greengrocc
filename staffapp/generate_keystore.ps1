@@ -1,5 +1,5 @@
 # =======================================================
-#   GreenGroo Staff App - Release Keystore Setup (PowerShell)
+#   GreenGrocc Staff App - Release Keystore Setup (PowerShell)
 # =======================================================
 
 $ErrorActionPreference = "Stop"
@@ -12,7 +12,7 @@ $KeystorePath = Join-Path $ScriptDir "android\$KeystoreName"
 $KeyPropertiesPath = Join-Path $ScriptDir "android\key.properties"
 
 Write-Host "=======================================================" -ForegroundColor Cyan
-Write-Host "   GreenGroo Staff App - Release Keystore Setup" -ForegroundColor Cyan
+Write-Host "   GreenGrocc Staff App - Release Keystore Setup" -ForegroundColor Cyan
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -79,7 +79,7 @@ $KeytoolArgs = @(
     "-validity", "10000",
     "-storepass", $Password,
     "-keypass", $Password,
-    "-dname", "CN=GreenGroo Staff, OU=Operations, O=GreenGroo, L=Bangalore, ST=Karnataka, C=IN"
+    "-dname", "CN=GreenGrocc Staff, OU=Operations, O=GreenGrocc, L=Bangalore, ST=Karnataka, C=IN"
 )
 
 & $KeytoolCmd $KeytoolArgs

@@ -7,7 +7,7 @@ const INPUT =
   'w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all';
 
 const authHeaders = () => ({
-  Authorization: `Bearer ${(localStorage.getItem('greengrocc_admin_token') || (() => { try { return JSON.parse(localStorage.getItem('greengroo_vendor_auth'))?.token; } catch { return ''; } })())}`,
+  Authorization: `Bearer ${(localStorage.getItem('greengrocc_admin_token') || (() => { try { return JSON.parse(localStorage.getItem('greengrocc_vendor_auth'))?.token; } catch { return ''; } })())}`,
 });
 
 const toAmount = (value) => {

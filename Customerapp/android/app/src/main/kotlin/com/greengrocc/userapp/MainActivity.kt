@@ -1,6 +1,7 @@
 package com.greengrocc.userapp
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.WindowCompat
@@ -10,6 +11,7 @@ import io.flutter.plugin.common.MethodChannel
 
 open class MainActivity : FlutterFragmentActivity() {
     private val backChannelName = "com.greengrocc.app/back"
+    private val mapsChannelName = "com.greengrocc.app/maps"
     private var backChannel: MethodChannel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,6 +27,15 @@ open class MainActivity : FlutterFragmentActivity() {
             backChannelName,
         )
         backChannel = channel
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, mapsChannelName)
+            .setMethodCallHandler { call, result ->
+                if (call.method == "hasGoogleMapsKey") {
+                    result.success(hasGoogleMapsKey())
+                } else {
+                    result.notImplemented()
+                }
+            }
 
         onBackPressedDispatcher.addCallback(
             this,
@@ -86,6 +97,14 @@ open class MainActivity : FlutterFragmentActivity() {
                 }
             },
         )
+    }
+
+    private fun hasGoogleMapsKey(): Boolean = try {
+        @Suppress("DEPRECATION")
+        val info = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
+        !info.metaData?.getString("com.google.android.geo.API_KEY").isNullOrBlank()
+    } catch (_: Exception) {
+        false
     }
 
     override fun onNewIntent(intent: Intent) {

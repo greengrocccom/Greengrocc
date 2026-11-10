@@ -42,11 +42,12 @@ class RoadRouteService {
     final cached = _cache[key];
     if (cached != null) return cached;
 
+    // Android and iOS block cleartext by default, so plain http only works as a fallback.
     final endpoints = [
-      'http://router.project-osrm.org/route/v1/driving/'
+      'https://router.project-osrm.org/route/v1/driving/'
           '${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}'
           '?overview=full&geometries=polyline',
-      'https://router.project-osrm.org/route/v1/driving/'
+      'http://router.project-osrm.org/route/v1/driving/'
           '${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}'
           '?overview=full&geometries=polyline',
     ];

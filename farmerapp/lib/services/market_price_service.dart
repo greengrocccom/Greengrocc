@@ -270,9 +270,9 @@ class MarketPriceService extends ChangeNotifier {
           bestMarketName: bestMarket,
           bestAdvantagePercent: bestAdvantage,
           markets: rates,
-          greenGrooRate: ggComp,
-          greenGrooVsAvgPercent: ggVsAvgPercent,
-          greenGrooDiffAmount: ggDiffAmount,
+          greenGroccRate: ggComp,
+          greenGroccVsAvgPercent: ggVsAvgPercent,
+          greenGroccDiffAmount: ggDiffAmount,
         ),
       );
     });

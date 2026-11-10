@@ -59,7 +59,7 @@ export default function ManagerQrVerifyPage() {
       <div className={EXCEL_PANEL + " p-4"}>
         <label className="mb-1 block text-xs font-semibold">Scanned QR / Order ID</label>
         <div className="flex flex-wrap gap-2">
-          <input className={`${EXCEL_INPUT} max-w-md`} value={qr} onChange={(e) => setQr(e.target.value)} placeholder="greengroo:order:…" />
+          <input className={`${EXCEL_INPUT} max-w-md`} value={qr} onChange={(e) => setQr(e.target.value)} placeholder="greengrocc:order:…" />
           <button
             type="button"
             disabled={!match}

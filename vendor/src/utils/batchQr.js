@@ -39,7 +39,7 @@ export function parseBatchQrPayload(payload) {
   }
   const biz = raw.match(/(GGC-BAT-[A-Za-z0-9-]+)/i);
   if (biz) return biz[1];
-  const tagged = raw.match(/(?:greengroo:batch:|ggp\.batch\.)([A-Za-z0-9_-]+)/i);
+  const tagged = raw.match(/(?:greengro(?:o|cc):batch:|ggp\.batch\.)([A-Za-z0-9_-]+)/i);
   if (tagged) return tagged[1];
   return raw.replace(/^batch[:#\s]+/i, "").trim();
 }
@@ -49,7 +49,7 @@ export function isBatchQrPayload(payload) {
   if (json?.t === "order") return false;
   if (json?.t === "batch") return true;
   const raw = String(payload || "");
-  return /greengroo:batch:|ggp\.batch\.|\/batches\//i.test(raw) || /^GGC-BAT-/i.test(raw.trim());
+  return /greengro(?:o|cc):batch:|ggp\.batch\.|\/batches\//i.test(raw) || /^GGC-BAT-/i.test(raw.trim());
 }
 
 export function buildBatchQrPayload(record = {}, batchId = "") {
@@ -101,7 +101,7 @@ export function batchQrEncodeValue(value, record) {
 
 export function batchQrLabel(id) {
   const batchId = parseBatchQrPayload(id);
-  return batchId ? `greengroo:batch:${batchId}` : String(id || "");
+  return batchId ? `greengrocc:batch:${batchId}` : String(id || "");
 }
 
 export function batchScanPath(id) {

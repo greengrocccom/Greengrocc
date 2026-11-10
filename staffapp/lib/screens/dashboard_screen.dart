@@ -416,7 +416,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                   ),
                                   Text(
-                                    "Upload today's photo of the cleaned area",
+                                    "Take today's photo of the cleaned area",
                                     style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF047857)),
                                   ),
                                 ],

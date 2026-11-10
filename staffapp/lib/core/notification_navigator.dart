@@ -6,6 +6,7 @@ import '../screens/shift_roster_screen.dart';
 import '../screens/salary_screen.dart';
 import '../screens/holidays_screen.dart';
 import '../screens/notifications_screen.dart';
+import '../screens/password_request_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -50,6 +51,9 @@ class NotificationNavigator {
       case 'holiday':
       case 'holidays':
         targetScreen = const HolidaysScreen();
+        break;
+      case 'password_request':
+        targetScreen = const PasswordRequestScreen();
         break;
       default:
         targetScreen = const NotificationsScreen();

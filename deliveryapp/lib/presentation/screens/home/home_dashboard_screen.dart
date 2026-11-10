@@ -927,7 +927,7 @@ class _TopHeaderSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ROW 1: HAMBURGER MENU + GREENGROO DELIVERY PARTNER (LEFT)  |  PROFILE AVATAR (RIGHT)
+        // ROW 1: HAMBURGER MENU + GREENGROCC DELIVERY PARTNER (LEFT)  |  PROFILE AVATAR (RIGHT)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -950,7 +950,7 @@ class _TopHeaderSection extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
 
-                // GreenGroo Delivery Partner Brand on the left
+                // GreenGrocc Delivery Partner Brand on the left
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -959,7 +959,7 @@ class _TopHeaderSection extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'GreenGroo',
+                          'GreenGrocc',
                           style: GoogleFonts.inter(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,

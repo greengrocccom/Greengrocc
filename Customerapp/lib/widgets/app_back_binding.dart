@@ -144,7 +144,8 @@ class AppBackBinding with WidgetsBindingObserver {
     // 1) Sheets / dialogs
     final rootNav = rootNavigatorKey.currentState;
     if (rootNav != null && _isTopRoutePopup(rootNav)) {
-      rootNav.pop();
+      // maybePop honours PopScope, so mandatory sheets (login, location) stay open.
+      rootNav.maybePop();
       return true;
     }
 

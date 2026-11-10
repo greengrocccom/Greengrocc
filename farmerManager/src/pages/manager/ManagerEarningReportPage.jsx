@@ -305,7 +305,7 @@ export default function ManagerEarningReportPage() {
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 leading-tight">
-                GreenGroo Agri Network
+                GreenGrocc Agri Network
               </h1>
               <p className="text-[11px] font-bold text-emerald-800 tracking-wide uppercase">
                 Payment History & Quality Grading Statement

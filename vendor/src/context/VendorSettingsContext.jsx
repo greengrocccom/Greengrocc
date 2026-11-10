@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { vendorApi } from "../api/vendorApi";
 import { useVendorAuth } from "./VendorAuthContext";
 
-export const SETTINGS_STORAGE_KEY = "greengroo_vendor_panel_settings";
+export const SETTINGS_STORAGE_KEY = "greengrocc_vendor_panel_settings";
 
 export const DEFAULT_VENDOR_SETTINGS = {
   display: {

@@ -36,7 +36,7 @@ export default function VendorTopNavbar({ onOpenMobileMenu }) {
             GG
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-bold leading-tight text-slate-900">GreenGroo</p>
+            <p className="text-xs font-bold leading-tight text-slate-900">GreenGrocc</p>
             <p className="text-[10px] leading-tight text-emerald-700 font-semibold">
               {isSeller ? 'Seller Executive' : 'Vendor Executive'}
             </p>

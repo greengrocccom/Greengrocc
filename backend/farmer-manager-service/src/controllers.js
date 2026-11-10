@@ -3495,7 +3495,7 @@ function publicMyOrder(order, extra = {}) {
     preparationStatus: plain.preparationStatus || (status === "NEW" ? "NOT_STARTED" : status === "READY_FOR_PICKUP" ? "READY_FOR_PICKUP" : status === "PACKING" ? "PACKING" : status === "PREPARING" || status === "ACCEPTED" ? "PREPARING" : "NOT_STARTED"),
     packingDetails: plain.packingDetails || {},
     ...extra,
-    qrPayload: extra.qrPayload || qrPayloadFor(order, extra) || `greengroo:order:${plain.orderId || plain.id}`,
+    qrPayload: extra.qrPayload || qrPayloadFor(order, extra) || `greengrocc:order:${plain.orderId || plain.id}`,
   };
 }
 

@@ -1,17 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/providers/location_provider.dart';
 import '../../core/refresh/app_refresh.dart';
 import '../../core/theme/store_chrome.dart';
 import '../../core/scroll/app_scroll_config.dart';
 import '../../core/scroll/tab_scroll_registry.dart';
 import '../../core/scroll/vertical_scroll_pause_scope.dart';
-import '../../widgets/address/select_delivery_location_sheet.dart';
-import '../../widgets/layout/shell_bottom_insets.dart';
 import 'home_providers.dart';
 import 'widgets/category_pills_section.dart';
 import 'widgets/home_all_category_products.dart';
@@ -49,20 +44,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
       _tabScrollRegistry.register(ShellTabIndex.home, _scrollController);
       _attachVerticalScrollActivityListener();
-      unawaited(_promptLocationIfMissing());
     });
-  }
-
-  /// Once per app run: products are stocked per dark store, so ask for a location first.
-  static bool _locationPrompted = false;
-
-  Future<void> _promptLocationIfMissing() async {
-    if (_locationPrompted) return;
-    await ref.read(deliveryLocationProvider.notifier).restored;
-    if (!mounted || _locationPrompted) return;
-    if (ref.read(deliveryLocationProvider)?.hasLocation == true) return;
-    _locationPrompted = true;
-    await showSelectDeliveryLocationBottomSheet(context, ref);
   }
 
   void _attachVerticalScrollActivityListener() {

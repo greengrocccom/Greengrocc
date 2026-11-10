@@ -992,7 +992,7 @@ export default function ProductFarmerTraceabilitySection({
 
               <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold bg-[#eef8f1] p-2.5 rounded-xl border border-emerald-200/60">
                 <ShieldCheck className="w-4 h-4 text-[#0a6c38] shrink-0" />
-                <span>GreenGroo प्रमाणित शेतकरी भागीदार (Verified Partner)</span>
+                <span>GreenGrocc प्रमाणित शेतकरी भागीदार (Verified Partner)</span>
               </div>
             </div>
 
@@ -1094,7 +1094,7 @@ export default function ProductFarmerTraceabilitySection({
                   step: "3. गुणवत्ता व लॅब तपासणी (Quality Lab Tested)",
                   desc: "Zero chemical residues, 100% NPOP सेंद्रिय मानके उत्तीर्ण. FSSAI सुरक्षा प्रमाणित.",
                   date: packingDate,
-                  place: "GreenGroo क्वालिटी लॅब",
+                  place: "GreenGrocc क्वालिटी लॅब",
                   status: realTraceConfig?.step2 ? "प्रमाणित (Certified)" : "प्रतीक्षेत",
                   statusColor: realTraceConfig?.step2 ? "text-[#0a6c38] bg-emerald-50" : "text-slate-600 bg-gray-100",
                   icon: "🔬",

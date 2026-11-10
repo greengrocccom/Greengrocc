@@ -1,5 +1,6 @@
 import express from "express";
 import { listMyCleaningReports, submitCleaningReport, getCleaningReportPhoto, listCleaningReports } from "../controllers/cleaningReportController.js";
+import { listMyPasswordRequests, createMyPasswordRequest } from "../controllers/passwordRequestController.js";
 import { protect, requireRoles } from "@greengrocc/shared";
 import {
   createAccount,
@@ -64,6 +65,8 @@ router.get("/my/meetings", getStaffMeetings);
 router.get("/my/notifications", getStaffNotifications);
 router.post("/my/notifications/:id/read", markStaffNotificationRead);
 router.post("/my/fcm-token", updateStaffFcmToken);
+router.get("/my/password-requests", listMyPasswordRequests);
+router.post("/my/password-requests", createMyPasswordRequest);
 router.get("/", listStaff);
 router.post("/", createAccount);
 router.get(

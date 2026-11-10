@@ -87,7 +87,7 @@ class FarmLocationService {
 
   /// Nominatim's usage policy requires an identifying User-Agent and at most ~1 request/second,
   /// so callers debounce reverse lookups while the map is moving.
-  static const String _userAgent = 'GreenGrooFarmerApp/1.0 (com.greengroo.farmerapp; info@greengrocc.com)';
+  static const String _userAgent = 'GreenGroccFarmerApp/1.0 (com.greengroo.farmerapp; info@greengrocc.com)';
   static const String _nominatim = 'https://nominatim.openstreetmap.org';
 
   /// Current device position, asking for permission when needed.

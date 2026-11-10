@@ -504,7 +504,7 @@ export async function handleVendorLiveSearch(req, res) {
         inStock: Boolean(cp.inStock !== false),
         image: Array.isArray(cp.productImages) && cp.productImages[0] ? cp.productImages[0] : "",
         farmerId: "",
-        farmerName: cp.brandName || "GreenGroo Direct",
+        farmerName: cp.brandName || "GreenGrocc Direct",
         status: "Active",
         source: "catalog",
         score: Math.round(totalScore),

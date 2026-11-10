@@ -100,7 +100,7 @@ export default function OmnichannelBillingPage() {
 
   // --- TERMINAL ACTIVE STATE ---
   const [selectedChannel, setSelectedChannel] = useState('physical_store'); // 'physical_store' | 'mall_counter' | 'ecommerce'
-  const [activeCounter, setActiveCounter] = useState('Counter #1 - GreenGroo Store');
+  const [activeCounter, setActiveCounter] = useState('Counter #1 - GreenGrocc Store');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -1032,7 +1032,7 @@ export default function OmnichannelBillingPage() {
                                 )}
                               </>
                             ) : (
-                              <div className="text-slate-600 font-medium">Direct GreenGroo Dark Store</div>
+                              <div className="text-slate-600 font-medium">Direct GreenGrocc Dark Store</div>
                             )}
                           </div>
                         </div>
@@ -2688,7 +2688,7 @@ export default function OmnichannelBillingPage() {
             <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-xl font-mono text-xs space-y-3 text-slate-800">
               <div className="text-center space-y-1">
                 <div className="font-extrabold text-base tracking-wider text-slate-900">
-                  GREENGROO FRESH MARKET
+                  GREENGROCC FRESH MARKET
                 </div>
                 <div className="text-[11px] text-slate-500">Omni-Channel Retail Network</div>
                 <div className="text-[10px] text-slate-400">
@@ -2778,7 +2778,7 @@ export default function OmnichannelBillingPage() {
                   🎉 Points Earned on this Bill: +{completedInvoice.pointsEarned || 0} Pts
                 </div>
                 <div className="text-[10px] text-slate-400">
-                  Thank you for shopping organic with GreenGroo!
+                  Thank you for shopping organic with GreenGrocc!
                 </div>
                 <div className="pt-1 text-[9px] text-slate-400">Scan for e-bill copy</div>
                 <QrCode className="h-10 w-10 mx-auto text-slate-600" />

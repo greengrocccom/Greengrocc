@@ -551,7 +551,7 @@ export async function createBillingInvoice(req, res) {
   try {
     const {
       channel = "physical_store",
-      counterName = "Counter #1 - GreenGroo Store",
+      counterName = "Counter #1 - GreenGrocc Store",
       cashierName = "Admin Cashier",
       storeId,
       storeName = "",

@@ -257,7 +257,7 @@ export default function CollectionReceivePage() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 className="w-full flex-1 border border-gray-200 px-3 py-1.5 text-xs outline-none focus:border-[#217346]"
-                placeholder="Paste greengroo:order:… or greengroo:batch:…"
+                placeholder="Paste greengrocc:order:… or greengrocc:batch:…"
                 value={form.qr}
                 onChange={(e) => set("qr", e.target.value)}
               />

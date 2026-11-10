@@ -1,5 +1,5 @@
 # =======================================================
-#   GreenGroo Staff App - Build Release App Bundle (.aab)
+#   GreenGrocc Staff App - Build Release App Bundle (.aab)
 # =======================================================
 
 $ErrorActionPreference = "Stop"
@@ -7,7 +7,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
 Write-Host "=======================================================" -ForegroundColor Cyan
-Write-Host "   GreenGroo Staff App - Building Release App Bundle" -ForegroundColor Cyan
+Write-Host "   GreenGrocc Staff App - Building Release App Bundle" -ForegroundColor Cyan
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
 

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import opsApi from '../../api/opsApi';
 import CleaningReportsPanel from './CleaningReportsPanel';
+import PasswordRequestsPanel from './PasswordRequestsPanel';
 import { BTN, BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL, TH } from '../../utils/ui';
 
 export default function StaffManagementPage() {
@@ -36,6 +37,14 @@ export default function StaffManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [pendingPasswordRequests, setPendingPasswordRequests] = useState(0);
+
+  useEffect(() => {
+    opsApi
+      .list('staff-management/password-requests', { status: 'pending' })
+      .then((response) => setPendingPasswordRequests((response.data || []).length))
+      .catch(() => {});
+  }, []);
 
   // Staff state
   const [staffList, setStaffList] = useState([]);
@@ -393,6 +402,23 @@ export default function StaffManagementPage() {
         </button>
         <button
           type="button"
+          onClick={() => setActiveTab('password-requests')}
+          className={`pb-3 border-b-2 transition flex items-center gap-2 ${
+            activeTab === 'password-requests'
+              ? 'border-emerald-700 text-emerald-800'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Lock className="h-4 w-4" />
+          Password Requests
+          {pendingPasswordRequests > 0 && (
+            <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {pendingPasswordRequests}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('hr-hub')}
           className={`pb-3 border-b-2 transition flex items-center gap-2 ${
             activeTab === 'hr-hub'
@@ -563,6 +589,10 @@ export default function StaffManagementPage() {
       )}
 
       {activeTab === 'cleaning' && <CleaningReportsPanel />}
+
+      {activeTab === 'password-requests' && (
+        <PasswordRequestsPanel onPendingCountChange={setPendingPasswordRequests} />
+      )}
 
       {/* TAB 2: CUSTOM ROLES MANAGER */}
       {activeTab === 'roles' && (
@@ -874,10 +904,10 @@ export default function StaffManagementPage() {
           <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-5 text-emerald-950">
             <h2 className="text-base font-bold flex items-center gap-2">
               <Smartphone className="h-5 w-5 text-emerald-700" />
-              GreenGroo Mobile Staff App Integration
+              GreenGrocc Mobile Staff App Integration
             </h2>
             <p className="text-xs text-emerald-800 mt-1 max-w-2xl">
-              The Flutter Staff App located in <code className="bg-emerald-100 px-1.5 py-0.5 rounded font-mono">/staffapp</code> dynamically pulls data from GreenGroo HR Management modules.
+              The Flutter Staff App located in <code className="bg-emerald-100 px-1.5 py-0.5 rounded font-mono">/staffapp</code> dynamically pulls data from GreenGrocc HR Management modules.
               Staff members log in with credentials created on this page, and their role automatically unlocks their customized views:
             </p>
           </div>
@@ -1041,7 +1071,7 @@ export default function StaffManagementPage() {
                   type="email"
                   className={INPUT}
                   required
-                  placeholder="ramesh@greengroo.com"
+                  placeholder="ramesh@greengrocc.com"
                   value={staffForm.email}
                   onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
                 />

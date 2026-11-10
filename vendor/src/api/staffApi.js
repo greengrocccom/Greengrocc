@@ -12,9 +12,9 @@ export const api = withLiveAdapter(
 
 export function getActiveAuthToken() {
   const keys = [
-    "greengroo_vendor_auth",
-    "greengroo_product_manager_auth",
-    "greengroo_driver_auth",
+    "greengrocc_vendor_auth",
+    "greengrocc_product_manager_auth",
+    "greengrocc_driver_auth",
     "token",
   ];
   for (const k of keys) {

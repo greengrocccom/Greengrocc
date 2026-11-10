@@ -1,9 +1,49 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:image/image.dart' as img;
+import 'package:intl/intl.dart';
 import '../core/api_client.dart';
+
+/// Formats a timestamp in India time so the photo stamp matches the admin panel.
+String formatCleaningTimestamp(DateTime time) {
+  final ist = time.toUtc().add(const Duration(hours: 5, minutes: 30));
+  return '${DateFormat('dd MMM yyyy, hh:mm:ss a').format(ist)} IST';
+}
+
+class CapturedCleaningPhoto {
+  const CapturedCleaningPhoto(this.bytes, this.capturedAt);
+  final Uint8List bytes;
+  final DateTime capturedAt;
+}
+
+Uint8List _stampPhoto((Uint8List, String) args) {
+  final decoded = img.decodeImage(args.$1);
+  if (decoded == null) throw StateError('Invalid photo');
+  final image = img.bakeOrientation(decoded);
+  final font = image.width >= 900 ? img.arial48 : img.arial24;
+  final padding = font.lineHeight ~/ 2;
+  final boxTop = image.height - font.lineHeight - padding * 2;
+  img.fillRect(
+    image,
+    x1: 0,
+    y1: boxTop,
+    x2: image.width - 1,
+    y2: image.height - 1,
+    color: img.ColorRgba8(0, 0, 0, 170),
+  );
+  img.drawString(
+    image,
+    args.$2,
+    font: font,
+    x: padding,
+    y: boxTop + padding,
+    color: img.ColorRgb8(255, 255, 255),
+  );
+  return img.encodeJpg(image, quality: 85);
+}
 
 class CleaningReportEntry extends StatefulWidget {
   const CleaningReportEntry({super.key});
@@ -39,7 +79,7 @@ class _CleaningReportEntryState extends State<CleaningReportEntry> {
           ),
           title: const Text('Daily Cleaning Report'),
           subtitle: const Text(
-            "Upload today's cleaning photo and a short note",
+            "Take today's cleaning photo and add a short note",
           ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.push(
@@ -61,8 +101,7 @@ class CleaningReportScreen extends StatefulWidget {
 class _CleaningReportScreenState extends State<CleaningReportScreen> {
   final _note = TextEditingController();
   final _form = GlobalKey<FormState>();
-  Uint8List? _photo;
-  String _source = 'camera';
+  CapturedCleaningPhoto? _photo;
   bool _busy = false;
   late Future<dynamic> _reports;
 
@@ -78,41 +117,23 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
     super.dispose();
   }
 
+  String _reportTitle(dynamic report) {
+    final capturedAt = DateTime.tryParse(report['capturedAt']?.toString() ?? '');
+    if (capturedAt != null) return formatCleaningTimestamp(capturedAt);
+    return report['date']?.toString() ?? '';
+  }
+
   void _message(String text) {
     if (mounted)
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   Future<void> _capture() async {
-    final bytes = await Navigator.push<Uint8List>(
+    final photo = await Navigator.push<CapturedCleaningPhoto>(
       context,
       MaterialPageRoute(builder: (_) => const CleaningCameraScreen()),
     );
-    if (mounted && bytes != null) {
-      setState(() {
-        _photo = bytes;
-        _source = 'camera';
-      });
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    final file = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1600,
-      imageQuality: 80,
-    );
-    if (file == null || !mounted) return;
-    final bytes = await file.readAsBytes();
-    if (!mounted) return;
-    if (bytes.length > 5 * 1024 * 1024) {
-      _message('Photo is larger than 5 MB. Choose a smaller photo.');
-      return;
-    }
-    setState(() {
-      _photo = bytes;
-      _source = 'gallery';
-    });
+    if (mounted && photo != null) setState(() => _photo = photo);
   }
 
   Future<void> _submit() async {
@@ -125,14 +146,14 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
     try {
       await ApiClient.post('/api/staff/my/cleaning-reports', {
         'note': _note.text.trim(),
-        'photoBase64': base64Encode(_photo!),
-        'source': _source,
+        'photoBase64': base64Encode(_photo!.bytes),
+        'source': 'camera',
+        'capturedAt': _photo!.capturedAt.toUtc().toIso8601String(),
       });
       if (!mounted) return;
       _note.clear();
       setState(() {
         _photo = null;
-        _source = 'camera';
         _reports = ApiClient.get('/api/staff/my/cleaning-reports');
       });
       _message('Cleaning report submitted.');
@@ -182,32 +203,29 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Take a photo or upload one from your gallery, then add a note about the areas cleaned.',
+              'Take a photo with the camera, then add a note about the areas cleaned. The date and time are added to the photo automatically.',
             ),
             const SizedBox(height: 16),
-            if (_photo != null)
+            if (_photo != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.memory(_photo!, height: 220, fit: BoxFit.cover),
+                child: Image.memory(
+                  _photo!.bytes,
+                  height: 260,
+                  fit: BoxFit.contain,
+                ),
               ),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _busy ? null : _capture,
-                    icon: const Icon(Icons.camera_alt),
-                    label: Text(_photo == null ? 'Take photo' : 'Retake'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _busy ? null : _pickFromGallery,
-                    icon: const Icon(Icons.upload_rounded),
-                    label: const Text('Upload photo'),
-                  ),
-                ),
-              ],
+              const SizedBox(height: 6),
+              Text(
+                'Captured: ${formatCleaningTimestamp(_photo!.capturedAt)}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _capture,
+              icon: const Icon(Icons.camera_alt),
+              label: Text(_photo == null ? 'Take photo' : 'Retake'),
             ),
             Form(
               key: _form,
@@ -245,7 +263,7 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.check_circle, color: Colors.green),
-                  title: Text(report['date']?.toString() ?? ''),
+                  title: Text(_reportTitle(report)),
                   subtitle: Text(report['note']?.toString() ?? ''),
                   trailing: const Icon(Icons.photo_outlined),
                   onTap: () {
@@ -256,7 +274,7 @@ class _CleaningReportScreenState extends State<CleaningReportScreen> {
                       context: context,
                       builder: (_) => AlertDialog(
                         title: Text(
-                          report['date']?.toString() ?? 'Cleaning photo',
+                          _reportTitle(report),
                         ),
                         content: SizedBox(
                           width: 320,
@@ -311,6 +329,10 @@ class _CleaningCameraScreenState extends State<CleaningCameraScreen>
   String? _error;
   bool _taking = false;
   int _generation = 0;
+  final _clock = Stream<DateTime>.periodic(
+    const Duration(seconds: 1),
+    (_) => DateTime.now(),
+  );
 
   @override
   void initState() {
@@ -381,9 +403,14 @@ class _CleaningCameraScreenState extends State<CleaningCameraScreen>
     setState(() => _taking = true);
     try {
       final file = await camera.takePicture();
-      final bytes = await file.readAsBytes();
+      final capturedAt = DateTime.now();
+      final raw = await file.readAsBytes();
+      final label = formatCleaningTimestamp(capturedAt);
+      final bytes = await Isolate.run(() => _stampPhoto((raw, label)));
       if (bytes.length > 5 * 1024 * 1024) throw StateError('Photo too large');
-      if (mounted) Navigator.pop(context, bytes);
+      if (mounted) {
+        Navigator.pop(context, CapturedCleaningPhoto(bytes, capturedAt));
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -423,14 +450,40 @@ class _CleaningCameraScreenState extends State<CleaningCameraScreen>
         ? const Center(child: CircularProgressIndicator())
         : Column(
             children: [
-              Expanded(child: Center(child: CameraPreview(_camera!))),
+              Expanded(
+                child: Center(
+                  child: CameraPreview(
+                    _camera!,
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Container(
+                        width: double.infinity,
+                        color: Colors.black54,
+                        padding: const EdgeInsets.all(8),
+                        child: StreamBuilder<DateTime>(
+                          stream: _clock,
+                          builder: (context, snapshot) => Text(
+                            formatCleaningTimestamp(
+                              snapshot.data ?? DateTime.now(),
+                            ),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: FilledButton.icon(
                     onPressed: _taking ? null : _takePhoto,
                     icon: const Icon(Icons.camera_alt),
-                    label: Text(_taking ? 'Capturing…' : 'Capture photo'),
+                    label: Text(_taking ? 'Saving photo…' : 'Capture photo'),
                   ),
                 ),
               ),

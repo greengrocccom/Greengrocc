@@ -1,6 +1,6 @@
-# GreenGroo Farmer Mobile App (Flutter)
+# GreenGrocc Farmer Mobile App (Flutter)
 
-A cross-platform Flutter mobile application for farmers in the GreenGroo supply chain ecosystem, directly adapted from the web portal `D:\GreenGroo\farmer`.
+A cross-platform Flutter mobile application for farmers in the GreenGrocc supply chain ecosystem, directly adapted from the web portal `D:\GreenGroo\farmer`.
 
 ## Key Features
 

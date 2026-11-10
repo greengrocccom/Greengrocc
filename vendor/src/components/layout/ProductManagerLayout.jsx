@@ -580,7 +580,7 @@ export default function ProductManagerLayout() {
                   GG
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-bold leading-tight text-slate-900">GreenGroo</p>
+                  <p className="truncate text-xs font-bold leading-tight text-slate-900">GreenGrocc</p>
                   <p className="truncate text-[10px] leading-tight text-slate-400">
                     {isSeller ? 'Seller Panel' : 'Vendor Panel'}
                   </p>

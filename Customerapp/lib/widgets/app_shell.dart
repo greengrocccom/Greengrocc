@@ -201,7 +201,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                     bottom: mediaQuery.padding.bottom + FlipkartBottomNav.barHeight + 8,
                     child: FloatingCartBar(onOpenCart: _openCart),
                   ),
-                if (!hideBottomNav)
+                // On Shop the bubble covers the product cards' cart buttons.
+                if (!hideBottomNav && !widget.location.startsWith(RoutePaths.shop))
                   Positioned(
                     right: 12,
                     bottom: mediaQuery.padding.bottom + FlipkartBottomNav.barHeight + 17 + cartBarLift,
@@ -259,23 +260,33 @@ class _ShellSideEffectsState extends ConsumerState<_ShellSideEffects> {
     });
   }
 
+  /// First open: sign in, then pick a delivery location (its nearest dark
+  /// store decides the catalogue). Neither sheet can be skipped.
   Future<void> _checkAndPromptFlow() async {
     if (!mounted || _promptActive) return;
+    _promptActive = true;
+    try {
+      await ref.read(deliveryLocationProvider.notifier).restored;
+      if (!mounted) return;
 
-    // Wait until delivery location is restored from persistent storage
-    final locationNotifier = ref.read(deliveryLocationProvider.notifier);
-    await locationNotifier.restored;
-    if (!mounted) return;
+      if (!ref.read(authControllerProvider).isLoggedIn) {
+        await showAuthModalBottomSheet(context, ref, mode: AuthModalMode.login, mandatory: true);
+        if (!mounted || !ref.read(authControllerProvider).isLoggedIn) return;
+      }
 
-    final currentLoc = ref.read(deliveryLocationProvider);
-    final hasLocation = currentLoc != null && currentLoc.hasLocation;
-
-    // If no delivery location is set (e.g. new user), show the select delivery location sheet
-    if (!hasLocation && mounted) {
-      _promptActive = true;
-      await showSelectDeliveryLocationBottomSheet(context, ref);
+      final location = ref.read(deliveryLocationProvider);
+      if (location == null || !location.hasLocation) {
+        await showSelectDeliveryLocationBottomSheet(context, ref, mandatory: true);
+      }
+    } finally {
       _promptActive = false;
     }
+  }
+
+  void _scheduleCheck() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _checkAndPromptFlow();
+    });
   }
 
   @override
@@ -283,18 +294,14 @@ class _ShellSideEffectsState extends ConsumerState<_ShellSideEffects> {
     ref.listen(authControllerProvider, (previous, next) {
       if (previous?.isLoggedIn != true && next.isLoggedIn) {
         unawaited(bootstrapUserSession(ref));
-        _promptActive = false;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _checkAndPromptFlow();
-        });
-      } else if (previous?.authModal != null && next.authModal == null) {
-        _promptActive = false;
-      }
-    });
-
-    ref.listen(deliveryLocationProvider, (previous, next) {
-      if (next != null && next.hasLocation) {
-        _promptActive = false;
+        _scheduleCheck();
+      } else if (previous?.isLoggedIn == true && !next.isLoggedIn) {
+        // The saved location belongs to the previous account's addresses.
+        unawaited(ref.read(deliveryLocationProvider.notifier).clearLocation());
+        _scheduleCheck();
+      } else if (previous?.authModal != null && next.authModal == null && !next.isLoggedIn) {
+        // A dismissible login sheet (e.g. from a /login link) was closed without signing in.
+        _scheduleCheck();
       }
     });
 

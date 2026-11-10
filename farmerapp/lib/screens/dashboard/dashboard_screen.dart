@@ -3266,7 +3266,7 @@ class _MarketPriceComparisonDonutCardState extends State<_MarketPriceComparisonD
                               Expanded(
                                 child: Text(
                                   m.isGreenGroo
-                                      ? AppLanguage().tr(mr: 'GreenGroo खरेदी केंद्र', en: 'GreenGroo Buying Centre')
+                                      ? AppLanguage().tr(mr: 'GreenGrocc खरेदी केंद्र', en: 'GreenGrocc Buying Centre')
                                       : m.marketName.replaceAll('APMC', '').trim(),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -3289,9 +3289,9 @@ class _MarketPriceComparisonDonutCardState extends State<_MarketPriceComparisonD
                               const SizedBox(width: 3),
                               Text(
                                 m.isGreenGroo
-                                    ? (selected.greenGrooVsAvgPercent >= 0
-                                        ? '(+${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}%)'
-                                        : '(${selected.greenGrooVsAvgPercent.toStringAsFixed(1)}%)')
+                                    ? (selected.greenGroccVsAvgPercent >= 0
+                                        ? '(+${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}%)'
+                                        : '(${selected.greenGroccVsAvgPercent.toStringAsFixed(1)}%)')
                                     : (m.percentHigher > 0
                                         ? '(+${m.percentHigher.toStringAsFixed(1)}%)'
                                         : AppLanguage().tr(mr: '(आधार)', en: '(Base)')),
@@ -3299,7 +3299,7 @@ class _MarketPriceComparisonDonutCardState extends State<_MarketPriceComparisonD
                                   fontSize: 8,
                                   fontWeight: FontWeight.bold,
                                   color: m.isGreenGroo
-                                      ? (selected.greenGrooVsAvgPercent >= 0
+                                      ? (selected.greenGroccVsAvgPercent >= 0
                                           ? const Color(0xFF16A34A)
                                           : const Color(0xFFDC2626))
                                       : (m.percentHigher > 0 ? const Color(0xFF16A34A) : const Color(0xFF9CA3AF)),

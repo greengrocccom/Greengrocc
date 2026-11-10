@@ -145,7 +145,7 @@ export default function VendorVacationPage() {
     }
   };
 
-  const storeName = vendor?.businessName || vendor?.vendorName || "GreenGroo Vendor Partner";
+  const storeName = vendor?.businessName || vendor?.vendorName || "GreenGrocc Vendor Partner";
 
   if (loading) {
     return (

@@ -215,7 +215,7 @@ export default function QrScanModal({
             <div className="flex w-full max-w-sm gap-2">
               <input
                 className="min-h-11 w-full rounded-xl border border-white/20 bg-white/10 px-3 text-xs text-white outline-none placeholder:text-white/45"
-                placeholder="greengroo:batch:… or greengroo:order:…"
+                placeholder="greengrocc:batch:… or greengrocc:order:…"
                 value={raw}
                 onChange={(e) => setRaw(e.target.value)}
               />

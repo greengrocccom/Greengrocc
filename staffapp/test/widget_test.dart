@@ -3,6 +3,6 @@ import 'package:staffapp/main.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
-    expect(const GreenGrooStaffApp(), isNotNull);
+    expect(const GreenGroccStaffApp(), isNotNull);
   });
 }

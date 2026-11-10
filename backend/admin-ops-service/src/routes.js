@@ -301,6 +301,11 @@ import {
   listCleaningReportsForAdmin,
   getCleaningReportPhotoForAdmin,
 } from "../../staff-service/src/controllers/cleaningReportController.js";
+import {
+  listPasswordRequestsForAdmin,
+  resolvePasswordRequest,
+  rejectPasswordRequest,
+} from "../../staff-service/src/controllers/passwordRequestController.js";
 
 const router = express.Router();
 
@@ -522,6 +527,9 @@ router.get("/staff-management/notifications", listStaffNotifications);
 router.delete("/staff-management/notifications/:id", deleteStaffNotification);
 router.get("/staff-management/cleaning-reports", listCleaningReportsForAdmin);
 router.get("/staff-management/cleaning-reports/:id/photo", getCleaningReportPhotoForAdmin);
+router.get("/staff-management/password-requests", listPasswordRequestsForAdmin);
+router.post("/staff-management/password-requests/:id/resolve", resolvePasswordRequest);
+router.post("/staff-management/password-requests/:id/reject", rejectPasswordRequest);
 
 router.get("/hr/b2b-clients", listB2bClients);
 router.get("/hr/b2b-clients/registered-users", listRegisteredBulkUsers);

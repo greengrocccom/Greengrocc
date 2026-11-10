@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../config/theme.dart';
 import 'road_route_service.dart';
+import 'tracking_map_overlays.dart';
 import 'tracking_markers.dart';
 
 /// Map with the rider's bike marker gliding between GPS fixes (≈1 s), rotated by
@@ -276,21 +277,11 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> with SingleTickerProv
       ],
     ];
 
-    final effectiveMeters = _roadDistanceMeters ?? widget.distanceMeters;
-    final effectiveEta = _roadEtaText ?? widget.etaText;
-
-    final String distanceLabel;
-    if (effectiveMeters != null) {
-      if (effectiveMeters <= 30) {
-        distanceLabel = 'Near you';
-      } else if (effectiveMeters >= 1000) {
-        distanceLabel = '${(effectiveMeters / 1000).toStringAsFixed(1)} km away';
-      } else {
-        distanceLabel = '$effectiveMeters m away';
-      }
-    } else {
-      distanceLabel = '';
-    }
+    // The panel's ETA follows the rider; the map's own road route is a one-off
+    // store → home estimate, so it only fills in when the panel has none.
+    final hasLiveEta = widget.etaText?.trim().isNotEmpty == true;
+    final effectiveEta = hasLiveEta ? widget.etaText : _roadEtaText;
+    final effectiveMeters = hasLiveEta ? widget.distanceMeters : _roadDistanceMeters;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
@@ -361,76 +352,15 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> with SingleTickerProv
                 },
               ),
             ),
-            // Floating ETA Pill (bottom-left) matching the UI mockup
             Positioned(
               bottom: 10,
               left: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.10),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.location_on_rounded,
-                      color: AppColors.primary,
-                      size: 13.5,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'ETA ${effectiveEta ?? '12 mins'}${distanceLabel.isNotEmpty ? ' • $distanceLabel' : ''}',
-                      style: const TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.1,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.access_time_rounded,
-                      color: Color(0xFF64748B),
-                      size: 11.5,
-                    ),
-                  ],
-                ),
-              ),
+              child: TrackingEtaPill(etaText: effectiveEta, distanceMeters: effectiveMeters),
             ),
-            // Floating Re-center FAB (top-right) matching the UI mockup
             Positioned(
               top: 10,
               right: 10,
-              child: Material(
-                color: Colors.white,
-                shape: const CircleBorder(),
-                elevation: 2.5,
-                shadowColor: Colors.black.withValues(alpha: 0.18),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: _recenter,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.my_location_rounded,
-                      color: Color(0xFF475569),
-                      size: 16,
-                    ),
-                  ),
-                ),
-              ),
+              child: TrackingRecenterButton(onTap: _recenter),
             ),
           ],
         ),

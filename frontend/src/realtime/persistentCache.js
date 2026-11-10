@@ -4,7 +4,7 @@
  * Every call fails soft: without IndexedDB the app simply loads from the network.
  */
 
-const DB_NAME = "greengroo-live-cache";
+const DB_NAME = "greengrocc-live-cache";
 const STORE = "entries";
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_ENTRIES = 300;

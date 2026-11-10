@@ -1,11 +1,11 @@
 /**
- * GreenGroo Ajax Live Search Engine Utility
+ * GreenGrocc Ajax Live Search Engine Utility
  * Provides Google-style relevance scoring, Indian produce synonym dictionary,
  * fuzzy typo-tolerance, keyword highlighter, and search history persistence.
  */
 
-export const SEARCH_HISTORY_KEY = "greengroo_vendor_search_history";
-export const SEARCH_DOCK_KEY = "greengroo_vendor_search_widget_dock";
+export const SEARCH_HISTORY_KEY = "greengrocc_vendor_search_history";
+export const SEARCH_DOCK_KEY = "greengrocc_vendor_search_widget_dock";
 
 export const VERNACULAR_SYNONYMS = {
   // Vegetables

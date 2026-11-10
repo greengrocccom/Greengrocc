@@ -91,7 +91,7 @@ async function checkCustomerOtp(order, otp) {
     status: 400,
     body: {
       success: false,
-      message: `Incorrect OTP. Ask the customer for the code in their GreenGroo order. ${remaining} attempt(s) remaining.`,
+      message: `Incorrect OTP. Ask the customer for the code in their GreenGrocc order. ${remaining} attempt(s) remaining.`,
       attemptsRemaining: remaining,
     },
   };

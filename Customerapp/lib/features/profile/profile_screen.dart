@@ -222,7 +222,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Log out of GreenGroo?'),
+        title: const Text('Log out of GreenGrocc?'),
         content: const Text('You will need to sign in again to access your account and saved addresses.'),
         actions: [
           TextButton(
@@ -498,7 +498,7 @@ class _WelcomeCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Welcome to GreenGroo',
+            'Welcome to GreenGrocc',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _slate900),
           ),
           const SizedBox(height: 6),
@@ -639,7 +639,7 @@ class _ProfileInfoCard extends StatelessWidget {
           _ProfileInfoRow(
             icon: Icons.person_outline_rounded,
             label: 'Name',
-            value: user.name.isNotEmpty ? user.name : 'GreenGroo User',
+            value: user.name.isNotEmpty ? user.name : 'GreenGrocc User',
             onEdit: onEditName,
           ),
           const Divider(height: 1, thickness: 1, color: _borderGray, indent: 64),
@@ -1258,7 +1258,7 @@ class _MenuSection extends StatelessWidget {
                 divider,
                 _MenuItem(icon: Icons.contact_support_outlined, title: 'Contact Us', onTap: onContact),
                 divider,
-                _MenuItem(icon: Icons.info_outline_rounded, title: 'About GreenGroo', onTap: onAbout),
+                _MenuItem(icon: Icons.info_outline_rounded, title: 'About GreenGrocc', onTap: onAbout),
                 divider,
                 _MenuItem(icon: Icons.share_outlined, title: 'Share App / Website', onTap: onShare),
               ],

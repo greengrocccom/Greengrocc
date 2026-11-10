@@ -18,7 +18,7 @@ import opsApi from '../../api/opsApi';
 import { BTN, BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL } from '../../utils/ui';
 import { personKey, Pill, pretty, HrBackButtons } from './hrShared';
 
-const DAY_VIEW_KEY = 'greengroo_hr_calendar_day_view';
+const DAY_VIEW_KEY = 'greengrocc_hr_calendar_day_view';
 
 const KIND_META = {
   holiday: {

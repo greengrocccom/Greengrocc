@@ -6,8 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../config/theme.dart';
 import '../../../../models/order.dart';
 import '../../widgets/delivery_otp_resend_button.dart';
-import '../live_tracking_map.dart';
 import '../order_tracking_models.dart';
+import '../tracking_map.dart';
 import 'courier_avatar_badge.dart';
 import 'grocery_bag_badge.dart';
 import 'horizontal_order_stepper.dart';
@@ -183,13 +183,19 @@ class _ModernTrackingViewState extends State<ModernTrackingView> {
 
     final statusLabel = _formatStatusLabel(tracking.status);
     final isDelivered = order.status == 'delivered' || tracking.status == 'delivered';
-    final etaText = tracking.eta?.text.isNotEmpty == true
-        ? tracking.eta!.text
-        : (isDelivered
-            ? 'Delivered'
-            : (tracking.driver != null && tracking.driver!.name.isNotEmpty
-                ? 'Calculating...'
-                : 'ETA unavailable'));
+    final String etaText;
+    if (isDelivered) {
+      etaText = 'Delivered';
+    } else if (tracking.isCancelled) {
+      etaText = '—';
+    } else if (tracking.eta?.text.isNotEmpty == true) {
+      etaText = tracking.eta!.text;
+    } else if (tracking.orderType == OrderTypes.preorder) {
+      etaText = tracking.preOrder?.slot.isNotEmpty == true ? tracking.preOrder!.slot : 'Scheduled';
+    } else {
+      // No route yet (store not assigned or address without GPS): show the promise.
+      etaText = '10–20 min';
+    }
 
     final driver = tracking.driver;
     final hasRealDriver = driver != null && driver.name.trim().isNotEmpty && driver.name.trim() != 'Delivery partner';
@@ -301,10 +307,9 @@ class _ModernTrackingViewState extends State<ModernTrackingView> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                // Live Interactive Google Map
                 SizedBox(
                   height: 270,
-                  child: LiveTrackingMap(
+                  child: TrackingMap(
                     driver: widget.driver,
                     heading: widget.heading,
                     store: tracking.storeLocation,

@@ -147,7 +147,7 @@ function EarningReceiptModal({ record, onClose, farmer }) {
         <div className="flex items-center justify-between border-b border-gray-100 bg-[#217346] px-6 py-4 text-white">
           <div>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-200">
-              GreenGroo Earning Statement Receipt
+              GreenGrocc Earning Statement Receipt
             </span>
             <h3 className="text-lg font-bold">Order ID: {record.orderId}</h3>
           </div>

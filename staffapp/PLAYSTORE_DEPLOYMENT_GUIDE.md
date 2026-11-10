@@ -1,6 +1,6 @@
-# 🚀 Google Play Store Deployment Guide for GreenGroo Staff App
+# 🚀 Google Play Store Deployment Guide for GreenGrocc Staff App
 
-This guide covers everything required to generate production signing keys, build an **Android App Bundle (`.aab`)**, and publish the **GreenGroo Staff App** to the **Google Play Store**.
+This guide covers everything required to generate production signing keys, build an **Android App Bundle (`.aab`)**, and publish the **GreenGrocc Staff App** to the **Google Play Store**.
 
 ---
 
@@ -8,7 +8,7 @@ This guide covers everything required to generate production signing keys, build
 
 | Parameter | Configuration |
 | :--- | :--- |
-| **App Name** | **GreenGroo Staff** |
+| **App Name** | **GreenGrocc Staff** |
 | **Package Name / Application ID** | `com.greengroo.staffapp` |
 | **Target SDK Version** | Android 14+ (API 34/35) *(Google Play Requirement)* |
 | **Minimum SDK Version** | Android 6.0+ (API 23+) |
@@ -93,7 +93,7 @@ staffapp/build/app/outputs/bundle/release/app-release.aab
 
 1. **Log in to Google Play Console**: [play.google.com/console](https://play.google.com/console)
 2. Click **Create app**:
-   - **App name**: `GreenGroo Staff`
+   - **App name**: `GreenGrocc Staff`
    - **Default language**: English (United States or India)
    - **App or game**: App
    - **Free or paid**: Free
@@ -104,21 +104,21 @@ staffapp/build/app/outputs/bundle/release/app-release.aab
 ## 📝 Step 4: Store Listing & Store Presence
 
 ### 1. Main Store Listing
-- **App name**: `GreenGroo Staff`
+- **App name**: `GreenGrocc Staff`
 - **Short description** (Up to 80 chars):
   ```
-  GreenGroo Staff operations, daily attendance punch, shift rosters, and work hub.
+  GreenGrocc Staff operations, daily attendance punch, shift rosters, and work hub.
   ```
 - **Full description** (Up to 4000 chars):
   ```
-  GreenGroo Staff is the official internal operations and HR companion for GreenGroo employees, managers, and operational staff.
+  GreenGrocc Staff is the official internal operations and HR companion for GreenGrocc employees, managers, and operational staff.
 
   Key Features:
   • Daily Attendance: Quick mobile punch-in and punch-out with shift duration tracking.
   • Shift Rosters: View your assigned shifts, working hours, and general schedules.
   • Leave Management: Apply for casual, sick, or earned leave and track approval status in real-time.
   • Salary & Payslips: Access your monthly salary breakdown, gross, net pay, and deductions.
-  • Company Announcements: Stay informed with official GreenGroo company notices and holidays.
+  • Company Announcements: Stay informed with official GreenGrocc company notices and holidays.
   • Secure & Fast: Seamless login with OTP or company credentials.
   ```
 
@@ -162,7 +162,7 @@ In the Google Play Console under **Policy > App content**:
 3. Enter **Release name**: `1.0.0 (1)`
 4. Enter **Release notes**:
    ```
-   Initial production release of GreenGroo Staff operations app.
+   Initial production release of GreenGrocc Staff operations app.
    - Mobile punch-in/out attendance
    - Shift rosters and schedule view
    - Leave applications and salary history

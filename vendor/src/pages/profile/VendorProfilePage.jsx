@@ -271,9 +271,9 @@ export default function VendorProfilePage() {
 
   const handleClearLocalCache = () => {
     try {
-      const keepAuth = localStorage.getItem("greengroo_vendor_auth");
+      const keepAuth = localStorage.getItem("greengrocc_vendor_auth");
       localStorage.clear();
-      if (keepAuth) localStorage.setItem("greengroo_vendor_auth", keepAuth);
+      if (keepAuth) localStorage.setItem("greengrocc_vendor_auth", keepAuth);
       document.body.classList.remove("vendor-compact-tables");
       document.documentElement.classList.remove("dark");
       toast.success("Local cache and UI preferences cleared successfully");
@@ -399,7 +399,7 @@ export default function VendorProfilePage() {
               <div className="pt-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
-                    {data.businessName || data.vendorName || "GreenGroo Vendor"}
+                    {data.businessName || data.vendorName || "GreenGrocc Vendor"}
                   </h2>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />

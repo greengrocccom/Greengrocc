@@ -26,7 +26,7 @@ export default function DriverLayout() {
     <div className="min-h-screen bg-[#f8f9fa]">
       <aside className="fixed left-0 top-0 hidden h-screen w-56 flex-col bg-green-dark text-white md:flex">
         <div className="px-5 py-6">
-          <p className="text-sm font-bold">GreenGroo</p>
+          <p className="text-sm font-bold">GreenGrocc</p>
           <p className="text-xs text-white/60">Pickup Orders</p>
         </div>
         <nav className="flex-1 space-y-1 px-3">
@@ -57,7 +57,7 @@ export default function DriverLayout() {
 
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:hidden">
         <div>
-          <p className="text-sm font-bold text-gray-900">GreenGroo</p>
+          <p className="text-sm font-bold text-gray-900">GreenGrocc</p>
           <p className="text-[11px] text-gray-500">{driver?.name || "Pickup Orders"}</p>
         </div>
         <button type="button" className="text-xs font-semibold text-[#217346]" onClick={onLogout}>

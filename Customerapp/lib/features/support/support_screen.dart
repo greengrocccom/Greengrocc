@@ -86,7 +86,6 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
     if (user == null) return;
     if (_nameController.text.isEmpty) _nameController.text = user.name;
     if (_emailController.text.isEmpty) _emailController.text = user.email;
-    if (_phoneController.text.isEmpty) _phoneController.text = user.phone;
   }
 
   @override

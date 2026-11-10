@@ -2,7 +2,7 @@
 setlocal
 
 echo =======================================================
-echo   GreenGroo Staff App - Production Build (App Bundle)
+echo   GreenGrocc Staff App - Production Build (App Bundle)
 echo =======================================================
 echo.
 

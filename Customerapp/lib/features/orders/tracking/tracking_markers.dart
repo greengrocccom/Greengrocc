@@ -1,14 +1,22 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../config/theme.dart';
 
 /// Generates crisp vector custom markers matching the live tracking UI mockup.
+/// The PNG bytes are shared by the Google map and the OpenStreetMap fallback.
 class TrackingMarkers {
   TrackingMarkers._();
 
+  static const riderSize = Size(84, 96);
+  /// Where the rider marker touches the map, as a fraction of [riderSize].
+  static const riderAnchor = Offset(0.5, 0.65);
+  static const destinationSize = 58.0;
+
   static final Map<String, BitmapDescriptor> _cache = {};
+  static final Map<String, Uint8List> _pngCache = {};
 
   /// Circular delivery boy marker with green helmet + "On the way" speech badge.
   static Future<BitmapDescriptor> riderMarker(
@@ -17,6 +25,38 @@ class TrackingMarkers {
   }) async {
     final key = 'rider_${badgeText}_$dpr';
     final cached = _cache[key];
+    if (cached != null) return cached;
+    final descriptor = BitmapDescriptor.bytes(
+      await riderMarkerPng(dpr, badgeText: badgeText),
+      imagePixelRatio: dpr,
+      width: riderSize.width,
+      height: riderSize.height,
+    );
+    _cache[key] = descriptor;
+    return descriptor;
+  }
+
+  /// Circular destination marker with house icon and soft blue pulse ring.
+  static Future<BitmapDescriptor> destinationMarker(double dpr) async {
+    final key = 'destination_$dpr';
+    final cached = _cache[key];
+    if (cached != null) return cached;
+    final descriptor = BitmapDescriptor.bytes(
+      await destinationMarkerPng(dpr),
+      imagePixelRatio: dpr,
+      width: destinationSize,
+      height: destinationSize,
+    );
+    _cache[key] = descriptor;
+    return descriptor;
+  }
+
+  static Future<Uint8List> riderMarkerPng(
+    double dpr, {
+    String badgeText = 'On the way',
+  }) async {
+    final key = 'rider_${badgeText}_$dpr';
+    final cached = _pngCache[key];
     if (cached != null) return cached;
 
     const logicalW = 84.0;
@@ -237,23 +277,17 @@ class TrackingMarkers {
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
 
-    final descriptor = BitmapDescriptor.bytes(
-      bytes!.buffer.asUint8List(),
-      imagePixelRatio: dpr,
-      width: logicalW,
-      height: logicalH,
-    );
-    _cache[key] = descriptor;
-    return descriptor;
+    final png = bytes!.buffer.asUint8List();
+    _pngCache[key] = png;
+    return png;
   }
 
-  /// Circular destination marker with house icon and soft blue pulse ring.
-  static Future<BitmapDescriptor> destinationMarker(double dpr) async {
+  static Future<Uint8List> destinationMarkerPng(double dpr) async {
     final key = 'destination_$dpr';
-    final cached = _cache[key];
+    final cached = _pngCache[key];
     if (cached != null) return cached;
 
-    const logicalSize = 58.0;
+    const logicalSize = destinationSize;
     final px = (logicalSize * dpr).round();
 
     final recorder = ui.PictureRecorder();
@@ -312,13 +346,8 @@ class TrackingMarkers {
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
 
-    final descriptor = BitmapDescriptor.bytes(
-      bytes!.buffer.asUint8List(),
-      imagePixelRatio: dpr,
-      width: logicalSize,
-      height: logicalSize,
-    );
-    _cache[key] = descriptor;
-    return descriptor;
+    final png = bytes!.buffer.asUint8List();
+    _pngCache[key] = png;
+    return png;
   }
 }

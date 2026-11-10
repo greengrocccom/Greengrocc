@@ -7,7 +7,7 @@ class AppColors {
   static const Color primaryLight = Color(0xFFEFF6FF);
   static const Color primaryNavy = Color(0xFF0F172A);
 
-  // GreenGroo Leaf Brand Accent
+  // GreenGrocc Leaf Brand Accent
   static const Color brandGreen = Color(0xFF16A34A);
   static const Color brandGreenLight = Color(0xFFDCFCE7);
   static const Color brandGreenDark = Color(0xFF15803D);

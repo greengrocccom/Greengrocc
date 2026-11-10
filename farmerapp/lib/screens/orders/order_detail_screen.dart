@@ -1076,7 +1076,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         final double calculatedTotal = grades.fold(0.0, (sum, g) => sum + (g['amount'] as double));
         final double finalOrderValue = order.totalAmount > 0 ? order.totalAmount : calculatedTotal;
         final productBizId = _formatProductBusinessCode(order);
-        final qrPayload = 'greengroo:order:${order.orderCode}';
+        final qrPayload = 'greengrocc:order:${order.orderCode}';
         final farmerDisplayName = profile.fullName;
 
         return Scaffold(

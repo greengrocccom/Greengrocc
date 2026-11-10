@@ -117,7 +117,7 @@ function FarmerSidebar({ mobileOpen, onCloseMobile }) {
 
   const items = isManager ? MANAGER_SIDEBAR_ITEMS : SIDEBAR_ITEMS;
   const panelLabel = isManager ? "Manager Panel" : "Farmer Panel";
-  const vendorName = isManager ? (farmer?.vendorName || "GreenGroo") : "GreenGroo";
+  const vendorName = isManager ? (farmer?.vendorName || "GreenGrocc") : "GreenGrocc";
   const compact = collapsed && !mobileOpen;
 
   const onNavigate = () => {

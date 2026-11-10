@@ -43,6 +43,21 @@ try {
       assert.equal(res.statusCode, 400);
     }
   });
+  await test("gallery uploads and missing or out-of-range capture times are rejected", async () => {
+    const photo = (await sharp({ create: { width: 8, height: 8, channels: 3, background: "white" } }).png().toBuffer()).toString("base64");
+    const now = Date.now();
+    for (const body of [
+      { source: "gallery", capturedAt: new Date(now).toISOString() },
+      { source: "camera" },
+      { source: "camera", capturedAt: "not a date" },
+      { source: "camera", capturedAt: new Date(now + 10 * 60 * 1000).toISOString() },
+      { source: "camera", capturedAt: new Date(now - 7 * 60 * 60 * 1000).toISOString() },
+    ]) {
+      const res = response();
+      await submitCleaningReport(req({ note: "Floor cleaned", photoBase64: photo, ...body }), res, fail);
+      assert.equal(res.statusCode, 400);
+    }
+  });
   await test("non-cleaners cannot submit and receive no report history", async () => {
     staff.role = "vendor";
     const res = response();
@@ -53,16 +68,18 @@ try {
     assert.deepEqual(history.body.data, { eligible: false, reports: [] });
     staff.role = "cleaner";
   });
-  await test("valid report is saved against authenticated staff with server date and normalized JPEG", async () => {
+  await test("valid report is saved against authenticated staff with capture time and normalized JPEG", async () => {
     const photo = await sharp({ create: { width: 8, height: 8, channels: 3, background: "white" } }).png().toBuffer();
+    const capturedAt = new Date(Date.now() - 60 * 1000);
     let saved;
     CleaningReport.create = async (data) => { saved = data; return { ...data, id: "report-id", createdAt: new Date() }; };
     const res = response();
-    await submitCleaningReport(req({ note: "  Floor cleaned  ", photoBase64: photo.toString("base64"), source: "camera", staffId: "someone-else", date: "2000-01-01" }), res, fail);
+    await submitCleaningReport(req({ note: "  Floor cleaned  ", photoBase64: photo.toString("base64"), source: "camera", capturedAt: capturedAt.toISOString(), staffId: "someone-else", date: "2000-01-01" }), res, fail);
     assert.equal(res.statusCode, 201);
     assert.equal(saved.staffId, staff._id);
     assert.equal(saved.note, "Floor cleaned");
-    assert.equal(saved.date, new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date()));
+    assert.equal(saved.capturedAt.getTime(), capturedAt.getTime());
+    assert.equal(saved.date, new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(capturedAt));
     assert.equal((await sharp(saved.photo).metadata()).format, "jpeg");
     assert.equal(res.body.data.photo, undefined);
   });

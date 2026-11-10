@@ -3,7 +3,7 @@ import { getApiBaseUrl } from "../config/env";
 import { withLiveAdapter } from "../realtime/liveClient";
 import { syncRealtimeToken } from "../realtime/setup";
 import "./staffApi";
-const VENDOR_STORAGE_KEY = "greengroo_vendor_auth";
+const VENDOR_STORAGE_KEY = "greengrocc_vendor_auth";
 
 export const api = withLiveAdapter(
   axios.create({

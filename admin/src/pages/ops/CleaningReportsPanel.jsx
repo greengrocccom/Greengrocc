@@ -17,7 +17,19 @@ function formatDay(iso) {
 
 function formatTime(value) {
   if (!value) return '';
-  return new Date(value).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  return new Date(value).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata',
+  });
+}
+
+function reportTime(report) {
+  return report.capturedAt
+    ? `Captured ${formatTime(report.capturedAt)} IST`
+    : `Submitted ${formatTime(report.createdAt)} IST`;
 }
 
 function ReportPhoto({ id, alt, className, onClick }) {
@@ -159,7 +171,7 @@ export default function CleaningReportsPanel() {
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-950">
-        Photos uploaded by cleaning staff in the staff app. Filter a day or a person, then switch between day-wise and person-wise.
+        Photos taken by cleaning staff with the staff app camera, stamped with the capture date and time. Filter a day or a person, then switch between day-wise and person-wise.
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -306,7 +318,7 @@ export default function CleaningReportsPanel() {
               <div>
                 <p className="text-sm font-bold text-slate-900">{preview.staff?.name || 'Cleaner'}</p>
                 <p className="text-xs text-slate-500">
-                  {formatDay(preview.date)} · {formatTime(preview.createdAt)}
+                  {formatDay(preview.date)} · {reportTime(preview)}
                 </p>
               </div>
               <button type="button" onClick={() => setPreview(null)} className="text-slate-400 hover:text-slate-700">
@@ -368,7 +380,7 @@ function PhotoCard({ report, onOpen }) {
     >
       <ReportPhoto id={report.id} alt={`${report.staff?.name || 'Cleaner'} cleaning photo`} className="h-40 w-full object-cover" />
       <div className="px-3 py-2">
-        <p className="text-[11px] font-semibold text-slate-500">{formatDay(report.date)} · {formatTime(report.createdAt)}</p>
+        <p className="text-[11px] font-semibold text-slate-500">{formatDay(report.date)} · {reportTime(report)}</p>
         <p className="mt-0.5 line-clamp-2 text-xs text-slate-700">{report.note}</p>
       </div>
     </button>

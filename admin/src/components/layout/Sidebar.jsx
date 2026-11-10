@@ -10,7 +10,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, LogOut, Settings, X } from 'luc
 import { NAV_GROUPS } from '../../config/adminNav';
 import { useAuth } from '../../context/AuthContext';
 
-const SIDEBAR_WIDTH_KEY = 'greengroo_admin_sidebar_width';
+const SIDEBAR_WIDTH_KEY = 'greengrocc_admin_sidebar_width';
 const MIN_SIDEBAR_WIDTH = 180;
 const MAX_SIDEBAR_WIDTH = 360;
 const clampWidth = (width) => Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, Math.round(width)));
@@ -196,7 +196,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, onClo
                   GG
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold leading-tight text-slate-900">GreenGroo</p>
+                  <p className="truncate text-sm font-bold leading-tight text-slate-900">GreenGrocc</p>
                   <p className="truncate text-[11px] leading-tight text-slate-500">Admin Panel</p>
                 </div>
               </div>
@@ -243,7 +243,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, onClo
             {!compact ? (
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-slate-900">{user?.name || 'Admin'}</p>
-                <p className="truncate text-[11px] text-slate-500">{user?.email || 'admin@greengroo.com'}</p>
+                <p className="truncate text-[11px] text-slate-500">{user?.email || 'admin@greengrocc.com'}</p>
               </div>
             ) : null}
             <Link

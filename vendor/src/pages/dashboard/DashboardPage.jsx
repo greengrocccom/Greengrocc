@@ -131,7 +131,7 @@ export default function DashboardPage() {
   // Drag & Drop Live Search Widget Dock State
   const [searchWidgetDock, setSearchWidgetDock] = useState(() => {
     try {
-      return localStorage.getItem("greengroo_vendor_search_widget_dock") || "hero";
+      return localStorage.getItem("greengrocc_vendor_search_widget_dock") || "hero";
     } catch {
       return "hero";
     }
@@ -144,7 +144,7 @@ export default function DashboardPage() {
     setIsOverHeroDrop(false);
     setIsOverBottomDrop(false);
     try {
-      localStorage.setItem("greengroo_vendor_search_widget_dock", targetZone);
+      localStorage.setItem("greengrocc_vendor_search_widget_dock", targetZone);
     } catch {}
   };
 

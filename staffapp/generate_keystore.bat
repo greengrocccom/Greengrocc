@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo =======================================================
-echo   GreenGroo Staff App - Release Keystore Setup
+echo   GreenGrocc Staff App - Release Keystore Setup
 echo =======================================================
 echo.
 
@@ -46,7 +46,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo Generating %KEYSTORE_PATH% ...
-"!KEYTOOL_CMD!" -genkey -v -keystore "%KEYSTORE_PATH%" -alias %KEY_ALIAS% -keyalg RSA -keysize 2048 -validity 10000 -storepass %PASSWORD% -keypass %PASSWORD% -dname "CN=GreenGroo Staff, OU=Operations, O=GreenGroo, L=Bangalore, ST=Karnataka, C=IN"
+"!KEYTOOL_CMD!" -genkey -v -keystore "%KEYSTORE_PATH%" -alias %KEY_ALIAS% -keyalg RSA -keysize 2048 -validity 10000 -storepass %PASSWORD% -keypass %PASSWORD% -dname "CN=GreenGrocc Staff, OU=Operations, O=GreenGrocc, L=Bangalore, ST=Karnataka, C=IN"
 
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] keytool failed. Please ensure Java JDK is installed and in your PATH.

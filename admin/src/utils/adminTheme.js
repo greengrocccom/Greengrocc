@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'greengroo_admin_theme';
+const STORAGE_KEY = 'greengrocc_admin_theme';
 
 export function getAdminTheme() {
   return document.documentElement.dataset.adminTheme === 'dark' ? 'dark' : 'light';

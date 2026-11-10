@@ -4,6 +4,7 @@ import '../core/app_colors.dart';
 import '../core/api_client.dart';
 import '../core/session_manager.dart';
 import 'login_screen.dart';
+import 'password_request_screen.dart';
 import 'salary_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -273,22 +274,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildActionCard(
                       icon: Icons.lock_outline_rounded,
                       title: 'Change Password',
-                      subtitle: 'Request a password reset link to your email',
+                      subtitle: 'Ask admin to set a new password and see their reply',
                       onTap: () {
-                        if (email.isNotEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Password reset instructions sent to $email'),
-                              backgroundColor: AppColors.primary,
-                            ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Contact HR admin to reset your password.'),
-                            ),
-                          );
-                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const PasswordRequestScreen()),
+                        );
                       },
                     ),
 

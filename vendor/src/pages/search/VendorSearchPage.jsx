@@ -398,7 +398,7 @@ export default function VendorSearchPage() {
       {loading ? (
         <div className="py-16 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
-          <p className="mt-3 text-xs font-medium text-slate-400">Searching across GreenGroo catalog & farmers...</p>
+          <p className="mt-3 text-xs font-medium text-slate-400">Searching across GreenGrocc catalog & farmers...</p>
         </div>
       ) : visibleCount === 0 ? (
         /* Empty Results */
@@ -463,7 +463,7 @@ export default function VendorSearchPage() {
                               className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-emerald-700 truncate"
                               dangerouslySetInnerHTML={{ __html: f.highlightedName || f.name }}
                             />
-                            <p className="text-xs text-slate-500 truncate">{f.farmName || "GreenGroo Partner Farm"}</p>
+                            <p className="text-xs text-slate-500 truncate">{f.farmName || "GreenGrocc Partner Farm"}</p>
                           </div>
                         </div>
                         <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">

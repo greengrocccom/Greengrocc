@@ -204,17 +204,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  void _syncSelectedAddress(List<Address> addresses) {
-    if (addresses.isEmpty) {
-      _selectedAddressId = null;
-      return;
-    }
-    if (_selectedAddressId != null &&
-        addresses.any((addr) => addr.id == _selectedAddressId)) {
-      return;
-    }
-    final defaultAddr = addresses.where((a) => a.isDefault).firstOrNull ?? addresses.first;
-    _selectedAddressId = defaultAddr.id;
+  /// Checkout delivers to the address the customer picked as their delivery
+  /// location (the one the products and dark store were chosen for).
+  void _syncSelectedAddress(List<Address> addresses, DeliveryLocation? location) {
+    _selectedAddressId = addressForLocation(addresses, location)?.id;
   }
 
   Map<String, dynamic>? _customerLocationPayload() {
@@ -332,16 +325,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
+  /// Changing the address here changes the delivery location too; a location
+  /// served by another dark store empties the cart.
   Future<void> _openLocationSheet() async {
-    final id = await showSelectDeliveryLocationBottomSheet(context, ref);
-    if (!mounted || id == null || id.isEmpty) return;
-    setState(() => _selectedAddressId = id);
+    await showSelectDeliveryLocationBottomSheet(context, ref);
   }
 
   Future<void> _openAddressForm() async {
     final id = await showDeliveryAddressFormSheet(context);
     if (!mounted || id == null || id.isEmpty) return;
-    setState(() => _selectedAddressId = id);
+    final saved = ref
+        .read(addressControllerProvider)
+        .addresses
+        .where((addr) => addr.id == id)
+        .firstOrNull;
+    if (saved == null) return;
+    await ref.read(deliveryLocationProvider.notifier).setLocation(DeliveryLocation.fromAddress(saved));
   }
 
   Future<void> _changeQuantity(CartItem item, int quantity) async {
@@ -447,7 +446,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
     }
 
-    _syncSelectedAddress(addressList);
+    final deliveryLocation = ref.watch(deliveryLocationProvider);
+    _syncSelectedAddress(addressList, deliveryLocation);
     final isPickup = _fulfillment == FulfillmentType.pickup;
     final storeSettings = ref.watch(storeSettingsProvider).value;
     final baseSummary = calculateCartSummary(cartItems, settings: storeSettings);
@@ -530,7 +530,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       blocker =
           'Add ${formatInr(orderShortfall)} more to reach the minimum order of ${formatInr(minimumOrderValue)}';
     } else if (selectedAddress == null) {
-      blocker = 'Add a delivery address to continue';
+      blocker = addressList.isEmpty
+          ? 'Add a delivery address to continue'
+          : 'Select your delivery address to continue';
     } else if (!slotReady) {
       blocker = 'Choose a pre-order slot to continue';
     } else if (pickupStoreMissing) {
@@ -542,7 +544,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       appBar: _CheckoutHeader(
         pickup: isPickup,
         address: selectedAddress,
-        fallbackAddress: ref.watch(deliveryLocationProvider)?.displayAddress,
+        fallbackAddress: deliveryLocation?.displayAddress,
         storeName: darkStore?.storeName,
         loading: addressesLoading && addressList.isEmpty,
         onBack: () => context.canPop() ? context.pop() : context.go(RoutePaths.cart),

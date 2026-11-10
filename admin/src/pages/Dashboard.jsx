@@ -25,10 +25,10 @@ export default function Dashboard() {
             </div>
             <p className={PAGE_KICKER}>Admin Panel</p>
             <h1 className={PAGE_TITLE}>
-              Welcome to <span className="text-emerald-600">GreenGroo</span> Admin
+              Welcome to <span className="text-emerald-600">GreenGrocc</span> Admin
             </h1>
             <p className={PAGE_SUB}>
-              Signed in as <span className="font-semibold text-slate-800">{user?.name || 'Administrator'}</span> ({user?.email || 'admin@greengroo.com'}). Open a module below.
+              Signed in as <span className="font-semibold text-slate-800">{user?.name || 'Administrator'}</span> ({user?.email || 'admin@greengrocc.com'}). Open a module below.
             </p>
           </div>
         </div>
