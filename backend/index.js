@@ -10,6 +10,7 @@ import express from "express";
 import cors from "cors";
 import compression from "compression";
 import { connectDB, errorHandler, notFound } from "@greengrocc/shared";
+import { installTransientDbErrorGuard } from "./shared/processGuards.js";
 import { initSocket } from "./shared/socket.js";
 import { startChangeFeed, notifyWriteRequest } from "./shared/realtime/changeFeed.js";
 import { startLiveViews } from "./shared/realtime/liveViews.js";
@@ -21,6 +22,8 @@ import { registerOrderTrackingSocket, startOrderStatusRelay } from "./realtime/o
 import { startNotificationScheduler } from "./legacy/services/promotionalBroadcast.js";
 // Ensure User model is registered for admin JWT role resolution
 import "./legacy/models/user.js";
+
+installTransientDbErrorGuard();
 
 import authRoutes from "./auth-service/src/routes.js";
 import userRoutes from "./user-service/src/routes.js";

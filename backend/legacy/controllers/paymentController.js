@@ -192,12 +192,19 @@ export const createRazorpayOrder = async (req, res) => {
       },
     });
   } catch (error) {
+    const reason = razorpayErrorText(error);
+    console.error("[payments] create-order failed:", reason, error?.stack || "");
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to create payment order",
+      message: reason || "Failed to create payment order",
     });
   }
 };
+
+/** Razorpay SDK errors carry the reason in `error.error.description`, not `message`. */
+function razorpayErrorText(error) {
+  return error?.error?.description || error?.message || "";
+}
 
 export const verifyRazorpayPayment = async (req, res) => {
   try {
@@ -361,9 +368,11 @@ export const verifyRazorpayPayment = async (req, res) => {
         return res.status(200).json({ success: true, message: "Order placed successfully", data: existing });
       }
     }
+    const reason = razorpayErrorText(error);
+    console.error("[payments] verify failed:", reason, error?.stack || "");
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to verify payment",
+      message: reason || "Failed to verify payment",
     });
   }
 };
