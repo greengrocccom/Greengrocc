@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'dart:isolate';
-import 'dart:typed_data';
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
@@ -19,7 +18,7 @@ class CapturedCleaningPhoto {
   final DateTime capturedAt;
 }
 
-Uint8List _stampPhoto((Uint8List, String) args) {
+Uint8List stampCleaningPhoto((Uint8List, String) args) {
   final decoded = img.decodeImage(args.$1);
   if (decoded == null) throw StateError('Invalid photo');
   final image = img.bakeOrientation(decoded);
@@ -406,12 +405,13 @@ class _CleaningCameraScreenState extends State<CleaningCameraScreen>
       final capturedAt = DateTime.now();
       final raw = await file.readAsBytes();
       final label = formatCleaningTimestamp(capturedAt);
-      final bytes = await Isolate.run(() => _stampPhoto((raw, label)));
+      final bytes = await compute(stampCleaningPhoto, (raw, label));
       if (bytes.length > 5 * 1024 * 1024) throw StateError('Photo too large');
       if (mounted) {
         Navigator.pop(context, CapturedCleaningPhoto(bytes, capturedAt));
       }
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[CleaningCamera] Capture failed: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
