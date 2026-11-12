@@ -1,5 +1,7 @@
+/** EMI is a full online payment; it only changes which options Razorpay checkout leads with. */
 export const PAYMENT_PLAN = {
   FULL: "online",
+  EMI: "emi",
   COD: "cod",
 };
 

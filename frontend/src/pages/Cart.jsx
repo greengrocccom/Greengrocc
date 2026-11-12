@@ -354,7 +354,7 @@ function Cart() {
     try {
       // Sequential to avoid concurrent writes to the same cart document.
       for (const item of items) {
-        await removeFromCart(item._id, item.variantName, item.colorName);
+        await removeFromCart(item._id, item.variantName, item.colorName, item.preOrderSlot || "");
       }
     } finally {
       setClearing(false);
@@ -367,6 +367,7 @@ function Cart() {
       productId: item._id,
       variantName: item.variantName || "",
       colorName: item.colorName || "",
+      preOrderSlot: item.preOrderSlot || "",
       step: getCartStepForItem(item),
     });
   const decrease = (item) =>
@@ -374,6 +375,7 @@ function Cart() {
       productId: item._id,
       variantName: item.variantName || "",
       colorName: item.colorName || "",
+      preOrderSlot: item.preOrderSlot || "",
       resolveNextQuantity: (currentQty) =>
         getDecreasedCartQuantityForItem({ ...item, quantity: currentQty }),
     });
@@ -465,7 +467,7 @@ function Cart() {
                     <CartLine
                       key={lineKey(item)}
                       item={item}
-                      disabled={busy}
+                      disabled={clearing}
                       onIncrease={increase}
                       onDecrease={decrease}
                     />

@@ -15,8 +15,11 @@ export function getProductPricingFromItem(item) {
     bulkPricing: item.bulkPricing,
     variantType: item.variantType,
     variants: item.variants,
+    enableBulkGrades: item.enableBulkGrades,
+    bulkGrades: item.bulkGrades,
     minOrderQuantity: item.minOrderQuantity,
     bulkMinOrderQuantity: item.bulkMinOrderQuantity,
+    maxOrderQuantity: item.maxOrderQuantity,
     stepByQuantity: item.stepByQuantity,
   };
 }

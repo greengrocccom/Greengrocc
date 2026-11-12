@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
+import { getCartStepForItem, getDecreasedCartQuantityForItem } from "../../utils/cartDefaults";
 import AddToCartButton from "./AddToCartButton";
 import ProductImageFrame from "./ProductImageFrame";
 
@@ -59,7 +60,8 @@ function BuyAgainCard({ item }) {
         productId: cartLine._id,
         variantName: cartLine.variantName || "",
         colorName: cartLine.colorName || "",
-        step: 1,
+        preOrderSlot: cartLine.preOrderSlot || "",
+        step: getCartStepForItem(cartLine),
       });
       return;
     }
@@ -74,7 +76,9 @@ function BuyAgainCard({ item }) {
       productId: cartLine._id,
       variantName: cartLine.variantName || "",
       colorName: cartLine.colorName || "",
-      resolveNextQuantity: (currentQty) => Math.max(0, currentQty - 1),
+      preOrderSlot: cartLine.preOrderSlot || "",
+      resolveNextQuantity: (currentQty) =>
+        getDecreasedCartQuantityForItem({ ...cartLine, quantity: currentQty }),
     });
   };
 

@@ -33,8 +33,7 @@ function findCartLine(items, product) {
 
 export function useProductCartActions() {
   const { openAuthModal } = useAuth();
-  const { items, addToCart, incrementCartItem, decrementCartItem, playFlyToCart } =
-    useCart();
+  const { items, addToCart, incrementCartItem, decrementCartItem } = useCart();
 
   const getCartLine = useCallback((product) => findCartLine(items, product), [items]);
 
@@ -81,10 +80,8 @@ export function useProductCartActions() {
       const line = getCartLine(product);
       const { variantName, colorName, quantity } = resolveCartDefaults(product);
 
+      // The fly-to-cart animation only plays on the first add; repeated + taps stay instant.
       if (line) {
-        if (flySource) {
-          playFlyToCart?.(product, flySource);
-        }
         const step = getCartStepForItem(line);
         await incrementCartItem({
           productId: line._id,
@@ -109,7 +106,7 @@ export function useProductCartActions() {
 
       return result;
     },
-    [getCartLine, addToCart, incrementCartItem, openAuthModal, playFlyToCart]
+    [getCartLine, addToCart, incrementCartItem, openAuthModal]
   );
 
   const handleDecrease = useCallback(

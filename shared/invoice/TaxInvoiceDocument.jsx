@@ -12,7 +12,7 @@ import {
   mergeInvoiceConfig,
   STATUS_LABELS,
 } from "./invoiceCalculations.js";
-import { INVOICE_LOGO_URL, LOGO_URL } from "./invoiceConfig.js";
+import { getInvoicePaymentRows, INVOICE_LOGO_URL, LOGO_URL } from "./invoiceConfig.js";
 import { formatCustomerAddress, getAddressFullName, getOrderNumber } from "./invoiceHelpers.js";
 import "./invoice.css";
 
@@ -94,7 +94,6 @@ const TaxInvoiceDocument = forwardRef(function TaxInvoiceDocument(
   const invoiceNo = `INV-${orderNo}`;
   const addr = order?.deliveryAddress || {};
   const customerName = getAddressFullName(addr) || customer?.name || "—";
-  const customerGst = customer?.gstNumber || addr?.gstNumber || "URP";
   const lineItems = buildInvoiceLineItems(order?.items || []);
   const totals = buildInvoiceTotals({
     lineItems,
@@ -116,13 +115,7 @@ const TaxInvoiceDocument = forwardRef(function TaxInvoiceDocument(
     ["Payment Status", getPaymentStatusLabel(order?.paymentStatus)],
   ];
 
-  const bankRows = [
-    ["Bank", config.bank.name],
-    ["IFSC Code", config.bank.ifsc],
-    ["Account Name", config.bank.accountName],
-    ["Account No", config.bank.accountNumber || "—"],
-    ["UPI ID", config.bank.upiId || "—"],
-  ];
+  const paymentRows = getInvoicePaymentRows(config);
 
   return (
     <div className="invoice-page">
@@ -134,11 +127,9 @@ const TaxInvoiceDocument = forwardRef(function TaxInvoiceDocument(
             className="invoice-logo"
             crossOrigin="anonymous"
           />
-          <p className="invoice-header-tagline">{config.tagline}</p>
+          <p className="invoice-header-meta">{config.address}</p>
           <p className="invoice-header-meta">
-            By: {config.legalEntity} | Email: {config.email}
-            {config.gstNumber ? ` | GST No: ${config.gstNumber}` : ""}
-            {` | State Code: ${config.stateCode}`}
+            Phone: {config.phone} | Email: {config.email}
           </p>
         </div>
 
@@ -165,7 +156,6 @@ const TaxInvoiceDocument = forwardRef(function TaxInvoiceDocument(
             {addr?.shopName ? <p>{addr.shopName}</p> : null}
             {addr?.number ? <p>{addr.number}</p> : customer?.phone ? <p>{customer.phone}</p> : null}
             <p>{formatCustomerAddress(addr)}</p>
-            <p className="invoice-bill-to-gst">GST No: {customerGst}</p>
           </div>
         </div>
 
@@ -210,14 +200,33 @@ const TaxInvoiceDocument = forwardRef(function TaxInvoiceDocument(
 
           <div className="invoice-footer-layout">
             <div className="invoice-footer-notes invoice-cell-wrap">
-              <p className="invoice-footer-notes-title">Bank Details:</p>
-              {bankRows.map(([label, value]) => (
-                <p key={label}>
-                  <strong>{label}:</strong> {value}
-                </p>
-              ))}
+              <p className="invoice-footer-notes-title">Sold By:</p>
+              <p>
+                <strong>{config.companyName}</strong>
+              </p>
+              <p>{config.address}</p>
+              <p>
+                <strong>Phone:</strong> {config.phone}
+              </p>
+              <p>
+                <strong>Email:</strong> {config.email}
+              </p>
+              {paymentRows.length ? (
+                <>
+                  <p className="invoice-footer-notes-title invoice-footer-subtitle">Payment Details:</p>
+                  {paymentRows.map(([label, value]) => (
+                    <p key={label}>
+                      <strong>{label}:</strong> {value}
+                    </p>
+                  ))}
+                </>
+              ) : null}
               <p className="invoice-footer-disclaimer">
-                This is a computer generated invoice. Reverse Charge: No
+                For any queries about this order, call {config.phone} or email {config.email}.
+              </p>
+              <p className="invoice-footer-disclaimer">
+                This is a computer generated invoice and does not require a signature. Thank you
+                for shopping with {config.companyName}!
               </p>
               {advancePayment.isAdvancePaid ? (
                 <p className="invoice-footer-remark">

@@ -1,10 +1,10 @@
 /** Primary business contact email */
-export const CONTACT_EMAIL = "greengrocc@gmail.com";
+export const CONTACT_EMAIL = "greengrocc14@gmail.com";
 
 /** Primary business phone */
-export const CONTACT_PHONE_RAW = "7400222233";
-export const CONTACT_PHONE_DISPLAY = "+91 74002 22233";
-export const CONTACT_PHONE_TEL = "tel:+917400222233";
+export const CONTACT_PHONE_RAW = "7249038005";
+export const CONTACT_PHONE_DISPLAY = "+91 72490 38005";
+export const CONTACT_PHONE_TEL = "tel:+917249038005";
 export const CONTACT_WHATSAPP_URL =
   "https://wa.me/917400222233?text=Hi%2C%20I%20am%20interested%20in%20bulk%20mobile%20accessories%20from%20Bulk%20Mobile%20Mart.";
 

@@ -272,8 +272,6 @@ class _HomeFooterState extends State<HomeFooter> {
               const SizedBox(height: 12),
               const Row(
                 children: [
-                  Flexible(child: _StoreBadge(apple: true)),
-                  SizedBox(width: 12),
                   Flexible(child: _StoreBadge(apple: false)),
                 ],
               ),

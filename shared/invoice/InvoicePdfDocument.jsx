@@ -13,14 +13,13 @@ import {
   mergeInvoiceConfig,
   STATUS_LABELS,
 } from "./invoiceCalculations.js";
-import { INVOICE_LOGO_URL, LOGO_URL } from "./invoiceConfig.js";
+import { getInvoicePaymentRows, INVOICE_LOGO_URL, LOGO_URL } from "./invoiceConfig.js";
 import { formatCustomerAddress, getAddressFullName, getOrderNumber } from "./invoiceHelpers.js";
 
 const styles = StyleSheet.create({
   page: { padding: 16, fontSize: 9, color: "#111827" },
   header: { textAlign: "center", marginBottom: 8 },
-  logo: { width: 130, height: 30, objectFit: "contain", marginHorizontal: "auto" },
-  tagline: { marginTop: 4, fontSize: 9 },
+  logo: { width: 200, height: 48, objectFit: "contain", marginHorizontal: "auto", marginBottom: 4 },
   meta: { marginTop: 2, fontSize: 8 },
   title: {
     textAlign: "center",
@@ -108,7 +107,6 @@ export default function InvoicePdfDocument({ order, customer, storeSettings, log
   const invoiceNo = `INV-${orderNo}`;
   const addr = order?.deliveryAddress || {};
   const customerName = getAddressFullName(addr) || customer?.name || "-";
-  const customerGst = customer?.gstNumber || addr?.gstNumber || "URP";
   const lineItems = buildInvoiceLineItems(order?.items || []);
   const totals = buildInvoiceTotals({
     lineItems,
@@ -130,24 +128,16 @@ export default function InvoicePdfDocument({ order, customer, storeSettings, log
     ["Payment Status", getPaymentStatusLabel(order?.paymentStatus)],
   ];
 
-  const bankRows = [
-    ["Bank", config.bank.name],
-    ["IFSC Code", config.bank.ifsc],
-    ["Account Name", config.bank.accountName],
-    ["Account No", config.bank.accountNumber || "-"],
-    ["UPI ID", config.bank.upiId || "-"],
-  ];
+  const paymentRows = getInvoicePaymentRows(config);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           {headerLogo ? <Image src={headerLogo} style={styles.logo} /> : null}
-          <Text style={styles.tagline}>{config.tagline}</Text>
+          <Text style={styles.meta}>{config.address}</Text>
           <Text style={styles.meta}>
-            By: {config.legalEntity} | Email: {config.email}
-            {config.gstNumber ? ` | GST No: ${config.gstNumber}` : ""}
-            {` | State Code: ${config.stateCode}`}
+            Phone: {config.phone} | Email: {config.email}
           </Text>
         </View>
 
@@ -170,7 +160,6 @@ export default function InvoicePdfDocument({ order, customer, storeSettings, log
             {addr?.shopName ? <Text>{addr.shopName}</Text> : null}
             {addr?.number ? <Text>{addr.number}</Text> : customer?.phone ? <Text>{customer.phone}</Text> : null}
             <Text>{formatCustomerAddress(addr)}</Text>
-            <Text>GST No: {customerGst}</Text>
           </View>
         </View>
 
@@ -201,13 +190,28 @@ export default function InvoicePdfDocument({ order, customer, storeSettings, log
           <Text style={styles.amountWords}>Amount in Words: {amountInWords(grandTotal)}</Text>
           <View style={styles.footerWrap}>
             <View style={styles.notes}>
-              <Text style={styles.notesTitle}>Bank Details:</Text>
-              {bankRows.map(([label, value]) => (
-                <Text key={label}>
-                  {label}: {value}
-                </Text>
-              ))}
-              <Text style={{ marginTop: 6 }}>This is a computer generated invoice. Reverse Charge: No</Text>
+              <Text style={styles.notesTitle}>Sold By:</Text>
+              <Text style={styles.billToName}>{config.companyName}</Text>
+              <Text>{config.address}</Text>
+              <Text>Phone: {config.phone}</Text>
+              <Text>Email: {config.email}</Text>
+              {paymentRows.length ? (
+                <>
+                  <Text style={[styles.notesTitle, { marginTop: 6 }]}>Payment Details:</Text>
+                  {paymentRows.map(([label, value]) => (
+                    <Text key={label}>
+                      {label}: {value}
+                    </Text>
+                  ))}
+                </>
+              ) : null}
+              <Text style={{ marginTop: 6 }}>
+                For any queries about this order, call {config.phone} or email {config.email}.
+              </Text>
+              <Text style={{ marginTop: 4 }}>
+                This is a computer generated invoice and does not require a signature. Thank you for
+                shopping with {config.companyName}!
+              </Text>
               {advancePayment.isAdvancePaid ? <Text style={{ marginTop: 6 }}>Remarks: {advancePayment.remark}</Text> : null}
             </View>
 

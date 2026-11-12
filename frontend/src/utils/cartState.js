@@ -6,6 +6,19 @@ function lineMrp(product, variantName) {
   return Number.isFinite(variantMrp) && variantMrp > 0 ? variantMrp : product?.price;
 }
 
+/**
+ * Cart unit prices must match the server's cart and order pricing. Admin quantity-discount rules
+ * are applied server-side as a separate checkout offer, so they are left out of line prices here.
+ */
+function cartUnitPrice(product, quantity, variantName) {
+  return getUnitPriceForQuantity({ ...product, quantityDiscounts: undefined }, quantity, variantName);
+}
+
+/** Product-level sale price before quantity slabs, kept so later quantity edits re-price correctly. */
+function baseDiscountedPrice(product) {
+  return product?.discountedPrice ?? product?.salePrice ?? null;
+}
+
 export function matchesCartLine(item, productId, variantName = "", colorName = "", preOrderSlot = "") {
   return (
     String(item._id) === String(productId) &&
@@ -26,7 +39,7 @@ export function mapCartItems(cart) {
     .filter((item) => item.product && item.product.isActive !== false)
     .map((item) => {
       const variantName = item.variantName || "";
-      const unitPrice = getUnitPriceForQuantity(item.product, item.quantity, variantName);
+      const unitPrice = cartUnitPrice(item.product, item.quantity, variantName);
 
       return {
         _id: item.product._id,
@@ -36,6 +49,7 @@ export function mapCartItems(cart) {
         brandName: item.product.brandName,
         price: lineMrp(item.product, variantName),
         discountedPrice: unitPrice,
+        baseDiscountedPrice: baseDiscountedPrice(item.product),
         pricingType: item.product.pricingType,
         bulkPricing: item.product.bulkPricing,
         variantType: item.product.variantType,
@@ -59,7 +73,11 @@ export function mapCartItems(cart) {
 function pricingFromLine(item) {
   return {
     price: item.price,
-    discountedPrice: item.discountedPrice,
+    // Older saved lines lack the base price; their stored unit price is the closest fallback.
+    discountedPrice:
+      item.baseDiscountedPrice !== undefined
+        ? item.baseDiscountedPrice ?? undefined
+        : item.discountedPrice,
     pricingType: item.pricingType,
     bulkPricing: item.bulkPricing,
     variantType: item.variantType,
@@ -85,11 +103,12 @@ export function buildCartLine(product, quantity, variantName = "", colorName = "
     brandName: product.brandName,
     price: lineMrp(product, variantName),
     discountedPrice:
-      getUnitPriceForQuantity(product, qty, variantName) ||
+      cartUnitPrice(product, qty, variantName) ||
       product.salePrice ||
       product.discountedPrice ||
       product.price ||
       0,
+    baseDiscountedPrice: baseDiscountedPrice(product),
     pricingType: product.pricingType,
     bulkPricing: product.bulkPricing,
     variantType: product.variantType,
@@ -129,7 +148,7 @@ export function setLineQuantity(items, productId, variantName, colorName, quanti
     return {
       ...item,
       quantity: qty,
-      discountedPrice: getUnitPriceForQuantity(pricing, qty, variantName),
+      discountedPrice: getUnitPriceForQuantity(pricing, qty, variantName) || item.discountedPrice,
     };
   });
 }

@@ -103,32 +103,25 @@
 
 #invoice-print-area .invoice-logo {
   display: block;
-  max-width: 160px;
+  max-width: 220px;
   width: auto;
   height: auto;
-  max-height: 36px;
+  max-height: 52px;
   object-fit: contain;
-  margin: 0 auto;
+  margin: 0 auto 0.25rem;
 }
 
 @media print {
   #invoice-print-area .invoice-logo {
-    max-width: 160px !important;
+    max-width: 220px !important;
     width: auto !important;
-    height: 36px !important;
+    height: 52px !important;
     object-fit: contain;
   }
 }
 
 .invoice-header {
   text-align: center;
-}
-
-.invoice-header-tagline {
-  margin: 0.2rem 0 0;
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1.35;
 }
 
 .invoice-header-meta {
@@ -341,6 +334,10 @@
 #invoice-print-area .invoice-footer-notes-title {
   margin-bottom: 6px !important;
   font-weight: 700;
+}
+
+#invoice-print-area .invoice-footer-subtitle {
+  margin-top: 8px !important;
 }
 
 #invoice-print-area .invoice-footer-disclaimer {

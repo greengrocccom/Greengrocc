@@ -9,9 +9,9 @@ import {
 } from "../../config/contact";
 import MaharashtraPrideBanner from "../home/MaharashtraPrideBanner";
 import OptimizedImg from "../common/OptimizedImg";
-import { getAndroidAppDownloadUrl } from "../../utils/appDownload";
+import { PLAY_STORE_APP_URL } from "../../utils/appDownload";
 
-const PLAY_STORE_URL = getAndroidAppDownloadUrl();
+const PLAY_STORE_URL = PLAY_STORE_APP_URL;
 
 export default function Footer() {
   const [menuOpen, setMenuOpen] = React.useState(true);
@@ -148,24 +148,6 @@ export default function Footer() {
                   </h5>
 
                   <div className="flex flex-wrap items-center gap-3.5 sm:gap-5">
-                    {/* App Store Badge (White Pill, Black Text, Apple icon) */}
-                    <a
-                      href="#"
-                      className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white text-black hover:bg-neutral-100 transition-all shadow-md active:scale-95 cursor-pointer"
-                    >
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.85-.9.04-2 .6-2.65 1.36-.56.65-.98 1.7-0.85 2.73.99.08 2.02-.49 2.58-1.24z" />
-                      </svg>
-                      <div className="text-left">
-                        <div className="text-[8px] uppercase tracking-tight leading-none text-neutral-600 font-medium">
-                          Download on the
-                        </div>
-                        <div className="text-[12px] font-bold leading-tight text-neutral-900">
-                          App Store
-                        </div>
-                      </div>
-                    </a>
-
                     {/* Google Play Badge (Black Pill, Google Play Icon) */}
                     <a
                       href={PLAY_STORE_URL}
@@ -284,7 +266,7 @@ export default function Footer() {
              - White pill logo badge
              - MENU accordion (Home, About Us, Contact Us, FAQs, Why GreenGrocc?)
              - CONTACTS accordion (Office, Phone, Email)
-             - DOWNLOAD THE APP (App Store, Google Play)
+             - DOWNLOAD THE APP (Google Play)
              - 4 Social icons (Facebook, Instagram, LinkedIn, Twitter)
              - Legal & Copyright bar
          ======================================================== */}
@@ -449,10 +431,10 @@ export default function Footer() {
                         </svg>
                       </div>
                       <a
-                        href={CONTACT_PHONE_TEL || "tel:+917400222233"}
+                        href={CONTACT_PHONE_TEL}
                         className="font-medium text-white text-[14px] hover:text-emerald-200 transition-colors"
                       >
-                        {CONTACT_PHONE_DISPLAY || "+9174002 22233"}
+                        {CONTACT_PHONE_DISPLAY}
                       </a>
                     </div>
 
@@ -468,10 +450,10 @@ export default function Footer() {
                         </svg>
                       </div>
                       <a
-                        href={`mailto:${CONTACT_EMAIL || "greengrocc@gmail.com"}`}
+                        href={`mailto:${CONTACT_EMAIL}`}
                         className="font-medium text-white text-[14px] hover:text-emerald-200 transition-colors truncate"
                       >
-                        {CONTACT_EMAIL || "greengrocc@gmail.com"}
+                        {CONTACT_EMAIL}
                       </a>
                     </div>
                   </div>
@@ -485,24 +467,6 @@ export default function Footer() {
                 </h5>
 
                 <div className="flex items-center gap-3">
-                  {/* App Store Badge */}
-                  <a
-                    href="#"
-                    className="flex-1 max-w-[170px] inline-flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-full bg-white text-black hover:bg-neutral-100 transition-all shadow-md active:scale-95 cursor-pointer"
-                  >
-                    <svg className="w-5 h-5 fill-current shrink-0" viewBox="0 0 24 24">
-                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.85-.9.04-2 .6-2.65 1.36-.56.65-.98 1.7-0.85 2.73.99.08 2.02-.49 2.58-1.24z" />
-                    </svg>
-                    <div className="text-left">
-                      <div className="text-[7.5px] uppercase tracking-tight leading-none text-neutral-600 font-semibold">
-                        DOWNLOAD ON THE
-                      </div>
-                      <div className="text-[12px] font-bold leading-tight text-neutral-900 mt-0.5">
-                        App Store
-                      </div>
-                    </div>
-                  </a>
-
                   {/* Google Play Badge */}
                   <a
                     href={PLAY_STORE_URL}

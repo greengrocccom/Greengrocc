@@ -458,4 +458,4 @@ export function resolvePricingFields(payload) {
 }
 
 export const PRODUCT_PRICING_SELECT =
-  "name brandName price discountedPrice discountedPercent productImages videoUrl stock inStock subcategory subcategories pricingType bulkPricing variantType variants colors minOrderQuantity bulkMinOrderQuantity maxOrderQuantity stepByQuantity cardGlowColor badge isActive section storeType";
+  "name brandName price discountedPrice discountedPercent productImages videoUrl stock inStock subcategory subcategories pricingType bulkPricing variantType variants enableBulkGrades bulkGrades colors minOrderQuantity bulkMinOrderQuantity maxOrderQuantity stepByQuantity cardGlowColor badge isActive section storeType";

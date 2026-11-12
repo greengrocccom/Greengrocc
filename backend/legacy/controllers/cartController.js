@@ -361,9 +361,10 @@ export const removeFromCart = async (req, res) => {
 export const updateCartItem = async (req, res) => {
   try {
     const { productId } = req.params;
-    const { quantity, variantName, colorName } = req.body;
+    const { quantity, variantName, colorName, preOrderSlot } = req.body;
     const normalizedVariantName = normalizeVariantName(variantName);
     const normalizedColorName = normalizeColorName(colorName);
+    const normalizedPreOrderSlot = typeof preOrderSlot === "string" ? preOrderSlot.trim() : "";
 
     const qty = Number(quantity);
     if (!Number.isFinite(qty)) {
@@ -387,7 +388,7 @@ export const updateCartItem = async (req, res) => {
     }
 
     const itemIndex = cart.items.findIndex((item) =>
-      matchesCartItem(item, productId, normalizedVariantName, normalizedColorName)
+      matchesCartItem(item, productId, normalizedVariantName, normalizedColorName, normalizedPreOrderSlot)
     );
 
     if (itemIndex < 0) {

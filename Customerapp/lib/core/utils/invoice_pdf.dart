@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../config/constants.dart';
 import '../../config/contact.dart';
 import '../../core/utils/address_utils.dart';
 import '../../core/utils/currency_formatter.dart';
@@ -36,6 +38,14 @@ Future<Uint8List> generateInvoicePdf(
   final remainingBalance =
       isAdvancePaid ? (order.total - advancePaid).clamp(0.0, double.infinity) : 0.0;
 
+  pw.MemoryImage? logo;
+  try {
+    final logoData = await rootBundle.load(AppConstants.wordmarkLogoAsset);
+    logo = pw.MemoryImage(logoData.buffer.asUint8List());
+  } catch (_) {
+    logo = null;
+  }
+
   doc.addPage(
     pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
@@ -47,18 +57,33 @@ Future<Uint8List> generateInvoicePdf(
           padding: const pw.EdgeInsets.all(16),
           child: pw.Column(
             children: [
-              pw.Text(
-                'GreenGrocc',
-                style: pw.TextStyle(
-                  color: PdfColors.white,
-                  fontSize: 22,
-                  fontWeight: pw.FontWeight.bold,
+              if (logo != null)
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  child: pw.Image(logo, height: 40, fit: pw.BoxFit.contain),
+                )
+              else
+                pw.Text(
+                  'GreenGrocc',
+                  style: pw.TextStyle(
+                    color: PdfColors.white,
+                    fontSize: 22,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
                 ),
-              ),
-              pw.SizedBox(height: 6),
+              pw.SizedBox(height: 8),
               pw.Text(
-                'Mobile Invoice | ${ContactConfig.contactEmail}',
-                style: const pw.TextStyle(color: PdfColors.grey300, fontSize: 10),
+                '${ContactConfig.contactAddress}, Mumbai, Maharashtra',
+                style: const pw.TextStyle(color: PdfColors.grey300, fontSize: 9),
+              ),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                'Phone: ${ContactConfig.contactPhoneDisplay} | Email: ${ContactConfig.contactEmail}',
+                style: const pw.TextStyle(color: PdfColors.grey300, fontSize: 9),
               ),
             ],
           ),
@@ -157,6 +182,19 @@ Future<Uint8List> generateInvoicePdf(
               style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
             ),
           ),
+        pw.SizedBox(height: 20),
+        pw.Divider(color: PdfColors.grey300),
+        pw.Text(
+          'For any queries about this order, call ${ContactConfig.contactPhoneDisplay} '
+          'or email ${ContactConfig.contactEmail}.',
+          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          'This is a computer generated invoice and does not require a signature. '
+          'Thank you for shopping with GreenGrocc!',
+          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+        ),
       ],
     ),
   );

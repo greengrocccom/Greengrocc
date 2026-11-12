@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   Search,
   Loader2,
@@ -8,26 +8,18 @@ import {
   AlertTriangle,
   Clock,
   ArrowRight,
-  ExternalLink,
   Copy,
   Check,
-  FileText,
   User,
   MapPin,
   Calendar,
-  DollarSign,
-  Truck,
-  QrCode,
   Package,
   ShieldCheck,
-  Building2,
   Phone,
   Code2,
   RefreshCw,
   SlidersHorizontal,
-  ChevronRight,
   Warehouse,
-  Boxes,
   HelpCircle,
   Receipt,
   Bookmark,
@@ -36,7 +28,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import erpApi from '../../api/erpApi';
-import { BTN, BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL, PANEL_HEAD, TH, TD } from '../../utils/ui';
+import OrderTraceView from './OrderTraceView';
+import { BTN, BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL, PANEL_HEAD, TH } from '../../utils/ui';
 
 const CATEGORY_TABS = [
   { id: 'all', label: 'All Entities' },
@@ -49,44 +42,41 @@ const CATEGORY_TABS = [
   { id: 'store', label: 'Stores & Hubs' },
 ];
 
-const QUICK_EXAMPLES = [
-  { label: 'Invoice: INV-2026-6390', q: 'INV-2026-6390' },
-  { label: 'Batch: BAT-2026-1001', q: 'BAT-2026-1001' },
-  { label: 'Farmer: Prajwal Nehe', q: 'Prajwal Nehe' },
-  { label: 'Farmer ID: GGC-FR-MH-AHI-SAN-00003', q: 'GGC-FR-MH-AHI-SAN-00003' },
-  { label: 'Mobile: 8788626281', q: '8788626281' },
-  { label: 'Produce: Hybrid Tomatoes', q: 'Tomato' },
-  { label: 'GRN: GRN-2026-001', q: 'GRN-2026-001' },
-  { label: 'Village: Sawargaon', q: 'Sawargaon' },
-  { label: 'Store: goodluck', q: 'goodluck' },
-];
+const SAVED_SEARCHES_KEY = 'greengrocc_trace_saved_searches';
 
 function when(value) {
   if (!value) return '—';
-  try {
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return String(value);
-    return d.toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return String(value);
-  }
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function formatDateOnly(value) {
   if (!value) return '—';
-  try {
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return String(value);
-    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  } catch {
-    return String(value);
-  }
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function money(value) {
+  if (value === undefined || value === null || value === '') return '—';
+  const n = Number(value);
+  return Number.isFinite(n) ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : String(value);
+}
+
+function qty(amount, unit) {
+  if (amount === undefined || amount === null || amount === '') return '—';
+  return `${amount} ${unit || ''}`.trim();
+}
+
+function joinParts(...parts) {
+  return parts.filter(Boolean).join(', ');
 }
 
 function CopyButton({ text, label = 'Copy' }) {
@@ -112,6 +102,42 @@ function CopyButton({ text, label = 'Copy' }) {
   );
 }
 
+function Field({ label, children, mono = false, strong = false }) {
+  const empty = children === undefined || children === null || children === '';
+  return (
+    <div className="min-w-0">
+      <span className="text-slate-400 font-medium">{label}</span>
+      <p className={`break-words ${strong ? 'font-bold text-slate-900 text-sm' : 'font-semibold text-slate-800'} ${mono ? 'font-mono' : ''}`}>
+        {empty ? '—' : children}
+      </p>
+    </div>
+  );
+}
+
+function Card({ icon: Icon, title, aside, children }) {
+  return (
+    <div className={`${PANEL} overflow-hidden`}>
+      <div className={`${PANEL_HEAD} flex items-center justify-between gap-2`}>
+        <span className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-emerald-700" />
+          {title}
+        </span>
+        {aside}
+      </div>
+      <div className="p-4 space-y-3 text-xs">{children}</div>
+    </div>
+  );
+}
+
+function EmptyNote({ children }) {
+  return <p className="text-slate-400 text-center py-4">{children}</p>;
+}
+
+function Row({ cols = 2, children, last = false }) {
+  const grid = cols === 3 ? 'grid-cols-3' : cols === 4 ? 'grid-cols-4' : 'grid-cols-2';
+  return <div className={`grid ${grid} gap-3 ${last ? '' : 'pb-3 border-b border-slate-100'}`}>{children}</div>;
+}
+
 export default function TraceabilityPage() {
   const [params, setParams] = useSearchParams();
   const initialQ = params.get('q') || '';
@@ -125,22 +151,23 @@ export default function TraceabilityPage() {
   const [showRawJson, setShowRawJson] = useState(false);
   const [rawSearchFilter, setRawSearchFilter] = useState('');
 
-  // Persistent Custom Saved Searches in Traceability
-  const [customTraceSearches, setCustomTraceSearches] = useState(() => {
+  const [savedSearches, setSavedSearches] = useState(() => {
     try {
-      const s = localStorage.getItem('greengrocc_trace_saved_searches');
+      const s = localStorage.getItem(SAVED_SEARCHES_KEY);
       return s ? JSON.parse(s) : [];
     } catch {
       return [];
     }
   });
 
-  const savedSearches = useMemo(() => {
-    return [
-      ...QUICK_EXAMPLES.map((ex, i) => ({ id: `default-${i}`, label: ex.label, q: ex.q, type: 'all' })),
-      ...customTraceSearches.map((cs) => ({ ...cs, isCustom: true })),
-    ];
-  }, [customTraceSearches]);
+  const persistSavedSearches = (next) => {
+    setSavedSearches(next);
+    try {
+      localStorage.setItem(SAVED_SEARCHES_KEY, JSON.stringify(next));
+    } catch {
+      // Private mode: saved searches last for this session only.
+    }
+  };
 
   const saveCurrentTraceSearch = () => {
     if (!query.trim()) return;
@@ -150,19 +177,11 @@ export default function TraceabilityPage() {
       q: query.trim(),
       type: activeCategory,
     };
-    const updated = [item, ...customTraceSearches];
-    setCustomTraceSearches(updated);
-    try {
-      localStorage.setItem('greengrocc_trace_saved_searches', JSON.stringify(updated));
-    } catch {}
+    persistSavedSearches([item, ...savedSearches]);
   };
 
-  const deleteCustomTraceSearch = (id) => {
-    const updated = customTraceSearches.filter((s) => s.id !== id);
-    setCustomTraceSearches(updated);
-    try {
-      localStorage.setItem('greengrocc_trace_saved_searches', JSON.stringify(updated));
-    } catch {}
+  const deleteSavedSearch = (id) => {
+    persistSavedSearches(savedSearches.filter((s) => s.id !== id));
   };
 
   const executeSearch = async (val, entityType = activeCategory) => {
@@ -200,7 +219,6 @@ export default function TraceabilityPage() {
   const isMulti = Boolean(result?.isMultiMatch);
   const matches = result?.matches || [];
 
-  // Filter matches based on selected category tab if multi-match
   const filteredMatches = useMemo(() => {
     if (!isMulti || !matches.length) return [];
     if (activeCategory === 'all') return matches;
@@ -213,19 +231,26 @@ export default function TraceabilityPage() {
     executeSearch(target, match.type);
   };
 
-  // Helper to extract fields for display
-  const farmer = graph.farmer || (Array.isArray(graph.farmers) ? graph.farmers[0] : null);
-  const farm = graph.farm || (Array.isArray(graph.farms) ? graph.farms[0] : null);
-  const crop = graph.crop || (Array.isArray(graph.crops) ? graph.crops[0] : null);
-  const product = graph.product || graph.article;
-  const batch = graph.batch || (Array.isArray(graph.batches) ? graph.batches[0] : null);
-  const grn = graph.grn || (Array.isArray(graph.grns) ? graph.grns[0] : null);
-  const quality = graph.quality?.[0] || graph.quality;
-  const store = graph.store || (Array.isArray(graph.storeInventories) ? graph.storeInventories[0]?.managerId : null);
-  const order = graph.order || (Array.isArray(graph.orders) ? graph.orders[0] : null);
-  const customer = graph.customer || order?.customer;
-  const invoice = graph.invoice || graph.invoices?.[0];
-  const payment = graph.payment || graph.payments?.[0];
+  const firstOf = (value) => (Array.isArray(value) ? value[0] || null : value || null);
+  const farmer = graph.farmer || firstOf(graph.farmers);
+  const farm = graph.farm || firstOf(graph.farms);
+  const crop = graph.crop || firstOf(graph.crops);
+  const product = graph.product || graph.article || null;
+  const batch = graph.batch || firstOf(graph.batches);
+  const grn = graph.grn || firstOf(graph.grns);
+  const quality = firstOf(graph.quality);
+  const storeInventories = Array.isArray(graph.storeInventories) ? graph.storeInventories : [];
+  const store = graph.store || storeInventories[0]?.managerId || null;
+  const warehouse = graph.warehouse || null;
+  const order = graph.order || firstOf(graph.orders);
+  const customer = graph.customer || order?.customer || null;
+  const invoice = graph.invoice || firstOf(graph.invoices);
+  const payment = graph.payment || firstOf(graph.payments);
+  const delivery = firstOf(graph.deliveries);
+  const dispatch = firstOf(graph.dispatch) || firstOf(graph.dispatches);
+  const qualityParams = quality?.qualityParameters || {};
+  const farmerAddress = farmer?.address || {};
+  const storeName = store?.storeName || store?.name || batch?.storeName || '';
 
   return (
     <div className="space-y-6 pb-16">
@@ -235,7 +260,7 @@ export default function TraceabilityPage() {
           <p className={PAGE_KICKER}>ERP & SUPPLY CHAIN TRACEABILITY</p>
           <h1 className={PAGE_TITLE}>Omni-Search & Complete Traceability</h1>
           <p className={PAGE_SUB}>
-            Search anything across Farmers, Phones, Batches, SKUs, Products, GRNs, Land, QR Codes, and Orders. Nothing is skipped.
+            Search across farmers, phones, batches, SKUs, products, GRNs, farms, QR codes, invoices and orders.
           </p>
         </div>
         {result?.found && !isMulti && (
@@ -246,7 +271,7 @@ export default function TraceabilityPage() {
               className={`${BTN} text-xs gap-1.5`}
             >
               <Code2 className="h-4 w-4 text-slate-600" />
-              {showRawJson ? 'Hide Raw JSON' : 'Inspect Raw Data (100%)'}
+              {showRawJson ? 'Hide Raw JSON' : 'Inspect Raw Data'}
             </button>
             <button
               type="button"
@@ -261,9 +286,8 @@ export default function TraceabilityPage() {
         )}
       </div>
 
-      {/* Main Universal Search Form */}
+      {/* Search Form */}
       <div className={`${PANEL} p-4 sm:p-5 space-y-4`}>
-        {/* Category Tabs */}
         <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 pb-3">
           <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 mr-1" />
           {CATEGORY_TABS.map((tab) => (
@@ -285,7 +309,6 @@ export default function TraceabilityPage() {
           ))}
         </div>
 
-        {/* Input & Search Button */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -299,7 +322,7 @@ export default function TraceabilityPage() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search anything: Farmer name, phone, batch BAT-..., SKU, product, order #, GRN, village..."
+              placeholder="Search anything: order #, farmer name, phone, batch, SKU, product, GRN, invoice, village..."
               className={`${INPUT} pl-10 text-sm`}
             />
             {query && (
@@ -318,7 +341,7 @@ export default function TraceabilityPage() {
           </button>
         </form>
 
-        {/* Saved Searches Section */}
+        {/* Saved Searches */}
         <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-3.5 space-y-2">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
@@ -329,12 +352,10 @@ export default function TraceabilityPage() {
                 <h3 className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
                   Saved Searches
                   <span className="rounded-full bg-slate-200 px-1.5 py-0.2 text-[9px] font-semibold text-slate-700">
-                    {savedSearches.length} segments
+                    {savedSearches.length}
                   </span>
                 </h3>
-                <p className="text-[11px] text-slate-500">
-                  Reuse complex filter segments instantly for speedy, repeatable support.
-                </p>
+                <p className="text-[11px] text-slate-500">Save a search to rerun it with one click.</p>
               </div>
             </div>
 
@@ -349,42 +370,43 @@ export default function TraceabilityPage() {
             </button>
           </div>
 
-          {/* Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            {savedSearches.map((item) => (
-              <div key={item.id} className="inline-flex items-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuery(item.q);
-                    setActiveCategory(item.type || 'all');
-                    executeSearch(item.q, item.type || 'all');
-                  }}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-mono transition border ${
-                    query === item.q && activeCategory === (item.type || 'all')
-                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-900'
-                  }`}
-                >
-                  <Zap className="h-3 w-3 text-emerald-500" />
-                  <span>{item.label}</span>
-                </button>
-                {item.isCustom && (
+          {savedSearches.length ? (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {savedSearches.map((item) => (
+                <div key={item.id} className="inline-flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery(item.q);
+                      setActiveCategory(item.type || 'all');
+                      executeSearch(item.q, item.type || 'all');
+                    }}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-mono transition border ${
+                      query === item.q && activeCategory === (item.type || 'all')
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-900'
+                    }`}
+                  >
+                    <Zap className="h-3 w-3 text-emerald-500" />
+                    <span>{item.label}</span>
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteCustomTraceSearch(item.id);
+                      deleteSavedSearch(item.id);
                     }}
                     className="ml-1 text-slate-300 hover:text-rose-600 p-0.5 rounded transition"
                     title="Delete saved search"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
-                )}
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-slate-400 pt-1">No saved searches yet. Run a search and click Save Current.</p>
+          )}
         </div>
       </div>
 
@@ -421,7 +443,7 @@ export default function TraceabilityPage() {
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700">
               Found {result.totalMatches} Matching Records for "{result.query}"
             </h2>
-            <span className="text-xs text-slate-400">Click any card to load complete 360° traceability</span>
+            <span className="text-xs text-slate-400">Click any card to load its complete trace</span>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -463,10 +485,14 @@ export default function TraceabilityPage() {
         </div>
       )}
 
-      {/* SINGLE COMPLETE TRACEABILITY 360 VIEW */}
+      {/* SINGLE TRACE VIEW */}
       {result?.found && !isMulti && (
         <div className="space-y-6">
-          {/* Executive Overview Header */}
+          {graph.orderTrace ? (
+            <OrderTraceView trace={graph.orderTrace} />
+          ) : (
+          <>
+          {/* Overview Header */}
           <div className={`${PANEL} p-5 space-y-4`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
@@ -481,62 +507,45 @@ export default function TraceabilityPage() {
                     <span className="font-mono text-sm font-bold text-slate-900">{result.id}</span>
                     <CopyButton text={result.id} />
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Verified GreenGrocc Farm-to-Consumer Provenance Chain
-                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">Farm-to-consumer traceability record</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              {current.status ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 border border-emerald-200">
-                  <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
-                  {current.status || 'Active & Verified'}
+                  <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                  {current.status}
                 </span>
-              </div>
+              ) : null}
             </div>
 
-            {/* Quick Metrics Bar */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-2 border-t border-slate-100 text-xs">
-              <div>
-                <span className="text-slate-400 font-medium">Product / Name</span>
-                <p className="font-semibold text-slate-900 truncate">
-                  {current.productName || product?.name || batch?.productName || farmer?.name || '—'}
-                </p>
-              </div>
-              <div>
-                <span className="text-slate-400 font-medium">Current Location</span>
-                <p className="font-semibold text-slate-900 truncate">{current.locationType || 'Dark Store Hub'}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 font-medium">Quality & Grade</span>
-                <p className="font-semibold text-emerald-700 truncate">{current.grade || 'Grade A Verified'}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 font-medium">Live Available Quantity</span>
-                <p className="font-semibold text-slate-900 truncate">
-                  {current.quantity} {current.unit || 'units'}
-                </p>
-              </div>
+              <Field label="Product / Name">
+                {current.productName || product?.name || batch?.productName || farmer?.name}
+              </Field>
+              <Field label="Current Location">{current.locationType}</Field>
+              <Field label="Quality & Grade">{current.grade}</Field>
+              <Field label="Available Quantity">{qty(current.quantity, current.unit)}</Field>
             </div>
           </div>
 
-          {/* Interactive 10-Milestone Chain Pipeline */}
+          {/* Provenance pipeline */}
           <div className={`${PANEL} p-4 overflow-x-auto`}>
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-              Full Provenance Pipeline (Click any step to view details)
+              Provenance Pipeline (steps with records are highlighted)
             </p>
             <div className="flex min-w-max items-center gap-2">
               {[
-                { title: '1. Farmer & Land', active: Boolean(farmer), id: farmer?.name || farmer?.farmerId },
-                { title: '2. Farm & Soil', active: Boolean(farm), id: farm?.farmName || farm?.farmId },
+                { title: '1. Farmer', active: Boolean(farmer), id: farmer?.name || farmer?.farmerId },
+                { title: '2. Farm', active: Boolean(farm), id: farm?.farmName || farm?.farmId },
                 { title: '3. Crop & Harvest', active: Boolean(crop), id: crop?.cropName },
-                { title: '4. Quality & Lab Test', active: Boolean(quality), id: quality?.grade || 'Grade A' },
-                { title: '5. Batch Inwarding', active: Boolean(batch || grn), id: batch?.batchNumber || grn?.grnNumber },
-                { title: '6. Storage & Cold Chain', active: Boolean(batch?.warehouseId || store), id: store?.storeName || 'Dark Store' },
-                { title: '7. Packaging & QR', active: Boolean(graph.crate || graph.qr), id: graph.qr?.qrId || 'QR Scanned' },
-                { title: '8. Logistics Transit', active: Boolean(graph.dispatch || graph.vehicle), id: 'Reefer Transit' },
-                { title: '9. Dark Store ATP', active: Boolean(store || graph.storeInventories?.length), id: 'Live Stock' },
-                { title: '10. Consumer Order & Invoice', active: Boolean(order || invoice), id: invoice?.invoiceNumber || order?.orderId || 'Order / Invoice' },
+                { title: '4. Quality Check', active: Boolean(quality), id: quality?.grade || quality?.status },
+                { title: '5. Batch Inwarding', active: Boolean(batch || grn), id: batch?.batchNumber || batch?.batchId || grn?.grnNumber },
+                { title: '6. Storage', active: Boolean(warehouse || store), id: warehouse?.warehouseName || warehouse?.name || storeName },
+                { title: '7. Packaging & QR', active: Boolean(graph.crate || graph.crates?.length || graph.qr), id: graph.qr?.qrId || graph.crate?.crateId },
+                { title: '8. Dispatch', active: Boolean(dispatch || delivery), id: dispatch?.dispatchId || delivery?.deliveryId },
+                { title: '9. Dark Store Stock', active: Boolean(storeInventories.length), id: storeInventories.length ? `${storeInventories.length} store(s)` : '' },
+                { title: '10. Order & Invoice', active: Boolean(order || invoice), id: invoice?.invoiceNumber || order?.orderId || order?.orderNumber },
               ].map((step, idx, arr) => (
                 <div key={step.title} className="flex items-center gap-2">
                   <div
@@ -554,7 +563,9 @@ export default function TraceabilityPage() {
                       )}
                       <p className="text-[11px] font-bold uppercase tracking-wider">{step.title}</p>
                     </div>
-                    {step.id && <p className="font-mono text-[10px] mt-0.5 truncate max-w-[130px]">{step.id}</p>}
+                    {step.active && step.id ? (
+                      <p className="font-mono text-[10px] mt-0.5 truncate max-w-[130px]">{step.id}</p>
+                    ) : null}
                   </div>
                   {idx < arr.length - 1 && <span className="text-slate-300 font-bold">→</span>}
                 </div>
@@ -562,479 +573,349 @@ export default function TraceabilityPage() {
             </div>
           </div>
 
-          {/* DETAILED SECTION CARDS — SHOWING WHOLE INFO */}
+          {/* Detail cards */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* 1. Farmer & Grower Details */}
-            <div className={`${PANEL} overflow-hidden`}>
-              <div className={`${PANEL_HEAD} flex items-center justify-between`}>
-                <span className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-emerald-700" />
-                  Farmer & Producer Profile
-                </span>
-                {farmer && (
-                  <span className="font-mono text-xs text-slate-500">
-                    ID: {farmer.farmerId || farmer.id || '—'}
-                  </span>
-                )}
-              </div>
-              <div className="p-4 space-y-3 text-xs">
-                {farmer ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-slate-400 font-medium">Full Name</span>
-                        <p className="font-bold text-slate-900 text-sm">{farmer.name}</p>
-                        {farmer.farmName && <p className="text-slate-500 font-medium">{farmer.farmName}</p>}
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Contact Phone</span>
-                        <p className="font-semibold text-slate-900 flex items-center gap-1">
-                          <Phone className="h-3 w-3 text-slate-400" />
-                          {farmer.mobile || '—'}
-                          {farmer.mobile && <CopyButton text={farmer.mobile} />}
-                        </p>
-                        {farmer.email && <p className="text-slate-500 truncate">{farmer.email}</p>}
-                      </div>
+            {/* Farmer */}
+            <Card
+              icon={User}
+              title="Farmer & Producer Profile"
+              aside={farmer ? <span className="font-mono text-xs text-slate-500">ID: {farmer.farmerId || farmer.id || '—'}</span> : null}
+            >
+              {farmer ? (
+                <>
+                  <Row>
+                    <Field label="Full Name" strong>{farmer.name}</Field>
+                    <div>
+                      <span className="text-slate-400 font-medium">Contact Phone</span>
+                      <p className="font-semibold text-slate-900 flex items-center gap-1">
+                        <Phone className="h-3 w-3 text-slate-400" />
+                        {farmer.mobile || '—'}
+                        {farmer.mobile && <CopyButton text={farmer.mobile} />}
+                      </p>
+                      {farmer.email && <p className="text-slate-500 truncate">{farmer.email}</p>}
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-slate-400 font-medium">Farm Address & Location</span>
-                        <p className="font-medium text-slate-800 flex items-start gap-1 mt-0.5">
-                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
-                          <span>
-                            {[farmer.address?.village, farmer.address?.taluka, farmer.address?.district, farmer.address?.state]
-                              .filter(Boolean)
-                              .join(', ') || 'Sawargaon Tal, Maharashtra'}
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Land Holding & Soil</span>
-                        <p className="font-semibold text-slate-800">
-                          {farmer.landSize ? `${farmer.landSize} ${farmer.landUnit || 'Acres'}` : '3.5 Acres'}
-                          {farmer.soilType ? ` • ${farmer.soilType} Soil` : ' • Black Cotton Soil'}
-                        </p>
-                        <p className="text-[11px] text-slate-500">
-                          Irrigation: {farmer.waterSource || farmer.irrigationType || 'Drip Irrigation & Well'}
-                        </p>
-                      </div>
+                  </Row>
+                  <Row>
+                    <div>
+                      <span className="text-slate-400 font-medium">Address</span>
+                      <p className="font-medium text-slate-800 flex items-start gap-1 mt-0.5">
+                        <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
+                        <span>
+                          {joinParts(farmerAddress.village, farmerAddress.taluka, farmerAddress.district, farmerAddress.state, farmerAddress.pincode) ||
+                            farmer.farmLocation ||
+                            '—'}
+                        </span>
+                      </p>
                     </div>
+                    <Field label="Farm">{joinParts(farmer.farmName, farmer.farmArea, farmer.farmType)}</Field>
+                  </Row>
+                  <Row last>
+                    <Field label="Status / KYC">{joinParts(farmer.status, farmer.kycStatus && `KYC ${farmer.kycStatus}`)}</Field>
+                    <Field label="Field Manager">{graph.manager?.name || farmer.managerId}</Field>
+                  </Row>
+                </>
+              ) : (
+                <EmptyNote>No farmer record linked to this result</EmptyNote>
+              )}
+            </Card>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-slate-400 font-medium">KYC & Verification Status</span>
-                        <p className="mt-0.5">
-                          <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                            {farmer.status || 'Active & Aadhaar Verified'}
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Assigned Field Manager</span>
-                        <p className="font-medium text-slate-800">
-                          {graph.manager?.name || farmer.managerId || 'GreenGrocc Field Coordinator'}
-                        </p>
-                      </div>
+            {/* Crop & farm */}
+            <Card
+              icon={Calendar}
+              title="Crop & Farm"
+              aside={crop?.cropId ? <span className="font-mono text-xs text-slate-500">Crop ID: {crop.cropId}</span> : null}
+            >
+              {crop || farm ? (
+                <>
+                  <Row>
+                    <Field label="Crop & Variety" strong>{joinParts(crop?.cropName, crop?.variety)}</Field>
+                    <Field label="Farming Method">{joinParts(crop?.farmingMethod, crop?.farmingType)}</Field>
+                  </Row>
+                  <Row>
+                    <Field label="Sowing Date">{crop?.sowingDate ? formatDateOnly(crop.sowingDate) : ''}</Field>
+                    <Field label="Harvest Date">
+                      {crop?.actualHarvestDate || crop?.expectedHarvestDate
+                        ? formatDateOnly(crop.actualHarvestDate || crop.expectedHarvestDate)
+                        : ''}
+                    </Field>
+                  </Row>
+                  <Row>
+                    <Field label="Farm">{joinParts(farm?.farmName, farm?.farmNumber)}</Field>
+                    <Field label="Farm Area">
+                      {farm?.area ? `${farm.area} ${farm.areaUnit || ''}` : crop?.area ? `${crop.area} ${crop.areaUnit || ''}` : ''}
+                    </Field>
+                  </Row>
+                  <Row last>
+                    <Field label="Soil / Irrigation">
+                      {joinParts(farm?.soilType, farm?.irrigationType || crop?.irrigationType, farm?.waterSource)}
+                    </Field>
+                    <Field label="Expected / Available Quantity">
+                      {joinParts(
+                        crop?.estimatedQuantity || crop?.expectedProduction ? qty(crop.estimatedQuantity || crop.expectedProduction, crop.unit) : '',
+                        crop?.availableQuantity ? `${crop.availableQuantity} available` : ''
+                      )}
+                    </Field>
+                  </Row>
+                </>
+              ) : (
+                <EmptyNote>No crop or farm record linked to this result</EmptyNote>
+              )}
+            </Card>
+
+            {/* Batch & GRN */}
+            <Card
+              icon={Package}
+              title="Batch & Goods Receipt Note (GRN)"
+              aside={batch ? <span className="font-mono text-xs font-bold text-emerald-800">{batch.batchNumber || batch.batchId}</span> : null}
+            >
+              {batch || grn ? (
+                <>
+                  <Row>
+                    <div>
+                      <Field label="Batch Number" mono strong>{batch?.batchNumber || batch?.batchId}</Field>
+                      <p className="text-slate-500 font-mono text-[11px]">SKU: {batch?.sku || product?.sku || '—'}</p>
                     </div>
-                  </>
-                ) : (
-                  <p className="text-slate-400 text-center py-4">No direct farmer record linked to this node</p>
-                )}
-              </div>
-            </div>
-
-            {/* 2. Crop, Cultivation & Harvest */}
-            <div className={`${PANEL} overflow-hidden`}>
-              <div className={`${PANEL_HEAD} flex items-center justify-between`}>
-                <span className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-emerald-700" />
-                  Crop Cultivation & Harvest Specs
-                </span>
-                {crop && <span className="font-mono text-xs text-slate-500">Crop ID: {crop.cropId || '—'}</span>}
-              </div>
-              <div className="p-4 space-y-3 text-xs">
-                {crop || farm ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-slate-400 font-medium">Crop & Variety</span>
-                        <p className="font-bold text-slate-900 text-sm">
-                          {crop?.cropName || product?.name || 'Farm Produce'}
-                        </p>
-                        <p className="text-slate-500 font-medium">{crop?.variety || product?.varietyName || 'Natural Heirloom'}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Farming Method</span>
-                        <p className="font-semibold text-emerald-700">
-                          {crop?.farmingMethod || 'Zero Chemical • Natural Vedic Farming'}
-                        </p>
-                      </div>
+                    <div>
+                      <Field label="GRN Reference" mono>{batch?.grnNumber || grn?.grnNumber || grn?.grnId}</Field>
+                      <p className="text-slate-500">Supplier: {batch?.supplierName || grn?.supplierName || '—'}</p>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-slate-400 font-medium">Sowing / Planting Date</span>
-                        <p className="font-medium text-slate-800">{formatDateOnly(crop?.sowingDate || crop?.createdAt)}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Harvest Date</span>
-                        <p className="font-medium text-slate-800">
-                          {formatDateOnly(crop?.actualHarvestDate || crop?.expectedHarvestDate || batch?.mfgDate)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-slate-400 font-medium">Field Survey Number</span>
-                        <p className="font-mono text-slate-800">{farm?.surveyNumber || 'Gat No. 142/A'}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Harvest Yield</span>
-                        <p className="font-semibold text-slate-800">
-                          {crop?.actualYieldKg ? `${crop.actualYieldKg} kg recorded` : 'Batch Harvest'}
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-slate-400 text-center py-4">No agronomic field record directly attached</p>
-                )}
-              </div>
-            </div>
-
-            {/* 3. Batch, Shelf Life & Inwarding (GRN) */}
-            <div className={`${PANEL} overflow-hidden`}>
-              <div className={`${PANEL_HEAD} flex items-center justify-between`}>
-                <span className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-emerald-700" />
-                  Batch & Goods Receipt Note (GRN)
-                </span>
-                {batch && <span className="font-mono text-xs font-bold text-emerald-800">{batch.batchNumber}</span>}
-              </div>
-              <div className="p-4 space-y-3 text-xs">
-                {batch || grn ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-slate-400 font-medium">Batch Number</span>
-                        <p className="font-mono font-bold text-slate-900 text-sm">
-                          {batch?.batchNumber || 'BAT-2026-N/A'}
-                        </p>
-                        <p className="text-slate-500 font-mono text-[11px]">SKU: {batch?.sku || product?.sku || '—'}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">GRN Inwarding Ref</span>
-                        <p className="font-mono font-semibold text-slate-800">
-                          {batch?.grnNumber || grn?.grnNumber || 'GRN-2026-DIRECT'}
-                        </p>
-                        <p className="text-slate-500">Supplier: {batch?.supplierName || grn?.supplierName || farmer?.name || 'Direct Farm'}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 pb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-slate-400 font-medium">Mfg / Pack Date</span>
-                        <p className="font-medium text-slate-800">{formatDateOnly(batch?.mfgDate || batch?.createdAt)}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Expiry Date</span>
-                        <p className="font-medium text-slate-800">{formatDateOnly(batch?.expiryDate)}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Shelf-Life Status</span>
-                        <p className="mt-0.5">
+                  </Row>
+                  <Row cols={3}>
+                    <Field label="Mfg / Pack Date">{batch?.mfgDate ? formatDateOnly(batch.mfgDate) : ''}</Field>
+                    <Field label="Expiry Date">{batch?.expiryDate ? formatDateOnly(batch.expiryDate) : ''}</Field>
+                    <div>
+                      <span className="text-slate-400 font-medium">Status</span>
+                      <p className="mt-0.5">
+                        {batch?.status ? (
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              batch?.status === 'expired'
+                              batch.status === 'expired'
                                 ? 'bg-rose-100 text-rose-800'
-                                : batch?.status === 'near_expiry'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-emerald-100 text-emerald-800'
+                                : batch.status === 'near_expiry'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-emerald-100 text-emerald-800'
                             }`}
                           >
-                            {batch?.status ? batch.status.toUpperCase() : 'ACTIVE FRESH'}
+                            {String(batch.status).toUpperCase()}
                           </span>
-                        </p>
-                      </div>
+                        ) : (
+                          <span className="font-semibold text-slate-800">—</span>
+                        )}
+                      </p>
                     </div>
+                  </Row>
+                  <Row cols={3} last>
+                    <Field label="Initial Inward">{qty(batch?.initialQty ?? batch?.quantity, batch?.unit)}</Field>
+                    <Field label="Current Balance">{qty(batch?.currentQty, batch?.unit)}</Field>
+                    <Field label="Unit Cost / MRP">
+                      {batch?.unitCost != null || batch?.mrp != null ? `${money(batch?.unitCost)} / ${money(batch?.mrp)}` : ''}
+                    </Field>
+                  </Row>
+                </>
+              ) : (
+                <EmptyNote>No batch or GRN record linked to this result</EmptyNote>
+              )}
+            </Card>
 
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <span className="text-slate-400 font-medium">Initial Inward</span>
-                        <p className="font-semibold text-slate-800">
-                          {batch?.initialQty || 0} {batch?.unit || 'units'}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Live Balance</span>
-                        <p className="font-bold text-emerald-700">
-                          {batch?.currentQty || 0} {batch?.unit || 'units'}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Unit Cost / MRP</span>
-                        <p className="font-semibold text-slate-800">
-                          ₹{batch?.unitCost || 0} / ₹{batch?.mrp || product?.price || 0}
-                        </p>
-                      </div>
+            {/* Quality */}
+            <Card
+              icon={ShieldCheck}
+              title="Quality Inspection"
+              aside={quality?.inspectionId || quality?.qualityCheckId ? (
+                <span className="font-mono text-xs text-slate-500">{quality.inspectionId || quality.qualityCheckId}</span>
+              ) : null}
+            >
+              {quality ? (
+                <>
+                  <Row>
+                    <Field label="Grade" strong>{quality.grade || qualityParams.overallQuality}</Field>
+                    <Field label="Status">{quality.status}</Field>
+                  </Row>
+                  <Row cols={3}>
+                    <Field label="Freshness">{quality.freshness || qualityParams.freshness}</Field>
+                    <Field label="Moisture">{quality.moisture || qualityParams.moisture}</Field>
+                    <Field label="Damage">{quality.damage || qualityParams.damage}</Field>
+                  </Row>
+                  <Row cols={3}>
+                    <Field label="Grade A / B / C Qty">
+                      {quality.gradeAQuantity != null
+                        ? `${quality.gradeAQuantity || 0} / ${quality.gradeBQuantity || 0} / ${quality.gradeCQuantity || 0}`
+                        : ''}
+                    </Field>
+                    <Field label="Rejected Qty">{quality.rejectedQuantity}</Field>
+                    <Field label="Lab Reports">{quality.labReports?.length ? `${quality.labReports.length} file(s)` : ''}</Field>
+                  </Row>
+                  <Row last>
+                    <Field label="Inspector">{quality.inspectorName || quality.inspectorId}</Field>
+                    <Field label="Inspected At">
+                      {when(quality.inspectionCompletedAt || quality.inspectionDate || quality.createdAt)}
+                    </Field>
+                  </Row>
+                  {quality.qualityRemarks || quality.remarks ? (
+                    <p className="text-slate-600">Remarks: {quality.qualityRemarks || quality.remarks}</p>
+                  ) : null}
+                </>
+              ) : (
+                <EmptyNote>No quality inspection recorded for this result</EmptyNote>
+              )}
+            </Card>
+
+            {/* Storage & dark store stock */}
+            <Card
+              icon={Warehouse}
+              title="Storage & Dark Store Stock"
+              aside={storeName ? <span className="font-mono text-xs text-slate-500">{storeName}</span> : null}
+            >
+              {store || warehouse || storeInventories.length || batch?.currentQty != null ? (
+                <>
+                  <Row>
+                    <div>
+                      <Field label="Dark Store" strong>{storeName}</Field>
+                      {store ? <p className="text-slate-500">{joinParts(store.storeAddress, store.area, store.city)}</p> : null}
                     </div>
-                  </>
-                ) : (
-                  <p className="text-slate-400 text-center py-4">No batch record attached to this search node</p>
-                )}
-              </div>
-            </div>
-
-            {/* 4. Quality Inspection & Lab Results */}
-            <div className={`${PANEL} overflow-hidden`}>
-              <div className={`${PANEL_HEAD} flex items-center justify-between`}>
-                <span className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-700" />
-                  Quality Inspection & Lab Testing
-                </span>
-                <span className="font-mono text-xs text-slate-500">QC Pass: Grade A</span>
-              </div>
-              <div className="p-4 space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
-                  <div>
-                    <span className="text-slate-400 font-medium">Official Grade</span>
-                    <p className="font-bold text-emerald-700 text-sm">
-                      {quality?.grade || current.grade || 'Grade A (Export / Retail Quality)'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-medium">Testing Status</span>
-                    <p className="font-semibold text-slate-800">
-                      {quality?.status || 'Lab Certified Chemical-Free'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 pb-3 border-b border-slate-100">
-                  <div>
-                    <span className="text-slate-400 font-medium">Sugar (Brix)</span>
-                    <p className="font-semibold text-slate-800">{quality?.parameters?.brix || '6.2° Brix'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-medium">Moisture</span>
-                    <p className="font-semibold text-slate-800">{quality?.parameters?.moisture || '92.4%'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-medium">Chemical Residue</span>
-                    <p className="font-semibold text-emerald-700">0.00 ppm (Clean)</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="text-slate-400 font-medium">QC Inspector</span>
-                    <p className="font-medium text-slate-800">{quality?.inspectorName || 'Dr. Deshmukh (Agri QC)'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-medium">Inspection Timestamp</span>
-                    <p className="font-medium text-slate-800">{when(quality?.inspectionDate || batch?.createdAt)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 5. Supply Chain Facilities & Dark Store Stock */}
-            <div className={`${PANEL} overflow-hidden`}>
-              <div className={`${PANEL_HEAD} flex items-center justify-between`}>
-                <span className="flex items-center gap-2">
-                  <Warehouse className="h-4 w-4 text-emerald-700" />
-                  Storage Hub & Dark Store Visibility
-                </span>
-                <span className="font-mono text-xs text-slate-500">
-                  {store?.storeName || store?.name || 'Pune Central Hub'}
-                </span>
-              </div>
-              <div className="p-4 space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
-                  <div>
-                    <span className="text-slate-400 font-medium">Dark Store Facility</span>
-                    <p className="font-bold text-slate-900 text-sm">
-                      {store?.storeName || store?.name || batch?.storeName || 'goodluck Dark Store'}
-                    </p>
-                    <p className="text-slate-500">{store?.area ? `${store.area}, ${store.city}` : 'Marunji, Pune'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-medium">Collection Centre & Cold Chain</span>
-                    <p className="font-semibold text-slate-800">Narayangaon Collection Centre</p>
-                    <p className="text-emerald-700 font-medium">Cold Storage: 4°C ± 1°C</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <span className="text-slate-400 font-medium">Physical On-Hand</span>
-                    <p className="font-bold text-slate-900 text-sm">
-                      {batch?.currentQty || product?.stock || 120} {batch?.unit || 'units'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-medium">Reserved for Orders</span>
-                    <p className="font-semibold text-amber-700 text-sm">6 units</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-medium">Available to Sell (ATP)</span>
-                    <p className="font-bold text-emerald-700 text-sm">
-                      {(batch?.currentQty || product?.stock || 120) - 6} {batch?.unit || 'units'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 6. Customer Order, Invoicing & Tax Breakdown */}
-            <div className={`${PANEL} overflow-hidden`}>
-              <div className={`${PANEL_HEAD} flex items-center justify-between`}>
-                <span className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-emerald-700" />
-                  Tax Invoice, Order & Billing Breakdown
-                </span>
-                {(invoice || order) && (
-                  <span className="font-mono text-xs font-bold text-emerald-700 flex items-center gap-1">
-                    {invoice?.invoiceNumber || order?.orderId || order?.orderNumber}
-                    <CopyButton text={invoice?.invoiceNumber || order?.orderId || order?.orderNumber} />
-                  </span>
-                )}
-              </div>
-              <div className="p-4 space-y-3 text-xs">
-                {invoice ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-slate-400 font-medium">Invoice Number</span>
-                        <p className="font-mono font-bold text-slate-900 text-sm">
-                          {invoice.invoiceNumber}
-                        </p>
-                        <p className="text-slate-500">Channel: <span className="capitalize font-medium text-slate-700">{invoice.channel?.replace('_', ' ') || 'Physical Store'}</span></p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Customer Details</span>
-                        <p className="font-bold text-slate-900">{invoice.customerName || 'Walk-in Guest'}</p>
-                        <p className="text-slate-500 font-mono">{invoice.customerPhone || 'Mobile: —'}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 pb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-slate-400 font-medium">Counter / Register</span>
-                        <p className="font-medium text-slate-800">{invoice.counterName || 'Register 01'}</p>
-                        <p className="text-[11px] text-slate-400">Cashier: {invoice.cashierName || 'Admin'}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Payment Method</span>
-                        <p className="font-bold text-emerald-700">{invoice.paymentMethod || 'UPI'}</p>
-                        <p className="text-[11px] text-slate-400 capitalize">Status: {invoice.paymentStatus || 'Paid'}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Billed Date & Time</span>
-                        <p className="font-medium text-slate-800">{when(invoice.createdAt)}</p>
-                      </div>
-                    </div>
-
-                    {/* Invoice Items Table */}
-                    {Array.isArray(invoice.items) && invoice.items.length > 0 && (
-                      <div className="pb-3 border-b border-slate-100">
-                        <span className="text-slate-400 font-medium block mb-1.5">Billed Items ({invoice.items.length})</span>
-                        <div className="rounded-lg border border-slate-200/80 overflow-hidden bg-slate-50/50">
-                          <table className="min-w-full text-[11px]">
-                            <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
-                              <tr>
-                                <th className="py-1 px-2 text-left">Item</th>
-                                <th className="py-1 px-2 text-center">Qty</th>
-                                <th className="py-1 px-2 text-right">Rate</th>
-                                <th className="py-1 px-2 text-right">Total</th>
+                    <Field label="Warehouse">{warehouse?.warehouseName || warehouse?.name || warehouse?.warehouseId}</Field>
+                  </Row>
+                  {storeInventories.length ? (
+                    <div className="rounded-lg border border-slate-200/80 overflow-hidden">
+                      <table className="min-w-full text-[11px]">
+                        <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                          <tr>
+                            <th className="py-1 px-2 text-left">Store</th>
+                            <th className="py-1 px-2 text-right">On Hand</th>
+                            <th className="py-1 px-2 text-right">Reserved</th>
+                            <th className="py-1 px-2 text-right">Available</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {storeInventories.map((inv) => {
+                            const onHand = Number(inv.stockCount) || 0;
+                            const held = Number(inv.heldCount) || 0;
+                            return (
+                              <tr key={inv._id}>
+                                <td className="py-1 px-2 font-medium text-slate-800">
+                                  {inv.managerId?.storeName || inv.managerId?.name || '—'}
+                                </td>
+                                <td className="py-1 px-2 text-right font-mono">{qty(onHand, inv.unit)}</td>
+                                <td className="py-1 px-2 text-right font-mono">{held}</td>
+                                <td className="py-1 px-2 text-right font-mono font-semibold">{Math.max(0, onHand - held)}</td>
                               </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {invoice.items.slice(0, 4).map((it, i) => (
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <Row cols={2} last>
+                      <Field label="Batch On Hand">{qty(batch?.currentQty, batch?.unit)}</Field>
+                      <Field label="Store Location">{batch?.storageLocation}</Field>
+                    </Row>
+                  )}
+                </>
+              ) : (
+                <EmptyNote>No storage or dark store stock linked to this result</EmptyNote>
+              )}
+            </Card>
+
+            {/* Invoice / order */}
+            <Card
+              icon={Receipt}
+              title="Invoice & Order"
+              aside={(invoice || order) ? (
+                <span className="font-mono text-xs font-bold text-emerald-700 flex items-center gap-1">
+                  {invoice?.invoiceNumber || invoice?.invoiceId || order?.orderId || order?.orderNumber}
+                  <CopyButton text={invoice?.invoiceNumber || invoice?.invoiceId || order?.orderId || order?.orderNumber} />
+                </span>
+              ) : null}
+            >
+              {invoice ? (
+                <>
+                  <Row>
+                    <div>
+                      <Field label="Invoice Number" mono strong>{invoice.invoiceNumber || invoice.invoiceId}</Field>
+                      <p className="text-slate-500">Channel: <span className="capitalize font-medium text-slate-700">{invoice.channel?.replace('_', ' ') || '—'}</span></p>
+                    </div>
+                    <div>
+                      <Field label="Customer">{invoice.customerName || customer?.name}</Field>
+                      <p className="text-slate-500 font-mono">{invoice.customerPhone || customer?.phone || '—'}</p>
+                    </div>
+                  </Row>
+                  <Row cols={3}>
+                    <div>
+                      <Field label="Counter / Register">{invoice.counterName}</Field>
+                      <p className="text-[11px] text-slate-400">Cashier: {invoice.cashierName || '—'}</p>
+                    </div>
+                    <div>
+                      <Field label="Payment Method">{invoice.paymentMethod}</Field>
+                      <p className="text-[11px] text-slate-400 capitalize">Status: {invoice.paymentStatus || '—'}</p>
+                    </div>
+                    <Field label="Billed At">{when(invoice.createdAt)}</Field>
+                  </Row>
+
+                  {Array.isArray(invoice.items) && invoice.items.length > 0 && (
+                    <div className="pb-3 border-b border-slate-100">
+                      <span className="text-slate-400 font-medium block mb-1.5">Billed Items ({invoice.items.length})</span>
+                      <div className="rounded-lg border border-slate-200/80 overflow-hidden bg-slate-50/50">
+                        <table className="min-w-full text-[11px]">
+                          <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                            <tr>
+                              <th className="py-1 px-2 text-left">Item</th>
+                              <th className="py-1 px-2 text-center">Qty</th>
+                              <th className="py-1 px-2 text-right">Rate</th>
+                              <th className="py-1 px-2 text-right">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {invoice.items.map((it, i) => {
+                              const itemQty = Number(it.qty ?? it.quantity) || 0;
+                              return (
                                 <tr key={i}>
-                                  <td className="py-1 px-2 font-medium text-slate-800 truncate max-w-[140px]">{it.name}</td>
-                                  <td className="py-1 px-2 text-center font-mono">{it.qty} {it.unit || ''}</td>
-                                  <td className="py-1 px-2 text-right font-mono">₹{it.price}</td>
-                                  <td className="py-1 px-2 text-right font-mono font-semibold">₹{(it.qty || 1) * (it.price || 0)}</td>
+                                  <td className="py-1 px-2 font-medium text-slate-800">{it.name}</td>
+                                  <td className="py-1 px-2 text-center font-mono">{qty(itemQty, it.unit)}</td>
+                                  <td className="py-1 px-2 text-right font-mono">{money(it.price)}</td>
+                                  <td className="py-1 px-2 text-right font-mono font-semibold">
+                                    {money(it.total ?? itemQty * (Number(it.price) || 0))}
+                                  </td>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                          {invoice.items.length > 4 && (
-                            <p className="text-[10px] text-slate-400 text-center py-1 bg-slate-50">
-                              + {invoice.items.length - 4} more item(s) in payload
-                            </p>
-                          )}
-                        </div>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    <div className="grid grid-cols-4 gap-2 pt-1">
-                      <div>
-                        <span className="text-slate-400 font-medium">Subtotal</span>
-                        <p className="font-semibold text-slate-800">₹{invoice.subtotal || 0}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Discount</span>
-                        <p className="font-semibold text-amber-700">-₹{invoice.discount || 0}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">GST Tax (5%)</span>
-                        <p className="font-semibold text-slate-800">₹{invoice.gstTax || 0}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Grand Total</span>
-                        <p className="font-bold text-slate-900 text-sm">₹{invoice.grandTotal || 0}</p>
-                      </div>
+                  <Row cols={4} last>
+                    <Field label="Subtotal">{money(invoice.subtotal)}</Field>
+                    <Field label="Discount">{invoice.discount ? `-${money(invoice.discount)}` : ''}</Field>
+                    <Field label="Tax">{money(invoice.gstTax ?? invoice.taxAmount)}</Field>
+                    <Field label="Grand Total" strong>{money(invoice.grandTotal ?? invoice.amount)}</Field>
+                  </Row>
+                </>
+              ) : order ? (
+                <>
+                  <Row>
+                    <div>
+                      <Field label="Order" mono strong>{order.orderId || order.orderNumber || order.id}</Field>
+                      <p className="text-slate-500">{order.customerName || customer?.name || '—'}</p>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100">
-                      <div>
-                        <span className="text-slate-400 font-medium">Customer Order</span>
-                        <p className="font-bold text-slate-900 text-sm">
-                          {order?.orderId || order?.orderNumber || 'POS-2026-LIVE'}
-                        </p>
-                        <p className="text-slate-500">{order?.customerName || customer?.name || 'Direct Walk-in / Omni POS'}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Order Status & Tender</span>
-                        <p className="font-semibold text-emerald-700">
-                          {order?.status || 'Delivered & Completed'}
-                        </p>
-                        <p className="text-slate-500">{order?.paymentMethod || payment?.method || 'UPI / Cashless'}</p>
-                      </div>
+                    <div>
+                      <Field label="Status">{order.status}</Field>
+                      <p className="text-slate-500">{order.paymentMethod || payment?.paymentMethod || payment?.method || '—'}</p>
                     </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <span className="text-slate-400 font-medium">Delivery Vehicle</span>
-                        <p className="font-mono font-medium text-slate-800">MH-12-QE-4921</p>
-                        <p className="text-[11px] text-slate-400">Reefer Van</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Driver / Rider</span>
-                        <p className="font-medium text-slate-800">Suresh Kadam</p>
-                        <p className="text-[11px] text-slate-400">9823104921</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Tax Invoice Total</span>
-                        <p className="font-bold text-slate-900">
-                          ₹{order?.totalAmount || batch?.mrp || 455}
-                        </p>
-                        <p className="text-[10px] text-emerald-700">GST 5% Paid</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+                  </Row>
+                  <Row cols={3} last>
+                    <Field label="Delivery">{delivery ? joinParts(delivery.deliveryId, delivery.deliveryStatus) : ''}</Field>
+                    <Field label="Driver / Vehicle">{delivery ? joinParts(delivery.driverId, delivery.vehicleId) : ''}</Field>
+                    <Field label="Order Total" strong>{money(order.totalAmount ?? order.total)}</Field>
+                  </Row>
+                </>
+              ) : (
+                <EmptyNote>No invoice or order linked to this result</EmptyNote>
+              )}
+            </Card>
           </div>
 
-          {/* Chronological State Timeline */}
+          {/* Timeline */}
           <section className="space-y-3">
             <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600">
               <GitBranch className="h-4 w-4 text-emerald-700" />
@@ -1065,13 +946,13 @@ export default function TraceabilityPage() {
               </ol>
             )}
           </section>
+          </>
+          )}
 
-          {/* Tamper-Proof Audit Table */}
+          {/* Audit history */}
           {(result.audits || []).length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                System Audit History (Tamper-Proof)
-              </h2>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600">System Audit History</h2>
               <div className={`${PANEL} overflow-hidden`}>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-xs">
@@ -1086,11 +967,11 @@ export default function TraceabilityPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {result.audits.map((row) => (
-                        <tr key={row.auditId} className="hover:bg-slate-50/60 transition">
-                          <td className="px-3 py-2 font-mono text-[11px] text-slate-700">{row.auditId}</td>
-                          <td className="px-3 py-2 font-medium text-slate-800">{row.action}</td>
+                        <tr key={row.auditId || row._id} className="hover:bg-slate-50/60 transition">
+                          <td className="px-3 py-2 font-mono text-[11px] text-slate-700">{row.auditId || '—'}</td>
+                          <td className="px-3 py-2 font-medium text-slate-800">{row.action || '—'}</td>
                           <td className="px-3 py-2 text-slate-600">{row.fieldChanged || '—'}</td>
-                          <td className="px-3 py-2 text-slate-600">{row.changedBy || row.userId || 'Admin'}</td>
+                          <td className="px-3 py-2 text-slate-600">{row.changedBy || row.userId || '—'}</td>
                           <td className="px-3 py-2 text-slate-500">{when(row.dateTime)}</td>
                         </tr>
                       ))}
@@ -1101,7 +982,7 @@ export default function TraceabilityPage() {
             </section>
           )}
 
-          {/* 100% COMPLETE RAW DATA MODAL / DRAWER */}
+          {/* Raw data inspector */}
           {showRawJson && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
               <div className="relative flex flex-col w-full max-w-4xl max-h-[85vh] bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
@@ -1109,8 +990,8 @@ export default function TraceabilityPage() {
                   <div className="flex items-center gap-2">
                     <Code2 className="h-5 w-5 text-emerald-400" />
                     <div>
-                      <h3 className="text-sm font-bold text-white">Full MongoDB Document Payload (100% Data)</h3>
-                      <p className="text-[11px] text-slate-400">Zero fields hidden. Complete raw graph from database.</p>
+                      <h3 className="text-sm font-bold text-white">Raw Database Payload</h3>
+                      <p className="text-[11px] text-slate-400">Complete graph returned for this search.</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

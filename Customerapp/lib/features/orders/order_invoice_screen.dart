@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../config/constants.dart';
 import '../../config/contact.dart';
 import '../../config/theme.dart';
 import '../../core/providers/app_providers.dart';
@@ -18,7 +19,6 @@ import '../../core/utils/payment_utils.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../models/order.dart';
 import '../../routes/route_paths.dart';
-import '../../widgets/common/app_logo.dart';
 import '../../widgets/common/skeleton_loaders.dart';
 
 class OrderInvoiceScreen extends ConsumerStatefulWidget {
@@ -103,7 +103,9 @@ class _OrderInvoiceScreenState extends ConsumerState<OrderInvoiceScreen> {
       ..writeln('Delivery: ${order.deliveryCharges == 0 ? 'Free' : formatInr(order.deliveryCharges)}')
       ..writeln('Total: ${formatInr(order.total)}')
       ..writeln()
-      ..writeln('Thank you for shopping with GreenGrocc!');
+      ..writeln('Thank you for shopping with GreenGrocc!')
+      ..writeln('Phone: ${ContactConfig.contactPhoneDisplay}')
+      ..writeln('Email: ${ContactConfig.contactEmail}');
 
     if (user != null) {
       buffer.writeln('Customer: ${user.name}');
@@ -259,21 +261,29 @@ class _InvoiceDocument extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                 child: Column(
                   children: [
-                    const AppLogo(height: 56),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'GreenGrocc',
-                      style: TextStyle(
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Image.asset(
+                        AppConstants.wordmarkLogoAsset,
+                        height: 44,
+                        fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 12),
                     Text(
-                      'Digital Invoice | ${ContactConfig.contactEmail}',
+                      '${ContactConfig.contactAddress}, Mumbai, Maharashtra',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Phone: ${ContactConfig.contactPhoneDisplay} | Email: ${ContactConfig.contactEmail}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11),
                     ),
                   ],
                 ),
@@ -476,6 +486,25 @@ class _InvoiceDocument extends StatelessWidget {
                           ),
                         ),
                       ),
+                    const SizedBox(height: 16),
+                    const Divider(color: AppColors.borderLight),
+                    const SizedBox(height: 8),
+                    Text(
+                      'For any queries about this order, call ${ContactConfig.contactPhoneDisplay} '
+                      'or email ${ContactConfig.contactEmail}.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Thank you for shopping with GreenGrocc!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
                   ],
                 ),
               ),

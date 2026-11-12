@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Banknote, Bike, Check, Coins, CreditCard, Gift, Package, Receipt, Store, Tag } from "lucide-react";
+import { Banknote, Bike, CalendarClock, Check, Coins, CreditCard, Gift, Package, Receipt, Store, Tag } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
@@ -75,6 +75,7 @@ import {
 
 const MAX_ORDER_NOTE_LENGTH = 200;
 const PAYMENT_PLAN_STORAGE_KEY = "gg_checkout_payment_plan";
+const CHECKOUT_RESYNC_DELAY_MS = 400;
 
 const DELIVERY_INSTRUCTIONS = [
   { key: "avoidCalling", label: "Avoid calling" },
@@ -577,20 +578,16 @@ function Checkout() {
     preOrderSlot: item.preOrderSlot || "",
   });
 
-  const changeLineQuantity = async (item, lineKey, direction) => {
-    setBusyLine(lineKey);
-    try {
-      if (direction === "up") {
-        await incrementCartItem({ ...lineArgs(item), step: getCartStepForItem(item) });
-      } else {
-        await decrementCartItem({
-          ...lineArgs(item),
-          resolveNextQuantity: (currentQty) =>
-            getDecreasedCartQuantityForItem({ ...item, quantity: currentQty }),
-        });
-      }
-    } finally {
-      setBusyLine("");
+  // Quantity changes apply instantly and sync in the background, so the line is never locked.
+  const changeLineQuantity = (item, direction) => {
+    if (direction === "up") {
+      incrementCartItem({ ...lineArgs(item), step: getCartStepForItem(item) });
+    } else {
+      decrementCartItem({
+        ...lineArgs(item),
+        resolveNextQuantity: (currentQty) =>
+          getDecreasedCartQuantityForItem({ ...item, quantity: currentQty }),
+      });
     }
   };
 
@@ -768,28 +765,35 @@ function Checkout() {
     fulfillment,
   ]);
 
+  // Waits for quantity taps to settle so each burst of +/- costs one server quote, not one per tap.
   useEffect(() => {
-    syncCheckoutAttempt();
+    const timer = setTimeout(() => {
+      syncCheckoutAttempt();
+    }, CHECKOUT_RESYNC_DELAY_MS);
+    return () => clearTimeout(timer);
   }, [syncCheckoutAttempt, checkoutAttemptKey]);
 
   useEffect(() => {
     if (!appliedCoupon?.code) return undefined;
 
     let active = true;
-    validateCoupon({ code: appliedCoupon.code, subtotal })
-      .then(({ data }) => {
-        if (!active) return;
-        setAppliedCoupon(data.data);
-        setCouponError("");
-      })
-      .catch((err) => {
-        if (!active) return;
-        setAppliedCoupon(null);
-        setCouponError(err.response?.data?.message || "Coupon is no longer valid");
-      });
+    const timer = setTimeout(() => {
+      validateCoupon({ code: appliedCoupon.code, subtotal })
+        .then(({ data }) => {
+          if (!active) return;
+          setAppliedCoupon(data.data);
+          setCouponError("");
+        })
+        .catch((err) => {
+          if (!active) return;
+          setAppliedCoupon(null);
+          setCouponError(err.response?.data?.message || "Coupon is no longer valid");
+        });
+    }, CHECKOUT_RESYNC_DELAY_MS);
 
     return () => {
       active = false;
+      clearTimeout(timer);
     };
   }, [subtotal, appliedCoupon?.code]);
 
@@ -892,7 +896,7 @@ function Checkout() {
   };
 
   const handleRazorpayPayment = async () => {
-    const paymentMode = paymentPlan;
+    const paymentMode = getCheckoutPaymentMethod(paymentPlan);
 
     const scriptLoaded = await loadRazorpayScript();
     if (!scriptLoaded) {
@@ -926,6 +930,7 @@ function Checkout() {
       amount: paymentData.amount,
       razorpayOrderId: paymentData.razorpayOrderId,
       user,
+      preferEmi: paymentPlan === PAYMENT_PLAN.EMI,
       description: "Full order payment via Razorpay",
       onSuccess: async (response) => {
         setPlacingOrder(true);
@@ -1117,7 +1122,9 @@ function Checkout() {
         : "Cash on Delivery"
       : paymentPlan === PAYMENT_PLAN.FULL
         ? "Pay now · UPI / Card"
-        : "";
+        : paymentPlan === PAYMENT_PLAN.EMI
+          ? "EMI · Card / Cardless"
+          : "";
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F1F2F6] text-slate-900">
@@ -1269,6 +1276,12 @@ function Checkout() {
               subtitle: `${formatPrice(orderTotal, 2)} by UPI or card`,
               icon: <CreditCard className="h-5 w-5" strokeWidth={2} />,
             },
+            {
+              plan: PAYMENT_PLAN.EMI,
+              title: "Pay in EMI",
+              subtitle: "Credit / debit card EMI or cardless EMI, on eligible orders",
+              icon: <CalendarClock className="h-5 w-5" strokeWidth={2} />,
+            },
           ].map((option) => {
             const selected = paymentPlan === option.plan;
             return (
@@ -1391,8 +1404,8 @@ function Checkout() {
                             item={item}
                             editable={!isBuyNow}
                             busy={placingOrder || busyLine === lineKey}
-                            onIncrease={() => changeLineQuantity(item, lineKey, "up")}
-                            onDecrease={() => changeLineQuantity(item, lineKey, "down")}
+                            onIncrease={() => changeLineQuantity(item, "up")}
+                            onDecrease={() => changeLineQuantity(item, "down")}
                             onMoveToWishlist={
                               isBuyNow || isLocalProductId(item._id)
                                 ? undefined
@@ -1838,6 +1851,8 @@ function Checkout() {
                         {paymentPlan ? (
                           paymentPlan === PAYMENT_PLAN.COD ? (
                             <Banknote className="h-4 w-4 shrink-0 text-[#047857]" strokeWidth={2.2} aria-hidden="true" />
+                          ) : paymentPlan === PAYMENT_PLAN.EMI ? (
+                            <CalendarClock className="h-4 w-4 shrink-0 text-[#047857]" strokeWidth={2.2} aria-hidden="true" />
                           ) : (
                             <CreditCard className="h-4 w-4 shrink-0 text-[#047857]" strokeWidth={2.2} aria-hidden="true" />
                           )

@@ -7,7 +7,15 @@ import {
   calculateShippingCharge,
 } from "../../utils/orderSettings";
 import { calculateOrderTotal } from "../../utils/gst";
+import { getCartStepForItem, getDecreasedCartQuantityForItem } from "../../utils/cartDefaults";
 import OptimizedImg from "../common/OptimizedImg";
+
+const lineArgs = (item) => ({
+  productId: item._id,
+  variantName: item.variantName || "",
+  colorName: item.colorName || "",
+  preOrderSlot: item.preOrderSlot || "",
+});
 
 const formatPrice = (amount) => {
   const value = Number(amount) || 0;
@@ -113,7 +121,13 @@ export default function CartSidebar() {
 
                         <div className="flex h-8 w-[84px] items-center justify-between rounded-md border border-[#0C831F] text-[#0C831F]">
                           <button
-                            onClick={() => decrementCartItem(item)}
+                            onClick={() =>
+                              decrementCartItem({
+                                ...lineArgs(item),
+                                resolveNextQuantity: (currentQty) =>
+                                  getDecreasedCartQuantityForItem({ ...item, quantity: currentQty }),
+                              })
+                            }
                             aria-label="Decrease quantity"
                             className="flex h-full w-7 items-center justify-center text-base transition-colors hover:bg-[#0C831F]/5"
                           >
@@ -121,7 +135,9 @@ export default function CartSidebar() {
                           </button>
                           <span className="text-[13px] font-semibold">{item.quantity}</span>
                           <button
-                            onClick={() => incrementCartItem(item)}
+                            onClick={() =>
+                              incrementCartItem({ ...lineArgs(item), step: getCartStepForItem(item) })
+                            }
                             aria-label="Increase quantity"
                             className="flex h-full w-7 items-center justify-center text-base transition-colors hover:bg-[#0C831F]/5"
                           >

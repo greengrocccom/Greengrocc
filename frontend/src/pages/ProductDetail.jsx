@@ -1179,6 +1179,7 @@ function ProductDetail() {
         productId: product._id,
         variantName: activeVariantName,
         colorName: selectedColor,
+        preOrderSlot: line.preOrderSlot || "",
         resolveNextQuantity: (currentQty) =>
           getDecreasedCartQuantityForProduct(product, currentQty, activeVariantName),
       });
@@ -1204,6 +1205,7 @@ function ProductDetail() {
         productId: product._id,
         variantName: activeVariantName,
         colorName: selectedColor,
+        preOrderSlot: line.preOrderSlot || "",
         step,
         maxQuantity: maxQty,
       });

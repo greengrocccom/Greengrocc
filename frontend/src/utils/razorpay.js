@@ -18,16 +18,37 @@ export function loadRazorpayScript() {
   });
 }
 
+/**
+ * Puts card EMI and cardless EMI first while keeping every other method available. Razorpay only
+ * lists EMI plans the account has enabled and the order amount qualifies for.
+ */
+const EMI_FIRST_DISPLAY = {
+  display: {
+    blocks: {
+      emi: {
+        name: "Pay in EMI",
+        instruments: [{ method: "emi" }, { method: "cardless_emi" }],
+      },
+    },
+    sequence: ["block.emi"],
+    preferences: {
+      show_default_blocks: true,
+    },
+  },
+};
+
 export function openRazorpayCheckout({
   keyId,
   amount,
   razorpayOrderId,
   user,
   description = "Order Payment",
+  preferEmi = false,
   onSuccess,
   onDismiss,
 }) {
   const options = {
+    ...(preferEmi ? { config: EMI_FIRST_DISPLAY } : {}),
     key: keyId,
     amount,
     currency: "INR",

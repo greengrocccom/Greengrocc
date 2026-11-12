@@ -6,6 +6,7 @@ import StoreInventory from "../../../delivery-service/src/models/StoreInventory.
 import DeliveryManager from "../../../delivery-service/src/models/DeliveryManager.js";
 import { InventoryBatch, GoodsReceiptNote, StockAdjustmentLog, OmniInvoice } from "../../../admin-ops-service/src/models.js";
 import { detectEntity } from "../config/idRegistry.js";
+import { buildStorefrontOrderTrace, findStorefrontOrder } from "./orderTraceService.js";
 import { RESOURCES, ENTITY_RESOURCE } from "../config/resources.js";
 import {
   Farm,
@@ -38,6 +39,11 @@ import {
 
 function escapeRegex(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Search-card subtitle from the parts that actually have values. */
+function subtitleOf(...parts) {
+  return parts.filter(Boolean).join(" • ");
 }
 
 function idVariants(id) {
@@ -471,9 +477,39 @@ export async function getByGrnNumber(grnQuery, opts) {
   };
 }
 
+/** Graph for a website/app order, keeping the generic keys the overview cards read. */
+async function storefrontOrderGraph(storefrontOrder, erpOrder = null) {
+  const orderTrace = await buildStorefrontOrderTrace(storefrontOrder);
+  const firstDelivery = orderTrace.deliveries[0] || null;
+  const firstFarmer = orderTrace.farmers[0] || null;
+  return {
+    order: erpOrder || storefrontOrder,
+    orderTrace,
+    customer: {
+      ...(orderTrace.customer.account || {}),
+      name: orderTrace.customer.name,
+      phone: orderTrace.customer.phone,
+      email: orderTrace.customer.email,
+    },
+    store: firstDelivery?.darkStore || null,
+    farmer: firstFarmer?.farmer || null,
+    manager: firstFarmer?.fieldManager || null,
+    batches: orderTrace.items.flatMap((line) => line.storeBatches.map((src) => src.batch)),
+    payments: orderTrace.payment.records,
+  };
+}
+
 export async function getByOrderId(orderQuery, opts) {
+  const storefrontOrder = await findStorefrontOrder(orderQuery);
+  if (storefrontOrder) return storefrontOrderGraph(storefrontOrder);
+
   const order = await findOrder(orderQuery, opts);
   if (!order) return null;
+
+  if (order.sourceOrderId && !order.isFarmerOrder) {
+    const mirrored = await findStorefrontOrder(order.sourceOrderId);
+    if (mirrored) return storefrontOrderGraph(mirrored, order);
+  }
 
   if (order.isFarmerOrder) {
     const orderIds = [order.id, order.orderId].filter(Boolean);
@@ -770,7 +806,7 @@ export async function omniSearch(rawQuery) {
     }).limit(5).lean(),
 
     Farm.find({
-      $or: [{ farmId: { $in: ids } }, { farmName: rx }, { location: rx }],
+      $or: [{ farmId: { $in: ids } }, { farmName: rx }, { farmLocation: rx }],
       isDeleted: { $ne: true },
     }).limit(5).lean(),
 
@@ -830,8 +866,8 @@ export async function omniSearch(rawQuery) {
     matches.push({
       id: f.farmerId || f.id || f.farmerCode,
       type: "farmer",
-      title: f.name || "Unnamed Farmer",
-      subtitle: `${f.address?.village || f.farmName || "Maharashtra"} • Mobile: ${f.mobile || "—"}`,
+      title: f.name || f.farmerId || f.id,
+      subtitle: subtitleOf(f.address?.village || f.farmName, f.mobile && `Mobile: ${f.mobile}`),
       badge: "Farmer",
       entityId: f.farmerId || f.id,
     });
@@ -842,7 +878,7 @@ export async function omniSearch(rawQuery) {
       id: b.batchNumber,
       type: "batch",
       title: `${b.batchNumber} • ${b.productName}`,
-      subtitle: `Supplier: ${b.supplierName || "Direct Farm"} • Stock: ${b.currentQty} ${b.unit || "units"}`,
+      subtitle: subtitleOf(b.supplierName && `Supplier: ${b.supplierName}`, b.currentQty != null && `Stock: ${b.currentQty} ${b.unit || ""}`.trim()),
       badge: "Batch",
       entityId: b.batchNumber,
     });
@@ -853,7 +889,7 @@ export async function omniSearch(rawQuery) {
       id: p.sku || p.productId,
       type: "product",
       title: p.name,
-      subtitle: `SKU: ${p.sku || p.productId} • ${p.category || "Produce"} • ₹${p.price || 0}`,
+      subtitle: subtitleOf(`SKU: ${p.sku || p.productId}`, p.category, p.price != null && `₹${p.price}`),
       badge: "Product / SKU",
       entityId: p.sku || p.productId,
     });
@@ -864,7 +900,7 @@ export async function omniSearch(rawQuery) {
       id: g.grnNumber,
       type: "grn",
       title: `GRN: ${g.grnNumber}`,
-      subtitle: `Supplier: ${g.supplierName || "Vendor"} • Items: ${g.totalItems || g.items?.length || 0}`,
+      subtitle: subtitleOf(g.supplierName && `Supplier: ${g.supplierName}`, `Items: ${g.totalItems || g.items?.length || 0}`),
       badge: "GRN Inwarding",
       entityId: g.grnNumber,
     });
@@ -875,7 +911,7 @@ export async function omniSearch(rawQuery) {
       id: o.orderId,
       type: "order",
       title: `Order: ${o.orderId}`,
-      subtitle: `Customer: ${o.customerName || "Customer"} • ₹${o.totalAmount || 0}`,
+      subtitle: subtitleOf(o.customerName && `Customer: ${o.customerName}`, o.totalAmount != null && `₹${o.totalAmount}`),
       badge: "Customer Order",
       entityId: o.orderId,
     });
@@ -885,8 +921,8 @@ export async function omniSearch(rawQuery) {
     matches.push({
       id: c.cropId,
       type: "crop",
-      title: `Crop: ${c.cropName} (${c.variety || "General"})`,
-      subtitle: `Status: ${c.status || "Active"} • ID: ${c.cropId}`,
+      title: `Crop: ${c.cropName}${c.variety ? ` (${c.variety})` : ""}`,
+      subtitle: subtitleOf(c.procurementStatus && `Procurement: ${c.procurementStatus}`, `ID: ${c.cropId}`),
       badge: "Crop / Harvest",
       entityId: c.cropId,
     });
@@ -897,7 +933,7 @@ export async function omniSearch(rawQuery) {
       id: fm.farmId,
       type: "farm",
       title: `Farm: ${fm.farmName || fm.farmId}`,
-      subtitle: `Location: ${fm.location || "Maharashtra"} • ${fm.areaAcre || 0} Acres`,
+      subtitle: subtitleOf(fm.farmLocation && `Location: ${fm.farmLocation}`, fm.area && `${fm.area} ${fm.areaUnit || ""}`.trim()),
       badge: "Farm / Land",
       entityId: fm.farmId,
     });
@@ -908,7 +944,7 @@ export async function omniSearch(rawQuery) {
       id: s.storeName || s.name,
       type: "store",
       title: s.storeName || s.name,
-      subtitle: `${s.area || ""}, ${s.city || "Pune"} • Dark Store`,
+      subtitle: subtitleOf([s.area, s.city].filter(Boolean).join(", "), "Dark Store"),
       badge: "Dark Store Hub",
       entityId: s._id?.toString(),
     });
@@ -919,7 +955,7 @@ export async function omniSearch(rawQuery) {
       id: inv.invoiceNumber,
       type: "invoice",
       title: `Invoice: ${inv.invoiceNumber}`,
-      subtitle: `₹${inv.grandTotal || 0} • ${inv.itemsCount || inv.items?.length || 0} items • ${inv.customerName || "Walk-in Guest"} • ${inv.storeName || "Store"}`,
+      subtitle: subtitleOf(inv.grandTotal != null && `₹${inv.grandTotal}`, `${inv.itemsCount || inv.items?.length || 0} items`, inv.customerName, inv.storeName),
       badge: "Tax Invoice",
       entityId: inv.invoiceNumber,
     });
@@ -930,7 +966,7 @@ export async function omniSearch(rawQuery) {
       id: inv.invoiceId || inv.invoiceNumber,
       type: "invoice",
       title: `ERP Invoice: ${inv.invoiceId || inv.invoiceNumber}`,
-      subtitle: `₹${inv.amount || inv.grandTotal || 0} • Customer: ${inv.customerId || inv.customerName || "Customer"}`,
+      subtitle: subtitleOf((inv.amount ?? inv.grandTotal) != null && `₹${inv.amount ?? inv.grandTotal}`, (inv.customerName || inv.customerId) && `Customer: ${inv.customerName || inv.customerId}`),
       badge: "ERP Invoice",
       entityId: inv.invoiceId || inv.invoiceNumber,
     });
@@ -941,7 +977,7 @@ export async function omniSearch(rawQuery) {
       id: b.batchId,
       type: "batch",
       title: `Lot: ${b.batchId}`,
-      subtitle: `Trip: ${b.collectionBatchId || "—"} • ${b.quantity || 0} ${b.unit || "Kg"} • ${b.status || ""}`,
+      subtitle: subtitleOf(b.collectionBatchId && `Trip: ${b.collectionBatchId}`, b.quantity != null && `${b.quantity} ${b.unit || ""}`.trim(), b.status),
       badge: "Harvest Lot",
       entityId: b.batchId,
     });
@@ -952,7 +988,7 @@ export async function omniSearch(rawQuery) {
       id: o.id,
       type: "order",
       title: `Farmer Order: ${o.orderId || o.id}`,
-      subtitle: `${o.productName || "Produce"} • Farmer: ${o.farmerId} • ${o.status || ""}`,
+      subtitle: subtitleOf(o.productName, o.farmerId && `Farmer: ${o.farmerId}`, o.status),
       badge: "Farmer Order",
       entityId: o.id,
     });
@@ -965,7 +1001,7 @@ export async function omniSearch(rawQuery) {
       id: p.pickupId,
       type: "order",
       title: `Pickup: ${p.pickupId}`,
-      subtitle: `Order: ${p.orderId} • Trip batch: ${p.collectionBatchId || "—"} • ${p.status || ""}`,
+      subtitle: subtitleOf(`Order: ${p.orderId}`, p.collectionBatchId && `Trip batch: ${p.collectionBatchId}`, p.status),
       badge: "Farm Pickup",
       entityId: p.pickupId,
     });
@@ -976,7 +1012,7 @@ export async function omniSearch(rawQuery) {
       id: o.orderNumber || String(o._id),
       type: "order",
       title: `Order #${o.orderNumber || o._id}`,
-      subtitle: `₹${o.total || 0} • ${o.status || ""}`,
+      subtitle: subtitleOf(o.total != null && `₹${o.total}`, o.status),
       badge: "Customer Order",
       entityId: o.orderNumber || String(o._id),
     });
@@ -1112,7 +1148,9 @@ export async function getCompleteTraceability(id, options = {}) {
     module: detected?.module || null,
     current,
     graph,
-    timeline: buildTimeline(graph),
+    timeline: graph.orderTrace
+      ? graph.orderTrace.timeline.map((ev) => ({ ...ev, entity: "order", id: ev.actor || "", status: ev.detail || "" }))
+      : buildTimeline(graph),
     audits,
     rawPayload: graph,
   };
@@ -1151,19 +1189,30 @@ function summarizeCurrent(graph) {
   const farmer = graph.farmer;
   const store = graph.store || graph.storeInventories?.[0];
 
+  const quantity = invoice
+    ? invoice.itemsCount ?? invoice.items?.length ?? null
+    : batch?.currentQty ?? batch?.quantity ?? order?.quantity ?? product?.stock ?? null;
+
   return {
-    status: invoice?.status || batch?.status || order?.status || farmer?.status || "Active",
-    locationType: invoice?.storeName || crate?.currentLocationType || batch?.storeName || (store?.managerId?.storeName || store?.managerId?.name || store?.storeName) || "Central Dark Store",
+    status: invoice?.status || batch?.status || order?.status || farmer?.status || "",
+    locationType:
+      invoice?.storeName ||
+      crate?.currentLocationType ||
+      batch?.storeName ||
+      store?.managerId?.storeName ||
+      store?.managerId?.name ||
+      store?.storeName ||
+      "",
     locationId: invoice?.storeId || crate?.currentLocationId || batch?.storeId || "",
-    quantity: invoice ? (invoice.itemsCount || invoice.items?.length || 0) : (batch?.currentQty ?? batch?.quantity ?? order?.quantity ?? product?.stock ?? 0),
-    unit: invoice ? "items" : (batch?.unit || product?.unit || "units"),
-    grade: quality?.grade || batch?.grade || product?.specs?.find?.((s) => s[0] === "Grade")?.[1] || "Grade A (Premium)",
-    qualityStatus: quality?.status || "Lab Certified Fresh",
+    quantity,
+    unit: quantity == null ? "" : invoice ? "items" : batch?.unit || product?.unit || "",
+    grade: quality?.grade || batch?.grade || product?.specs?.find?.((s) => s[0] === "Grade")?.[1] || "",
+    qualityStatus: quality?.status || "",
     orderId: invoice?.invoiceNumber || order?.orderId || order?.orderNumber || order?.id || "",
     customerId: invoice?.customerPhone || graph.customer?.phone || graph.customer?.customerId || order?.customerId || "",
-    paymentStatus: invoice?.paymentStatus || order?.paymentStatus || graph.payments?.[0]?.paymentStatus || "Completed",
+    paymentStatus: invoice?.paymentStatus || order?.paymentStatus || graph.payments?.[0]?.paymentStatus || "",
     productName: invoice?.items?.[0]?.name ? `${invoice.items[0].name}${invoice.items.length > 1 ? ` (+${invoice.items.length - 1} items)` : ""}` : (product?.name || batch?.productName || ""),
-    farmerName: farmer?.name || batch?.supplierName || "Direct Farm Network",
+    farmerName: farmer?.name || batch?.supplierName || "",
   };
 }
 

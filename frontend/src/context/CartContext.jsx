@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -25,24 +26,53 @@ import {
 } from "../utils/guestCartStorage";
 
 const CartContext = createContext(null);
+
+/** Rapid +/- taps on one line are coalesced into a single request sent after this pause. */
+const QTY_SYNC_DELAY_MS = 350;
+
+const CART_ERROR_MESSAGE = "Could not update cart. Please try again.";
+
+const lineKeyOf = (productId, variantName = "", colorName = "", preOrderSlot = "") =>
+  [productId, variantName || "", colorName || "", preOrderSlot || ""].map(String).join("|");
+
+function resolveMaxQuantity(line, maxQuantity) {
+  if (Number.isFinite(Number(maxQuantity)) && maxQuantity !== null && maxQuantity !== undefined) {
+    return Number(maxQuantity);
+  }
+  if (Number.isFinite(Number(line.maxOrderQuantity)) && Number(line.maxOrderQuantity) > 0) {
+    return Number(line.maxOrderQuantity);
+  }
+  if (Number.isFinite(Number(line.stock)) && Number(line.stock) > 0) {
+    return Number(line.stock);
+  }
+  return null;
+}
+
 export function CartProvider({ children }) {
   const { user, loading: authLoading } = useAuth();
-  const [items, setItems] = useState([]);
+  const [items, setItemsState] = useState([]);
   const [loading, setLoading] = useState(false);
   const [flyAnimation, setFlyAnimation] = useState(null);
   const [cartSidebarOpen, setCartSidebarOpen] = useState(false);
   const itemsRef = useRef([]);
   const queueRef = useRef(Promise.resolve());
   const guestMergedRef = useRef(false);
+  const pendingLinesRef = useRef(new Map());
+  const inflightRef = useRef(0);
+  const needsResyncRef = useRef(false);
 
-  useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
+  // The ref is updated synchronously so taps landing before the next render build on the latest cart.
+  const setItems = useCallback((nextItems) => {
+    itemsRef.current = nextItems;
+    setItemsState(nextItems);
+  }, []);
+
+  const isSyncIdle = () => pendingLinesRef.current.size === 0 && inflightRef.current === 0;
 
   const applyGuestCart = useCallback((nextItems) => {
     setItems(nextItems);
     saveGuestCart(nextItems);
-  }, []);
+  }, [setItems]);
 
   const mergeLocalCatalogLines = useCallback((baseItems, memoryItems = itemsRef.current) => {
     const remote = (baseItems || []).filter((item) => !isLocalProductId(item._id));
@@ -63,8 +93,92 @@ export function CartProvider({ children }) {
     }
 
     const { data } = await getCart();
+    // Local quantity edits are still being sent; the last write response will carry the fresh cart.
+    if (!isSyncIdle()) {
+      needsResyncRef.current = true;
+      return;
+    }
     setItems(mergeLocalCatalogLines(mapCartItems(data.data)));
-  }, [user, mergeLocalCatalogLines]);
+  }, [user, mergeLocalCatalogLines, setItems]);
+
+  // Server writes run one at a time: the backend saves the whole cart document per request.
+  const enqueueWrite = useCallback((execute) => {
+    inflightRef.current += 1;
+    const task = queueRef.current.then(execute, execute);
+    queueRef.current = task.then(
+      () => undefined,
+      () => undefined
+    );
+    return task;
+  }, []);
+
+  /** Only the write that leaves the cart idle may replace local state, so taps never flicker back. */
+  const finishWrite = useCallback(
+    async (response) => {
+      inflightRef.current -= 1;
+      if (!response) needsResyncRef.current = true;
+      if (!isSyncIdle()) return;
+
+      if (response && !needsResyncRef.current) {
+        setItems(mergeLocalCatalogLines(mapCartItems(response.data.data)));
+        return;
+      }
+
+      needsResyncRef.current = false;
+      try {
+        await syncCartFromServer();
+      } catch {
+        // Keep the local cart if the refresh fails; the next write or load will reconcile.
+      }
+    },
+    [mergeLocalCatalogLines, setItems, syncCartFromServer]
+  );
+
+  const runServerWrite = useCallback(
+    (apiCall) =>
+      enqueueWrite(async () => {
+        let response = null;
+        let result;
+        try {
+          response = await apiCall();
+          result = { success: true };
+        } catch (error) {
+          result = {
+            success: false,
+            message: error?.response?.data?.message || CART_ERROR_MESSAGE,
+          };
+        }
+        await finishWrite(response);
+        return result;
+      }),
+    [enqueueWrite, finishWrite]
+  );
+
+  const flushLine = useCallback(
+    (key) => {
+      const entry = pendingLinesRef.current.get(key);
+      if (!entry) return Promise.resolve({ success: true });
+
+      clearTimeout(entry.timer);
+      pendingLinesRef.current.delete(key);
+
+      const { productId, variantName, colorName, preOrderSlot } = entry.args;
+      const task = runServerWrite(() =>
+        entry.quantity < 1
+          ? removeFromCartItem(productId, variantName, colorName, preOrderSlot)
+          : updateCartItemQty(productId, entry.quantity, variantName, colorName, preOrderSlot)
+      );
+      task.then((result) => entry.resolvers.forEach((resolve) => resolve(result)));
+      return task;
+    },
+    [runServerWrite]
+  );
+
+  /** Sends every debounced quantity change now and waits until the server has them all. */
+  const flushCartUpdates = useCallback(async () => {
+    [...pendingLinesRef.current.keys()].forEach((key) => flushLine(key));
+    await queueRef.current;
+  }, [flushLine]);
 
   const loadCart = useCallback(
     async ({ silent = false } = {}) => {
@@ -78,16 +192,17 @@ export function CartProvider({ children }) {
       }
 
       try {
+        await flushCartUpdates();
         await syncCartFromServer();
       } catch {
-        setItems(mergeLocalCatalogLines([]));
+        if (isSyncIdle()) setItems(mergeLocalCatalogLines([]));
       } finally {
         if (!silent) {
           setLoading(false);
         }
       }
     },
-    [user, syncCartFromServer, mergeLocalCatalogLines]
+    [user, flushCartUpdates, syncCartFromServer, mergeLocalCatalogLines, setItems]
   );
 
   const mergeGuestCartToServer = useCallback(async () => {
@@ -136,7 +251,21 @@ export function CartProvider({ children }) {
     };
 
     bootstrap();
-  }, [user, authLoading, loadCart, mergeGuestCartToServer]);
+  }, [user, authLoading, loadCart, mergeGuestCartToServer, setItems]);
+
+  // Changes queued for a signed-in cart must not be sent after that user signs out.
+  const userId = user?._id || user?.id || null;
+  useEffect(() => {
+    const pending = pendingLinesRef.current;
+    return () => {
+      pending.forEach((entry) => {
+        clearTimeout(entry.timer);
+        entry.resolvers.forEach((resolve) => resolve({ success: false }));
+      });
+      pending.clear();
+      needsResyncRef.current = false;
+    };
+  }, [userId]);
 
   const playFlyToCart = useCallback(
     (product, flySource) => {
@@ -154,43 +283,51 @@ export function CartProvider({ children }) {
     setFlyAnimation(null);
   }, []);
 
-  const runCartMutation = useCallback((buildMutation) => {
-    const execute = async () => {
-      const snapshot = itemsRef.current;
-      const mutation = buildMutation(snapshot);
-      if (!mutation) {
-        return { success: false };
-      }
-
-      const { optimisticItems, apiCall } = mutation;
+  /** Applies a quantity change instantly and sends only the final quantity once tapping pauses. */
+  const scheduleLineSync = useCallback(
+    (args, nextQty, optimisticItems) => {
       setItems(optimisticItems);
 
-      try {
-        const response = await apiCall();
-        setItems(mergeLocalCatalogLines(mapCartItems(response.data.data), optimisticItems));
-        return { success: true };
-      } catch (error) {
-        setItems(snapshot);
-        try {
-          await syncCartFromServer();
-        } catch {
-          // Keep rolled-back snapshot if refresh fails.
-        }
+      const lineArgs = {
+        productId: args.productId,
+        variantName: args.variantName || "",
+        colorName: args.colorName || "",
+        preOrderSlot: args.preOrderSlot || "",
+      };
+      const key = lineKeyOf(
+        lineArgs.productId,
+        lineArgs.variantName,
+        lineArgs.colorName,
+        lineArgs.preOrderSlot
+      );
+      const pending = pendingLinesRef.current;
+      const entry = pending.get(key) || { resolvers: [] };
+      clearTimeout(entry.timer);
+      entry.args = lineArgs;
+      entry.quantity = nextQty;
+      entry.timer = setTimeout(() => flushLine(key), QTY_SYNC_DELAY_MS);
+      pending.set(key, entry);
 
-        return {
-          success: false,
-          message: error?.response?.data?.message || "Could not update cart. Please try again.",
-        };
+      return new Promise((resolve) => entry.resolvers.push(resolve));
+    },
+    [setItems, flushLine]
+  );
+
+  const hasPendingLine = (productId, variantName, colorName, preOrderSlot) =>
+    pendingLinesRef.current.has(lineKeyOf(productId, variantName, colorName, preOrderSlot));
+
+  const runCartMutation = useCallback(
+    (buildMutation) => {
+      const mutation = buildMutation(itemsRef.current);
+      if (!mutation) {
+        return Promise.resolve({ success: false });
       }
-    };
 
-    const task = queueRef.current.then(execute, execute);
-    queueRef.current = task.then(
-      () => undefined,
-      () => undefined
-    );
-    return task;
-  }, [syncCartFromServer, mergeLocalCatalogLines]);
+      setItems(mutation.optimisticItems);
+      return runServerWrite(mutation.apiCall);
+    },
+    [setItems, runServerWrite]
+  );
 
   const persistLocalCart = useCallback(
     (nextItems) => {
@@ -201,7 +338,32 @@ export function CartProvider({ children }) {
       }
       saveGuestCart(nextItems.filter((item) => isLocalProductId(item._id)));
     },
-    [user, applyGuestCart]
+    [user, applyGuestCart, setItems]
+  );
+
+  const isLocalLine = useCallback(
+    (productId) => !user || isLocalProductId(productId),
+    [user]
+  );
+
+  /** Sets a line to `nextQty` (removing it below 1) locally or via a debounced server sync. */
+  const changeLineQuantity = useCallback(
+    (args, nextQty) => {
+      const { productId, variantName = "", colorName = "", preOrderSlot = "" } = args;
+      const current = itemsRef.current;
+      const nextItems =
+        nextQty < 1
+          ? removeLine(current, productId, variantName, colorName, preOrderSlot)
+          : setLineQuantity(current, productId, variantName, colorName, nextQty, preOrderSlot);
+
+      if (isLocalLine(productId)) {
+        persistLocalCart(nextItems);
+        return Promise.resolve({ success: true });
+      }
+
+      return scheduleLineSync(args, nextQty, nextItems);
+    },
+    [isLocalLine, persistLocalCart, scheduleLineSync]
   );
 
   const addToCart = useCallback(
@@ -209,21 +371,6 @@ export function CartProvider({ children }) {
       const qty = Number(quantity);
       if (!Number.isFinite(qty) || qty < 1) {
         return { success: false };
-      }
-
-      if (isLocalProductId(product?._id) || !user) {
-        const variantName = options.variantName || "";
-        const colorName = options.colorName || "";
-        const preOrderSlot = options.preOrderSlot || "";
-
-        if (options.flySource) {
-          playFlyToCart(product, options.flySource);
-        }
-
-        persistLocalCart(
-          addOrMergeLine(itemsRef.current, product, qty, variantName, colorName, preOrderSlot)
-        );
-        return { success: true };
       }
 
       const variantName = options.variantName || "";
@@ -234,8 +381,32 @@ export function CartProvider({ children }) {
         playFlyToCart(product, options.flySource);
       }
 
-      return runCartMutation((current) => ({
-        optimisticItems: addOrMergeLine(current, product, qty, variantName, colorName, preOrderSlot),
+      const optimisticItems = addOrMergeLine(
+        itemsRef.current,
+        product,
+        qty,
+        variantName,
+        colorName,
+        preOrderSlot
+      );
+
+      if (isLocalLine(product?._id)) {
+        persistLocalCart(optimisticItems);
+        return { success: true };
+      }
+
+      // The server still has this line (its update is queued), so set the merged quantity instead.
+      if (hasPendingLine(product._id, variantName, colorName, preOrderSlot)) {
+        const line = findCartLine(optimisticItems, product._id, variantName, colorName, preOrderSlot);
+        return scheduleLineSync(
+          { productId: product._id, variantName, colorName, preOrderSlot },
+          line?.quantity || qty,
+          optimisticItems
+        );
+      }
+
+      return runCartMutation(() => ({
+        optimisticItems,
         apiCall: () =>
           addToCartItem({
             productId: product._id,
@@ -246,16 +417,22 @@ export function CartProvider({ children }) {
           }),
       }));
     },
-    [user, playFlyToCart, runCartMutation, persistLocalCart]
+    [isLocalLine, playFlyToCart, runCartMutation, persistLocalCart, scheduleLineSync]
   );
 
   const removeFromCart = useCallback(
     (productId, variantName = "", colorName = "", preOrderSlot = "") => {
-      if (!user || isLocalProductId(productId)) {
+      if (isLocalLine(productId)) {
         persistLocalCart(
           removeLine(itemsRef.current, productId, variantName, colorName, preOrderSlot)
         );
         return Promise.resolve({ success: true });
+      }
+
+      if (hasPendingLine(productId, variantName, colorName, preOrderSlot)) {
+        const task = changeLineQuantity({ productId, variantName, colorName, preOrderSlot }, 0);
+        flushLine(lineKeyOf(productId, variantName, colorName, preOrderSlot));
+        return task;
       }
 
       return runCartMutation((current) => {
@@ -268,7 +445,7 @@ export function CartProvider({ children }) {
         };
       });
     },
-    [user, runCartMutation, applyGuestCart, persistLocalCart]
+    [isLocalLine, runCartMutation, persistLocalCart, changeLineQuantity, flushLine]
   );
 
   const updateQuantity = useCallback(
@@ -276,146 +453,50 @@ export function CartProvider({ children }) {
       const qty = Number(quantity);
       if (!Number.isFinite(qty)) return Promise.resolve({ success: false });
 
-      if (!user || isLocalProductId(productId)) {
-        if (qty < 1) {
-          persistLocalCart(
-            removeLine(itemsRef.current, productId, variantName, colorName, preOrderSlot)
-          );
-        } else {
-          persistLocalCart(
-            setLineQuantity(itemsRef.current, productId, variantName, colorName, qty, preOrderSlot)
-          );
-        }
-        return Promise.resolve({ success: true });
-      }
+      const line = findCartLine(itemsRef.current, productId, variantName, colorName, preOrderSlot);
+      if (!line) return Promise.resolve({ success: false });
+      if (qty === line.quantity) return Promise.resolve({ success: true });
 
-      return runCartMutation((current) => {
-        const line = findCartLine(current, productId, variantName, colorName, preOrderSlot);
-        if (!line) return null;
-
-        if (qty < 1) {
-          return {
-            optimisticItems: removeLine(current, productId, variantName, colorName, preOrderSlot),
-            apiCall: () => removeFromCartItem(productId, variantName, colorName, preOrderSlot),
-          };
-        }
-
-        return {
-          optimisticItems: setLineQuantity(current, productId, variantName, colorName, qty, preOrderSlot),
-          apiCall: () => updateCartItemQty(productId, qty, variantName, colorName, preOrderSlot),
-        };
-      });
+      return changeLineQuantity({ productId, variantName, colorName, preOrderSlot }, qty);
     },
-    [user, runCartMutation, applyGuestCart, persistLocalCart]
+    [changeLineQuantity]
   );
 
   const incrementCartItem = useCallback(
     ({ productId, variantName = "", colorName = "", preOrderSlot = "", step = 1, maxQuantity }) => {
-      const safeStep = Number(step) || 1;
+      const safeStep = Number(step) > 0 ? Number(step) : 1;
+      const line = findCartLine(itemsRef.current, productId, variantName, colorName, preOrderSlot);
+      if (!line) return Promise.resolve({ success: false });
 
-      if (!user || isLocalProductId(productId)) {
-        const line = findCartLine(itemsRef.current, productId, variantName, colorName, preOrderSlot);
-        if (!line) return Promise.resolve({ success: false });
-
-        const effectiveMax = Number.isFinite(Number(maxQuantity))
-          ? Number(maxQuantity)
-          : Number.isFinite(Number(line.maxOrderQuantity)) && Number(line.maxOrderQuantity) > 0
-          ? Number(line.maxOrderQuantity)
-          : Number.isFinite(Number(line.stock)) && Number(line.stock) > 0
-          ? Number(line.stock)
-          : null;
-
-        let nextQty = line.quantity + safeStep;
-        if (effectiveMax != null) {
-          nextQty = Math.min(effectiveMax, nextQty);
-        }
-        if (nextQty === line.quantity) return Promise.resolve({ success: true });
-
-        persistLocalCart(
-          setLineQuantity(itemsRef.current, productId, variantName, colorName, nextQty, preOrderSlot)
-        );
-        return Promise.resolve({ success: true });
+      const effectiveMax = resolveMaxQuantity(line, maxQuantity);
+      let nextQty = line.quantity + safeStep;
+      if (effectiveMax != null) {
+        nextQty = Math.min(effectiveMax, nextQty);
       }
+      if (nextQty <= line.quantity) return Promise.resolve({ success: true });
 
-      return runCartMutation((current) => {
-        const line = findCartLine(current, productId, variantName, colorName, preOrderSlot);
-        if (!line) return null;
-
-        const effectiveMax = Number.isFinite(Number(maxQuantity))
-          ? Number(maxQuantity)
-          : Number.isFinite(Number(line.maxOrderQuantity)) && Number(line.maxOrderQuantity) > 0
-          ? Number(line.maxOrderQuantity)
-          : Number.isFinite(Number(line.stock)) && Number(line.stock) > 0
-          ? Number(line.stock)
-          : null;
-
-        let nextQty = line.quantity + safeStep;
-        if (effectiveMax != null) {
-          nextQty = Math.min(effectiveMax, nextQty);
-        }
-        if (nextQty === line.quantity) return null;
-
-        return {
-          optimisticItems: setLineQuantity(current, productId, variantName, colorName, nextQty, preOrderSlot),
-          apiCall: () => updateCartItemQty(productId, nextQty, variantName, colorName, preOrderSlot),
-        };
-      });
+      return changeLineQuantity({ productId, variantName, colorName, preOrderSlot }, nextQty);
     },
-    [user, runCartMutation, applyGuestCart, persistLocalCart]
+    [changeLineQuantity]
   );
 
   const decrementCartItem = useCallback(
     ({ productId, variantName = "", colorName = "", preOrderSlot = "", resolveNextQuantity }) => {
-      if (!user || isLocalProductId(productId)) {
-        const line = findCartLine(itemsRef.current, productId, variantName, colorName, preOrderSlot);
-        if (!line) return Promise.resolve({ success: false });
+      const line = findCartLine(itemsRef.current, productId, variantName, colorName, preOrderSlot);
+      if (!line) return Promise.resolve({ success: false });
 
-        const nextQty =
-          typeof resolveNextQuantity === "function"
-            ? Number(resolveNextQuantity(line.quantity))
-            : line.quantity - 1;
+      const nextQty =
+        typeof resolveNextQuantity === "function"
+          ? Number(resolveNextQuantity(line.quantity))
+          : line.quantity - 1;
 
-        if (!Number.isFinite(nextQty) || nextQty === line.quantity) {
-          return Promise.resolve({ success: true });
-        }
-
-        if (nextQty < 1) {
-          persistLocalCart(
-            removeLine(itemsRef.current, productId, variantName, colorName, preOrderSlot)
-          );
-        } else {
-          persistLocalCart(
-            setLineQuantity(itemsRef.current, productId, variantName, colorName, nextQty, preOrderSlot)
-          );
-        }
+      if (!Number.isFinite(nextQty) || nextQty === line.quantity) {
         return Promise.resolve({ success: true });
       }
 
-      return runCartMutation((current) => {
-        const line = findCartLine(current, productId, variantName, colorName, preOrderSlot);
-        if (!line) return null;
-
-        const nextQty =
-          typeof resolveNextQuantity === "function"
-            ? Number(resolveNextQuantity(line.quantity))
-            : line.quantity - 1;
-
-        if (!Number.isFinite(nextQty) || nextQty === line.quantity) return null;
-
-        if (nextQty < 1) {
-          return {
-            optimisticItems: removeLine(current, productId, variantName, colorName, preOrderSlot),
-            apiCall: () => removeFromCartItem(productId, variantName, colorName, preOrderSlot),
-          };
-        }
-
-        return {
-          optimisticItems: setLineQuantity(current, productId, variantName, colorName, nextQty, preOrderSlot),
-          apiCall: () => updateCartItemQty(productId, nextQty, variantName, colorName, preOrderSlot),
-        };
-      });
+      return changeLineQuantity({ productId, variantName, colorName, preOrderSlot }, nextQty);
     },
-    [user, runCartMutation, applyGuestCart, persistLocalCart]
+    [changeLineQuantity]
   );
 
   const resetCart = useCallback(() => {
@@ -423,32 +504,55 @@ export function CartProvider({ children }) {
     if (!user) {
       clearGuestCart();
     }
-  }, [user]);
+  }, [user, setItems]);
 
-  const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = useMemo(
+    () => items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
+    [items]
+  );
 
   const openCartSidebar = useCallback(() => setCartSidebarOpen(true), []);
   const closeCartSidebar = useCallback(() => setCartSidebarOpen(false), []);
 
+  const value = useMemo(
+    () => ({
+      items,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      incrementCartItem,
+      decrementCartItem,
+      flushCartUpdates,
+      playFlyToCart,
+      cartCount,
+      loadCart,
+      resetCart,
+      loading,
+      cartSidebarOpen,
+      openCartSidebar,
+      closeCartSidebar,
+    }),
+    [
+      items,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      incrementCartItem,
+      decrementCartItem,
+      flushCartUpdates,
+      playFlyToCart,
+      cartCount,
+      loadCart,
+      resetCart,
+      loading,
+      cartSidebarOpen,
+      openCartSidebar,
+      closeCartSidebar,
+    ]
+  );
+
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        incrementCartItem,
-        decrementCartItem,
-        playFlyToCart,
-        cartCount,
-        loadCart,
-        resetCart,
-        loading,
-        cartSidebarOpen,
-        openCartSidebar,
-        closeCartSidebar,
-      }}
-    >
+    <CartContext.Provider value={value}>
       {children}
       <FlyToCartOverlay animation={flyAnimation} onComplete={clearFlyAnimation} />
     </CartContext.Provider>

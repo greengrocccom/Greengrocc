@@ -1,31 +1,48 @@
-export const LOGO_URL =
-  "https://res.cloudinary.com/dsafvwkrf/image/upload/v1780561447/GreenGrocc_logo_2-removebg-preview_wcso0k.png";
+const LOGO_PATH = "/assets/payment/logo.png";
 
-/** Compact logo for tax invoice header (matches PDF-style small branding) */
-export const INVOICE_LOGO_URL =
-  "https://res.cloudinary.com/dsafvwkrf/image/upload/w_220,h_56,c_limit,q_auto,f_auto/v1780561447/GreenGrocc_logo_2-removebg-preview_wcso0k.png";
+/**
+ * Same wordmark the site header serves from `frontend/public`. Absolute so @react-pdf can fetch it;
+ * must stay PNG/JPG because @react-pdf cannot render WebP/AVIF.
+ */
+export const LOGO_URL =
+  typeof window !== "undefined" && window.location?.origin
+    ? `${window.location.origin}${LOGO_PATH}`
+    : LOGO_PATH;
+
+export const INVOICE_LOGO_URL = LOGO_URL;
 
 export const INVOICE_CONFIG = {
   companyName: "GreenGrocc",
   legalEntity: "GreenGrocc",
-  tagline: "Your Trusted Mobile Accessories Wholesale Partner",
-  email: "greengrocc@gmail.com",
-  supportEmail: "greengrocc@gmail.com",
-  phone: "+91 74002 22233",
-  address: "Mumbai Central",
-  gstNumber: "",
+  email: "greengrocc14@gmail.com",
+  supportEmail: "greengrocc14@gmail.com",
+  phone: "+91 72490 38005",
+  address: "Mumbai Central, Mumbai, Maharashtra",
   stateCode: "27",
   stateName: "Maharashtra",
   defaultHsn: "85171200",
   defaultGstRate: 18,
   bank: {
-    name: "HDFC Bank",
-    ifsc: "HDFC0000000",
+    name: "",
+    ifsc: "",
     accountName: "GreenGrocc",
     accountNumber: "",
     upiId: "",
   },
 };
+
+/** Bank/UPI rows that actually have values; placeholder rows are never printed. */
+export function getInvoicePaymentRows(config) {
+  const bank = config?.bank || {};
+  const rows = [
+    ["Bank", bank.name],
+    ["IFSC Code", bank.ifsc],
+    ["Account No", bank.accountNumber],
+    ["UPI ID", bank.upiId],
+  ].filter(([, value]) => String(value || "").trim());
+  if (!rows.length) return [];
+  return [["Account Name", bank.accountName || config.companyName], ...rows];
+}
 
 export const INDIAN_STATE_CODES = {
   "andaman and nicobar islands": "35",

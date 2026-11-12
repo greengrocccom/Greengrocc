@@ -5,6 +5,7 @@ class AppConstants {
 
   static const String authStorageKey = 'greengrocc_auth';
   static const String logoAsset = 'assets/images/app_icon_launcher.png';
+  static const String wordmarkLogoAsset = 'assets/images/web_logo.png';
   static const String logoUrl =
       'https://www.greengrocc.in/greengrocc-logo.png';
 

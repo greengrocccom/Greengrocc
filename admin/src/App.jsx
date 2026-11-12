@@ -213,7 +213,8 @@ export default function App() {
 
               {/* Promotions with Zone -> Store Scope */}
               {scoped('coupons', 'Promotions', 'Coupons & Offers', Coupons)}
-              {scoped('rewards', 'Promotions', 'Reward Points', RewardPoints)}
+              <Route path="rewards" element={<RewardPoints />} />
+              <Route path="rewards/*" element={<Navigate to="/rewards" replace />} />
               {scoped('gift-cards', 'Promotions', 'Gift Cards', GiftCards)}
               {scoped('dynamic-pricing', 'Promotions', 'Dynamic Pricing', DynamicPricing)}
 

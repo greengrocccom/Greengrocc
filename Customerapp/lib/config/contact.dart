@@ -16,11 +16,11 @@ class SocialLink {
 }
 
 abstract final class ContactConfig {
-  static const contactEmail = 'greengrocc@gmail.com';
+  static const contactEmail = 'greengrocc14@gmail.com';
 
-  static const contactPhoneRaw = '7400222233';
-  static const contactPhoneDisplay = '+91 74002 22233';
-  static const contactPhoneTel = 'tel:+917400222233';
+  static const contactPhoneRaw = '7249038005';
+  static const contactPhoneDisplay = '+91 72490 38005';
+  static const contactPhoneTel = 'tel:+917249038005';
 
   static const contactLocation = 'Mumbai';
 
