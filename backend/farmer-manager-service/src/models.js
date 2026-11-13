@@ -1569,6 +1569,7 @@ const globalSupportSchema = new mongoose.Schema(
     whatsappMessage: { type: String, default: "Hi, I need support with my GreenGrocc order." },
     email: { type: String, default: "greengrocc@gmail.com" },
     hours: { type: String, default: "Mon – Sat · 10 AM – 10 PM" },
+    address: { type: String, default: "Mumbai Central, Mumbai, Maharashtra" },
   },
   { timestamps: true }
 );

@@ -6,7 +6,7 @@ export const CONTACT_PHONE_RAW = "7249038005";
 export const CONTACT_PHONE_DISPLAY = "+91 72490 38005";
 export const CONTACT_PHONE_TEL = "tel:+917249038005";
 export const CONTACT_WHATSAPP_URL =
-  "https://wa.me/917400222233?text=Hi%2C%20I%20am%20interested%20in%20bulk%20mobile%20accessories%20from%20Bulk%20Mobile%20Mart.";
+  "https://wa.me/917400222233?text=Hi%20GreenGrocc%2C%20I%20need%20some%20help.";
 
 export const CONTACT_LOCATION = "Mumbai";
 

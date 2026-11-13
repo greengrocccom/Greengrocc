@@ -238,6 +238,7 @@ export const getSupportContact = async (req, res) => {
       whatsappMessage: "Hi, I need support with my GreenGrocc order.",
       email: "greengrocc@gmail.com",
       hours: "Mon – Sat · 10 AM – 10 PM",
+      address: "Mumbai Central, Mumbai, Maharashtra",
     };
 
     const global = { ...fallbackGlobal, ...(globalConfig || {}) };
@@ -277,6 +278,7 @@ export const getSupportContact = async (req, res) => {
             whatsappHref: `https://wa.me/${rawWhatsapp}?text=${encodeURIComponent(whatsappMessage)}`,
             email,
             hours,
+            address: global.address,
           });
         }
       } catch (err) {
@@ -302,6 +304,7 @@ export const getSupportContact = async (req, res) => {
       whatsappHref: `https://wa.me/${rawWhatsapp}?text=${encodeURIComponent(global.whatsappMessage)}`,
       email: global.email,
       hours: global.hours,
+      address: global.address,
     });
   } catch (error) {
     res.status(500).json({

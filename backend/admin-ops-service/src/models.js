@@ -600,7 +600,7 @@ const rolePolicySchema = new mongoose.Schema(
       default: "",
       trim: true,
       index: true,
-      enum: ["", "privacy", "terms", "refund", "shipping", "general"],
+      enum: ["", "privacy", "terms", "refund", "shipping", "general", "about"],
     },
     roleKey: {
       type: String,

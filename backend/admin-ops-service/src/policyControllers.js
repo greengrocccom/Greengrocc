@@ -6,6 +6,7 @@ import {
   PRIVACY_BODY,
   REFUND_BODY,
   SHIPPING_BODY,
+  ABOUT_BODY,
   LEGACY_CUSTOMER_BODIES,
 } from "./customerPolicyContent.js";
 
@@ -49,7 +50,7 @@ function serializePolicy(doc) {
   };
 }
 
-const CUSTOMER_PAGE_KEYS = ["privacy", "terms", "refund", "shipping", "general"];
+const CUSTOMER_PAGE_KEYS = ["privacy", "terms", "refund", "shipping", "general", "about"];
 
 function normalizePageKey(raw) {
   const value = String(raw || "").trim().toLowerCase();
@@ -174,6 +175,20 @@ export async function seedDefaultRolePoliciesIfEmpty() {
         continue;
       }
       await RolePolicy.create(def);
+      created += 1;
+    }
+
+    const aboutExists = await RolePolicy.exists({ roleKey: "customer", pageKey: "about" });
+    if (!aboutExists) {
+      await RolePolicy.create({
+        title: "About GreenGrocc",
+        pageKey: "about",
+        body: ABOUT_BODY,
+        roleKey: "customer",
+        status: "draft",
+        sortOrder: 10,
+        createdBy: "system",
+      });
       created += 1;
     }
 

@@ -239,6 +239,37 @@ If an item is missing, damaged or not fresh, raise a request from My Orders with
 - Phone / WhatsApp: +91 74002 22233
 - Address: GreenGrocc, Mumbai Central, Mumbai, Maharashtra`;
 
+/** Starter text for the About Us page. Seeded as a draft so the designed About page shows until an admin publishes it. */
+export const ABOUT_BODY = `GreenGrocc is a Mumbai-based online grocery platform that brings fresh fruits, vegetables, dairy, bakery, staples and daily essentials from local farms straight to your doorstep.
+
+We started GreenGrocc with a simple idea: the food on your table should be fresh, honestly priced, and the farmers who grow it should get a fair deal. By working directly with farmers across Maharashtra and delivering from neighbourhood dark stores, we cut out the long supply chain between the farm and your kitchen.
+
+## Our Mission
+Make fresh, healthy groceries easy to get for every home in Mumbai — while building a fair and reliable market for the farmers who grow our food.
+
+## From Farm to Your Kitchen
+1. Sourced from farmers — we buy fruits and vegetables directly from partner farmers and collection centres across Maharashtra.
+2. Stocked in local dark stores — produce and daily essentials are quality-checked and kept in GreenGrocc dark stores close to your neighbourhood.
+3. Delivered to your door — orders are packed at the store nearest to you and every delivery is verified with an OTP.
+
+## Ways to Shop
+- Instant Orders: fresh produce, dairy, bakery and staples delivered quickly from your nearest dark store.
+- Pre-Orders: pick a date and delivery slot in advance; produce is sourced fresh for your slot.
+- Ready2Cook: cleaned, cut and ready-to-cook ingredients for busy days.
+
+## Why GreenGrocc?
+- Farm-fresh fruits & vegetables
+- Direct support for local farmers
+- Quality checks before every dispatch
+- Easy returns for damaged or spoiled items
+- UPI, cards, net banking & Cash on Delivery
+- OTP-verified doorstep delivery
+
+## Who We Serve
+- Households: everyday groceries for families who want fresher food without a trip to the market.
+- Businesses: bulk accounts for restaurants, caterers, offices and retailers.
+- Farmers: a steady, transparent market for growers who partner with us.`;
+
 /** Earlier seeded bodies — rows still holding these unedited texts are upgraded on startup. */
 export const LEGACY_CUSTOMER_BODIES = [
   `Terms & Conditions for GreenGrocc customers

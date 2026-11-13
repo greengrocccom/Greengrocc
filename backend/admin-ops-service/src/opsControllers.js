@@ -16,6 +16,7 @@ import {
   FarmerDocument,
   FarmerManager,
   FarmerProduct,
+  GlobalSupportConfig,
   PickupDriver,
   Vendor,
   VendorDocument,
@@ -3076,6 +3077,7 @@ export async function getAllVendorsSupportAdmin(req, res, next) {
       whatsappMessage: "Hi, I need support with my GreenGrocc order.",
       email: "greengrocc@gmail.com",
       hours: "Mon – Sat · 10 AM – 10 PM",
+      address: "Mumbai Central, Mumbai, Maharashtra",
     };
 
     const global = { ...fallbackGlobal, ...(globalConfig || {}) };
@@ -3141,7 +3143,7 @@ export async function updateVendorSupportAdmin(req, res, next) {
 
 export async function updateGlobalSupportAdmin(req, res, next) {
   try {
-    const { phone, whatsapp, whatsappMessage, email, hours } = req.body || {};
+    const { phone, whatsapp, whatsappMessage, email, hours, address } = req.body || {};
 
     const rawPhone = (phone || "").replace(/[^\d+]/g, "");
     let rawWhatsapp = (whatsapp || "").replace(/\D/g, "");
@@ -3158,6 +3160,7 @@ export async function updateGlobalSupportAdmin(req, res, next) {
           whatsappMessage: whatsappMessage ? whatsappMessage.trim() : "Hi, I need support with my GreenGrocc order.",
           email: email ? email.trim() : "greengrocc@gmail.com",
           hours: hours ? hours.trim() : "Mon – Sat · 10 AM – 10 PM",
+          address: address ? address.trim() : "Mumbai Central, Mumbai, Maharashtra",
         },
       },
       { upsert: true, returnDocument: 'after' }

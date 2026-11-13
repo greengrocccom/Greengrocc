@@ -923,7 +923,7 @@ export const NAV_GROUPS = [
         href: '/settings',
         icon: Settings,
         implemented: true,
-        description: 'Admin account security, password change with Common OTP, and system preferences.',
+        description: 'Admin account security, password change, and website Contact Us / About Us content.',
       },
     ],
   },

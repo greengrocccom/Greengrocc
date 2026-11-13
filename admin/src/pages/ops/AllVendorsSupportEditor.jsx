@@ -54,6 +54,7 @@ export default function AllVendorsSupportEditor() {
     whatsappMessage: 'Hi, I need support with my GreenGrocc order.',
     email: 'greengrocc@gmail.com',
     hours: 'Mon – Sat · 10 AM – 10 PM',
+    address: 'Mumbai Central, Mumbai, Maharashtra',
   });
   const [savingDefault, setSavingDefault] = useState(false);
 
@@ -714,6 +715,21 @@ export default function AllVendorsSupportEditor() {
                     onChange={(e) => setDefaultForm((p) => ({ ...p, hours: e.target.value }))}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Office Address
+                </label>
+                <input
+                  type="text"
+                  className={`${INPUT} text-xs`}
+                  value={defaultForm.address || ''}
+                  onChange={(e) => setDefaultForm((p) => ({ ...p, address: e.target.value }))}
+                />
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Phone, WhatsApp, email, hours and address are shown on the website Contact Us page and footer.
+                </p>
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">

@@ -593,7 +593,10 @@ export default function CeoDashboard() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Recent Order Velocity</p>
+<<<<<<< Updated upstream
                 <p className="text-xs text-slate-400">Daily order and delivery counts</p>
+=======
+>>>>>>> Stashed changes
                 <p className="text-xs text-slate-400">Order count and revenue growth day-by-day</p>
               </div>
               <div className="flex gap-2 text-xs">

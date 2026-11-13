@@ -1,12 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { LOGO_URL } from "./Header";
-import {
-  CONTACT_EMAIL,
-  CONTACT_ADDRESS,
-  CONTACT_PHONE_DISPLAY,
-  CONTACT_PHONE_TEL,
-} from "../../config/contact";
+import useSupportContact from "../../hooks/useSupportContact";
 import MaharashtraPrideBanner from "../home/MaharashtraPrideBanner";
 import OptimizedImg from "../common/OptimizedImg";
 import { PLAY_STORE_APP_URL } from "../../utils/appDownload";
@@ -16,6 +11,7 @@ const PLAY_STORE_URL = PLAY_STORE_APP_URL;
 export default function Footer() {
   const [menuOpen, setMenuOpen] = React.useState(true);
   const [contactsOpen, setContactsOpen] = React.useState(true);
+  const contact = useSupportContact();
 
   return (
     <>
@@ -120,21 +116,21 @@ export default function Footer() {
                         GreenGrocc Corporate Office
                       </p>
                       <p className="text-white/85 text-[11.5px] sm:text-xs leading-relaxed">
-                        {CONTACT_ADDRESS}
+                        {contact.address}
                       </p>
 
                       <div className="pt-1.5 space-y-0.5">
                         <a
-                          href={CONTACT_PHONE_TEL}
+                          href={contact.phoneTel}
                           className="block text-white hover:text-emerald-200 transition-colors font-medium"
                         >
-                          {CONTACT_PHONE_DISPLAY}
+                          {contact.phone}
                         </a>
                         <a
-                          href={`mailto:${CONTACT_EMAIL}`}
+                          href={`mailto:${contact.email}`}
                           className="block text-white/90 hover:text-white transition-colors text-[11.5px] sm:text-xs truncate"
                         >
-                          {CONTACT_EMAIL}
+                          {contact.email}
                         </a>
                       </div>
                     </div>
@@ -414,7 +410,7 @@ export default function Footer() {
                           GreenGrocc Corporate Office
                         </p>
                         <p className="text-white/80 text-[12px] leading-tight mt-0.5">
-                          {CONTACT_ADDRESS || "Mumbai Central"}
+                          {contact.address}
                         </p>
                       </div>
                     </div>
@@ -431,10 +427,10 @@ export default function Footer() {
                         </svg>
                       </div>
                       <a
-                        href={CONTACT_PHONE_TEL}
+                        href={contact.phoneTel}
                         className="font-medium text-white text-[14px] hover:text-emerald-200 transition-colors"
                       >
-                        {CONTACT_PHONE_DISPLAY}
+                        {contact.phone}
                       </a>
                     </div>
 
@@ -450,10 +446,10 @@ export default function Footer() {
                         </svg>
                       </div>
                       <a
-                        href={`mailto:${CONTACT_EMAIL}`}
+                        href={`mailto:${contact.email}`}
                         className="font-medium text-white text-[14px] hover:text-emerald-200 transition-colors truncate"
                       >
-                        {CONTACT_EMAIL}
+                        {contact.email}
                       </a>
                     </div>
                   </div>

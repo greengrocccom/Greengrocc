@@ -387,6 +387,9 @@ class _PoliciesScreenState extends ConsumerState<PoliciesScreen> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(livePoliciesProvider);
+    final policies = (async.value ?? const <Map<String, dynamic>>[])
+        .where((row) => row['pageKey'] != 'about')
+        .toList();
     const slate = Color(0xFF64748B);
 
     return StorefrontPage(
@@ -426,7 +429,7 @@ class _PoliciesScreenState extends ConsumerState<PoliciesScreen> {
           const SizedBox(height: 24),
           if (async.isLoading)
             Text('Loading policies…', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: slate))
-          else if ((async.value ?? const []).isEmpty)
+          else if (policies.isEmpty)
             Container(
               padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
@@ -441,7 +444,7 @@ class _PoliciesScreenState extends ConsumerState<PoliciesScreen> {
               ),
             )
           else
-            for (final row in async.value!) ...[
+            for (final row in policies) ...[
               _policyTile(row),
               const SizedBox(height: 12),
             ],

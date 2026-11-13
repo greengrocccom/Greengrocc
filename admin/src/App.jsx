@@ -103,6 +103,7 @@ import AllSchemeApplicationsPage from './pages/government/AllSchemeApplicationsP
 import OmnichannelBillingPage from './pages/billing/OmnichannelBillingPage';
 import InventoryToolsPage from './pages/inventory/InventoryToolsPage';
 import AdminNotificationsPage from './pages/notifications/AdminNotificationsPage';
+import Settings from './pages/Settings';
 
 function scoped(path, kicker, title, Component, extraProps = {}) {
   const normPath = path.replace(/^\//, '');
@@ -314,6 +315,7 @@ export default function App() {
               <Route path="government/schemes/create" element={<CreateGovtSchemePage />} />
               <Route path="government/schemes/:id/edit" element={<CreateGovtSchemePage />} />
               <Route path="government/applications" element={<AllSchemeApplicationsPage />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

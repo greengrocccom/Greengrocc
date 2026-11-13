@@ -15,7 +15,7 @@ export default function RolePolicies() {
         params: { role: "customer" },
       });
       const list = res.data?.data;
-      setRows(Array.isArray(list) ? list : []);
+      setRows(Array.isArray(list) ? list.filter((row) => row.pageKey !== "about") : []);
       setError("");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load policies");

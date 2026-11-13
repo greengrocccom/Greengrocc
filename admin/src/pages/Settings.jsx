@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Eye,
   EyeOff,
@@ -13,8 +14,18 @@ import {
 import apiClient from '../api/client';
 import { BTN, BTN_PRIMARY, INPUT, PAGE_KICKER, PAGE_SUB, PAGE_TITLE, PANEL } from '../utils/ui';
 import { getAdminTheme, setAdminTheme } from '../utils/adminTheme';
+import WebsiteContactSettings from './settings/WebsiteContactSettings';
+import WebsiteAboutSettings from './settings/WebsiteAboutSettings';
+
+const TABS = [
+  { id: 'general', label: 'General' },
+  { id: 'contact', label: 'Contact Us page' },
+  { id: 'about', label: 'About Us page' },
+];
 
 export default function Settings() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = TABS.some((t) => t.id === searchParams.get('tab')) ? searchParams.get('tab') : 'general';
   const [theme, setTheme] = useState(getAdminTheme);
   // OTP flow state
   const [otp, setOtp] = useState('');
@@ -191,13 +202,37 @@ export default function Settings() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 pb-12">
+    <div className={`mx-auto space-y-6 pb-12 ${activeTab === 'general' ? 'max-w-2xl' : 'max-w-3xl'}`}>
       {/* Header */}
       <div>
         <p className={PAGE_KICKER}>Admin Settings</p>
         <h1 className={PAGE_TITLE}>Settings</h1>
       </div>
 
+      <div className="flex flex-wrap gap-1 border-b border-slate-200" role="tablist">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            onClick={() => setSearchParams(tab.id === 'general' ? {} : { tab: tab.id })}
+            className={`-mb-px border-b-2 px-3 py-2 text-xs font-semibold transition ${
+              activeTab === tab.id
+                ? 'border-emerald-600 text-emerald-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'contact' ? <WebsiteContactSettings /> : null}
+      {activeTab === 'about' ? <WebsiteAboutSettings /> : null}
+
+      {activeTab === 'general' ? (
+      <>
       <section className={`${PANEL} flex flex-wrap items-center justify-between gap-3 p-4`} aria-labelledby="appearance-title">
         <div>
           <h2 id="appearance-title" className="text-sm font-semibold text-slate-900">Appearance</h2>
@@ -420,6 +455,8 @@ export default function Settings() {
           )}
         </div>
       </div>
+      </>
+      ) : null}
     </div>
   );
 }

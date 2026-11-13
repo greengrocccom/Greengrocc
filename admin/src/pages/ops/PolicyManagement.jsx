@@ -206,7 +206,7 @@ function RolePoliciesScreen({ roleKey }) {
           <h1 className={PAGE_TITLE}>{roleLabel} policies</h1>
           <p className={PAGE_SUB}>
             {roleKey === 'customer'
-              ? 'Published policies appear on the Users website: /policies, Privacy Policy, and Terms & Conditions.'
+              ? 'Published policies appear on the Users website: /policies, Privacy Policy, and Terms & Conditions. Publish the "About Us page" entry to replace the website About Us content.'
               : `Add, edit, or delete policies for this role. Published items show in the ${roleLabel} panel.`}
           </p>
         </div>
@@ -349,6 +349,7 @@ function RolePoliciesScreen({ roleKey }) {
                     <option value="privacy">Privacy Policy page</option>
                     <option value="refund">Return &amp; Refund Policy page</option>
                     <option value="shipping">Shipping &amp; Delivery page</option>
+                    <option value="about">About Us page</option>
                   </select>
                   <span className="mt-1 block text-[11px] font-normal text-slate-400">
                     Keeps the page linked even if you rename the title.
