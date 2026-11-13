@@ -532,6 +532,28 @@ class ApiService {
     );
   }
 
+  /// `{ code, discountAmount, … }` for a usable gift card on [payableAmount].
+  Future<Map<String, dynamic>> validateGiftCard({
+    required String code,
+    required double payableAmount,
+  }) async {
+    final response = await _dio.post('/api/admin-ops/gift-cards/validate', data: {
+      'code': code.trim().toUpperCase(),
+      'payableAmount': payableAmount,
+      'subtotal': payableAmount,
+    });
+    final data = ApiResponseParser.getData(response.data);
+    if (data is Map<String, dynamic>) return data;
+    throw ApiException(ApiResponseParser.getMessage(response.data) ?? 'Invalid gift card');
+  }
+
+  /// Signed-in customer's points (`points`, `pointValueInRupees`) and the reward rules (`settings`).
+  Future<Map<String, dynamic>> fetchMyRewardPoints() async {
+    final response = await _dio.get('/api/rewards/my-points', queryParameters: {'limit': 1});
+    final data = ApiResponseParser.getData(response.data);
+    return data is Map<String, dynamic> ? data : const {};
+  }
+
   void _assertCustomerUser(User user) {
     if (user.isAdmin || user.isBlocked) {
       throw ApiException(user.blockedMessage);

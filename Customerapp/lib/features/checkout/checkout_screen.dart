@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -64,6 +66,70 @@ TextStyle _font({
       letterSpacing: letterSpacing,
     );
 
+/// Sent to the store inside the order note, like the website.
+const _deliveryInstructionOptions = ['Avoid calling', "Don't ring the bell", 'Leave at guard'];
+
+/// Admin reward-point rules from `/api/rewards/my-points`.
+class _RewardRules {
+  const _RewardRules({
+    required this.enabled,
+    required this.pointValue,
+    required this.spendAmount,
+    required this.pointsEarned,
+    required this.minOrderToEarn,
+    required this.minPointsToRedeem,
+    required this.maxRedemptionPercent,
+    required this.maxPointsPerOrder,
+    required this.minOrderToRedeem,
+    required this.terms,
+  });
+
+  factory _RewardRules.fromJson(Map<String, dynamic> settings, {num? pointValue}) {
+    double n(Object? v, double fallback) => v is num ? v.toDouble() : double.tryParse('$v') ?? fallback;
+    final rate = settings['earningRate'] is Map ? settings['earningRate'] as Map : const {};
+    return _RewardRules(
+      enabled: settings['enabled'] == true,
+      pointValue: n(pointValue ?? settings['pointValueInRupees'], 1),
+      spendAmount: n(rate['spendAmount'], 100),
+      pointsEarned: n(rate['pointsEarned'], 10),
+      minOrderToEarn: n(settings['minOrderAmountToEarn'], 0),
+      minPointsToRedeem: n(settings['minPointsToRedeem'], 0),
+      maxRedemptionPercent: n(settings['maxRedemptionPercent'], 50),
+      maxPointsPerOrder: n(settings['maxPointsPerOrder'], 0),
+      minOrderToRedeem: n(settings['minOrderAmountToRedeem'], 0),
+      terms: [
+        for (final t in (settings['termsAndConditions'] as List? ?? const []))
+          if ('$t'.trim().isNotEmpty) '$t'.trim(),
+      ],
+    );
+  }
+
+  final bool enabled;
+  final double pointValue;
+  final double spendAmount;
+  final double pointsEarned;
+  final double minOrderToEarn;
+  final double minPointsToRedeem;
+  final double maxRedemptionPercent;
+  final double maxPointsPerOrder;
+  final double minOrderToRedeem;
+  final List<String> terms;
+
+  /// Points usable on this cart: capped by balance, % of the order and the per-order limit.
+  int maxRedeemable({required int balance, required double subtotal, required double afterCoupon}) {
+    if (!enabled || balance <= 0) return 0;
+    if (subtotal < minOrderToRedeem || balance < minPointsToRedeem) return 0;
+    var max = (afterCoupon * maxRedemptionPercent / 100 / pointValue).floor();
+    if (maxPointsPerOrder > 0) max = max.clamp(0, maxPointsPerOrder.toInt());
+    return max.clamp(0, balance);
+  }
+
+  int pointsToEarn(double subtotal) {
+    if (!enabled || subtotal < minOrderToEarn || spendAmount <= 0) return 0;
+    return (subtotal / spendAmount * pointsEarned).floor();
+  }
+}
+
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key, this.initialCouponCode});
 
@@ -98,6 +164,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   List<Coupon> _coupons = const [];
   String? _couponsKey;
 
+  final Set<String> _deliveryInstructions = {};
+
+  final _giftCardController = TextEditingController();
+  Map<String, dynamic>? _appliedGiftCard;
+  bool _applyingGiftCard = false;
+  String _giftCardError = '';
+
+  _RewardRules? _rewardRules;
+  int _rewardBalance = 0;
+  bool _useRewards = false;
+  int _rewardPointsInput = 0;
+  /// Points actually redeemed on this cart (input capped by the rules); set each build.
+  int _effectiveRewardPoints = 0;
+
   late final Razorpay _razorpay;
   bool _placingOrder = false;
   /// Set once the order exists: the emptied cart must not bounce back to /cart.
@@ -126,6 +206,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (initialCode.isNotEmpty) {
         _applyCoupon(initialCode);
       }
+      unawaited(_loadRewards());
       await _loadPaymentMode();
     });
   }
@@ -134,7 +215,123 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void dispose() {
     _razorpay.clear();
     _couponController.dispose();
+    _giftCardController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRewards() async {
+    if (!ref.read(authControllerProvider).isLoggedIn) return;
+    try {
+      final data = await ref.read(apiServiceProvider).fetchMyRewardPoints();
+      final settings = data['settings'];
+      if (!mounted || settings is! Map<String, dynamic>) return;
+      setState(() {
+        _rewardBalance = (data['points'] as num?)?.toInt() ?? 0;
+        _rewardRules = _RewardRules.fromJson(settings, pointValue: data['pointValueInRupees'] as num?);
+      });
+    } catch (_) {
+      // Rewards section stays hidden.
+    }
+  }
+
+  /// Note plus the chosen delivery instructions, joined the way the website sends them.
+  String get _orderMessage => [
+        _message.trim(),
+        ..._deliveryInstructionOptions.where(_deliveryInstructions.contains),
+      ].where((part) => part.isNotEmpty).join(' | ');
+
+  Future<void> _applyGiftCard(double payableBeforeCard) async {
+    final code = _giftCardController.text.trim();
+    if (code.isEmpty) {
+      setState(() => _giftCardError = 'Enter a gift card code');
+      return;
+    }
+    setState(() {
+      _applyingGiftCard = true;
+      _giftCardError = '';
+    });
+    try {
+      final card = await ref
+          .read(apiServiceProvider)
+          .validateGiftCard(code: code, payableAmount: payableBeforeCard);
+      if (!mounted) return;
+      setState(() {
+        _appliedGiftCard = card;
+        _giftCardController.text = card['code']?.toString() ?? code.toUpperCase();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _appliedGiftCard = null;
+        _giftCardError = apiErrorMessage(e, fallback: 'Invalid gift card');
+      });
+    } finally {
+      if (mounted) setState(() => _applyingGiftCard = false);
+    }
+  }
+
+  void _removeGiftCard() => setState(() {
+        _appliedGiftCard = null;
+        _giftCardController.clear();
+        _giftCardError = '';
+      });
+
+  String? get _giftCardCode {
+    final code = _appliedGiftCard?['code']?.toString().trim() ?? '';
+    return code.isEmpty ? null : code;
+  }
+
+  /// Gift card code and redeemed points, for every checkout / order request.
+  Map<String, dynamic> get _savingsPayload => {
+        if (_giftCardCode != null) 'giftCardCode': _giftCardCode,
+        if (_effectiveRewardPoints > 0) 'rewardPointsToUse': _effectiveRewardPoints,
+      };
+
+  void _showRewardTerms(_RewardRules rules) {
+    final lines = rules.terms.isNotEmpty
+        ? rules.terms
+        : [
+            'Earn ${rules.pointsEarned.toStringAsFixed(0)} points for every ${formatInr(rules.spendAmount)} spent'
+                '${rules.minOrderToEarn > 0 ? ' on orders above ${formatInr(rules.minOrderToEarn)}' : ''}.',
+            '1 point = ${formatInrExact(rules.pointValue)}.',
+            'Use up to ${rules.maxRedemptionPercent.toStringAsFixed(0)}% of an order with points'
+                '${rules.maxPointsPerOrder > 0 ? ' (max ${rules.maxPointsPerOrder.toStringAsFixed(0)} points per order)' : ''}.',
+            if (rules.minPointsToRedeem > 0)
+              'You need at least ${rules.minPointsToRedeem.toStringAsFixed(0)} points to redeem.',
+            if (rules.minOrderToRedeem > 0)
+              'Points can be used on orders of ${formatInr(rules.minOrderToRedeem)} or more.',
+          ];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Reward points — Terms', style: _font(size: 17, weight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              for (final line in lines)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('•  ', style: _font(size: 13, color: _muted)),
+                      Expanded(child: Text(line, style: _font(size: 13, weight: FontWeight.w500, color: _slate700))),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadPaymentMode() async {
@@ -295,11 +492,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   /// Fields shared by the COD order, the Razorpay order and its verification.
   Map<String, dynamic> _orderPayload(Address address, List<CartItem> items) => {
         'addressId': address.id,
-        'customerMessage': _message.trim(),
+        'customerMessage': _orderMessage,
         'checkoutItems': _checkoutItemsPayload(items),
         'checkoutMode': 'cart',
         'customerLocation': _orderLocationPayload(address),
         if (_appliedCoupon != null) 'couponCode': _appliedCoupon!.code,
+        ..._savingsPayload,
         ..._fulfillmentPayload(items),
       };
 
@@ -459,7 +657,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   String _checkoutAttemptKey(List<CartItem> items) =>
-      '${_selectedAddressId ?? ''}|${_appliedCoupon?.code ?? ''}|$_fulfillment|${_preOrderSlot ?? ''}|${items.map((i) => '${i.id}:${i.quantity}').join(',')}';
+      '${_selectedAddressId ?? ''}|${_appliedCoupon?.code ?? ''}|${_giftCardCode ?? ''}|$_effectiveRewardPoints|$_fulfillment|${_preOrderSlot ?? ''}|${items.map((i) => '${i.id}:${i.quantity}').join(',')}';
 
   /// Records the checkout attempt and reads back the server-priced delivery fee.
   Future<void> _syncCheckoutAttempt(List<CartItem> items) async {
@@ -477,6 +675,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         'checkoutMode': 'cart',
         'customerLocation': _customerLocationPayload(),
         if (_appliedCoupon != null) 'couponCode': _appliedCoupon!.code,
+        ..._savingsPayload,
         ..._fulfillmentPayload(items),
       });
       final order = ApiResponseParser.getData(response.data) as Map<String, dynamic>;
@@ -626,6 +825,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final couponDiscount = (_appliedCoupon?.discountAmount ?? 0)
         .clamp(0.0, baseSummary.subtotal)
         .toDouble();
+    // Reward points and gift card, priced exactly like the website checkout.
+    final subtotalAfterCoupon = math.max(0.0, baseSummary.subtotal - couponDiscount);
+    final rewardRules = _rewardRules;
+    final rewardsActive = rewardRules?.enabled == true;
+    final maxRedeemablePoints = rewardRules?.maxRedeemable(
+          balance: _rewardBalance,
+          subtotal: baseSummary.subtotal,
+          afterCoupon: subtotalAfterCoupon,
+        ) ??
+        0;
+    _effectiveRewardPoints =
+        rewardsActive && _useRewards ? math.min(_rewardPointsInput, maxRedeemablePoints) : 0;
+    final rewardDiscount = (_effectiveRewardPoints * (rewardRules?.pointValue ?? 1) * 100).round() / 100;
+    final giftCardAmount = (_appliedGiftCard?['discountAmount'] as num?)?.toDouble() ?? 0;
+    final giftCardDiscount =
+        math.min(giftCardAmount, math.max(0.0, subtotalAfterCoupon - rewardDiscount));
+    final pointsToEarn = rewardRules?.pointsToEarn(baseSummary.subtotal) ?? 0;
     final localSummary = applyStorePickup(
       applyCouponDiscount(baseSummary, couponDiscount),
       pickup: isPickup,
@@ -639,7 +855,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final offerDiscount = attemptCurrent ? _serverOfferDiscount : 0.0;
     final packagingFee = serverPriced ? _serverPackagingFee : 0.0;
     final heavyFee = serverPriced ? _serverHeavyFee : 0.0;
-    final payable = (summary.total - offerDiscount + packagingFee + heavyFee).clamp(0.0, double.infinity);
+    final payable = (summary.total - offerDiscount - rewardDiscount - giftCardDiscount + packagingFee + heavyFee)
+        .clamp(0.0, double.infinity)
+        .toDouble();
     final feeKnown = isPickup || serverPriced || storeSettings != null;
 
     final groups = groupCartByDepartment(cartItems);
@@ -667,7 +885,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             (!serverPriced || summary.shipping == shippingChargeFor(summary.subtotal, storeSettings))
         ? nextCheaperShippingSlab(summary.subtotal, storeSettings)
         : null;
-    final totalSaved = summary.savings + couponDiscount + offerDiscount;
+    final totalSaved = summary.savings + couponDiscount + offerDiscount + rewardDiscount + giftCardDiscount;
     final mrpTotal = summary.subtotal + summary.savings;
 
     if (!cartLoading && cartItems.isEmpty && !_orderPlaced) {
@@ -857,8 +1075,35 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           ),
                         ),
                       ],
+                      if (!isPickup) ...[
+                        const SizedBox(height: 16),
+                        _Card(
+                          title: 'Delivery instructions',
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final option in _deliveryInstructionOptions)
+                                _InstructionChip(
+                                  label: option,
+                                  selected: _deliveryInstructions.contains(option),
+                                  onTap: () => setState(() {
+                                    if (!_deliveryInstructions.remove(option)) _deliveryInstructions.add(option);
+                                  }),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const _SectionLabel('SAVINGS CORNER'),
-                      _Card(child: _buildSavingsCorner()),
+                      _Card(
+                        child: _buildSavingsCorner(
+                          subtotal: baseSummary.subtotal,
+                          payableBeforeCard: math.max(0.0, subtotalAfterCoupon - rewardDiscount),
+                          giftCardDiscount: giftCardDiscount,
+                          maxRedeemablePoints: maxRedeemablePoints,
+                        ),
+                      ),
                       const _SectionLabel('BILL DETAILS'),
                       _Card(
                         child: Column(
@@ -875,6 +1120,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                 icon: Icons.local_offer_outlined,
                                 label: 'Coupon (${_appliedCoupon!.code})',
                                 value: '-${formatInr(couponDiscount)}',
+                                valueColor: _savedInk,
+                              ),
+                            if (giftCardDiscount > 0)
+                              _BillRow(
+                                icon: Icons.card_giftcard_outlined,
+                                label: 'Gift card',
+                                value: '-${formatInr(giftCardDiscount)}',
+                                valueColor: _savedInk,
+                              ),
+                            if (rewardDiscount > 0)
+                              _BillRow(
+                                icon: Icons.toll_outlined,
+                                label: 'Reward points ($_effectiveRewardPoints pts)',
+                                value: '-${formatInrExact(rewardDiscount)}',
                                 valueColor: _savedInk,
                               ),
                             if (offerDiscount > 0)
@@ -946,6 +1205,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                 ),
                               ],
                             ),
+                            if (rewardsActive && pointsToEarn > 0)
+                              Container(
+                                margin: const EdgeInsets.only(top: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFBEB),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.toll_rounded, size: 17, color: Color(0xFFF59E0B)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'You will earn +$pointsToEarn reward points on this order',
+                                        style: _font(size: 12, weight: FontWeight.w700, color: const Color(0xFF78350F)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -978,9 +1258,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
-  Widget _buildSavingsCorner() {
+  Widget _buildSavingsCorner({
+    required double subtotal,
+    required double payableBeforeCard,
+    required double giftCardDiscount,
+    required int maxRedeemablePoints,
+  }) {
     final applied = _appliedCoupon;
     final suggestion = _suggestedCoupon();
+    final giftCard = _appliedGiftCard;
+    final rules = _rewardRules;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1061,6 +1348,122 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             style: _font(size: 12, weight: FontWeight.w500, color: Colors.red.shade700),
           ),
         ],
+
+        // Gift card
+        const Divider(height: 24, thickness: 1, color: _slate100),
+        if (giftCard != null)
+          _CouponRow(
+            title: 'Gift card \'${giftCard['code'] ?? ''}\'',
+            subtitle: 'Balance used ${formatInr(giftCardDiscount)}',
+            actionLabel: 'Remove',
+            actionColor: Colors.red.shade700,
+            onAction: _removeGiftCard,
+          )
+        else
+          _CodeInputRow(
+            controller: _giftCardController,
+            hint: 'Have a gift card?',
+            busy: _applyingGiftCard,
+            onApply: () => _applyGiftCard(payableBeforeCard),
+          ),
+        if (_giftCardError.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            _giftCardError,
+            style: _font(size: 12, weight: FontWeight.w500, color: Colors.red.shade700),
+          ),
+        ],
+
+        // Reward points
+        if (rules != null && rules.enabled) ...[
+          const Divider(height: 24, thickness: 1, color: _slate100),
+          Row(
+            children: [
+              const Icon(Icons.toll_rounded, size: 17, color: Color(0xFFF59E0B)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(children: [
+                    const TextSpan(text: 'Reward points '),
+                    TextSpan(
+                      text: '· $_rewardBalance pts (${formatInrExact(_rewardBalance * rules.pointValue)})',
+                      style: _font(size: 13, weight: FontWeight.w600, color: _muted),
+                    ),
+                  ]),
+                  style: _font(size: 13, weight: FontWeight.w800),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _showRewardTerms(rules),
+                child: Text(
+                  'T&C',
+                  style: _font(size: 11, weight: FontWeight.w600, color: _muted, decoration: TextDecoration.underline),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_rewardBalance <= 0)
+            Text('Earn points on this order and redeem them next time.',
+                style: _font(size: 12, weight: FontWeight.w500, color: _muted))
+          else if (subtotal < rules.minOrderToRedeem)
+            Text('Minimum order of ${formatInr(rules.minOrderToRedeem)} required to redeem points.',
+                style: _font(size: 12, weight: FontWeight.w600, color: const Color(0xFFB45309)))
+          else if (_rewardBalance < rules.minPointsToRedeem)
+            Text('Minimum ${rules.minPointsToRedeem.toStringAsFixed(0)} points required to redeem.',
+                style: _font(size: 12, weight: FontWeight.w500, color: _muted))
+          else ...[
+            InkWell(
+              onTap: maxRedeemablePoints <= 0
+                  ? null
+                  : () => setState(() {
+                        _useRewards = !_useRewards;
+                        _rewardPointsInput = _useRewards ? maxRedeemablePoints : 0;
+                      }),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      value: _useRewards,
+                      activeColor: _accent,
+                      onChanged: maxRedeemablePoints <= 0
+                          ? null
+                          : (value) => setState(() {
+                                _useRewards = value ?? false;
+                                _rewardPointsInput = _useRewards ? maxRedeemablePoints : 0;
+                              }),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(children: [
+                        const TextSpan(text: 'Use up to '),
+                        TextSpan(
+                          text: '$maxRedeemablePoints',
+                          style: _font(size: 12, weight: FontWeight.w800, color: _ink),
+                        ),
+                        TextSpan(text: ' points (max ${rules.maxRedemptionPercent.toStringAsFixed(0)}% of order)'),
+                      ]),
+                      style: _font(size: 12, weight: FontWeight.w500, color: _slate700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_useRewards) ...[
+              const SizedBox(height: 8),
+              _RewardPointsInput(
+                value: math.min(_rewardPointsInput, maxRedeemablePoints),
+                max: maxRedeemablePoints,
+                onChanged: (points) => setState(() => _rewardPointsInput = points),
+              ),
+            ],
+          ],
+        ],
+
         const SizedBox(height: 12),
         const Divider(height: 1, thickness: 1, color: _slate100),
         InkWell(
@@ -1909,6 +2312,168 @@ class _PayBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _InstructionChip extends StatelessWidget {
+  const _InstructionChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? const Color(0xFFECFDF5) : Colors.white,
+      shape: StadiumBorder(side: BorderSide(color: selected ? _accent : const Color(0xFFE2E8F0))),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const StadiumBorder(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (selected) ...[
+                const Icon(Icons.check_rounded, size: 14, color: _accent),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: _font(size: 12, weight: FontWeight.w600, color: selected ? _accent : _slate700),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Grey code field with an APPLY action (gift card).
+class _CodeInputRow extends StatelessWidget {
+  const _CodeInputRow({
+    required this.controller,
+    required this.hint,
+    required this.busy,
+    required this.onApply,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final bool busy;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            textCapitalization: TextCapitalization.characters,
+            cursorColor: _accent,
+            style: _font(size: 14, weight: FontWeight.w600),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: _font(size: 14, weight: FontWeight.w500, color: _slate400),
+              isDense: true,
+              filled: true,
+              fillColor: _slate100,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 2),
+              ),
+            ),
+            onSubmitted: (_) => onApply(),
+          ),
+        ),
+        const SizedBox(width: 4),
+        TextButton(
+          onPressed: busy ? null : onApply,
+          style: TextButton.styleFrom(
+            foregroundColor: _accent,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            minimumSize: const Size(0, 40),
+          ),
+          child: busy
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: _accent),
+                )
+              : Text('APPLY', style: _font(size: 14, weight: FontWeight.w800, color: _accent)),
+        ),
+      ],
+    );
+  }
+}
+
+/// Number of points to redeem, capped at [max], with a "Max" shortcut.
+class _RewardPointsInput extends StatefulWidget {
+  const _RewardPointsInput({required this.value, required this.max, required this.onChanged});
+
+  final int value;
+  final int max;
+  final ValueChanged<int> onChanged;
+
+  @override
+  State<_RewardPointsInput> createState() => _RewardPointsInputState();
+}
+
+class _RewardPointsInputState extends State<_RewardPointsInput> {
+  late final _controller = TextEditingController(text: '${widget.value}');
+
+  @override
+  void didUpdateWidget(covariant _RewardPointsInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (int.tryParse(_controller.text) != widget.value) _controller.text = '${widget.value}';
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            cursorColor: _accent,
+            style: _font(size: 14, weight: FontWeight.w700),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: _slate100,
+              suffixText: 'pts',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            ),
+            onChanged: (text) => widget.onChanged((int.tryParse(text) ?? 0).clamp(0, widget.max)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        TextButton(
+          onPressed: () => widget.onChanged(widget.max),
+          style: TextButton.styleFrom(
+            backgroundColor: const Color(0xFFFEF3C7),
+            foregroundColor: const Color(0xFF92400E),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            minimumSize: const Size(0, 40),
+          ),
+          child: Text('Max', style: _font(size: 12, weight: FontWeight.w800, color: const Color(0xFF92400E))),
+        ),
+      ],
     );
   }
 }
